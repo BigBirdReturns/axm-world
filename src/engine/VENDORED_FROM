@@ -1,0 +1,19 @@
+# Provenance for the vendored simulation engine.
+#
+# The files in this directory (src/engine/) are vendored verbatim from
+# axm-arc. world keeps a local copy so its build/deploy stay self-contained
+# (no axm-arc access required at build time). This file records exactly which
+# axm-arc commit the copy corresponds to, so drift can be detected.
+#
+# To re-sync after axm-arc's engine changes:
+#   scripts/sync-engine.sh [<axm-arc ref, default: main>]
+#
+# To check for silent drift against the pinned commit:
+#   scripts/check-engine-drift.sh
+#
+# Both are wired as npm scripts: `npm run engine:sync`, `npm run engine:check`.
+
+repo: BigBirdReturns/axm-arc
+path: src/engine
+commit: ec85a69a417b026b1131a22a732190b996826050
+synced: 2026-06-25
