@@ -14,6 +14,7 @@ import {
   loadArcLibrary,
   saveActiveArcId,
 } from "./lib/arc-library.js";
+import { arcUrlParam, importArcFromUrl } from "./lib/arc-loader.js";
 import { getAdvanceBlockers, isAdvanceBlocked } from "./lib/advance-blockers.js";
 import { bootstrapOrg } from "../spoke/bootstrap.js";
 import { triageDrama } from "../engine/drama-triage.js";
@@ -26,7 +27,7 @@ import { ReportsScreen } from "./components/ReportsScreen.js";
 import { SituationSidebar } from "./components/SituationSidebar.js";
 import { CycleTransition } from "./components/CycleTransition.js";
 import { TutorialGuide, useTutorial, deriveTutorialStep, tutorialPulseTab, tutorialPulseAdvance } from "./components/TutorialGuide.js";
-import { TitleScreen } from "./components/TitleScreen.js";
+import { TitleScreen, type TitleNotice } from "./components/TitleScreen.js";
 import { LibraryScreen } from "./components/LibraryScreen.js";
 import { DesignerScreen } from "./components/DesignerScreen.js";
 import { ArcPlayDemo } from "./components/ArcPlayDemo.js";
@@ -170,6 +171,8 @@ export function App(): JSX.Element {
   const [cycleTransition, setCycleTransition] = useState<{ fromCycle: number; toCycle: number } | null>(null);
   const [codexOpen, setCodexOpen] = useState(false);
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
+  // Transient banner for the `?arc=` cartridge deep-link (loading/success/error).
+  const [arcNotice, setArcNotice] = useState<TitleNotice | null>(null);
 
   // Intent — player-authored pull-quote, persisted separately from game state
   const [intent, setIntent] = useState<string>(() => {
@@ -188,6 +191,59 @@ export function App(): JSX.Element {
   useEffect(() => {
     saveSave(org, arc);
   }, [org]);
+
+  // Swap the active arc and reset all per-game state for a fresh charter on the
+  // new arc. Shared by the library's "Load" button and the `?arc=` deep-link so
+  // both go through exactly one code path.
+  const swapToArc = (next: typeof FIRST_CHARTER) => {
+    saveActiveArcId(next.meta.id);
+    clearSave();
+    setArc(next);
+    setOrg(buildNewOrg(next));
+    setLastReports([]);
+    setPendingRewardChoices([]);
+    setRewardDecisions([]);
+    setAssignments([]);
+    setTab("Drama");
+  };
+
+  // Cartridge deep-link: `?arc=<url>` fetches an arc from anywhere, validates
+  // it, adds it to the library, and starts a fresh charter on it. The param is
+  // stripped from the URL first so a refresh doesn't re-import. An in-progress
+  // save for a *different* arc is protected behind a confirm. Runs once on mount.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = arcUrlParam(window.location.search);
+    if (!url) return;
+
+    // Strip ?arc= so reloads and shared screenshots don't re-trigger the import.
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.delete("arc");
+      window.history.replaceState({}, "", u.toString());
+    } catch { /* noop */ }
+
+    setArcNotice({ tone: "info", text: `Loading cartridge from ${url}…` });
+    importArcFromUrl(url).then((result) => {
+      if (!result.ok) {
+        setArcNotice({ tone: "error", text: `Couldn't load cartridge: ${result.errors.join(" · ")}` });
+        return;
+      }
+      const next = result.entry.arc;
+      if (next.meta.id === arc.meta.id) {
+        setArcNotice({ tone: "success", text: `"${next.meta.name}" is already the active arc.` });
+        return;
+      }
+      const hasSave = loadSave(arc) !== null;
+      if (hasSave && !confirm(`Loading "${next.meta.name}" will clear your current save. Continue?`)) {
+        setArcNotice({ tone: "info", text: `Kept your current arc. "${next.meta.name}" is saved in the Library.` });
+        return;
+      }
+      swapToArc(next);
+      setArcNotice({ tone: "success", text: `Loaded "${next.meta.name}" v${next.meta.version}. Started a fresh charter.` });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     try { localStorage.setItem(INTENT_KEY, intent); } catch { /* noop */ }
@@ -463,6 +519,8 @@ export function App(): JSX.Element {
         onOpenLibrary={() => setMode("library")}
         onOpenDesigner={() => setMode("designer")}
         onOpenPlayDemo={() => setMode("playDemo")}
+        notice={arcNotice}
+        onDismissNotice={() => setArcNotice(null)}
       />
     );
   }
@@ -483,22 +541,14 @@ export function App(): JSX.Element {
         onLoadArc={(arcId) => {
           // Loading a different arc means the existing save (keyed to a single
           // global slot) is meaningless. Warn before clobbering progress, then
-          // wipe, swap arc, and rebuild org for the new arc.
+          // swap via the shared path and rebuild org for the new arc.
           const hasExistingSave = loadSave(arc) !== null;
           if (hasExistingSave && arcId !== arc.meta.id) {
             if (!confirm("Loading a different arc will clear your current save. Continue?")) return;
           }
-          saveActiveArcId(arcId);
-          clearSave();
           const entries = loadArcLibrary();
           const next = entries.find((e) => e.arc.meta.id === arcId)?.arc ?? FIRST_CHARTER;
-          setArc(next);
-          setOrg(buildNewOrg(next));
-          setLastReports([]);
-          setPendingRewardChoices([]);
-          setRewardDecisions([]);
-          setAssignments([]);
-          setTab("Drama");
+          swapToArc(next);
           setMode("title");
         }}
       />

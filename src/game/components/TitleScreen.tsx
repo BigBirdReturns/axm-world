@@ -6,6 +6,13 @@ import { CodexOverlay, TrustLabel } from "../../codex/index.js";
 import { WhatsNew } from "../../release-notes/index.js";
 import { VARIANT, VARIANT_LABELS } from "../../variants/index.js";
 
+// A transient banner the host can show on the title surface — used by the
+// `?arc=` cartridge deep-link to report loading / success / failure.
+export interface TitleNotice {
+  tone: "info" | "success" | "error";
+  text: string;
+}
+
 interface Props {
   arc: Arc;
   onContinue: () => void;
@@ -13,9 +20,11 @@ interface Props {
   onOpenLibrary: () => void;
   onOpenDesigner: () => void;
   onOpenPlayDemo: () => void;
+  notice?: TitleNotice | null;
+  onDismissNotice?: () => void;
 }
 
-export function TitleScreen({ arc, onContinue, onNewGame, onOpenLibrary, onOpenDesigner, onOpenPlayDemo }: Props): JSX.Element {
+export function TitleScreen({ arc, onContinue, onNewGame, onOpenLibrary, onOpenDesigner, onOpenPlayDemo, notice, onDismissNotice }: Props): JSX.Element {
   const existing = loadSave(arc);
   const hasSave = existing !== null;
   const [manualOpen, setManualOpen] = useState(false);
@@ -29,6 +38,37 @@ export function TitleScreen({ arc, onContinue, onNewGame, onOpenLibrary, onOpenD
   return (
     <div className="title-screen">
       <div className="title-content">
+        {notice && (
+          <div
+            role={notice.tone === "error" ? "alert" : "status"}
+            style={{
+              marginBottom: 20,
+              padding: "10px 14px",
+              borderRadius: 6,
+              border: `1px solid ${notice.tone === "success" ? "var(--positive)" : "var(--accent)"}`,
+              background: notice.tone === "success" ? "var(--positive-lt)" : "var(--accent-lt)",
+              color: "var(--ink)",
+              fontSize: 13,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              textAlign: "left",
+            }}
+          >
+            <span style={{ flex: 1 }}>{notice.text}</span>
+            {onDismissNotice && (
+              <button
+                type="button"
+                className="title-secondary-link"
+                onClick={onDismissNotice}
+                aria-label="Dismiss"
+                style={{ flexShrink: 0 }}
+              >
+                Dismiss
+              </button>
+            )}
+          </div>
+        )}
         <div className="title-imprint">AXM</div>
         <div className="title-rule" />
         <h1 className="title-name">{arc.meta.name}</h1>
