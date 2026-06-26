@@ -22,8 +22,14 @@ if (!(VALID_VARIANTS as readonly string[]).includes(rawVariant)) {
 }
 const variant = rawVariant;
 
+// Public base path the built demo is served from. On GitHub Pages this repo
+// publishes to https://<owner>.github.io/axm-world/, with the playable demo
+// under /game/ (the landing page sits at the root). Override with VITE_BASE
+// for a different host (e.g. a custom domain → '/game/').
+const base = process.env.VITE_BASE ?? '/axm-world/game/';
+
 export default defineConfig({
-  base: '/axm-arc/game/',
+  base,
   define: {
     __BUILD_SHA__: JSON.stringify(buildSha),
     __VARIANT__: JSON.stringify(variant),
