@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>axm-world — drop in a cartridge, play it</title>
+    <meta name="description" content="A renderer that takes any AXM arc and makes it playable in the browser. Same deterministic brain, swappable player." />
+    <meta property="og:title" content="axm-world — the AXM play spoke" />
+    <meta property="og:description" content="Arc in → playable web app out. Drop in a cartridge, play it." />
+    <meta property="og:type" content="website" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --paper: #17150f;
+        --paper-alt: #211d16;
+        --paper-dk: #2a2620;
+        --ink: #ece4d4;
+        --muted: #a59c8b;
+        --dim: #6e675a;
+        --rule: #352f27;
+        --rule-dk: #4a4238;
+        --accent: #b01c18;
+        --accent-dp: #8a160f;
+        --gold: #c9a14a;
+        --positive: #74ad77;
+        --display: "Barlow Condensed", system-ui, sans-serif;
+        --serif: "Lora", Georgia, serif;
+        --mono: "IBM Plex Mono", ui-monospace, monospace;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--serif);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: inherit; }
+      .wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+      header {
+        border-bottom: 1px solid var(--rule);
+        background:
+          radial-gradient(120% 140% at 50% -20%, var(--paper-alt) 0%, var(--paper) 60%);
+      }
+      .masthead { padding: 18px 0; display: flex; align-items: baseline; gap: 14px; }
+      .masthead .kicker {
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      .masthead .dateline {
+        margin-left: auto;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--dim);
+        letter-spacing: 0.06em;
+      }
+
+      .hero { padding: 56px 0 64px; }
+      .hero h1 {
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: clamp(40px, 8vw, 78px);
+        line-height: 0.98;
+        letter-spacing: -0.01em;
+        margin: 0 0 18px;
+        text-wrap: balance;
+      }
+      .hero h1 em { font-style: normal; color: var(--gold); }
+      .hero .lede {
+        font-size: clamp(18px, 2.4vw, 22px);
+        color: var(--muted);
+        max-width: 56ch;
+        margin: 0 0 36px;
+      }
+      .cta-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+      .btn {
+        display: inline-flex; align-items: center; gap: 10px;
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 19px;
+        letter-spacing: 0.02em;
+        text-decoration: none;
+        padding: 14px 26px;
+        border-radius: 2px;
+        transition: transform 0.08s ease, background 0.15s ease;
+      }
+      .btn:active { transform: translateY(1px); }
+      .btn-primary {
+        background: var(--accent);
+        color: #fff;
+        box-shadow: 0 1px 0 var(--accent-dp), 0 8px 24px -12px var(--accent);
+      }
+      .btn-primary:hover { background: #c52320; }
+      .btn-ghost {
+        color: var(--ink);
+        border: 1px solid var(--rule-dk);
+        padding: 13px 22px;
+      }
+      .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+      .btn .arrow { font-family: var(--mono); }
+
+      .deal {
+        font-family: var(--mono);
+        font-size: 12.5px;
+        color: var(--dim);
+        margin-top: 18px;
+        letter-spacing: 0.04em;
+      }
+
+      section.cols { padding: 8px 0 64px; border-top: 1px solid var(--rule); }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; padding-top: 44px; }
+      @media (max-width: 680px) { .grid { grid-template-columns: 1fr; gap: 30px; } }
+      .card h3 {
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--gold);
+        margin: 0 0 10px;
+      }
+      .card p { margin: 0; color: var(--muted); font-size: 16px; }
+      .card code {
+        font-family: var(--mono);
+        font-size: 13px;
+        color: var(--ink);
+        background: var(--paper-alt);
+        padding: 1px 5px;
+        border-radius: 2px;
+      }
+
+      .pull {
+        border-left: 3px solid var(--accent);
+        padding: 6px 0 6px 22px;
+        margin: 0 0 8px;
+        font-size: clamp(20px, 3vw, 26px);
+        font-family: var(--serif);
+        font-style: italic;
+        color: var(--ink);
+      }
+      .pull-sec { padding: 56px 0; border-top: 1px solid var(--rule); }
+
+      footer {
+        border-top: 1px solid var(--rule);
+        padding: 28px 0 48px;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        color: var(--dim);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: center;
+      }
+      footer a { color: var(--muted); text-decoration: none; }
+      footer a:hover { color: var(--gold); }
+      footer .sep { color: var(--rule-dk); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap masthead">
+        <span class="kicker">axm-world</span>
+        <span class="dateline">the AXM play spoke</span>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <h1>Drop in a cartridge,<br /><em>play it.</em></h1>
+        <p class="lede">
+          <strong>Arc in → playable web app out.</strong> axm-world is a renderer
+          that takes any AXM arc — a deterministic ruleset plus a charter — and
+          turns it into a real, populated organization you can run, cycle by cycle,
+          in your browser.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="game/">Play the demo <span class="arrow">→</span></a>
+          <a class="btn btn-ghost" href="https://github.com/BigBirdReturns/axm-world">View the source</a>
+        </div>
+        <p class="deal">No install. Runs entirely in the browser · deterministic · same seed → same opening, every time.</p>
+      </section>
+
+      <section class="cols">
+        <div class="grid">
+          <div class="card">
+            <h3>The brain</h3>
+            <p>A deterministic rules engine — pure, headless functions like <code>runCycle</code> and a seeded PRNG. The renderer never reimplements the rules; it draws whatever the engine returns.</p>
+          </div>
+          <div class="card">
+            <h3>The player</h3>
+            <p>Roster, assignment, drama, base, and reports across cycles — an arc-agnostic UI that renders whatever charter it's handed, not a single hardcoded game.</p>
+          </div>
+          <div class="card">
+            <h3>The cartridge slot</h3>
+            <p><code>bootstrapOrg(arc)</code> drives the engine against any arc's tiers, roles, and name pool to generate a populated starting org. That's what turns "loads any arc" into "plays any arc."</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="pull-sec">
+        <p class="pull">Same brain, swappable player. The logic stays portable; the presentation stays replaceable.</p>
+      </section>
+    </main>
+
+    <footer class="wrap">
+      <span>© 2026 axm-world</span>
+      <span class="sep">·</span>
+      <a href="game/">Play the demo</a>
+      <span class="sep">·</span>
+      <a href="https://github.com/BigBirdReturns/axm-world">GitHub</a>
+      <span class="sep">·</span>
+      <a href="https://github.com/BigBirdReturns/axm-world/blob/main/README.md">How it works</a>
+    </footer>
+  </body>
+</html>

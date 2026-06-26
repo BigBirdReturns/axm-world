@@ -1,0 +1,63 @@
+name: pages
+
+# Builds the playable demo and publishes the site to GitHub Pages:
+#   /        -> docs/index.html  (landing page, committed)
+#   /game/   -> docs/game/**     (Vite build, produced here)
+# The site root is the docs/ directory; the demo's base path is /axm-world/game/
+# (see vite.config.ts), which matches https://<owner>.github.io/axm-world/game/.
+
+on:
+  push:
+    branches:
+      - main
+      - claude/sweet-ramanujan-sta8jz
+  workflow_dispatch:
+
+# Least privilege needed to publish to Pages via the official actions.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never run two publishes at once; let an in-flight deploy finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the demo (emits docs/game)
+        run: npm run build
+
+      - name: Configure Pages
+        # Reads the repo's Pages config (base path etc.). Pages must already be
+        # enabled with source = "GitHub Actions" (Settings → Pages); the default
+        # workflow token can't enable it, so that's a one-time manual step.
+        uses: actions/configure-pages@v5
+
+      - name: Upload site artifact (landing + demo)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

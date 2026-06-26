@@ -11,6 +11,7 @@ import {
   loadArcLibrary,
   removeArc,
 } from "../lib/arc-library.js";
+import { importArcFromUrl } from "../lib/arc-loader.js";
 
 interface Props {
   arc: Arc; // currently-active arc (for "this is loaded" badge)
@@ -24,6 +25,8 @@ export function LibraryScreen({ arc, onBack, onLoadArc }: Props): JSX.Element {
   const [importErrors, setImportErrors] = useState<string[]>([]);
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const [inspectEntry, setInspectEntry] = useState<ArcLibraryEntry | null>(null);
+  const [urlDraft, setUrlDraft] = useState("");
+  const [urlBusy, setUrlBusy] = useState(false);
 
   const refresh = () => setEntries(loadArcLibrary());
 
@@ -47,6 +50,26 @@ export function LibraryScreen({ arc, onBack, onLoadArc }: Props): JSX.Element {
     setImportMsg(`Imported "${result.entry.arc.meta.name}" v${result.entry.arc.meta.version}.`);
     setJsonDraft("");
     refresh();
+  };
+
+  const handleLoadUrl = async () => {
+    const url = urlDraft.trim();
+    if (url.length === 0) return;
+    setImportErrors([]);
+    setImportMsg(null);
+    setUrlBusy(true);
+    try {
+      const result = await importArcFromUrl(url);
+      if (!result.ok) {
+        setImportErrors(result.errors);
+        return;
+      }
+      setImportMsg(`Imported "${result.entry.arc.meta.name}" v${result.entry.arc.meta.version} from URL.`);
+      setUrlDraft("");
+      refresh();
+    } finally {
+      setUrlBusy(false);
+    }
   };
 
   const handleRemove = (entry: ArcLibraryEntry) => {
@@ -112,9 +135,30 @@ export function LibraryScreen({ arc, onBack, onLoadArc }: Props): JSX.Element {
         <div style={{ marginTop: 32 }}>
           <h2 className="codex-section-title">Import arc</h2>
           <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
-            Paste arc JSON below, or upload a file. Import runs schema validation;
-            invalid arcs are rejected with a line-by-line explanation.
+            Load from a URL, upload a file, or paste arc JSON below. Import runs
+            schema validation; invalid arcs are rejected with a line-by-line
+            explanation. (Tip: anyone can hand you a <code>?arc=&lt;url&gt;</code>
+            link to load a cartridge straight into the game.)
           </p>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <input
+              type="url"
+              inputMode="url"
+              value={urlDraft}
+              onChange={(e) => setUrlDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !urlBusy) void handleLoadUrl(); }}
+              placeholder="https://example.com/my-arc.json"
+              style={{ flex: 1, fontFamily: "var(--mono)", fontSize: 12 }}
+            />
+            <button
+              className="primary"
+              onClick={() => void handleLoadUrl()}
+              disabled={urlBusy || urlDraft.trim().length === 0}
+            >
+              {urlBusy ? "Loading…" : "Load from URL"}
+            </button>
+          </div>
 
           <input
             type="file"
