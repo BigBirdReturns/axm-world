@@ -20,11 +20,12 @@ interface Props {
   onOpenLibrary: () => void;
   onOpenDesigner: () => void;
   onOpenPlayDemo: () => void;
+  onOpenWorld: () => void;
   notice?: TitleNotice | null;
   onDismissNotice?: () => void;
 }
 
-export function TitleScreen({ arc, onContinue, onNewGame, onOpenLibrary, onOpenDesigner, onOpenPlayDemo, notice, onDismissNotice }: Props): JSX.Element {
+export function TitleScreen({ arc, onContinue, onNewGame, onOpenLibrary, onOpenDesigner, onOpenPlayDemo, onOpenWorld, notice, onDismissNotice }: Props): JSX.Element {
   const existing = loadSave(arc);
   const hasSave = existing !== null;
   const [manualOpen, setManualOpen] = useState(false);
@@ -123,6 +124,12 @@ export function TitleScreen({ arc, onContinue, onNewGame, onOpenLibrary, onOpenD
             onClick={onOpenPlayDemo}
           >
             Play Pipeline Demo
+          </button>
+          <button
+            className="primary accent"
+            onClick={onOpenWorld}
+          >
+            Enter the World (3D)
           </button>
           <button
             className="secondary"

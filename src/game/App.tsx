@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import type { Agent, DramaCard, Facility, InfrastructureFacility, Organization, RunReport } from "../engine/types.js";
 import { runCycle, type ChallengeAssignment, type PendingRewardChoice, type RewardDecision } from "../engine/cycle.js";
 import {
@@ -31,6 +31,12 @@ import { TitleScreen, type TitleNotice } from "./components/TitleScreen.js";
 import { LibraryScreen } from "./components/LibraryScreen.js";
 import { DesignerScreen } from "./components/DesignerScreen.js";
 import { ArcPlayDemo } from "./components/ArcPlayDemo.js";
+// Lazy: the 3D world pulls in three.js / R3F (~1MB). Keep it out of the main
+// bundle so the 2D app stays "click-and-play instantly" — three only loads when
+// the player enters the world.
+const WorldScreen = lazy(() =>
+  import("../world/WorldScreen.js").then((m) => ({ default: m.WorldScreen })),
+);
 import { CountUp } from "../liveness/index.js";
 import { CycleChecklist } from "./components/CycleChecklist.js";
 import { ThresholdBar } from "./components/ThresholdBar.js";
@@ -155,7 +161,7 @@ function buildNewOrg(activeArc: typeof FIRST_CHARTER): Organization {
 }
 
 export function App(): JSX.Element {
-  const [mode, setMode] = useState<"title" | "play" | "library" | "designer" | "playDemo">("title");
+  const [mode, setMode] = useState<"title" | "play" | "library" | "designer" | "playDemo" | "world">("title");
   const tutorial = useTutorial();
   const [tab, setTab] = useState<Tab>("Roster");
   const [arc, setArc] = useState<typeof FIRST_CHARTER>(() => resolveActiveArc());
@@ -519,6 +525,7 @@ export function App(): JSX.Element {
         onOpenLibrary={() => setMode("library")}
         onOpenDesigner={() => setMode("designer")}
         onOpenPlayDemo={() => setMode("playDemo")}
+        onOpenWorld={() => setMode("world")}
         notice={arcNotice}
         onDismissNotice={() => setArcNotice(null)}
       />
@@ -527,6 +534,30 @@ export function App(): JSX.Element {
 
   if (mode === "designer") {
     return <DesignerScreen arc={arc} onBack={() => setMode("title")} />;
+  }
+
+  if (mode === "world") {
+    return (
+      <Suspense
+        fallback={
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "grid",
+              placeItems: "center",
+              background: "#0b0a08",
+              color: "#a59c8b",
+              font: "14px 'IBM Plex Mono', ui-monospace, monospace",
+            }}
+          >
+            Loading world…
+          </div>
+        }
+      >
+        <WorldScreen arc={arc} onExit={() => setMode("title")} />
+      </Suspense>
+    );
   }
 
   if (mode === "playDemo") {
