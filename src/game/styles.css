@@ -3200,3 +3200,135 @@ button.tutorial-pulse-btn {
     flex-direction: column;
   }
 }
+
+.presentation-switch {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.charter-board-card {
+  position: relative;
+  overflow: hidden;
+  padding: 28px 18px 54px;
+  background:
+    radial-gradient(circle at 50% 24%, rgba(255, 238, 179, 0.34), transparent 32%),
+    linear-gradient(135deg, #4b2c18, #1f140e 70%);
+  perspective: 1200px;
+}
+
+.charter-board-card::before {
+  content: "";
+  position: absolute;
+  inset: 18px;
+  border: 2px solid rgba(255, 224, 153, 0.24);
+  border-radius: 28px;
+  pointer-events: none;
+}
+
+.charter-board-map {
+  min-height: 590px;
+  filter: drop-shadow(0 30px 28px rgba(0, 0, 0, 0.42));
+  transform: rotateX(54deg) rotateZ(-2deg);
+  transform-origin: 50% 58%;
+}
+
+.charter-board-map .map-edge {
+  stroke-width: 5;
+  stroke: rgba(67, 48, 27, 0.58);
+}
+
+.charter-board-map .map-node circle {
+  filter: drop-shadow(0 10px 0 rgba(62, 39, 18, 0.22));
+}
+
+.charter-board-map .map-node text:last-of-type {
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 4px;
+}
+
+.board-shadow {
+  fill: rgba(0, 0, 0, 0.22);
+}
+
+.board-terrain {
+  fill: rgba(118, 154, 91, 0.28);
+  stroke: rgba(66, 93, 49, 0.28);
+  stroke-width: 2;
+}
+
+.board-river {
+  fill: none;
+  stroke: rgba(84, 143, 176, 0.4);
+  stroke-width: 24;
+  stroke-linecap: round;
+}
+
+.selectable-party {
+  display: grid;
+  gap: 6px;
+}
+
+.selectable-party button {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--rule);
+  background: var(--paper-alt);
+  color: var(--ink);
+  padding: 8px;
+  cursor: pointer;
+}
+
+.selectable-party button.selected {
+  border-color: var(--accent);
+  background: var(--accent-lt);
+}
+
+.selectable-party strong,
+.selectable-party span {
+  display: block;
+}
+
+.selectable-party span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.downtime-grid {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 14px;
+}
+
+.downtime-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(3, auto);
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--rule);
+  background: var(--paper-alt);
+  padding: 7px;
+}
+
+.downtime-row > span {
+  min-width: 0;
+  font-size: 12px;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.downtime-row button {
+  border: 1px solid var(--rule-dk);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 4px 6px;
+  cursor: pointer;
+}

@@ -31,6 +31,7 @@ import { TitleScreen, type TitleNotice } from "./components/TitleScreen.js";
 import { LibraryScreen } from "./components/LibraryScreen.js";
 import { DesignerScreen } from "./components/DesignerScreen.js";
 import { ArcPlayDemo } from "./components/ArcPlayDemo.js";
+import { loadPresentationPreference, savePresentationPreference, type PresentationId } from "./lib/presentation.js";
 // Lazy: the 3D world pulls in three.js / R3F (~1MB). Keep it out of the main
 // bundle so the 2D app stays "click-and-play instantly" — three only loads when
 // the player enters the world.
@@ -161,7 +162,8 @@ function buildNewOrg(activeArc: typeof FIRST_CHARTER): Organization {
 }
 
 export function App(): JSX.Element {
-  const [mode, setMode] = useState<"title" | "play" | "library" | "designer" | "playDemo" | "world">("title");
+  const [mode, setMode] = useState<"title" | "play" | "library" | "designer" | "presentation" | "world">("title");
+  const [selectedPresentation, setSelectedPresentation] = useState<PresentationId>(() => loadPresentationPreference(resolveActiveArc()));
   const tutorial = useTutorial();
   const [tab, setTab] = useState<Tab>("Roster");
   const [arc, setArc] = useState<typeof FIRST_CHARTER>(() => resolveActiveArc());
@@ -205,6 +207,7 @@ export function App(): JSX.Element {
     saveActiveArcId(next.meta.id);
     clearSave();
     setArc(next);
+    setSelectedPresentation(loadPresentationPreference(next));
     setOrg(buildNewOrg(next));
     setLastReports([]);
     setPendingRewardChoices([]);
@@ -524,8 +527,12 @@ export function App(): JSX.Element {
         }}
         onOpenLibrary={() => setMode("library")}
         onOpenDesigner={() => setMode("designer")}
-        onOpenPlayDemo={() => setMode("playDemo")}
-        onOpenWorld={() => setMode("world")}
+        selectedPresentation={selectedPresentation}
+        onOpenPresentation={(presentation) => {
+          savePresentationPreference(arc, presentation);
+          setSelectedPresentation(presentation);
+          setMode(presentation === "globe" ? "world" : "presentation");
+        }}
         notice={arcNotice}
         onDismissNotice={() => setArcNotice(null)}
       />
@@ -560,8 +567,8 @@ export function App(): JSX.Element {
     );
   }
 
-  if (mode === "playDemo") {
-    return <ArcPlayDemo arc={arc} onBack={() => setMode("title")} />;
+  if (mode === "presentation") {
+    return <ArcPlayDemo arc={arc} initialPresentation={selectedPresentation === "map" ? "map" : "table"} onBack={() => setMode("title")} />;
   }
 
   if (mode === "library") {

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { Arc } from "../../engine/types.js";
+import { PRESENTATION_OPTIONS, presentationOption, type PresentationId } from "../lib/presentation.js";
 import { loadSave } from "../lib/storage.js";
 import { loadArcLibrary } from "../lib/arc-library.js";
 import { CodexOverlay, TrustLabel } from "../../codex/index.js";
@@ -19,13 +20,13 @@ interface Props {
   onNewGame: () => void;
   onOpenLibrary: () => void;
   onOpenDesigner: () => void;
-  onOpenPlayDemo: () => void;
-  onOpenWorld: () => void;
+  selectedPresentation: PresentationId;
+  onOpenPresentation: (presentation: PresentationId) => void;
   notice?: TitleNotice | null;
   onDismissNotice?: () => void;
 }
 
-export function TitleScreen({ arc, onContinue, onNewGame, onOpenLibrary, onOpenDesigner, onOpenPlayDemo, onOpenWorld, notice, onDismissNotice }: Props): JSX.Element {
+export function TitleScreen({ arc, onContinue, onNewGame, onOpenLibrary, onOpenDesigner, selectedPresentation, onOpenPresentation, notice, onDismissNotice }: Props): JSX.Element {
   const existing = loadSave(arc);
   const hasSave = existing !== null;
   const [manualOpen, setManualOpen] = useState(false);
@@ -35,6 +36,7 @@ export function TitleScreen({ arc, onContinue, onNewGame, onOpenLibrary, onOpenD
     return entries.find((e) => e.arc.meta.id === arc.meta.id)?.trust ?? "bundled";
   }, [arc]);
   const labels = VARIANT_LABELS[VARIANT];
+  const activePresentation = presentationOption(selectedPresentation);
 
   return (
     <div className="title-screen">
@@ -80,6 +82,9 @@ export function TitleScreen({ arc, onContinue, onNewGame, onOpenLibrary, onOpenD
           <TrustLabel trust={activeTrust} />
         </div>
         <p className="title-abstract">{arc.meta.description}</p>
+        <p className="title-abstract" style={{ fontSize: 13, color: "var(--muted)" }}>
+          Selected costume: <strong>{activePresentation.label}</strong> — {activePresentation.description}
+        </p>
 
         <div
           className="title-kicker"
@@ -119,18 +124,16 @@ export function TitleScreen({ arc, onContinue, onNewGame, onOpenLibrary, onOpenD
           >
             Designer
           </button>
-          <button
-            className="secondary"
-            onClick={onOpenPlayDemo}
-          >
-            Play Pipeline Demo
-          </button>
-          <button
-            className="primary accent"
-            onClick={onOpenWorld}
-          >
-            Enter the World (3D)
-          </button>
+          {PRESENTATION_OPTIONS.map((option) => (
+            <button
+              key={option.id}
+              className={option.id === selectedPresentation ? "primary accent" : "secondary"}
+              onClick={() => onOpenPresentation(option.id)}
+              title={`${option.dimensionality}: ${option.bestFor}`}
+            >
+              {option.id === selectedPresentation ? "Enter " : "Try "}{option.label}
+            </button>
+          ))}
           <button
             className="secondary"
             onClick={() => setManualOpen(true)}
