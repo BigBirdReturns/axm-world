@@ -1,71 +1,51 @@
-// The 3D world: a walkable low-poly planet whose structures are an arc's
-// challenge nodes. Walk the messenger up to a node and "Run Contract" resolves it
-// through the deterministic engine (useArcWorld) — the node flips to cleared and
-// engine state advances. Planet/controller/camera come from the two world modules;
-// this file only composes them and wires interaction to the engine seam.
+// The 3D world: an arc's challenge nodes standing on a low-poly planet you orbit,
+// tilt and zoom. Click a contract, assign a party from the roster, and Run it — which
+// resolves through the deterministic engine (useArcWorld); the node flips to cleared
+// and engine state advances. The planet/scatter come from the world modules; this
+// file composes the scene, the orbit camera, and wires interaction to the engine seam.
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { Stars } from "@react-three/drei";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, Stars } from "@react-three/drei";
 import type { Arc } from "../engine/types.js";
 import { DEFAULT_WORLD_CONFIG, type WorldNode } from "./contract.js";
 import { useArcWorld } from "./useArcWorld.js";
 import { generatePlanet, makeColliderBVH } from "./planet/generatePlanet.js";
 import { scatterOnPlanet } from "./planet/scatter.js";
 import { Scatter } from "./planet/Scatter.js";
-import { PlanetController, type ControllerState } from "./core/PlanetController.js";
-import { PlayerCharacter } from "./core/PlayerCharacter.js";
-import { FollowCamera } from "./core/FollowCamera.js";
 import { NodeMarkers } from "./components/NodeMarkers.js";
 import { Hud } from "./components/Hud.js";
 
 const RADIUS = DEFAULT_WORLD_CONFIG.planetRadius;
 const SEED = 7;
-const NEAR_RANGE = 3.0;
-
-interface ProximityProps {
-  stateRef: React.MutableRefObject<ControllerState | null>;
-  nodes: WorldNode[];
-  onNear: (id: string | null) => void;
-}
-
-/** Each frame, find the nearest node to the player and report it when it changes. */
-function ProximityWatch({ stateRef, nodes, onNear }: ProximityProps): null {
-  const current = useRef<string | null>(null);
-  const tmp = useMemo(() => new THREE.Vector3(), []);
-  useFrame(() => {
-    const st = stateRef.current;
-    if (!st) return;
-    let bestId: string | null = null;
-    let bestDist = NEAR_RANGE;
-    for (const n of nodes) {
-      tmp.set(n.position[0], n.position[1], n.position[2]);
-      const d = tmp.distanceTo(st.position);
-      if (d < bestDist) {
-        bestDist = d;
-        bestId = n.challengeId;
-      }
-    }
-    if (bestId !== current.current) {
-      current.current = bestId;
-      onNear(bestId);
-    }
-  });
-  return null;
-}
 
 export interface WorldScreenProps {
   arc?: Arc;
   onExit?: () => void;
 }
 
+/** Drop each node onto the actual displaced terrain (so markers don't float). */
+function placeOnTerrain(nodes: WorldNode[], collider: THREE.Mesh | null): WorldNode[] {
+  if (!collider) return nodes;
+  const ray = new THREE.Raycaster();
+  const from = new THREE.Vector3();
+  const dir = new THREE.Vector3();
+  return nodes.map((n) => {
+    from.set(n.normal[0], n.normal[1], n.normal[2]).multiplyScalar(RADIUS * 1.8);
+    dir.set(-n.normal[0], -n.normal[1], -n.normal[2]).normalize();
+    ray.set(from, dir);
+    const hit = ray.intersectObject(collider, false)[0];
+    if (!hit) return n;
+    return { ...n, position: [hit.point.x, hit.point.y, hit.point.z] };
+  });
+}
+
 export function WorldScreen({ arc, onExit }: WorldScreenProps): JSX.Element {
   const world = useArcWorld(arc);
   const [collider, setCollider] = useState<THREE.Mesh | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [nearId, setNearId] = useState<string | null>(null);
-  const stateRef = useRef<ControllerState | null>(null);
+  const [party, setParty] = useState<string[]>([]);
 
   const geometry = useMemo(() => {
     const g = generatePlanet({ radius: RADIUS, seed: SEED });
@@ -73,72 +53,98 @@ export function WorldScreen({ arc, onExit }: WorldScreenProps): JSX.Element {
     return g;
   }, []);
   const scatterItems = useMemo(() => scatterOnPlanet(geometry, RADIUS, 140, SEED), [geometry]);
-
-  const config = useMemo(
-    () => ({
-      planetRadius: RADIUS,
-      gravity: DEFAULT_WORLD_CONFIG.gravity,
-      playerRadius: DEFAULT_WORLD_CONFIG.playerRadius,
-      playerHeight: DEFAULT_WORLD_CONFIG.playerHeight,
-    }),
-    [],
-  );
-
-  const handleNear = useCallback((id: string | null) => {
-    setNearId(id);
-    if (id) setSelectedId(id);
-  }, []);
+  const placedNodes = useMemo(() => placeOnTerrain(world.nodes, collider), [world.nodes, collider]);
 
   const setColliderRef = useCallback((m: THREE.Mesh | null) => {
     if (m) setCollider((prev) => prev ?? m);
   }, []);
 
-  const selected = world.nodes.find((n) => n.challengeId === selectedId) ?? null;
-  const atSelected = selected !== null && selected.challengeId === nearId;
-  const canRun = atSelected && selected.status !== "locked";
-  const party = selected ? world.partyFor(selected.challengeId) : [];
+  // When the player picks a different contract, seed the party with the engine's
+  // recommendation; they can then add/remove members.
+  useEffect(() => {
+    setParty(selectedId ? world.recommendedParty(selectedId) : []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
+
+  const toggleAgent = useCallback(
+    (id: string) => {
+      setParty((prev) => {
+        if (prev.includes(id)) return prev.filter((x) => x !== id);
+        const max = selectedId ? world.reqFor(selectedId).maxAgents : 0;
+        if (prev.length >= max) return prev;
+        return [...prev, id];
+      });
+    },
+    [selectedId, world],
+  );
+
+  const selected = selectedId ? world.nodes.find((n) => n.challengeId === selectedId) ?? null : null;
+  const req = selectedId ? world.reqFor(selectedId) : null;
+  const canRun =
+    selected !== null &&
+    selected.status === "available" &&
+    req !== null &&
+    party.length >= req.minAgents &&
+    party.length <= req.maxAgents;
 
   return (
     <div style={{ position: "absolute", inset: 0, background: "#0b0a08" }}>
-      <Canvas camera={{ position: [0, RADIUS + 6, RADIUS + 12], fov: 50 }} dpr={[1, 2]}>
+      <Canvas camera={{ position: [0, RADIUS * 0.7, RADIUS * 2.6], fov: 45 }} dpr={[1, 2]}>
         <color attach="background" args={["#0b0a08"]} />
-        <fog attach="fog" args={["#0b0a08", RADIUS * 2.2, RADIUS * 4.2]} />
-        <ambientLight intensity={0.7} />
-        <directionalLight position={[25, 18, 12]} intensity={1.15} />
+        <ambientLight intensity={0.75} />
+        <directionalLight position={[25, 18, 12]} intensity={1.2} />
         <Stars radius={120} depth={40} count={1400} factor={4} fade speed={0.4} />
 
         <mesh ref={setColliderRef} geometry={geometry}>
           <meshStandardMaterial vertexColors flatShading roughness={0.95} metalness={0} />
         </mesh>
         <Scatter items={scatterItems} />
-        <NodeMarkers nodes={world.nodes} selectedId={selectedId} nearId={nearId} onSelect={setSelectedId} />
+        <NodeMarkers nodes={placedNodes} selectedId={selectedId} onSelect={setSelectedId} />
 
-        <PlanetController
-          collider={collider}
-          config={config}
-          onState={(s) => {
-            stateRef.current = s;
-          }}
-        >
-          <PlayerCharacter />
-        </PlanetController>
-        <FollowCamera getState={() => stateRef.current} />
-        <ProximityWatch stateRef={stateRef} nodes={world.nodes} onNear={handleNear} />
+        <OrbitControls
+          makeDefault
+          enablePan
+          enableZoom
+          enableDamping
+          dampingFactor={0.08}
+          rotateSpeed={0.6}
+          zoomSpeed={0.9}
+          minDistance={RADIUS + 2.5}
+          maxDistance={RADIUS * 4.5}
+        />
       </Canvas>
 
       <Hud
         title={world.arc.meta.name}
         cycle={world.cycle}
         resources={world.resources}
+        progress={{ cleared: world.clearedCount, total: world.totalNodes }}
+        arcComplete={world.arcComplete}
         selected={selected}
+        req={req}
+        roster={world.roster}
         party={party}
-        near={atSelected}
+        onToggleAgent={toggleAgent}
         canRun={canRun}
-        lastReport={world.lastReport}
         onRun={() => {
-          if (selectedId) world.runChallenge(selectedId);
+          if (selectedId) world.runChallenge(selectedId, party);
         }}
+        lastReport={world.lastReport}
       />
+
+      {/* one-line legend so the controls read immediately */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 14,
+          left: 14,
+          font: "11px/1.4 'IBM Plex Mono', ui-monospace, monospace",
+          color: "#6e675a",
+          pointerEvents: "none",
+        }}
+      >
+        drag to orbit · scroll to zoom · right-drag to pan · click a ◆ contract
+      </div>
 
       {onExit && (
         <button

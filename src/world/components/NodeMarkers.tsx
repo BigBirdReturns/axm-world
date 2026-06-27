@@ -1,15 +1,23 @@
-// Renders the arc's challenge nodes as structures standing on the planet surface,
-// oriented so their base sits flush to the ground (local +Y along the surface
-// normal). Color encodes status; the selected / nearby node is emphasized.
+// Renders the arc's challenge nodes as labelled structures standing on the planet
+// surface, oriented so their base sits flush to the ground (local +Y along the
+// surface normal). Color + label encode status; the selected node is emphasized.
+// Click a node to select it.
 
 import { useMemo } from "react";
 import * as THREE from "three";
+import { Html } from "@react-three/drei";
 import type { PlayNodeStatus, WorldNode } from "../contract.js";
 
 const STATUS_COLOR: Record<PlayNodeStatus, string> = {
   available: "#c9a14a",
   locked: "#5e5850",
   cleared: "#74ad77",
+};
+
+const STATUS_GLYPH: Record<PlayNodeStatus, string> = {
+  available: "◆",
+  locked: "🔒",
+  cleared: "✓",
 };
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -23,12 +31,11 @@ interface MarkerData {
 interface Props {
   nodes: WorldNode[];
   selectedId: string | null;
-  nearId: string | null;
   onSelect: (challengeId: string) => void;
 }
 
 export function NodeMarkers(props: Props): JSX.Element {
-  const { nodes, selectedId, nearId, onSelect } = props;
+  const { nodes, selectedId, onSelect } = props;
 
   const markers = useMemo<MarkerData[]>(() => {
     const tmp = new THREE.Vector3();
@@ -43,18 +50,14 @@ export function NodeMarkers(props: Props): JSX.Element {
     <group>
       {markers.map(({ node, quaternion, color }) => {
         const selected = node.challengeId === selectedId;
-        const near = node.challengeId === nearId;
-        const emphasis = selected || near;
         return (
           <group key={node.id} position={node.position} quaternion={quaternion}>
-            {/* post */}
-            <mesh position={[0, 0.5, 0]} castShadow>
-              <cylinderGeometry args={[0.08, 0.12, 1, 6]} />
+            <mesh position={[0, 0.45, 0]} castShadow>
+              <cylinderGeometry args={[0.07, 0.11, 0.9, 6]} />
               <meshStandardMaterial color="#2a2620" roughness={0.9} />
             </mesh>
-            {/* beacon */}
             <mesh
-              position={[0, 1.25, 0]}
+              position={[0, 1.15, 0]}
               onClick={(e) => {
                 e.stopPropagation();
                 onSelect(node.challengeId);
@@ -66,22 +69,39 @@ export function NodeMarkers(props: Props): JSX.Element {
               onPointerOut={() => {
                 document.body.style.cursor = "auto";
               }}
-              scale={emphasis ? 1.35 : 1}
+              scale={selected ? 1.45 : 1}
             >
               <octahedronGeometry args={[0.34, 0]} />
               <meshStandardMaterial
                 color={color}
                 emissive={color}
-                emissiveIntensity={selected ? 0.9 : near ? 0.5 : 0.15}
+                emissiveIntensity={selected ? 1.0 : 0.25}
                 roughness={0.4}
                 metalness={0.1}
               />
             </mesh>
-            {/* ground ring */}
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
-              <ringGeometry args={[0.45, 0.6, 20]} />
-              <meshBasicMaterial color={color} transparent opacity={emphasis ? 0.8 : 0.35} side={THREE.DoubleSide} />
+              <ringGeometry args={[0.42, 0.58, 22]} />
+              <meshBasicMaterial color={color} transparent opacity={selected ? 0.85 : 0.4} side={THREE.DoubleSide} />
             </mesh>
+            <Html position={[0, 1.7, 0]} center distanceFactor={16} pointerEvents="none">
+              <div
+                style={{
+                  font: "600 11px 'IBM Plex Mono', ui-monospace, monospace",
+                  whiteSpace: "nowrap",
+                  color: "#ece4d4",
+                  background: selected ? "rgba(176,28,24,0.92)" : "rgba(23,21,15,0.82)",
+                  border: `1px solid ${color}`,
+                  borderRadius: 5,
+                  padding: "3px 8px",
+                  transform: "translateY(-2px)",
+                  userSelect: "none",
+                }}
+              >
+                <span style={{ color }}>{STATUS_GLYPH[node.status]}</span> {node.title}
+                <span style={{ color: "#a59c8b" }}> · {node.difficulty}</span>
+              </div>
+            </Html>
           </group>
         );
       })}
