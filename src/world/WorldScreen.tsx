@@ -4,13 +4,14 @@
 // and engine state advances. The planet/scatter come from the world modules; this
 // file composes the scene, the orbit camera, and wires interaction to the engine seam.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
 import type { Arc } from "../engine/types.js";
 import { DEFAULT_WORLD_CONFIG, type WorldNode } from "./contract.js";
 import { useArcWorld } from "./useArcWorld.js";
+import { useArcInteraction } from "./useArcInteraction.js";
 import { generatePlanet, makeColliderBVH } from "./planet/generatePlanet.js";
 import { scatterOnPlanet } from "./planet/scatter.js";
 import { Scatter } from "./planet/Scatter.js";
@@ -43,9 +44,8 @@ function placeOnTerrain(nodes: WorldNode[], collider: THREE.Mesh | null): WorldN
 
 export function WorldScreen({ arc, onExit }: WorldScreenProps): JSX.Element {
   const world = useArcWorld(arc);
+  const ix = useArcInteraction(world);
   const [collider, setCollider] = useState<THREE.Mesh | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [party, setParty] = useState<string[]>([]);
 
   const geometry = useMemo(() => {
     const g = generatePlanet({ radius: RADIUS, seed: SEED });
@@ -59,34 +59,6 @@ export function WorldScreen({ arc, onExit }: WorldScreenProps): JSX.Element {
     if (m) setCollider((prev) => prev ?? m);
   }, []);
 
-  // When the player picks a different contract, seed the party with the engine's
-  // recommendation; they can then add/remove members.
-  useEffect(() => {
-    setParty(selectedId ? world.recommendedParty(selectedId) : []);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId]);
-
-  const toggleAgent = useCallback(
-    (id: string) => {
-      setParty((prev) => {
-        if (prev.includes(id)) return prev.filter((x) => x !== id);
-        const max = selectedId ? world.reqFor(selectedId).maxAgents : 0;
-        if (prev.length >= max) return prev;
-        return [...prev, id];
-      });
-    },
-    [selectedId, world],
-  );
-
-  const selected = selectedId ? world.nodes.find((n) => n.challengeId === selectedId) ?? null : null;
-  const req = selectedId ? world.reqFor(selectedId) : null;
-  const canRun =
-    selected !== null &&
-    selected.status === "available" &&
-    req !== null &&
-    party.length >= req.minAgents &&
-    party.length <= req.maxAgents;
-
   return (
     <div style={{ position: "absolute", inset: 0, background: "#0b0a08" }}>
       <Canvas camera={{ position: [0, RADIUS * 0.7, RADIUS * 2.6], fov: 45 }} dpr={[1, 2]}>
@@ -99,7 +71,7 @@ export function WorldScreen({ arc, onExit }: WorldScreenProps): JSX.Element {
           <meshStandardMaterial vertexColors flatShading roughness={0.95} metalness={0} />
         </mesh>
         <Scatter items={scatterItems} />
-        <NodeMarkers nodes={placedNodes} selectedId={selectedId} onSelect={setSelectedId} />
+        <NodeMarkers nodes={placedNodes} selectedId={ix.selectedId} onSelect={ix.select} />
 
         <OrbitControls
           makeDefault
@@ -120,15 +92,13 @@ export function WorldScreen({ arc, onExit }: WorldScreenProps): JSX.Element {
         resources={world.resources}
         progress={{ cleared: world.clearedCount, total: world.totalNodes }}
         arcComplete={world.arcComplete}
-        selected={selected}
-        req={req}
+        selected={ix.selected}
+        req={ix.req}
         roster={world.roster}
-        party={party}
-        onToggleAgent={toggleAgent}
-        canRun={canRun}
-        onRun={() => {
-          if (selectedId) world.runChallenge(selectedId, party);
-        }}
+        party={ix.party}
+        onToggleAgent={ix.toggleAgent}
+        canRun={ix.canRun}
+        onRun={ix.run}
         lastReport={world.lastReport}
       />
 
