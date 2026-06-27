@@ -197,6 +197,7 @@ export function BoardScreen({ arc, onExit }: BoardScreenProps): JSX.Element {
         roster={world.roster}
         party={ix.party}
         onToggleAgent={ix.toggleAgent}
+        onApplyDowntime={world.applyDowntime}
         canRun={ix.canRun}
         onRun={ix.run}
         lastReport={world.lastReport}

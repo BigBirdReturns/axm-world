@@ -5,6 +5,7 @@
 import { useState } from "react";
 import type { Arc } from "../engine/types.js";
 import { PRESENTATIONS } from "./presentations.js";
+import { loadCostume, saveCostume, isCostumeId } from "./presentation-prefs.js";
 
 export interface WorldHostProps {
   arc: Arc;
@@ -12,7 +13,12 @@ export interface WorldHostProps {
 }
 
 export function WorldHost({ arc, onExit }: WorldHostProps): JSX.Element {
-  const [costumeId, setCostumeId] = useState<string>("board");
+  // Open each arc in its preferred costume (and remember manual switches).
+  const [costumeId, setCostumeId] = useState<string>(() => loadCostume(arc));
+  const choose = (id: string) => {
+    setCostumeId(id);
+    if (isCostumeId(id)) saveCostume(arc, id);
+  };
   const active = PRESENTATIONS.find((p) => p.id === costumeId) ?? PRESENTATIONS[0];
   if (!active) return <div />;
   const Active = active.Component;
@@ -43,7 +49,7 @@ export function WorldHost({ arc, onExit }: WorldHostProps): JSX.Element {
           return (
             <button
               key={p.id}
-              onClick={() => setCostumeId(p.id)}
+              onClick={() => choose(p.id)}
               title={p.blurb}
               style={{
                 cursor: "pointer",

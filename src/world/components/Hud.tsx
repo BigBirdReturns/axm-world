@@ -8,6 +8,7 @@ import type { CSSProperties } from "react";
 import type { PlayReportView } from "../../play-pipeline/compile.js";
 import type { RosterMember } from "../useArcWorld.js";
 import type { WorldNode } from "../contract.js";
+import { DOWNTIME_ACTIONS, type DowntimeAction } from "../../game/lib/agent-management.js";
 
 interface Props {
   title: string;
@@ -27,6 +28,7 @@ interface Props {
   roster: RosterMember[];
   party: string[];
   onToggleAgent: (id: string) => void;
+  onApplyDowntime: (id: string, action: DowntimeAction) => void;
   canRun: boolean;
   onRun: () => void;
   lastReport: PlayReportView | null;
@@ -45,7 +47,8 @@ const panel: CSSProperties = {
 };
 
 export function Hud(props: Props): JSX.Element {
-  const { title, cycle, resources, progress, arcComplete, selected, req, roster, party, onToggleAgent, canRun, onRun, lastReport } = props;
+  const { title, cycle, resources, progress, arcComplete, selected, req, roster, party, onToggleAgent, onApplyDowntime, canRun, onRun, lastReport } = props;
+  const downtimeActions = Object.keys(DOWNTIME_ACTIONS) as DowntimeAction[];
   const min = req?.minAgents ?? 0;
   const max = req?.maxAgents ?? 0;
 
@@ -76,33 +79,63 @@ export function Hud(props: Props): JSX.Element {
         {roster.map((m) => {
           const inParty = party.includes(m.id);
           return (
-            <button
+            <div
               key={m.id}
-              disabled={m.downed || !selected}
-              onClick={() => onToggleAgent(m.id)}
               style={{
-                display: "block",
-                width: "100%",
-                textAlign: "left",
                 margin: "3px 0",
-                padding: "5px 7px",
+                padding: 5,
                 borderRadius: 5,
-                cursor: m.downed || !selected ? "not-allowed" : "pointer",
                 border: `1px solid ${inParty ? "#c9a14a" : "#3a352c"}`,
-                background: inParty ? "rgba(201,161,74,0.18)" : "transparent",
-                color: m.downed ? "#5e5850" : "#ece4d4",
-                font: "12px 'IBM Plex Mono', monospace",
+                background: inParty ? "rgba(201,161,74,0.14)" : "transparent",
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <strong>{m.name}</strong>
-                <span style={{ color: "#a59c8b" }}>{m.role}</span>
+              <button
+                disabled={m.downed || !selected}
+                onClick={() => onToggleAgent(m.id)}
+                title={selected ? "Assign to the selected contract" : "Select a contract first"}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  textAlign: "left",
+                  padding: 0,
+                  border: "none",
+                  background: "transparent",
+                  cursor: m.downed || !selected ? "default" : "pointer",
+                  color: m.downed ? "#5e5850" : "#ece4d4",
+                  font: "12px 'IBM Plex Mono', monospace",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <strong>{m.name}</strong>
+                  <span style={{ color: "#a59c8b" }}>{m.role}</span>
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 3 }}>
+                  <Meter label="STR" value={m.stress} good="low" />
+                  <Meter label="MOR" value={m.morale} good="high" />
+                </div>
+              </button>
+              <div style={{ display: "flex", gap: 4, marginTop: 5 }}>
+                {downtimeActions.map((a) => (
+                  <button
+                    key={a}
+                    onClick={() => onApplyDowntime(m.id, a)}
+                    title={`${DOWNTIME_ACTIONS[a].label}: stress ${DOWNTIME_ACTIONS[a].stressDelta >= 0 ? "+" : ""}${DOWNTIME_ACTIONS[a].stressDelta}, morale ${DOWNTIME_ACTIONS[a].moraleDelta >= 0 ? "+" : ""}${DOWNTIME_ACTIONS[a].moraleDelta}`}
+                    style={{
+                      flex: 1,
+                      cursor: "pointer",
+                      padding: "3px 0",
+                      borderRadius: 4,
+                      border: "1px solid #3a352c",
+                      background: "rgba(255,255,255,0.03)",
+                      color: "#a59c8b",
+                      font: "10px 'IBM Plex Mono', monospace",
+                    }}
+                  >
+                    {DOWNTIME_ACTIONS[a].label}
+                  </button>
+                ))}
               </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 3 }}>
-                <Meter label="STR" value={m.stress} good="low" />
-                <Meter label="MOR" value={m.morale} good="high" />
-              </div>
-            </button>
+            </div>
           );
         })}
       </div>

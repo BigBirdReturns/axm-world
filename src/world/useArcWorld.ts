@@ -28,6 +28,7 @@ import {
   type PlayScene,
 } from "../play-pipeline/compile.js";
 import { buildWorldLayout, DEFAULT_WORLD_CONFIG, type WorldLayout, type WorldNode } from "./contract.js";
+import { applyAgentDowntime, type DowntimeAction } from "../game/lib/agent-management.js";
 
 function defaultFacilities(): Record<InfrastructureFacility, Facility> {
   const names: InfrastructureFacility[] = [
@@ -96,6 +97,8 @@ export interface ArcWorld {
   lastReport: PlayReportView | null;
   /** Resolve a challenge with a chosen party through the deterministic engine. */
   runChallenge: (challengeId: string, agentIds: string[]) => void;
+  /** Between-cycle management: rest/train/rally an agent (moves stress/morale). */
+  applyDowntime: (agentId: string, action: DowntimeAction) => void;
 }
 
 export function useArcWorld(arc: Arc = FIRST_CHARTER): ArcWorld {
@@ -156,6 +159,10 @@ export function useArcWorld(arc: Arc = FIRST_CHARTER): ArcWorld {
     [arc, org, scene],
   );
 
+  const applyDowntime = useCallback((agentId: string, action: DowntimeAction) => {
+    setOrg((cur) => applyAgentDowntime(cur, agentId, action));
+  }, []);
+
   const clearedCount = layout.nodes.filter((n) => n.status === "cleared").length;
   const totalNodes = layout.nodes.length;
 
@@ -174,5 +181,6 @@ export function useArcWorld(arc: Arc = FIRST_CHARTER): ArcWorld {
     recommendedParty,
     lastReport,
     runChallenge,
+    applyDowntime,
   };
 }
