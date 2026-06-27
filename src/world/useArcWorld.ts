@@ -25,6 +25,7 @@ import {
   recommendAgentsForChallenge,
   summarizeReport,
   type PlayReportView,
+  type PlayScene,
 } from "../play-pipeline/compile.js";
 import { buildWorldLayout, DEFAULT_WORLD_CONFIG, type WorldLayout, type WorldNode } from "./contract.js";
 
@@ -74,6 +75,7 @@ export interface ChallengeReq {
 
 export interface ArcWorld {
   arc: Arc;
+  scene: PlayScene;
   layout: WorldLayout;
   nodes: WorldNode[];
   cycle: number;
@@ -159,6 +161,7 @@ export function useArcWorld(arc: Arc = FIRST_CHARTER): ArcWorld {
 
   return {
     arc,
+    scene,
     layout,
     nodes: layout.nodes,
     cycle: scene.cycle,

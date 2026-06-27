@@ -34,8 +34,8 @@ import { ArcPlayDemo } from "./components/ArcPlayDemo.js";
 // Lazy: the 3D world pulls in three.js / R3F (~1MB). Keep it out of the main
 // bundle so the 2D app stays "click-and-play instantly" — three only loads when
 // the player enters the world.
-const WorldScreen = lazy(() =>
-  import("../world/WorldScreen.js").then((m) => ({ default: m.WorldScreen })),
+const WorldHost = lazy(() =>
+  import("../world/WorldHost.js").then((m) => ({ default: m.WorldHost })),
 );
 import { CountUp } from "../liveness/index.js";
 import { CycleChecklist } from "./components/CycleChecklist.js";
@@ -555,7 +555,7 @@ export function App(): JSX.Element {
           </div>
         }
       >
-        <WorldScreen arc={arc} onExit={() => setMode("title")} />
+        <WorldHost arc={arc} onExit={() => setMode("title")} />
       </Suspense>
     );
   }
