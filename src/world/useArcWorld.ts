@@ -1,25 +1,15 @@
-// The arc <-> world bridge. Holds engine `org` state, compiles the active arc into
-// a PlayScene, places its nodes on the planet via contract.ts, and resolves a node
-// through the SAME deterministic engine seam the 2D demo uses. The 3D scene and HUD
-// are pure views over this hook. The player commands the org by picking a party
-// from the roster and running an available contract; the engine owns the outcome.
+// The arc <-> world bridge. Given a cartridge's arc, it generates a populated org via
+// the spoke's generic bootstrap (works for ANY arc, not just First Charter), compiles
+// the arc into a PlayScene, places its nodes on the planet via contract.ts, and
+// resolves a node through the SAME deterministic engine seam. The 3D scene and HUD are
+// pure views over this hook.
 
 import { useCallback, useMemo, useState } from "react";
-import type {
-  Agent,
-  Arc,
-  Facility,
-  InfrastructureFacility,
-  Organization,
-  RunReport,
-} from "../engine/types.js";
+import type { Arc, Organization, RunReport } from "../engine/types.js";
 import type { ChallengeAssignment } from "../engine/cycle.js";
 import { runCycle } from "../engine/cycle.js";
-import {
-  FIRST_CHARTER,
-  FIRST_CHARTER_STARTING_RELATIONSHIPS,
-  FIRST_CHARTER_STARTING_ROSTER,
-} from "../arcs/index.js";
+import { FIRST_CHARTER } from "../arcs/index.js";
+import { bootstrapOrg } from "../spoke/bootstrap.js";
 import {
   compileArcToPlayScene,
   recommendAgentsForChallenge,
@@ -28,37 +18,7 @@ import {
   type PlayScene,
 } from "../play-pipeline/compile.js";
 import { buildWorldLayout, DEFAULT_WORLD_CONFIG, type WorldLayout, type WorldNode } from "./contract.js";
-import { applyAgentDowntime, type DowntimeAction } from "../game/lib/agent-management.js";
-
-function defaultFacilities(): Record<InfrastructureFacility, Facility> {
-  const names: InfrastructureFacility[] = [
-    "Quarters", "Production", "Recreation", "Research", "Training", "Storage", "Medical",
-  ];
-  const out: Partial<Record<InfrastructureFacility, Facility>> = {};
-  for (const n of names) {
-    out[n] = { type: n, level: n === "Quarters" || n === "Recreation" ? 1 : 0, assignedAgents: [] };
-  }
-  return out as Record<InfrastructureFacility, Facility>;
-}
-
-function buildDemoOrg(): Organization {
-  const agents: Record<string, Agent> = {};
-  for (const agent of FIRST_CHARTER_STARTING_ROSTER) agents[agent.id] = { ...agent };
-  return {
-    id: "world-demo",
-    name: "Playable World Charter",
-    reputation: 0,
-    resources: { currency: 100, materials: 0, tokens: 2 },
-    infrastructure: defaultFacilities(),
-    agents,
-    relationships: [...FIRST_CHARTER_STARTING_RELATIONSHIPS],
-    precedents: [],
-    dramaQueue: [],
-    cycle: 0,
-    distributionPolicy: "council",
-    rngSeed: 424242,
-  };
-}
+import { applyAgentDowntime, type DowntimeAction } from "./agent-management.js";
 
 export interface RosterMember {
   id: string;
@@ -102,7 +62,7 @@ export interface ArcWorld {
 }
 
 export function useArcWorld(arc: Arc = FIRST_CHARTER): ArcWorld {
-  const [org, setOrg] = useState<Organization>(() => buildDemoOrg());
+  const [org, setOrg] = useState<Organization>(() => bootstrapOrg(arc));
   const [lastReport, setLastReport] = useState<PlayReportView | null>(null);
 
   const scene = useMemo(() => compileArcToPlayScene(arc, org), [arc, org]);

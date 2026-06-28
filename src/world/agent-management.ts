@@ -1,9 +1,8 @@
 // Between-cycle agent management: pure engine-state transforms that move an agent's
-// stress/morale. Harvested from Codex PR #3 (the one genuinely new idea there) — it
-// answers "no way to alter the stats." Pure + clamped, so it's reusable by any
-// presentation (board, globe, map) over the shared engine seam.
+// stress/morale. Lives in the world spoke (the player), reusable by any costume over
+// the shared engine seam. Pure + clamped.
 
-import type { Agent, Organization } from "../../engine/types.js";
+import type { Agent, Organization } from "../engine/types.js";
 
 export type DowntimeAction = "rest" | "train" | "rally";
 
