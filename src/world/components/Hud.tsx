@@ -8,7 +8,7 @@ import type { CSSProperties } from "react";
 import type { PlayReportView } from "../../play-pipeline/compile.js";
 import type { RosterMember } from "../useArcWorld.js";
 import type { WorldNode } from "../contract.js";
-import { DOWNTIME_ACTIONS, type DowntimeAction } from "../../game/lib/agent-management.js";
+import { DOWNTIME_ACTIONS, type DowntimeAction } from "../agent-management.js";
 
 interface Props {
   title: string;

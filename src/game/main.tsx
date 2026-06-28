@@ -1,12 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { App } from "./App.js";
-import "./styles.css";
+import { Player } from "../world/Player.js";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("No #root element");
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
-    <App />
+    <Player />
   </React.StrictMode>,
 );

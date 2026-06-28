@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyAgentDowntime } from "../../src/game/lib/agent-management.js";
+import { applyAgentDowntime } from "../../src/world/agent-management.js";
 import { makeTestAgent, makeTestOrg } from "../fixtures/state-arc.js";
 
 describe("applyAgentDowntime", () => {
