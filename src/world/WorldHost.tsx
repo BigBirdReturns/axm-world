@@ -1,13 +1,12 @@
-// Mounts the active presentation and offers a costume switcher. The same cartridge
-// plays in every costume because they all render the one engine seam (useArcWorld).
+// Composition root for a playing cartridge: builds the engine seam (useArcWorld) and
+// the shared interaction model (useArcInteraction), then hands them to the one Shell.
+// All layout, regions, costume choice, and chrome live in the Shell — this file only
+// wires data to it.
 
-import { useState } from "react";
-import { PRESENTATIONS } from "./presentations.js";
-import { loadCostume, saveCostume, isCostumeId } from "./presentation-prefs.js";
+import { Shell } from "./shell/Shell.js";
 import type { Cartridge } from "./cartridge.js";
 import { useArcWorld } from "./useArcWorld.js";
 import { useArcInteraction } from "./useArcInteraction.js";
-import { useIsMobile } from "./use-viewport.js";
 
 export interface WorldHostProps {
   cartridge: Cartridge;
@@ -17,59 +16,5 @@ export interface WorldHostProps {
 export function WorldHost({ cartridge, onExit }: WorldHostProps): JSX.Element {
   const world = useArcWorld(cartridge);
   const interaction = useArcInteraction(world);
-  const isMobile = useIsMobile();
-  const [costumeId, setCostumeId] = useState<string>(() => loadCostume(cartridge.arc));
-  const choose = (id: string) => {
-    setCostumeId(id);
-    if (isCostumeId(id)) saveCostume(cartridge.arc, id);
-  };
-  const active = PRESENTATIONS.find((p) => p.id === costumeId) ?? PRESENTATIONS[0];
-  if (!active) return <div />;
-  const Active = active.Component;
-
-  return (
-    <div style={{ position: "absolute", inset: 0 }}>
-      <Active world={world} interaction={interaction} onExit={onExit} />
-
-      {/* costume switcher — on mobile it sits just under the identity bar so it
-          doesn't land on top of the header; on desktop it floats top-center. */}
-      <div
-        style={{
-          position: "absolute",
-          top: isMobile ? "calc(env(safe-area-inset-top, 0px) + 60px)" : 52,
-          left: "50%",
-          transform: "translateX(-50%)",
-          display: "flex",
-          gap: 4,
-          padding: 4,
-          borderRadius: 8,
-          background: "rgba(23,21,15,0.82)",
-          border: "1px solid #4a4238",
-          pointerEvents: "auto",
-          font: "600 12px 'IBM Plex Mono', ui-monospace, monospace",
-        }}
-      >
-        {PRESENTATIONS.map((p) => {
-          const on = p.id === active.id;
-          return (
-            <button
-              key={p.id}
-              onClick={() => choose(p.id)}
-              title={p.blurb}
-              style={{
-                cursor: "pointer",
-                padding: "5px 11px",
-                borderRadius: 5,
-                border: "none",
-                background: on ? "#b01c18" : "transparent",
-                color: on ? "#fff" : "#a59c8b",
-              }}
-            >
-              {p.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
+  return <Shell world={world} interaction={interaction} onExit={onExit} />;
 }

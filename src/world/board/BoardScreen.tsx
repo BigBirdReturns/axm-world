@@ -1,17 +1,13 @@
-// The run-graph costume: a generic engine grammar, not a themed world map.
-// Nodes are engine-resolvable work items; edges show prerequisite flow; colors mark
+// Run-graph scene: a generic engine grammar, not a themed world map. Nodes are
+// engine-resolvable work items; edges show prerequisite flow; colors mark
 // available/locked/cleared run state; party pawns show the pending assignment.
-// Cartridge-specific fiction lives in labels/descriptions, not in this layer.
+// This is ONLY the representation — it fills the shell's active-representation region.
+// All chrome (status, roster, contract, report, decision, cartridge) lives in the Shell.
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, RoundedBox, Line, Html, ContactShadows } from "@react-three/drei";
+import { OrbitControls, RoundedBox, Line, Html, ContactShadows, Bounds } from "@react-three/drei";
 import type { PlayNode } from "../../play-pipeline/compile.js";
-import { Hud } from "../components/Hud.js";
-import { DecisionPanel } from "../components/DecisionPanel.js";
-import { CartridgeObjectPanel } from "../components/CartridgeObjectPanel.js";
-import { CartridgeButton } from "../components/CartridgeButton.js";
-import { useIsMobile } from "../use-viewport.js";
 import type { ArcInteraction } from "../useArcInteraction.js";
 import type { ArcWorld } from "../useArcWorld.js";
 
@@ -26,10 +22,9 @@ const STATUS_GLYPH: Record<PlayNode["status"], string> = {
   cleared: "✓",
 };
 
-export interface BoardScreenProps {
+export interface SceneProps {
   world: ArcWorld;
   interaction: ArcInteraction;
-  onExit?: () => void;
 }
 
 interface Placed {
@@ -40,10 +35,8 @@ interface Placed {
 
 const TARGET_SPAN = 42; // board units the larger axis maps to
 
-export function BoardScreen({ world, interaction: ix, onExit }: BoardScreenProps): JSX.Element {
+export function BoardScene({ world, interaction: ix }: SceneProps): JSX.Element {
   const scene = world.scene;
-  const [showCartridge, setShowCartridge] = useState(false);
-  const isMobile = useIsMobile();
 
   const board = useMemo(() => {
     let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -77,7 +70,7 @@ export function BoardScreen({ world, interaction: ix, onExit }: BoardScreenProps
   const ext = board.extent;
 
   return (
-    <div style={{ position: "absolute", inset: 0, background: "#0b0a08" }}>
+    <div style={{ position: "absolute", inset: 0 }}>
       <Canvas shadows camera={{ position: [0, ext * 1.45, ext * 1.65], fov: 38 }} dpr={[1, 2]}>
         <color attach="background" args={["#0b0a08"]} />
         <ambientLight intensity={0.65} />
@@ -92,6 +85,10 @@ export function BoardScreen({ world, interaction: ix, onExit }: BoardScreenProps
         </directionalLight>
         <hemisphereLight args={["#6b7a8a", "#2a2620", 0.4]} />
 
+        {/* Fit the whole board to the active-representation region, on mount and on
+            resize, so the graph is never pushed out of frame when the region's aspect
+            changes (e.g. the desktop center column vs a full-width mobile stage). */}
+        <Bounds fit observe margin={1.15}>
         {/* the table */}
         <RoundedBox args={[board.halfX * 2, 1.8, board.halfZ * 2]} radius={0.7} smoothness={4} position={[0, -0.9, 0]} receiveShadow castShadow>
           <meshStandardMaterial color="#3a3026" roughness={0.9} />
@@ -140,10 +137,9 @@ export function BoardScreen({ world, interaction: ix, onExit }: BoardScreenProps
                 <octahedronGeometry args={[0.28, 0]} />
                 <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.7} />
               </mesh>
-              {/* The label is part of the node: it must select like the card does,
-                  not be a dead target. Enable pointer events and route clicks to the
-                  same select(); stop propagation so the click doesn't fall through to
-                  the canvas / orbit controls. */}
+              {/* The label is part of the node: it selects like the card does, not a dead
+                  target. Pointer events on; stopPropagation so it doesn't fall through to
+                  OrbitControls. */}
               <Html position={[0, 1.55, 0.28]} center distanceFactor={ext * 0.9}>
                 <div
                   onPointerDown={(e) => e.stopPropagation()}
@@ -178,6 +174,7 @@ export function BoardScreen({ world, interaction: ix, onExit }: BoardScreenProps
               </group>
             );
           })}
+        </Bounds>
 
         <ContactShadows position={[0, 0.06, 0]} opacity={0.55} scale={ext * 2.6} blur={2.6} far={8} />
 
@@ -190,62 +187,13 @@ export function BoardScreen({ world, interaction: ix, onExit }: BoardScreenProps
           target={[0, 0.5, 0]}
           minPolarAngle={0.2}
           maxPolarAngle={1.05}
-          minDistance={ext * 0.9}
-          maxDistance={ext * 3}
+          minDistance={ext * 0.6}
+          maxDistance={ext * 6}
         />
       </Canvas>
 
       {/* tilt-shift vignette to focus the diorama */}
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "radial-gradient(125% 95% at 50% 45%, transparent 50%, rgba(11,10,8,0.6) 100%)" }} />
-
-      <Hud
-        title={world.arc.meta.name}
-        cycle={world.cycle}
-        resources={world.resources}
-        progress={{ cleared: world.clearedCount, total: world.totalNodes }}
-        arcComplete={world.arcComplete}
-        selected={ix.selected}
-        req={ix.req}
-        roster={world.roster}
-        party={ix.party}
-        onToggleAgent={ix.toggleAgent}
-        onApplyDowntime={world.applyDowntime}
-        canRun={ix.canRun}
-        onRun={ix.run}
-        lastReport={world.lastReport}
-        dispatches={world.dispatches}
-        pendingDecision={world.pendingDecision !== null}
-        contract={ix.contract}
-        readiness={ix.readiness}
-        recommendation={ix.recommendation}
-      />
-
-      {!isMobile && (
-        <div style={{ position: "absolute", bottom: 14, left: 14, font: "11px/1.4 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b", pointerEvents: "none" }}>
-          run graph: gold ◆ available · gray ◇ locked by requirements · green ✓ recorded on this cartridge
-        </div>
-      )}
-
-      <CartridgeButton onClick={() => setShowCartridge(true)} />
-
-      {/* the authored opening decision (and any pending drama) — engine resolves it */}
-      {world.pendingDecision && (
-        <DecisionPanel key={world.pendingDecision.id} card={world.pendingDecision} onResolve={world.resolveDecision} />
-      )}
-
-      {/* the cartridge as an object: run state + export; the exit path */}
-      {showCartridge && (
-        <CartridgeObjectPanel
-          manifest={world.cartridge.manifest}
-          openingChoice={world.openingChoice}
-          cycle={world.cycle}
-          clearedCount={world.clearedCount}
-          totalNodes={world.totalNodes}
-          onExport={world.buildExport}
-          onClose={() => setShowCartridge(false)}
-          onLeave={() => onExit?.()}
-        />
-      )}
     </div>
   );
 }
