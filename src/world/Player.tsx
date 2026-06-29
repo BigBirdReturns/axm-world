@@ -92,8 +92,9 @@ export function Player(): JSX.Element {
           ))}
         </div>
 
-        <p style={{ color: "#6e675a", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, marginTop: 18 }}>
-          Loading a cartridge by URL or file — coming. Authoring lives in axm-arc.
+        <p style={{ color: "#a59c8b", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, marginTop: 18 }}>
+          Load a cartridge by URL or file — coming. The same cartridge plays in other
+          players too; it stays yours.
         </p>
       </div>
     </div>
