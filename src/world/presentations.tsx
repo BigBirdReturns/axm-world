@@ -1,33 +1,43 @@
-// Presentation registry. A "costume" is a view over the SAME cartridge/engine seam;
-// the cartridge decides which costume serves its story. Adding a costume is one entry
-// here — every cartridge can then wear it. Nothing about the engine changes.
+// Representation registry. A representation is the *content* of the shell's active
+// representation region — nothing more. It renders the engine's nodes through the
+// shared interaction seam; the shell owns all chrome (status, roster, contract,
+// readiness, report, decision, cartridge). Adding a representation is one entry here;
+// the engine and the shell are untouched, so every cartridge can wear it.
 
-import { WorldScreen } from "./WorldScreen.js";
-import { BoardScreen } from "./board/BoardScreen.js";
+import { PlanetScene } from "./WorldScreen.js";
+import { BoardScene } from "./board/BoardScreen.js";
+import type { CostumeId } from "./presentation-prefs.js";
 import type { ArcInteraction } from "./useArcInteraction.js";
 import type { ArcWorld } from "./useArcWorld.js";
 
-export interface CostumeProps {
+export interface SceneProps {
   world: ArcWorld;
   interaction: ArcInteraction;
-  onExit?: () => void;
 }
 
-export interface Presentation {
-  id: string;
+export interface Representation {
+  id: CostumeId;
   label: string;
   blurb: string;
-  Component: (p: CostumeProps) => JSX.Element;
+  /** Renders only the scene; fills the active-representation region. */
+  Scene: (p: SceneProps) => JSX.Element;
+  /** Shell-rendered hint for how to manipulate this representation. */
+  controlsHint: string;
 }
 
-function BoardCostume({ world, interaction, onExit }: CostumeProps): JSX.Element {
-  return <BoardScreen world={world} interaction={interaction} onExit={onExit} />;
-}
-function GlobeCostume({ world, interaction, onExit }: CostumeProps): JSX.Element {
-  return <WorldScreen world={world} interaction={interaction} onExit={onExit} />;
-}
-
-export const PRESENTATIONS: Presentation[] = [
-  { id: "board", label: "Run Graph", blurb: "Reusable engine graph — nodes, requirements, outcomes, cartridge marks", Component: BoardCostume },
-  { id: "globe", label: "Planet", blurb: "3D world — for spatial arcs", Component: GlobeCostume },
+export const PRESENTATIONS: Representation[] = [
+  {
+    id: "board",
+    label: "Run Graph",
+    blurb: "Reusable engine graph — nodes, requirements, outcomes, cartridge marks",
+    Scene: BoardScene,
+    controlsHint: "drag to orbit · scroll to zoom · click a ◆ contract",
+  },
+  {
+    id: "globe",
+    label: "Planet",
+    blurb: "3D world — for spatial arcs",
+    Scene: PlanetScene,
+    controlsHint: "drag to orbit · scroll to zoom · right-drag to pan · click a ◆ contract",
+  },
 ];

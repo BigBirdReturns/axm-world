@@ -1,8 +1,9 @@
-// The 3D world: an arc's challenge nodes standing on a low-poly planet you orbit,
-// tilt and zoom. Click a contract, assign a party from the roster, and Run it — which
-// resolves through the deterministic engine (useArcWorld); the node flips to cleared
-// and engine state advances. The planet/scatter come from the world modules; this
-// file composes the scene, the orbit camera, and wires interaction to the engine seam.
+// Planet scene: the spatial representation of an arc — challenge nodes standing on a
+// low-poly planet you orbit, tilt and zoom. This is ONLY the representation: it fills
+// the shell's active-representation region and renders the engine's nodes through the
+// shared interaction seam. All chrome (status, roster, contract, report, decision,
+// cartridge) belongs to the Shell, not here — so every costume is just a view of the
+// same run.
 
 import { useCallback, useMemo, useState } from "react";
 import * as THREE from "three";
@@ -13,19 +14,15 @@ import { generatePlanet, makeColliderBVH } from "./planet/generatePlanet.js";
 import { scatterOnPlanet } from "./planet/scatter.js";
 import { Scatter } from "./planet/Scatter.js";
 import { NodeMarkers } from "./components/NodeMarkers.js";
-import { Hud } from "./components/Hud.js";
-import { DecisionPanel } from "./components/DecisionPanel.js";
-import { CartridgeObjectPanel } from "./components/CartridgeObjectPanel.js";
 import type { ArcInteraction } from "./useArcInteraction.js";
 import type { ArcWorld } from "./useArcWorld.js";
 
 const RADIUS = DEFAULT_WORLD_CONFIG.planetRadius;
 const SEED = 7;
 
-export interface WorldScreenProps {
+export interface SceneProps {
   world: ArcWorld;
   interaction: ArcInteraction;
-  onExit?: () => void;
 }
 
 /** Drop each node onto the actual displaced terrain (so markers don't float). */
@@ -44,9 +41,8 @@ function placeOnTerrain(nodes: WorldNode[], collider: THREE.Mesh | null): WorldN
   });
 }
 
-export function WorldScreen({ world, interaction: ix, onExit }: WorldScreenProps): JSX.Element {
+export function PlanetScene({ world, interaction: ix }: SceneProps): JSX.Element {
   const [collider, setCollider] = useState<THREE.Mesh | null>(null);
-  const [showCartridge, setShowCartridge] = useState(false);
 
   const geometry = useMemo(() => {
     const g = generatePlanet({ radius: RADIUS, seed: SEED });
@@ -61,101 +57,29 @@ export function WorldScreen({ world, interaction: ix, onExit }: WorldScreenProps
   }, []);
 
   return (
-    <div style={{ position: "absolute", inset: 0, background: "#0b0a08" }}>
-      <Canvas camera={{ position: [0, RADIUS * 0.7, RADIUS * 2.6], fov: 45 }} dpr={[1, 2]}>
-        <color attach="background" args={["#0b0a08"]} />
-        <ambientLight intensity={0.75} />
-        <directionalLight position={[25, 18, 12]} intensity={1.2} />
-        <Stars radius={120} depth={40} count={1400} factor={4} fade speed={0.4} />
+    <Canvas style={{ position: "absolute", inset: 0 }} camera={{ position: [0, RADIUS * 0.7, RADIUS * 2.6], fov: 45 }} dpr={[1, 2]}>
+      <color attach="background" args={["#0b0a08"]} />
+      <ambientLight intensity={0.75} />
+      <directionalLight position={[25, 18, 12]} intensity={1.2} />
+      <Stars radius={120} depth={40} count={1400} factor={4} fade speed={0.4} />
 
-        <mesh ref={setColliderRef} geometry={geometry}>
-          <meshStandardMaterial vertexColors flatShading roughness={0.95} metalness={0} />
-        </mesh>
-        <Scatter items={scatterItems} />
-        <NodeMarkers nodes={placedNodes} selectedId={ix.selectedId} onSelect={ix.select} />
+      <mesh ref={setColliderRef} geometry={geometry}>
+        <meshStandardMaterial vertexColors flatShading roughness={0.95} metalness={0} />
+      </mesh>
+      <Scatter items={scatterItems} />
+      <NodeMarkers nodes={placedNodes} selectedId={ix.selectedId} onSelect={ix.select} />
 
-        <OrbitControls
-          makeDefault
-          enablePan
-          enableZoom
-          enableDamping
-          dampingFactor={0.08}
-          rotateSpeed={0.6}
-          zoomSpeed={0.9}
-          minDistance={RADIUS + 2.5}
-          maxDistance={RADIUS * 4.5}
-        />
-      </Canvas>
-
-      <Hud
-        title={world.arc.meta.name}
-        cycle={world.cycle}
-        resources={world.resources}
-        progress={{ cleared: world.clearedCount, total: world.totalNodes }}
-        arcComplete={world.arcComplete}
-        selected={ix.selected}
-        req={ix.req}
-        roster={world.roster}
-        party={ix.party}
-        onToggleAgent={ix.toggleAgent}
-        onApplyDowntime={world.applyDowntime}
-        canRun={ix.canRun}
-        onRun={ix.run}
-        lastReport={world.lastReport}
-        dispatches={world.dispatches}
-        pendingDecision={world.pendingDecision !== null}
+      <OrbitControls
+        makeDefault
+        enablePan
+        enableZoom
+        enableDamping
+        dampingFactor={0.08}
+        rotateSpeed={0.6}
+        zoomSpeed={0.9}
+        minDistance={RADIUS + 2.5}
+        maxDistance={RADIUS * 4.5}
       />
-
-      {/* one-line legend so the controls read immediately */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 14,
-          left: 14,
-          font: "11px/1.4 'IBM Plex Mono', ui-monospace, monospace",
-          color: "#a59c8b",
-          pointerEvents: "none",
-        }}
-      >
-        drag to orbit · scroll to zoom · right-drag to pan · click a ◆ contract
-      </div>
-
-      <button
-        onClick={() => setShowCartridge(true)}
-        style={{
-          position: "absolute",
-          top: 14,
-          left: "50%",
-          transform: "translateX(-50%)",
-          pointerEvents: "auto",
-          font: "600 13px 'IBM Plex Mono', ui-monospace, monospace",
-          background: "rgba(23,21,15,0.8)",
-          color: "#c9a14a",
-          border: "1px solid #4a4238",
-          borderRadius: 6,
-          padding: "6px 12px",
-          cursor: "pointer",
-        }}
-      >
-        ◧ Cartridge
-      </button>
-
-      {world.pendingDecision && (
-        <DecisionPanel key={world.pendingDecision.id} card={world.pendingDecision} onResolve={world.resolveDecision} />
-      )}
-
-      {showCartridge && (
-        <CartridgeObjectPanel
-          manifest={world.cartridge.manifest}
-          openingChoice={world.openingChoice}
-          cycle={world.cycle}
-          clearedCount={world.clearedCount}
-          totalNodes={world.totalNodes}
-          onExport={world.buildExport}
-          onClose={() => setShowCartridge(false)}
-          onLeave={() => onExit?.()}
-        />
-      )}
-    </div>
+    </Canvas>
   );
 }

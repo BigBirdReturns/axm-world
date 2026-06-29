@@ -21,6 +21,18 @@ import {
 import { buildWorldLayout, DEFAULT_WORLD_CONFIG, type WorldLayout, type WorldNode } from "./contract.js";
 import { applyAgentDowntime, type DowntimeAction } from "./agent-management.js";
 import { FIRST_CHARTER_CARTRIDGE, type AuthoredEffect, type AuthoredOpening, type Cartridge } from "./cartridge.js";
+import {
+  describeContract as describeContractReq,
+  evaluateParty as evaluatePartyReq,
+  recommendationRationale,
+  type ContractRequirements,
+  type PartyReadiness,
+} from "./readiness.js";
+
+export interface RosterGear {
+  name: string;
+  bonuses: Record<string, number>;
+}
 
 export interface RosterMember {
   id: string;
@@ -29,6 +41,12 @@ export interface RosterMember {
   stress: number;
   morale: number;
   downed: boolean;
+  /** Visible attribute scores, so assignment can be judged against contract checks. */
+  attributes: Record<string, number>;
+  /** Equipped items and their stat bonuses (empty until loot is earned). */
+  gear: RosterGear[];
+  /** Active affliction label, if any (it penalizes resolution). */
+  affliction: string | null;
 }
 
 export interface ChallengeReq {
@@ -75,6 +93,12 @@ export interface ArcWorld {
   openingChoice: string | null;
   reqFor: (challengeId: string) => ChallengeReq;
   recommendedParty: (challengeId: string) => string[];
+  /** Structured requirements (roles, checks, thresholds) for the contract panel. */
+  describeContract: (challengeId: string) => ContractRequirements | null;
+  /** Faithful projection of the resolver for a candidate party. */
+  evaluateParty: (challengeId: string, agentIds: string[]) => PartyReadiness | null;
+  /** Plain-language reason the recommended party is the recommended party. */
+  recommendationFor: (challengeId: string) => string | null;
   lastReport: PlayReportView | null;
   runChallenge: (challengeId: string, agentIds: string[]) => void;
   resolveDecision: (optionId: string) => void;
@@ -129,6 +153,12 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
         stress: Math.round(a.stress),
         morale: Math.round(a.morale),
         downed: a.downedUntilCycle !== null,
+        attributes: a.attributes,
+        gear: Object.values(a.equippedItems)
+          .map((itemId) => arc.items.find((it) => it.id === itemId))
+          .filter((it): it is NonNullable<typeof it> => !!it)
+          .map((it) => ({ name: it.name, bonuses: it.statBonuses })),
+        affliction: a.afflictionState.kind === "none" ? null : a.afflictionState.kind,
       })),
     [org, arc],
   );
@@ -150,6 +180,32 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
       return c ? recommendAgentsForChallenge(c, org, arc) : [];
     },
     [arc, org],
+  );
+
+  const describeContract = useCallback(
+    (challengeId: string): ContractRequirements | null => {
+      const c = arc.challenges.find((x) => x.id === challengeId);
+      return c ? describeContractReq(c, arc) : null;
+    },
+    [arc],
+  );
+
+  const evaluateParty = useCallback(
+    (challengeId: string, agentIds: string[]): PartyReadiness | null => {
+      const c = arc.challenges.find((x) => x.id === challengeId);
+      if (!c) return null;
+      const party = agentIds.map((id) => org.agents[id]).filter((a): a is NonNullable<typeof a> => !!a);
+      return evaluatePartyReq(c, party, arc);
+    },
+    [arc, org],
+  );
+
+  const recommendationFor = useCallback(
+    (challengeId: string): string | null => {
+      const req = describeContract(challengeId);
+      return req ? recommendationRationale(req) : null;
+    },
+    [describeContract],
   );
 
   const runChallenge = useCallback(
@@ -227,6 +283,9 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     openingChoice,
     reqFor,
     recommendedParty,
+    describeContract,
+    evaluateParty,
+    recommendationFor,
     lastReport,
     runChallenge,
     resolveDecision,

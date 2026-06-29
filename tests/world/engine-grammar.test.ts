@@ -4,7 +4,7 @@ import { bootstrapOrg } from "../../src/spoke/bootstrap.js";
 import { compileArcToPlayScene } from "../../src/play-pipeline/compile.js";
 import { buildWorldLayout } from "../../src/world/contract.js";
 import { firstAvailableNodeId } from "../../src/world/useArcInteraction.js";
-import { getEngineCoachMessage } from "../../src/world/components/Hud.js";
+import { getEngineCoachMessage } from "../../src/world/shell/coach.js";
 import type { Arc } from "../../src/engine/types.js";
 
 function dummyCartridgeArc(): Arc {
