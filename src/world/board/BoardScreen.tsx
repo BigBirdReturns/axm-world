@@ -10,6 +10,8 @@ import type { PlayNode } from "../../play-pipeline/compile.js";
 import { Hud } from "../components/Hud.js";
 import { DecisionPanel } from "../components/DecisionPanel.js";
 import { CartridgeObjectPanel } from "../components/CartridgeObjectPanel.js";
+import { CartridgeButton } from "../components/CartridgeButton.js";
+import { useIsMobile } from "../use-viewport.js";
 import type { ArcInteraction } from "../useArcInteraction.js";
 import type { ArcWorld } from "../useArcWorld.js";
 
@@ -41,6 +43,7 @@ const TARGET_SPAN = 42; // board units the larger axis maps to
 export function BoardScreen({ world, interaction: ix, onExit }: BoardScreenProps): JSX.Element {
   const scene = world.scene;
   const [showCartridge, setShowCartridge] = useState(false);
+  const isMobile = useIsMobile();
 
   const board = useMemo(() => {
     let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -137,8 +140,16 @@ export function BoardScreen({ world, interaction: ix, onExit }: BoardScreenProps
                 <octahedronGeometry args={[0.28, 0]} />
                 <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.7} />
               </mesh>
-              <Html position={[0, 1.55, 0.28]} center distanceFactor={ext * 0.9} pointerEvents="none">
-                <div style={{ width: 130, textAlign: "center", font: "600 12px 'IBM Plex Mono', ui-monospace, monospace", color: "#ece4d4", userSelect: "none" }}>
+              {/* The label is part of the node: it must select like the card does,
+                  not be a dead target. Enable pointer events and route clicks to the
+                  same select(); stop propagation so the click doesn't fall through to
+                  the canvas / orbit controls. */}
+              <Html position={[0, 1.55, 0.28]} center distanceFactor={ext * 0.9}>
+                <div
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); ix.select(node.challengeId); }}
+                  style={{ width: 130, textAlign: "center", font: "600 12px 'IBM Plex Mono', ui-monospace, monospace", color: "#ece4d4", userSelect: "none", cursor: "pointer" }}
+                >
                   <div style={{ color }}>{STATUS_GLYPH[node.status]} {node.difficulty}</div>
                   <div style={{ lineHeight: 1.2, marginTop: 2 }}>{node.title}</div>
                   {justRecorded && <div style={{ marginTop: 4, color: "#74ad77", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>recorded</div>}
@@ -206,16 +217,13 @@ export function BoardScreen({ world, interaction: ix, onExit }: BoardScreenProps
         pendingDecision={world.pendingDecision !== null}
       />
 
-      <div style={{ position: "absolute", bottom: 14, left: 14, font: "11px/1.4 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b", pointerEvents: "none" }}>
-        run graph: gold ◆ available · gray ◇ locked by requirements · green ✓ recorded on this cartridge
-      </div>
+      {!isMobile && (
+        <div style={{ position: "absolute", bottom: 14, left: 14, font: "11px/1.4 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b", pointerEvents: "none" }}>
+          run graph: gold ◆ available · gray ◇ locked by requirements · green ✓ recorded on this cartridge
+        </div>
+      )}
 
-      <button
-        onClick={() => setShowCartridge(true)}
-        style={{ position: "absolute", top: 14, left: "50%", transform: "translateX(-50%)", pointerEvents: "auto", font: "600 13px 'IBM Plex Mono', ui-monospace, monospace", background: "rgba(23,21,15,0.8)", color: "#c9a14a", border: "1px solid #4a4238", borderRadius: 6, padding: "6px 12px", cursor: "pointer" }}
-      >
-        ◧ Cartridge
-      </button>
+      <CartridgeButton onClick={() => setShowCartridge(true)} />
 
       {/* the authored opening decision (and any pending drama) — engine resolves it */}
       {world.pendingDecision && (

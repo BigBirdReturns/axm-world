@@ -16,6 +16,8 @@ import { NodeMarkers } from "./components/NodeMarkers.js";
 import { Hud } from "./components/Hud.js";
 import { DecisionPanel } from "./components/DecisionPanel.js";
 import { CartridgeObjectPanel } from "./components/CartridgeObjectPanel.js";
+import { CartridgeButton } from "./components/CartridgeButton.js";
+import { useIsMobile } from "./use-viewport.js";
 import type { ArcInteraction } from "./useArcInteraction.js";
 import type { ArcWorld } from "./useArcWorld.js";
 
@@ -47,6 +49,7 @@ function placeOnTerrain(nodes: WorldNode[], collider: THREE.Mesh | null): WorldN
 export function WorldScreen({ world, interaction: ix, onExit }: WorldScreenProps): JSX.Element {
   const [collider, setCollider] = useState<THREE.Mesh | null>(null);
   const [showCartridge, setShowCartridge] = useState(false);
+  const isMobile = useIsMobile();
 
   const geometry = useMemo(() => {
     const g = generatePlanet({ radius: RADIUS, seed: SEED });
@@ -106,39 +109,24 @@ export function WorldScreen({ world, interaction: ix, onExit }: WorldScreenProps
         pendingDecision={world.pendingDecision !== null}
       />
 
-      {/* one-line legend so the controls read immediately */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 14,
-          left: 14,
-          font: "11px/1.4 'IBM Plex Mono', ui-monospace, monospace",
-          color: "#a59c8b",
-          pointerEvents: "none",
-        }}
-      >
-        drag to orbit · scroll to zoom · right-drag to pan · click a ◆ contract
-      </div>
+      {/* one-line legend so the controls read immediately — hidden on mobile, where
+          the bottom dock owns that space and touch gestures replace the mouse verbs. */}
+      {!isMobile && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 14,
+            left: 14,
+            font: "11px/1.4 'IBM Plex Mono', ui-monospace, monospace",
+            color: "#a59c8b",
+            pointerEvents: "none",
+          }}
+        >
+          drag to orbit · scroll to zoom · right-drag to pan · click a ◆ contract
+        </div>
+      )}
 
-      <button
-        onClick={() => setShowCartridge(true)}
-        style={{
-          position: "absolute",
-          top: 14,
-          left: "50%",
-          transform: "translateX(-50%)",
-          pointerEvents: "auto",
-          font: "600 13px 'IBM Plex Mono', ui-monospace, monospace",
-          background: "rgba(23,21,15,0.8)",
-          color: "#c9a14a",
-          border: "1px solid #4a4238",
-          borderRadius: 6,
-          padding: "6px 12px",
-          cursor: "pointer",
-        }}
-      >
-        ◧ Cartridge
-      </button>
+      <CartridgeButton onClick={() => setShowCartridge(true)} />
 
       {world.pendingDecision && (
         <DecisionPanel key={world.pendingDecision.id} card={world.pendingDecision} onResolve={world.resolveDecision} />
