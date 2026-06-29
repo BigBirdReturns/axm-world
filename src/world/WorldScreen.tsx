@@ -9,8 +9,6 @@ import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
 import { DEFAULT_WORLD_CONFIG, type WorldNode } from "./contract.js";
-import { useArcWorld } from "./useArcWorld.js";
-import { useArcInteraction } from "./useArcInteraction.js";
 import { generatePlanet, makeColliderBVH } from "./planet/generatePlanet.js";
 import { scatterOnPlanet } from "./planet/scatter.js";
 import { Scatter } from "./planet/Scatter.js";
@@ -18,13 +16,15 @@ import { NodeMarkers } from "./components/NodeMarkers.js";
 import { Hud } from "./components/Hud.js";
 import { DecisionPanel } from "./components/DecisionPanel.js";
 import { CartridgeObjectPanel } from "./components/CartridgeObjectPanel.js";
-import type { Cartridge } from "./cartridge.js";
+import type { ArcInteraction } from "./useArcInteraction.js";
+import type { ArcWorld } from "./useArcWorld.js";
 
 const RADIUS = DEFAULT_WORLD_CONFIG.planetRadius;
 const SEED = 7;
 
 export interface WorldScreenProps {
-  cartridge: Cartridge;
+  world: ArcWorld;
+  interaction: ArcInteraction;
   onExit?: () => void;
 }
 
@@ -44,9 +44,7 @@ function placeOnTerrain(nodes: WorldNode[], collider: THREE.Mesh | null): WorldN
   });
 }
 
-export function WorldScreen({ cartridge, onExit }: WorldScreenProps): JSX.Element {
-  const world = useArcWorld(cartridge);
-  const ix = useArcInteraction(world);
+export function WorldScreen({ world, interaction: ix, onExit }: WorldScreenProps): JSX.Element {
   const [collider, setCollider] = useState<THREE.Mesh | null>(null);
   const [showCartridge, setShowCartridge] = useState(false);
 
@@ -105,6 +103,7 @@ export function WorldScreen({ cartridge, onExit }: WorldScreenProps): JSX.Elemen
         onRun={ix.run}
         lastReport={world.lastReport}
         dispatches={world.dispatches}
+        pendingDecision={world.pendingDecision !== null}
       />
 
       {/* one-line legend so the controls read immediately */}
@@ -147,7 +146,7 @@ export function WorldScreen({ cartridge, onExit }: WorldScreenProps): JSX.Elemen
 
       {showCartridge && (
         <CartridgeObjectPanel
-          manifest={cartridge.manifest}
+          manifest={world.cartridge.manifest}
           openingChoice={world.openingChoice}
           cycle={world.cycle}
           clearedCount={world.clearedCount}

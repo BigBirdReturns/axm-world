@@ -1,20 +1,17 @@
-// The "charter board" costume: a tilt-shift 2.5D diorama. 3D-rendered (depth,
-// lighting, soft shadows, standees and pawns) but played as a 2D board — the
-// Nintendo move for a turn-based management arc. Reuses the engine's own 2D
-// PlayScene layout (node.x/y), the shared interaction hook, and the HUD. Same
-// runCycle seam underneath; this is purely a presentation. The board auto-fits the
-// arc's node bounds, so any arc frames correctly.
+// The run-graph costume: a generic engine grammar, not a themed world map.
+// Nodes are engine-resolvable work items; edges show prerequisite flow; colors mark
+// available/locked/cleared run state; party pawns show the pending assignment.
+// Cartridge-specific fiction lives in labels/descriptions, not in this layer.
 
 import { useMemo, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, RoundedBox, Line, Html, ContactShadows } from "@react-three/drei";
 import type { PlayNode } from "../../play-pipeline/compile.js";
-import { useArcWorld } from "../useArcWorld.js";
-import { useArcInteraction } from "../useArcInteraction.js";
 import { Hud } from "../components/Hud.js";
 import { DecisionPanel } from "../components/DecisionPanel.js";
 import { CartridgeObjectPanel } from "../components/CartridgeObjectPanel.js";
-import type { Cartridge } from "../cartridge.js";
+import type { ArcInteraction } from "../useArcInteraction.js";
+import type { ArcWorld } from "../useArcWorld.js";
 
 const STATUS_COLOR: Record<PlayNode["status"], string> = {
   available: "#c9a14a",
@@ -28,7 +25,8 @@ const STATUS_GLYPH: Record<PlayNode["status"], string> = {
 };
 
 export interface BoardScreenProps {
-  cartridge: Cartridge;
+  world: ArcWorld;
+  interaction: ArcInteraction;
   onExit?: () => void;
 }
 
@@ -40,9 +38,7 @@ interface Placed {
 
 const TARGET_SPAN = 42; // board units the larger axis maps to
 
-export function BoardScreen({ cartridge, onExit }: BoardScreenProps): JSX.Element {
-  const world = useArcWorld(cartridge);
-  const ix = useArcInteraction(world);
+export function BoardScreen({ world, interaction: ix, onExit }: BoardScreenProps): JSX.Element {
   const scene = world.scene;
   const [showCartridge, setShowCartridge] = useState(false);
 
@@ -69,7 +65,7 @@ export function BoardScreen({ cartridge, onExit }: BoardScreenProps): JSX.Elemen
       const a = board.pts[i];
       const b = board.pts[i + 1];
       if (!a || !b) continue;
-      if (b.node.tierIndex !== a.node.tierIndex) out.push([[a.x, 0.14, a.z], [b.x, 0.14, b.z]]);
+      out.push([[a.x, 0.14, a.z], [b.x, 0.14, b.z]]);
     }
     return out;
   }, [board]);
@@ -103,14 +99,15 @@ export function BoardScreen({ cartridge, onExit }: BoardScreenProps): JSX.Elemen
           <meshStandardMaterial color="#26352a" roughness={1} />
         </mesh>
 
-        {/* progression paths */}
+        {/* prerequisite flow: edges are dependency/readiness, not avatar traversal roads. */}
         {edges.map((seg, i) => (
-          <Line key={i} points={seg} color="#8a8270" lineWidth={2} dashed dashScale={2.5} />
+          <Line key={i} points={seg} color="#8a8270" lineWidth={2.5} dashed dashScale={2.5} />
         ))}
 
-        {/* contract standees */}
+        {/* engine nodes */}
         {board.pts.map(({ node, x, z }) => {
           const selected = node.challengeId === ix.selectedId;
+          const justRecorded = world.lastReport?.challengeId === node.challengeId && node.status === "cleared";
           const color = STATUS_COLOR[node.status];
           return (
             <group key={node.id} position={[x, 0, z]}>
@@ -123,7 +120,7 @@ export function BoardScreen({ cartridge, onExit }: BoardScreenProps): JSX.Elemen
                 radius={0.13}
                 smoothness={3}
                 position={[0, 1.6, 0]}
-                scale={selected ? 1.14 : 1}
+                scale={justRecorded ? 1.24 : selected ? 1.14 : 1}
                 castShadow
                 onClick={(e) => { e.stopPropagation(); ix.select(node.challengeId); }}
                 onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = "pointer"; }}
@@ -132,7 +129,7 @@ export function BoardScreen({ cartridge, onExit }: BoardScreenProps): JSX.Elemen
                 <meshStandardMaterial
                   color={selected ? "#241f18" : "#2c2720"}
                   emissive={color}
-                  emissiveIntensity={selected ? 0.55 : node.status === "available" ? 0.22 : 0.06}
+                  emissiveIntensity={justRecorded ? 0.85 : selected ? 0.55 : node.status === "available" ? 0.22 : 0.06}
                   roughness={0.6}
                 />
               </RoundedBox>
@@ -144,6 +141,7 @@ export function BoardScreen({ cartridge, onExit }: BoardScreenProps): JSX.Elemen
                 <div style={{ width: 130, textAlign: "center", font: "600 12px 'IBM Plex Mono', ui-monospace, monospace", color: "#ece4d4", userSelect: "none" }}>
                   <div style={{ color }}>{STATUS_GLYPH[node.status]} {node.difficulty}</div>
                   <div style={{ lineHeight: 1.2, marginTop: 2 }}>{node.title}</div>
+                  {justRecorded && <div style={{ marginTop: 4, color: "#74ad77", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>recorded</div>}
                 </div>
               </Html>
             </group>
@@ -205,10 +203,11 @@ export function BoardScreen({ cartridge, onExit }: BoardScreenProps): JSX.Elemen
         onRun={ix.run}
         lastReport={world.lastReport}
         dispatches={world.dispatches}
+        pendingDecision={world.pendingDecision !== null}
       />
 
       <div style={{ position: "absolute", bottom: 14, left: 14, font: "11px/1.4 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b", pointerEvents: "none" }}>
-        drag to tilt · scroll to zoom · click a contract · assign a party · Run
+        run graph: gold ◆ available · gray ◇ locked by requirements · green ✓ recorded on this cartridge
       </div>
 
       <button
@@ -226,7 +225,7 @@ export function BoardScreen({ cartridge, onExit }: BoardScreenProps): JSX.Elemen
       {/* the cartridge as an object: run state + export; the exit path */}
       {showCartridge && (
         <CartridgeObjectPanel
-          manifest={cartridge.manifest}
+          manifest={world.cartridge.manifest}
           openingChoice={world.openingChoice}
           cycle={world.cycle}
           clearedCount={world.clearedCount}

@@ -47,6 +47,7 @@ function row(label: string, value: string): JSX.Element {
 }
 
 export function CartridgeObjectPanel({ manifest, openingChoice, cycle, clearedCount, totalNodes, onExport, onClose, onLeave }: Props): JSX.Element {
+  const progressPct = totalNodes > 0 ? Math.round((clearedCount / totalNodes) * 100) : 0;
   const handleExport = () => {
     const data = onExport();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -84,12 +85,15 @@ export function CartridgeObjectPanel({ manifest, openingChoice, cycle, clearedCo
         {row("Engine", manifest.engineVersion)}
         <div style={{ height: 1, background: "#2a2620", margin: "8px 0" }} />
         {row("Cycle", String(cycle).padStart(2, "0"))}
-        {row("Contracts", `${clearedCount} / ${totalNodes}`)}
-        {row("Your oath", openingChoice ?? "—")}
+        {row("Recorded nodes", `${clearedCount} / ${totalNodes}`)}
+        <div style={{ height: 6, background: "#2a2620", borderRadius: 999, overflow: "hidden", margin: "4px 0 8px" }}>
+          <div style={{ width: `${progressPct}%`, height: "100%", background: "#74ad77" }} />
+        </div>
+        {row("Decision mark", openingChoice ?? "—")}
 
         <p style={{ color: "#a59c8b", fontFamily: "'Lora', Georgia, serif", fontSize: 13, lineHeight: 1.5, margin: "14px 0 16px" }}>
-          The world didn't swallow it. This cartridge is still yours — export it with your
-          run intact and it plays anywhere a player runs.
+          The world did not swallow it. The object now carries engine marks — decisions,
+          cleared nodes, cycle count, and roster state — that survive representation changes.
         </p>
 
         <button
