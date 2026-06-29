@@ -32,10 +32,77 @@ export interface CartridgeManifest {
   signature?: string | null;
 }
 
+// ── Authored opening beat (cartridge DATA, not player logic) ────────────────────
+// The first interaction. axm-world only reads this, surfaces the options, and hands
+// the chosen option to the engine (resolveDramaCard) — it never authors the drama.
+// Effects use engine-applied agent dimensions: morale (0–100), stress (0–10),
+// loyalty (0–20). scope "all" binds to every bootstrapped agent at load time.
+
+export interface AuthoredEffect {
+  scope: "all";
+  type: "morale" | "stress" | "loyalty";
+  value: number;
+}
+
+export interface AuthoredOption {
+  id: string;
+  label: string;
+  /** Shown as the consequence once chosen. */
+  description: string;
+  effects: AuthoredEffect[];
+}
+
+export interface AuthoredOpening {
+  triggerType: string;
+  narrativeText: string;
+  options: AuthoredOption[];
+}
+
 export interface Cartridge {
   manifest: CartridgeManifest;
   arc: Arc;
+  /** Optional authored opening decision the player faces on entering the world. */
+  opening?: AuthoredOpening;
 }
+
+/** First Charter's opening oath — an ownership/governance choice, not a tactical one. */
+export const FIRST_CHARTER_OPENING: AuthoredOpening = {
+  triggerType: "founding-oath",
+  narrativeText:
+    "Before a single contract is taken, the charter must be sworn. The crown's envoy lays a sealed writ on the table: accept its protection, and the crown takes its claim on all the hall will build. The guild waits on your word.",
+  options: [
+    {
+      id: "open-charter",
+      label: "Swear the open charter",
+      description:
+        "You refuse the seal. The hall binds itself to a charter no crown or company can seize — what you build stays yours. The room rises.",
+      effects: [
+        { scope: "all", type: "morale", value: 8 },
+        { scope: "all", type: "loyalty", value: 3 },
+      ],
+    },
+    {
+      id: "crown-seal",
+      label: "Take the crown's seal",
+      description:
+        "Safety, and a leash. Coin will flow — but the work is the crown's to claim. A few eyes lower.",
+      effects: [
+        { scope: "all", type: "morale", value: 3 },
+        { scope: "all", type: "loyalty", value: -3 },
+      ],
+    },
+    {
+      id: "coin-bound",
+      label: "Bind the hall to coin",
+      description:
+        "No oath, no crown — only the ledger. The mercenary road pays now and costs later. The hall grows quiet.",
+      effects: [
+        { scope: "all", type: "morale", value: -5 },
+        { scope: "all", type: "stress", value: 1 },
+      ],
+    },
+  ],
+};
 
 function manifestForArc(arc: Arc, trust: TrustLevel, preferredCostume?: CostumeId): CartridgeManifest {
   return {
@@ -54,6 +121,7 @@ function manifestForArc(arc: Arc, trust: TrustLevel, preferredCostume?: CostumeI
 export const FIRST_CHARTER_CARTRIDGE: Cartridge = {
   manifest: manifestForArc(FIRST_CHARTER, "bundled", "board"),
   arc: FIRST_CHARTER,
+  opening: FIRST_CHARTER_OPENING,
 };
 
 export const BUNDLED_CARTRIDGES: Cartridge[] = [FIRST_CHARTER_CARTRIDGE];

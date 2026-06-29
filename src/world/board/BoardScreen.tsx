@@ -5,15 +5,16 @@
 // runCycle seam underneath; this is purely a presentation. The board auto-fits the
 // arc's node bounds, so any arc frames correctly.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, RoundedBox, Line, Html, ContactShadows } from "@react-three/drei";
-import type { Arc } from "../../engine/types.js";
 import type { PlayNode } from "../../play-pipeline/compile.js";
 import { useArcWorld } from "../useArcWorld.js";
 import { useArcInteraction } from "../useArcInteraction.js";
 import { Hud } from "../components/Hud.js";
-import { TutorialCoach } from "../components/TutorialCoach.js";
+import { DecisionPanel } from "../components/DecisionPanel.js";
+import { CartridgeObjectPanel } from "../components/CartridgeObjectPanel.js";
+import type { Cartridge } from "../cartridge.js";
 
 const STATUS_COLOR: Record<PlayNode["status"], string> = {
   available: "#c9a14a",
@@ -27,7 +28,7 @@ const STATUS_GLYPH: Record<PlayNode["status"], string> = {
 };
 
 export interface BoardScreenProps {
-  arc?: Arc;
+  cartridge: Cartridge;
   onExit?: () => void;
 }
 
@@ -39,10 +40,11 @@ interface Placed {
 
 const TARGET_SPAN = 42; // board units the larger axis maps to
 
-export function BoardScreen({ arc, onExit }: BoardScreenProps): JSX.Element {
-  const world = useArcWorld(arc);
+export function BoardScreen({ cartridge, onExit }: BoardScreenProps): JSX.Element {
+  const world = useArcWorld(cartridge);
   const ix = useArcInteraction(world);
   const scene = world.scene;
+  const [showCartridge, setShowCartridge] = useState(false);
 
   const board = useMemo(() => {
     let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -205,24 +207,34 @@ export function BoardScreen({ arc, onExit }: BoardScreenProps): JSX.Element {
         dispatches={world.dispatches}
       />
 
-      <TutorialCoach
-        arcName={world.arc.meta.name}
-        selectedId={ix.selectedId}
-        partyMet={ix.req !== null && ix.party.length >= ix.req.minAgents}
-        hasRun={world.lastReport !== null}
-      />
-
       <div style={{ position: "absolute", bottom: 14, left: 14, font: "11px/1.4 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b", pointerEvents: "none" }}>
         drag to tilt · scroll to zoom · click a contract · assign a party · Run
       </div>
 
-      {onExit && (
-        <button
-          onClick={onExit}
-          style={{ position: "absolute", top: 14, left: "50%", transform: "translateX(-50%)", pointerEvents: "auto", font: "600 13px 'IBM Plex Mono', ui-monospace, monospace", background: "rgba(23,21,15,0.8)", color: "#a59c8b", border: "1px solid #4a4238", borderRadius: 6, padding: "6px 12px", cursor: "pointer" }}
-        >
-          ← Exit
-        </button>
+      <button
+        onClick={() => setShowCartridge(true)}
+        style={{ position: "absolute", top: 14, left: "50%", transform: "translateX(-50%)", pointerEvents: "auto", font: "600 13px 'IBM Plex Mono', ui-monospace, monospace", background: "rgba(23,21,15,0.8)", color: "#c9a14a", border: "1px solid #4a4238", borderRadius: 6, padding: "6px 12px", cursor: "pointer" }}
+      >
+        ◧ Cartridge
+      </button>
+
+      {/* the authored opening decision (and any pending drama) — engine resolves it */}
+      {world.pendingDecision && (
+        <DecisionPanel key={world.pendingDecision.id} card={world.pendingDecision} onResolve={world.resolveDecision} />
+      )}
+
+      {/* the cartridge as an object: run state + export; the exit path */}
+      {showCartridge && (
+        <CartridgeObjectPanel
+          manifest={cartridge.manifest}
+          openingChoice={world.openingChoice}
+          cycle={world.cycle}
+          clearedCount={world.clearedCount}
+          totalNodes={world.totalNodes}
+          onExport={world.buildExport}
+          onClose={() => setShowCartridge(false)}
+          onLeave={() => onExit?.()}
+        />
       )}
     </div>
   );

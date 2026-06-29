@@ -1,23 +1,21 @@
-// Mounts the active presentation and offers a costume switcher. The same arc plays
-// in every costume because they all render the one engine seam (useArcWorld). This
-// is the "presentation is a free choice" layer made concrete.
+// Mounts the active presentation and offers a costume switcher. The same cartridge
+// plays in every costume because they all render the one engine seam (useArcWorld).
 
 import { useState } from "react";
-import type { Arc } from "../engine/types.js";
 import { PRESENTATIONS } from "./presentations.js";
 import { loadCostume, saveCostume, isCostumeId } from "./presentation-prefs.js";
+import type { Cartridge } from "./cartridge.js";
 
 export interface WorldHostProps {
-  arc: Arc;
+  cartridge: Cartridge;
   onExit: () => void;
 }
 
-export function WorldHost({ arc, onExit }: WorldHostProps): JSX.Element {
-  // Open each arc in its preferred costume (and remember manual switches).
-  const [costumeId, setCostumeId] = useState<string>(() => loadCostume(arc));
+export function WorldHost({ cartridge, onExit }: WorldHostProps): JSX.Element {
+  const [costumeId, setCostumeId] = useState<string>(() => loadCostume(cartridge.arc));
   const choose = (id: string) => {
     setCostumeId(id);
-    if (isCostumeId(id)) saveCostume(arc, id);
+    if (isCostumeId(id)) saveCostume(cartridge.arc, id);
   };
   const active = PRESENTATIONS.find((p) => p.id === costumeId) ?? PRESENTATIONS[0];
   if (!active) return <div />;
@@ -25,7 +23,7 @@ export function WorldHost({ arc, onExit }: WorldHostProps): JSX.Element {
 
   return (
     <div style={{ position: "absolute", inset: 0 }}>
-      <Active arc={arc} onExit={onExit} />
+      <Active cartridge={cartridge} onExit={onExit} />
 
       {/* costume switcher */}
       <div

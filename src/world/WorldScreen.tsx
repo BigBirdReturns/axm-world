@@ -8,7 +8,6 @@ import { useCallback, useMemo, useState } from "react";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Stars } from "@react-three/drei";
-import type { Arc } from "../engine/types.js";
 import { DEFAULT_WORLD_CONFIG, type WorldNode } from "./contract.js";
 import { useArcWorld } from "./useArcWorld.js";
 import { useArcInteraction } from "./useArcInteraction.js";
@@ -17,12 +16,15 @@ import { scatterOnPlanet } from "./planet/scatter.js";
 import { Scatter } from "./planet/Scatter.js";
 import { NodeMarkers } from "./components/NodeMarkers.js";
 import { Hud } from "./components/Hud.js";
+import { DecisionPanel } from "./components/DecisionPanel.js";
+import { CartridgeObjectPanel } from "./components/CartridgeObjectPanel.js";
+import type { Cartridge } from "./cartridge.js";
 
 const RADIUS = DEFAULT_WORLD_CONFIG.planetRadius;
 const SEED = 7;
 
 export interface WorldScreenProps {
-  arc?: Arc;
+  cartridge: Cartridge;
   onExit?: () => void;
 }
 
@@ -42,10 +44,11 @@ function placeOnTerrain(nodes: WorldNode[], collider: THREE.Mesh | null): WorldN
   });
 }
 
-export function WorldScreen({ arc, onExit }: WorldScreenProps): JSX.Element {
-  const world = useArcWorld(arc);
+export function WorldScreen({ cartridge, onExit }: WorldScreenProps): JSX.Element {
+  const world = useArcWorld(cartridge);
   const ix = useArcInteraction(world);
   const [collider, setCollider] = useState<THREE.Mesh | null>(null);
+  const [showCartridge, setShowCartridge] = useState(false);
 
   const geometry = useMemo(() => {
     const g = generatePlanet({ radius: RADIUS, seed: SEED });
@@ -118,26 +121,41 @@ export function WorldScreen({ arc, onExit }: WorldScreenProps): JSX.Element {
         drag to orbit · scroll to zoom · right-drag to pan · click a ◆ contract
       </div>
 
-      {onExit && (
-        <button
-          onClick={onExit}
-          style={{
-            position: "absolute",
-            top: 14,
-            left: "50%",
-            transform: "translateX(-50%)",
-            pointerEvents: "auto",
-            font: "600 13px 'IBM Plex Mono', ui-monospace, monospace",
-            background: "rgba(23,21,15,0.8)",
-            color: "#a59c8b",
-            border: "1px solid #4a4238",
-            borderRadius: 6,
-            padding: "6px 12px",
-            cursor: "pointer",
-          }}
-        >
-          ← Exit world
-        </button>
+      <button
+        onClick={() => setShowCartridge(true)}
+        style={{
+          position: "absolute",
+          top: 14,
+          left: "50%",
+          transform: "translateX(-50%)",
+          pointerEvents: "auto",
+          font: "600 13px 'IBM Plex Mono', ui-monospace, monospace",
+          background: "rgba(23,21,15,0.8)",
+          color: "#c9a14a",
+          border: "1px solid #4a4238",
+          borderRadius: 6,
+          padding: "6px 12px",
+          cursor: "pointer",
+        }}
+      >
+        ◧ Cartridge
+      </button>
+
+      {world.pendingDecision && (
+        <DecisionPanel key={world.pendingDecision.id} card={world.pendingDecision} onResolve={world.resolveDecision} />
+      )}
+
+      {showCartridge && (
+        <CartridgeObjectPanel
+          manifest={cartridge.manifest}
+          openingChoice={world.openingChoice}
+          cycle={world.cycle}
+          clearedCount={world.clearedCount}
+          totalNodes={world.totalNodes}
+          onExport={world.buildExport}
+          onClose={() => setShowCartridge(false)}
+          onLeave={() => onExit?.()}
+        />
       )}
     </div>
   );
