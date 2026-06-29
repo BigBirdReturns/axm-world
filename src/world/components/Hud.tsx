@@ -59,7 +59,7 @@ export function Hud(props: Props): JSX.Element {
       {/* top-left: identity + resources + progress */}
       <div style={{ ...panel, top: 14, left: 14, minWidth: 210 }}>
         <div style={{ color: "#c9a14a", letterSpacing: "0.12em", textTransform: "uppercase", fontSize: 11 }}>
-          axm-world · arc → world
+          Cartridge
         </div>
         <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 700, margin: "2px 0 8px" }}>
           {title}
