@@ -5,7 +5,7 @@
 // pure views over this hook.
 
 import { useCallback, useMemo, useState } from "react";
-import type { Arc, Organization, RunReport } from "../engine/types.js";
+import type { Arc, DramaCard, Organization, RunReport } from "../engine/types.js";
 import type { ChallengeAssignment } from "../engine/cycle.js";
 import { runCycle } from "../engine/cycle.js";
 import { FIRST_CHARTER } from "../arcs/index.js";
@@ -52,6 +52,8 @@ export interface ArcWorld {
   clearedCount: number;
   totalNodes: number;
   arcComplete: boolean;
+  /** Authored story beats the engine generated (most recent first). */
+  dispatches: DramaCard[];
   reqFor: (challengeId: string) => ChallengeReq;
   recommendedParty: (challengeId: string) => string[];
   lastReport: PlayReportView | null;
@@ -137,6 +139,7 @@ export function useArcWorld(arc: Arc = FIRST_CHARTER): ArcWorld {
     clearedCount,
     totalNodes,
     arcComplete: totalNodes > 0 && clearedCount === totalNodes,
+    dispatches: [...org.dramaQueue].reverse(),
     reqFor,
     recommendedParty,
     lastReport,

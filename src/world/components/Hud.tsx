@@ -5,6 +5,7 @@
 // rendered as a sibling of <Canvas> (not inside it).
 
 import type { CSSProperties } from "react";
+import type { DramaCard } from "../../engine/types.js";
 import type { PlayReportView } from "../../play-pipeline/compile.js";
 import type { RosterMember } from "../useArcWorld.js";
 import type { WorldNode } from "../contract.js";
@@ -32,6 +33,7 @@ interface Props {
   canRun: boolean;
   onRun: () => void;
   lastReport: PlayReportView | null;
+  dispatches: DramaCard[];
 }
 
 const panel: CSSProperties = {
@@ -47,7 +49,7 @@ const panel: CSSProperties = {
 };
 
 export function Hud(props: Props): JSX.Element {
-  const { title, cycle, resources, progress, arcComplete, selected, req, roster, party, onToggleAgent, onApplyDowntime, canRun, onRun, lastReport } = props;
+  const { title, cycle, resources, progress, arcComplete, selected, req, roster, party, onToggleAgent, onApplyDowntime, canRun, onRun, lastReport, dispatches } = props;
   const downtimeActions = Object.keys(DOWNTIME_ACTIONS) as DowntimeAction[];
   const min = req?.minAgents ?? 0;
   const max = req?.maxAgents ?? 0;
@@ -70,6 +72,20 @@ export function Hud(props: Props): JSX.Element {
           <Row label="Contracts" value={`${progress.cleared} / ${progress.total}`} />
         </div>
       </div>
+
+      {/* left: dispatches — the engine's authored story beats */}
+      {dispatches.length > 0 && (
+        <div style={{ ...panel, top: 232, left: 14, width: 230 }}>
+          <div style={{ color: "#c9a14a", letterSpacing: "0.1em", textTransform: "uppercase", fontSize: 11, marginBottom: 6 }}>
+            Dispatches
+          </div>
+          {dispatches.slice(0, 4).map((d) => (
+            <div key={d.id} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid #2a2620" }}>
+              <div style={{ fontFamily: "'Lora', Georgia, serif", fontSize: 12.5, lineHeight: 1.4, color: "#d8cfbd" }}>{d.narrativeText}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* right: roster — tap to assign */}
       <div style={{ ...panel, top: 14, right: 14, width: 220 }}>
@@ -123,12 +139,12 @@ export function Hud(props: Props): JSX.Element {
                     style={{
                       flex: 1,
                       cursor: "pointer",
-                      padding: "3px 0",
-                      borderRadius: 4,
-                      border: "1px solid #3a352c",
-                      background: "rgba(255,255,255,0.03)",
-                      color: "#a59c8b",
-                      font: "10px 'IBM Plex Mono', monospace",
+                      padding: "4px 0",
+                      borderRadius: 5,
+                      border: "1px solid #5e5850",
+                      background: "rgba(201,161,74,0.10)",
+                      color: "#e6dcc8",
+                      font: "11px 'IBM Plex Mono', monospace",
                     }}
                   >
                     {DOWNTIME_ACTIONS[a].label}
@@ -159,7 +175,7 @@ export function Hud(props: Props): JSX.Element {
               font: "700 15px 'Barlow Condensed', sans-serif",
               letterSpacing: "0.02em",
               padding: "9px 22px",
-              borderRadius: 3,
+              borderRadius: 5,
               border: "none",
               cursor: canRun ? "pointer" : "not-allowed",
               background: canRun ? "#b01c18" : "#3a352c",

@@ -16,7 +16,7 @@ const STATUS_COLOR: Record<PlayNodeStatus, string> = {
 
 const STATUS_GLYPH: Record<PlayNodeStatus, string> = {
   available: "◆",
-  locked: "🔒",
+  locked: "◇",
   cleared: "✓",
 };
 
