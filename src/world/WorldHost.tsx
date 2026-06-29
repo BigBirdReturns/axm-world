@@ -5,6 +5,8 @@ import { useState } from "react";
 import { PRESENTATIONS } from "./presentations.js";
 import { loadCostume, saveCostume, isCostumeId } from "./presentation-prefs.js";
 import type { Cartridge } from "./cartridge.js";
+import { useArcWorld } from "./useArcWorld.js";
+import { useArcInteraction } from "./useArcInteraction.js";
 
 export interface WorldHostProps {
   cartridge: Cartridge;
@@ -12,6 +14,8 @@ export interface WorldHostProps {
 }
 
 export function WorldHost({ cartridge, onExit }: WorldHostProps): JSX.Element {
+  const world = useArcWorld(cartridge);
+  const interaction = useArcInteraction(world);
   const [costumeId, setCostumeId] = useState<string>(() => loadCostume(cartridge.arc));
   const choose = (id: string) => {
     setCostumeId(id);
@@ -23,7 +27,7 @@ export function WorldHost({ cartridge, onExit }: WorldHostProps): JSX.Element {
 
   return (
     <div style={{ position: "absolute", inset: 0 }}>
-      <Active cartridge={cartridge} onExit={onExit} />
+      <Active world={world} interaction={interaction} onExit={onExit} />
 
       {/* costume switcher */}
       <div

@@ -4,10 +4,12 @@
 
 import { WorldScreen } from "./WorldScreen.js";
 import { BoardScreen } from "./board/BoardScreen.js";
-import type { Cartridge } from "./cartridge.js";
+import type { ArcInteraction } from "./useArcInteraction.js";
+import type { ArcWorld } from "./useArcWorld.js";
 
 export interface CostumeProps {
-  cartridge: Cartridge;
+  world: ArcWorld;
+  interaction: ArcInteraction;
   onExit?: () => void;
 }
 
@@ -18,14 +20,14 @@ export interface Presentation {
   Component: (p: CostumeProps) => JSX.Element;
 }
 
-function BoardCostume({ cartridge, onExit }: CostumeProps): JSX.Element {
-  return <BoardScreen cartridge={cartridge} onExit={onExit} />;
+function BoardCostume({ world, interaction, onExit }: CostumeProps): JSX.Element {
+  return <BoardScreen world={world} interaction={interaction} onExit={onExit} />;
 }
-function GlobeCostume({ cartridge, onExit }: CostumeProps): JSX.Element {
-  return <WorldScreen cartridge={cartridge} onExit={onExit} />;
+function GlobeCostume({ world, interaction, onExit }: CostumeProps): JSX.Element {
+  return <WorldScreen world={world} interaction={interaction} onExit={onExit} />;
 }
 
 export const PRESENTATIONS: Presentation[] = [
-  { id: "board", label: "Charter Board", blurb: "2.5D diorama — best for management arcs", Component: BoardCostume },
+  { id: "board", label: "Run Graph", blurb: "Reusable engine graph — nodes, requirements, outcomes, cartridge marks", Component: BoardCostume },
   { id: "globe", label: "Planet", blurb: "3D world — for spatial arcs", Component: GlobeCostume },
 ];

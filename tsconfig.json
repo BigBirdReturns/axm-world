@@ -10,7 +10,11 @@
     "noUncheckedIndexedAccess": true,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": false,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "noEmit": true
   },
-  "include": ["src", "tests"]
+  "include": [
+    "src",
+    "tests"
+  ]
 }

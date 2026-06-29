@@ -48,6 +48,7 @@ export interface PlayScene {
 }
 
 export interface PlayReportView {
+  challengeId: string;
   challengeName: string;
   outcome: RunReport["outcome"];
   lines: string[];
@@ -235,6 +236,7 @@ export function summarizeReport(report: RunReport, arc: Arc): PlayReportView {
   });
 
   return {
+    challengeId: report.challengeId,
     challengeName: challenge?.name ?? report.challengeId,
     outcome: report.outcome,
     lines,

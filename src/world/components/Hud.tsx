@@ -34,6 +34,7 @@ interface Props {
   onRun: () => void;
   lastReport: PlayReportView | null;
   dispatches: DramaCard[];
+  pendingDecision: boolean;
 }
 
 const panel: CSSProperties = {
@@ -49,7 +50,7 @@ const panel: CSSProperties = {
 };
 
 export function Hud(props: Props): JSX.Element {
-  const { title, cycle, resources, progress, arcComplete, selected, req, roster, party, onToggleAgent, onApplyDowntime, canRun, onRun, lastReport, dispatches } = props;
+  const { title, cycle, resources, progress, arcComplete, selected, req, roster, party, onToggleAgent, onApplyDowntime, canRun, onRun, lastReport, dispatches, pendingDecision } = props;
   const downtimeActions = Object.keys(DOWNTIME_ACTIONS) as DowntimeAction[];
   const min = req?.minAgents ?? 0;
   const max = req?.maxAgents ?? 0;
@@ -73,9 +74,19 @@ export function Hud(props: Props): JSX.Element {
         </div>
       </div>
 
+      <CoachLine
+        pendingDecision={pendingDecision}
+        selected={selected}
+        partyCount={party.length}
+        min={min}
+        canRun={canRun}
+        lastReport={lastReport}
+        arcComplete={arcComplete}
+      />
+
       {/* left: dispatches — the engine's authored story beats */}
       {dispatches.length > 0 && (
-        <div style={{ ...panel, top: 232, left: 14, width: 230 }}>
+        <div style={{ ...panel, top: 276, left: 14, width: 250 }}>
           <div style={{ color: "#c9a14a", letterSpacing: "0.1em", textTransform: "uppercase", fontSize: 11, marginBottom: 6 }}>
             Dispatches
           </div>
@@ -171,7 +182,7 @@ export function Hud(props: Props): JSX.Element {
             onClick={onRun}
             disabled={!canRun}
             style={{
-              marginTop: 10,
+              marginTop: 8,
               font: "700 15px 'Barlow Condensed', sans-serif",
               letterSpacing: "0.02em",
               padding: "9px 22px",
@@ -190,6 +201,7 @@ export function Hud(props: Props): JSX.Element {
               ? "Run Contract"
               : `Assign ${min}${max !== min ? `–${max}` : ""} to run`}
           </button>
+          <StateReadout selected={selected} />
         </div>
       )}
 
@@ -214,6 +226,26 @@ export function Hud(props: Props): JSX.Element {
           <div style={{ color: "#a59c8b", marginTop: 4 }}>{lastReport.rewardSummary}</div>
         </div>
       )}
+    </div>
+  );
+}
+
+function StateReadout(props: { selected: WorldNode }): JSX.Element {
+  const { selected } = props;
+  const label = selected.status === "locked"
+    ? "Requirement"
+    : selected.status === "cleared"
+    ? "Cartridge mark"
+    : "Runnable because";
+  const copy = selected.status === "cleared"
+    ? "This run has recorded a successful outcome here."
+    : selected.requirements.length > 0
+    ? selected.requirements.join(" · ")
+    : "No extra requirements.";
+  return (
+    <div style={{ borderTop: "1px solid #3a352c", borderBottom: "1px solid #3a352c", padding: "6px 0", margin: "6px 0", fontSize: 12 }}>
+      <div style={{ color: "#c9a14a", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 10 }}>{label}</div>
+      <div style={{ color: selected.status === "locked" ? "#c9a14a" : selected.status === "cleared" ? "#74ad77" : "#d8cfbd" }}>{copy}</div>
     </div>
   );
 }
@@ -244,4 +276,37 @@ function statusColor(s: string): string {
   if (s === "cleared" || s === "success") return "#74ad77";
   if (s === "locked" || s === "failure") return "#b01c18";
   return "#c9a14a";
+}
+
+export interface EngineCoachState {
+  pendingDecision: boolean;
+  selected: Pick<WorldNode, "status"> | null;
+  partyCount: number;
+  min: number;
+  canRun: boolean;
+  lastReport: PlayReportView | null;
+  arcComplete: boolean;
+}
+
+function CoachLine(props: EngineCoachState): JSX.Element | null {
+  const copy = getEngineCoachMessage(props);
+  if (!copy) return null;
+  return (
+    <div style={{ ...panel, top: 206, left: 14, width: 250, borderColor: "#6b5935", background: "rgba(32,28,20,0.9)" }}>
+      <div style={{ color: "#c9a14a", letterSpacing: "0.1em", textTransform: "uppercase", fontSize: 11, marginBottom: 4 }}>
+        Engine loop
+      </div>
+      <div style={{ color: "#d8cfbd" }}>{copy}</div>
+    </div>
+  );
+}
+
+export function getEngineCoachMessage(props: EngineCoachState): string | null {
+  if (props.arcComplete) return "Cartridge marked complete. Inspect or export the run state before leaving.";
+  if (props.pendingDecision) return "Resolve the active decision. The engine applies its consequences to this cartridge run.";
+  // Once a node is selected, the bottom action panel owns the primary action and
+  // StateReadout owns the "why". Do not narrate the same state twice.
+  if (props.selected) return null;
+  if (!props.selected && props.lastReport) return "Outcome recorded. Inspect the changed cartridge state or choose another available node.";
+  return null;
 }
