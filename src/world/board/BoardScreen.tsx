@@ -13,6 +13,7 @@ import type { PlayNode } from "../../play-pipeline/compile.js";
 import { useArcWorld } from "../useArcWorld.js";
 import { useArcInteraction } from "../useArcInteraction.js";
 import { Hud } from "../components/Hud.js";
+import { TutorialCoach } from "../components/TutorialCoach.js";
 
 const STATUS_COLOR: Record<PlayNode["status"], string> = {
   available: "#c9a14a",
@@ -21,7 +22,7 @@ const STATUS_COLOR: Record<PlayNode["status"], string> = {
 };
 const STATUS_GLYPH: Record<PlayNode["status"], string> = {
   available: "◆",
-  locked: "🔒",
+  locked: "◇",
   cleared: "✓",
 };
 
@@ -201,9 +202,17 @@ export function BoardScreen({ arc, onExit }: BoardScreenProps): JSX.Element {
         canRun={ix.canRun}
         onRun={ix.run}
         lastReport={world.lastReport}
+        dispatches={world.dispatches}
       />
 
-      <div style={{ position: "absolute", bottom: 14, left: 14, font: "11px/1.4 'IBM Plex Mono', ui-monospace, monospace", color: "#6e675a", pointerEvents: "none" }}>
+      <TutorialCoach
+        arcName={world.arc.meta.name}
+        selectedId={ix.selectedId}
+        partyMet={ix.req !== null && ix.party.length >= ix.req.minAgents}
+        hasRun={world.lastReport !== null}
+      />
+
+      <div style={{ position: "absolute", bottom: 14, left: 14, font: "11px/1.4 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b", pointerEvents: "none" }}>
         drag to tilt · scroll to zoom · click a contract · assign a party · Run
       </div>
 

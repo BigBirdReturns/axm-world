@@ -160,6 +160,34 @@
       footer a { color: var(--muted); text-decoration: none; }
       footer a:hover { color: var(--gold); }
       footer .sep { color: var(--rule-dk); }
+
+      .hero-shot {
+        display: block;
+        position: relative;
+        margin-top: 30px;
+        border: 1px solid var(--rule-dk);
+        border-radius: 4px;
+        overflow: hidden;
+        line-height: 0;
+        box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.8);
+        transition: border-color 0.15s ease, transform 0.08s ease;
+      }
+      .hero-shot:hover { border-color: var(--accent); }
+      .hero-shot:active { transform: translateY(1px); }
+      .hero-shot img { width: 100%; height: auto; display: block; }
+      .hero-shot-tag {
+        position: absolute;
+        left: 12px;
+        bottom: 12px;
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        color: #fff;
+        background: rgba(176, 28, 24, 0.92);
+        padding: 5px 11px;
+        border-radius: 3px;
+        line-height: 1.2;
+      }
     </style>
   </head>
   <body>
@@ -184,6 +212,10 @@
           <a class="btn btn-ghost" href="https://github.com/BigBirdReturns/axm-world">View the source</a>
         </div>
         <p class="deal">No install. Runs entirely in the browser · deterministic · same seed → same opening, every time.</p>
+        <a href="game/" class="hero-shot" aria-label="Play the demo">
+          <img src="preview.png" alt="The First Charter rendered as a 2.5D charter board — contract standees on a tilt-shift table with a roster panel." loading="lazy" />
+          <span class="hero-shot-tag">▶ The First Charter — playable now</span>
+        </a>
       </section>
 
       <section class="cols">

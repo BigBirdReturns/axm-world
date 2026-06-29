@@ -101,6 +101,7 @@ export function WorldScreen({ arc, onExit }: WorldScreenProps): JSX.Element {
         canRun={ix.canRun}
         onRun={ix.run}
         lastReport={world.lastReport}
+        dispatches={world.dispatches}
       />
 
       {/* one-line legend so the controls read immediately */}
@@ -110,7 +111,7 @@ export function WorldScreen({ arc, onExit }: WorldScreenProps): JSX.Element {
           bottom: 14,
           left: 14,
           font: "11px/1.4 'IBM Plex Mono', ui-monospace, monospace",
-          color: "#6e675a",
+          color: "#a59c8b",
           pointerEvents: "none",
         }}
       >
