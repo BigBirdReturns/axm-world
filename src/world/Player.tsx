@@ -38,7 +38,7 @@ export function Player(): JSX.Element {
           </div>
         }
       >
-        <WorldHost arc={cartridge.arc} onExit={() => setCartridge(null)} />
+        <WorldHost cartridge={cartridge} onExit={() => setCartridge(null)} />
       </Suspense>
     );
   }

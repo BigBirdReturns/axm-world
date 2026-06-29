@@ -1,14 +1,15 @@
-// The arc <-> world bridge. Given a cartridge's arc, it generates a populated org via
-// the spoke's generic bootstrap (works for ANY arc, not just First Charter), compiles
-// the arc into a PlayScene, places its nodes on the planet via contract.ts, and
-// resolves a node through the SAME deterministic engine seam. The 3D scene and HUD are
-// pure views over this hook.
+// The cartridge <-> world bridge. The player reads a cartridge: it bootstraps a
+// populated org from the cartridge's arc, enqueues the cartridge's AUTHORED opening
+// decision as a real drama card, and resolves every choice through the deterministic
+// engine (runCycle, resolveDramaCard). axm-world authors nothing — it surfaces what
+// the cartridge holds and shows what the engine returns. It also builds the custody
+// object (manifest + arc + run state) so the cartridge can leave intact.
 
 import { useCallback, useMemo, useState } from "react";
-import type { Arc, DramaCard, Organization, RunReport } from "../engine/types.js";
+import type { Arc, DramaCard, DramaCardEffect, Organization, RunReport } from "../engine/types.js";
 import type { ChallengeAssignment } from "../engine/cycle.js";
 import { runCycle } from "../engine/cycle.js";
-import { FIRST_CHARTER } from "../arcs/index.js";
+import { resolveDramaCard } from "../engine/drama.js";
 import { bootstrapOrg } from "../spoke/bootstrap.js";
 import {
   compileArcToPlayScene,
@@ -19,6 +20,7 @@ import {
 } from "../play-pipeline/compile.js";
 import { buildWorldLayout, DEFAULT_WORLD_CONFIG, type WorldLayout, type WorldNode } from "./contract.js";
 import { applyAgentDowntime, type DowntimeAction } from "./agent-management.js";
+import { FIRST_CHARTER_CARTRIDGE, type AuthoredEffect, type AuthoredOpening, type Cartridge } from "./cartridge.js";
 
 export interface RosterMember {
   id: string;
@@ -34,7 +36,21 @@ export interface ChallengeReq {
   maxAgents: number;
 }
 
+export interface CustodyObject {
+  format: "axm-cartridge-run/v1";
+  manifest: Cartridge["manifest"];
+  arc: Arc;
+  runState: {
+    cycle: number;
+    openingChoice: string | null;
+    clearedCount: number;
+    totalNodes: number;
+    roster: Array<{ name: string; morale: number; stress: number }>;
+  };
+}
+
 export interface ArcWorld {
+  cartridge: Cartridge;
   arc: Arc;
   scene: PlayScene;
   layout: WorldLayout;
@@ -52,20 +68,54 @@ export interface ArcWorld {
   clearedCount: number;
   totalNodes: number;
   arcComplete: boolean;
-  /** Authored story beats the engine generated (most recent first). */
   dispatches: DramaCard[];
+  /** The authored/pending decision at the front of the queue, or null. */
+  pendingDecision: DramaCard | null;
+  /** The opening choice the player made (label), once made. */
+  openingChoice: string | null;
   reqFor: (challengeId: string) => ChallengeReq;
   recommendedParty: (challengeId: string) => string[];
   lastReport: PlayReportView | null;
-  /** Resolve a challenge with a chosen party through the deterministic engine. */
   runChallenge: (challengeId: string, agentIds: string[]) => void;
-  /** Between-cycle management: rest/train/rally an agent (moves stress/morale). */
+  resolveDecision: (optionId: string) => void;
   applyDowntime: (agentId: string, action: DowntimeAction) => void;
+  /** The portable custody object: manifest + arc + run state. */
+  buildExport: () => CustodyObject;
 }
 
-export function useArcWorld(arc: Arc = FIRST_CHARTER): ArcWorld {
-  const [org, setOrg] = useState<Organization>(() => bootstrapOrg(arc));
+function expandEffects(effects: AuthoredEffect[], agentIds: string[]): DramaCardEffect[] {
+  const out: DramaCardEffect[] = [];
+  for (const e of effects) for (const id of agentIds) out.push({ target: id, type: e.type, value: e.value });
+  return out;
+}
+
+function buildOpeningCard(opening: AuthoredOpening, org: Organization): DramaCard {
+  const agentIds = Object.keys(org.agents);
+  return {
+    id: `opening:${opening.triggerType}`,
+    cycleGenerated: 0,
+    triggerType: opening.triggerType,
+    agentsInvolved: agentIds,
+    narrativeText: opening.narrativeText,
+    options: opening.options.map((o) => ({
+      id: o.id,
+      label: o.label,
+      description: o.description,
+      effects: expandEffects(o.effects, agentIds),
+      hiddenEffects: [],
+    })),
+  };
+}
+
+export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): ArcWorld {
+  const arc = cartridge.arc;
+  const [org, setOrg] = useState<Organization>(() => {
+    const base = bootstrapOrg(arc);
+    if (!cartridge.opening) return base;
+    return { ...base, dramaQueue: [buildOpeningCard(cartridge.opening, base), ...base.dramaQueue] };
+  });
   const [lastReport, setLastReport] = useState<PlayReportView | null>(null);
+  const [openingChoice, setOpeningChoice] = useState<string | null>(null);
 
   const scene = useMemo(() => compileArcToPlayScene(arc, org), [arc, org]);
   const layout = useMemo(() => buildWorldLayout(scene, DEFAULT_WORLD_CONFIG), [scene]);
@@ -107,7 +157,7 @@ export function useArcWorld(arc: Arc = FIRST_CHARTER): ArcWorld {
       const challenge = arc.challenges.find((c) => c.id === challengeId);
       if (!challenge) return;
       const node = scene.nodes.find((n) => n.challengeId === challengeId);
-      if (node && node.status !== "available") return; // gate: only available nodes run
+      if (node && node.status !== "available") return;
       const assignment: ChallengeAssignment = {
         challengeId,
         agentIds: agentIds.slice(0, challenge.rosterRequirements.maxAgents),
@@ -121,6 +171,18 @@ export function useArcWorld(arc: Arc = FIRST_CHARTER): ArcWorld {
     [arc, org, scene],
   );
 
+  const resolveDecision = useCallback(
+    (optionId: string) => {
+      const card = org.dramaQueue[0];
+      if (!card) return;
+      const opt = card.options.find((o) => o.id === optionId);
+      const { org: next } = resolveDramaCard(org, card.id, optionId, org.cycle);
+      setOrg(next);
+      if (card.id.startsWith("opening:") && opt) setOpeningChoice(opt.label);
+    },
+    [org],
+  );
+
   const applyDowntime = useCallback((agentId: string, action: DowntimeAction) => {
     setOrg((cur) => applyAgentDowntime(cur, agentId, action));
   }, []);
@@ -128,7 +190,28 @@ export function useArcWorld(arc: Arc = FIRST_CHARTER): ArcWorld {
   const clearedCount = layout.nodes.filter((n) => n.status === "cleared").length;
   const totalNodes = layout.nodes.length;
 
+  const buildExport = useCallback(
+    (): CustodyObject => ({
+      format: "axm-cartridge-run/v1",
+      manifest: cartridge.manifest,
+      arc: cartridge.arc,
+      runState: {
+        cycle: org.cycle,
+        openingChoice,
+        clearedCount,
+        totalNodes,
+        roster: Object.values(org.agents).map((a) => ({
+          name: a.name,
+          morale: Math.round(a.morale),
+          stress: Math.round(a.stress),
+        })),
+      },
+    }),
+    [cartridge, org, openingChoice, clearedCount, totalNodes],
+  );
+
   return {
+    cartridge,
     arc,
     scene,
     layout,
@@ -140,10 +223,14 @@ export function useArcWorld(arc: Arc = FIRST_CHARTER): ArcWorld {
     totalNodes,
     arcComplete: totalNodes > 0 && clearedCount === totalNodes,
     dispatches: [...org.dramaQueue].reverse(),
+    pendingDecision: org.dramaQueue[0] ?? null,
+    openingChoice,
     reqFor,
     recommendedParty,
     lastReport,
     runChallenge,
+    resolveDecision,
     applyDowntime,
+    buildExport,
   };
 }
