@@ -107,6 +107,9 @@ export function WorldScreen({ world, interaction: ix, onExit }: WorldScreenProps
         lastReport={world.lastReport}
         dispatches={world.dispatches}
         pendingDecision={world.pendingDecision !== null}
+        contract={ix.contract}
+        readiness={ix.readiness}
+        recommendation={ix.recommendation}
       />
 
       {/* one-line legend so the controls read immediately — hidden on mobile, where

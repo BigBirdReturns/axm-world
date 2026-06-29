@@ -9,6 +9,7 @@ import type { DramaCard } from "../../engine/types.js";
 import type { PlayReportView } from "../../play-pipeline/compile.js";
 import type { RosterMember } from "../useArcWorld.js";
 import type { WorldNode } from "../contract.js";
+import type { ContractRequirements, PartyReadiness, CheckStatus, ProjectedOutcome } from "../readiness.js";
 import { DOWNTIME_ACTIONS, type DowntimeAction } from "../agent-management.js";
 import { useIsMobile } from "../use-viewport.js";
 
@@ -36,6 +37,9 @@ interface Props {
   lastReport: PlayReportView | null;
   dispatches: DramaCard[];
   pendingDecision: boolean;
+  contract: ContractRequirements | null;
+  readiness: PartyReadiness | null;
+  recommendation: string | null;
 }
 
 const panel: CSSProperties = {
@@ -60,7 +64,7 @@ export function Hud(props: Props): JSX.Element {
 // ---------------------------------------------------------------------------
 
 function DesktopHud(props: Props): JSX.Element {
-  const { title, cycle, resources, progress, arcComplete, selected, req, roster, party, onToggleAgent, onApplyDowntime, canRun, onRun, lastReport, dispatches, pendingDecision } = props;
+  const { title, cycle, resources, progress, arcComplete, selected, req, roster, party, onToggleAgent, onApplyDowntime, canRun, onRun, lastReport, dispatches, pendingDecision, contract, readiness, recommendation } = props;
   const min = req?.minAgents ?? 0;
   const max = req?.maxAgents ?? 0;
 
@@ -98,14 +102,14 @@ function DesktopHud(props: Props): JSX.Element {
       <div style={{ ...panel, top: 14, right: 14, width: 220 }}>
         <SectionLabel>Roster {selected ? `· party ${party.length}/${max}` : "· tap to assign"}</SectionLabel>
         {roster.map((m) => (
-          <RosterRow key={m.id} m={m} inParty={party.includes(m.id)} selectable={!!selected} onToggleAgent={onToggleAgent} onApplyDowntime={onApplyDowntime} />
+          <RosterRow key={m.id} m={m} inParty={party.includes(m.id)} selectable={!!selected} contract={contract} onToggleAgent={onToggleAgent} onApplyDowntime={onApplyDowntime} />
         ))}
       </div>
 
       {/* bottom-center: selected contract + gated action */}
       {selected && (
-        <div style={{ ...panel, bottom: 16, left: "50%", transform: "translateX(-50%)", maxWidth: 460, textAlign: "center" }}>
-          <ContractSheet selected={selected} party={party} min={min} max={max} canRun={canRun} onRun={onRun} />
+        <div style={{ ...panel, bottom: 16, left: "50%", transform: "translateX(-50%)", maxWidth: 460, maxHeight: "70vh", overflowY: "auto", textAlign: "center" }}>
+          <ContractSheet selected={selected} party={party} min={min} max={max} canRun={canRun} onRun={onRun} contract={contract} readiness={readiness} recommendation={recommendation} />
         </div>
       )}
 
@@ -133,7 +137,7 @@ function DesktopHud(props: Props): JSX.Element {
 // ---------------------------------------------------------------------------
 
 function MobileHud(props: Props): JSX.Element {
-  const { title, cycle, resources, progress, arcComplete, selected, req, roster, party, onToggleAgent, onApplyDowntime, canRun, onRun, lastReport, dispatches, pendingDecision } = props;
+  const { title, cycle, resources, progress, arcComplete, selected, req, roster, party, onToggleAgent, onApplyDowntime, canRun, onRun, lastReport, dispatches, pendingDecision, contract, readiness, recommendation } = props;
   const min = req?.minAgents ?? 0;
   const max = req?.maxAgents ?? 0;
   const coach = getEngineCoachMessage({ pendingDecision, selected, partyCount: party.length, min, canRun, lastReport, arcComplete });
@@ -233,7 +237,7 @@ function MobileHud(props: Props): JSX.Element {
             <SectionLabel>Roster · party {party.length}/{max}</SectionLabel>
             <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
               {roster.map((m) => (
-                <RosterChip key={m.id} m={m} inParty={party.includes(m.id)} onToggleAgent={onToggleAgent} onApplyDowntime={onApplyDowntime} />
+                <RosterChip key={m.id} m={m} inParty={party.includes(m.id)} contract={contract} onToggleAgent={onToggleAgent} onApplyDowntime={onApplyDowntime} />
               ))}
             </div>
           </div>
@@ -242,7 +246,7 @@ function MobileHud(props: Props): JSX.Element {
         {/* selected contract + gated action */}
         {selected && (
           <div style={{ ...panel, position: "relative", textAlign: "center", overflowY: "auto" }}>
-            <ContractSheet selected={selected} party={party} min={min} max={max} canRun={canRun} onRun={onRun} />
+            <ContractSheet selected={selected} party={party} min={min} max={max} canRun={canRun} onRun={onRun} contract={contract} readiness={readiness} recommendation={recommendation} />
           </div>
         )}
       </div>
@@ -271,8 +275,19 @@ function IdentityBlock(props: { title: string; cycle: number; resources: Props["
   );
 }
 
-function ContractSheet(props: { selected: WorldNode; party: string[]; min: number; max: number; canRun: boolean; onRun: () => void }): JSX.Element {
-  const { selected, party, min, max, canRun, onRun } = props;
+function ContractSheet(props: {
+  selected: WorldNode;
+  party: string[];
+  min: number;
+  max: number;
+  canRun: boolean;
+  onRun: () => void;
+  contract: ContractRequirements | null;
+  readiness: PartyReadiness | null;
+  recommendation: string | null;
+}): JSX.Element {
+  const { selected, party, min, max, canRun, onRun, contract, readiness, recommendation } = props;
+  const showReadiness = selected.status === "available" && contract;
   return (
     <>
       <div style={{ color: statusColor(selected.status), textTransform: "uppercase", fontSize: 11, letterSpacing: "0.1em" }}>{selected.status}</div>
@@ -281,6 +296,9 @@ function ContractSheet(props: { selected: WorldNode; party: string[]; min: numbe
       <div style={{ color: party.length >= min && party.length <= max ? "#74ad77" : "#c9a14a", fontSize: 12 }}>
         Party {party.length} · need {min}{max !== min ? `–${max}` : ""}
       </div>
+
+      {showReadiness && <ReadinessPanel contract={contract} readiness={readiness} />}
+
       <button
         onClick={onRun}
         disabled={!canRun}
@@ -304,8 +322,72 @@ function ContractSheet(props: { selected: WorldNode; party: string[]; min: numbe
           ? "Run Contract"
           : `Assign ${min}${max !== min ? `–${max}` : ""} to run`}
       </button>
-      <StateReadout selected={selected} />
+
+      {showReadiness && recommendation && (
+        <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.4, color: "#8a8270", fontStyle: "italic" }}>{recommendation}</div>
+      )}
+
+      {/* locked/cleared messaging only — the readiness panel owns the available state */}
+      {selected.status !== "available" && <StateReadout selected={selected} />}
     </>
+  );
+}
+
+const STATUS_TONE: Record<CheckStatus, string> = { ready: "#74ad77", thin: "#c9a14a", short: "#b01c18" };
+const STATUS_MARK: Record<CheckStatus, string> = { ready: "✓", thin: "~", short: "✗" };
+const OUTCOME_TONE: Record<ProjectedOutcome, string> = { success: "#74ad77", partial: "#c9a14a", failure: "#b01c18", none: "#a59c8b" };
+const OUTCOME_LABEL: Record<ProjectedOutcome, string> = { success: "Projected success", partial: "Projected partial", failure: "Projected to fail", none: "Assign a party" };
+
+/** The decision surface: requirements + a faithful projection of the resolver, with
+ *  the same numbers the roster cards are judged against. */
+function ReadinessPanel(props: { contract: ContractRequirements; readiness: PartyReadiness | null }): JSX.Element {
+  const { contract, readiness } = props;
+  const outcome: ProjectedOutcome = readiness?.projectedOutcome ?? "none";
+  return (
+    <div style={{ borderTop: "1px solid #3a352c", margin: "8px 0 0", padding: "8px 0 0", textAlign: "left", fontSize: 12 }}>
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
+        <span style={{ color: OUTCOME_TONE[outcome], fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", fontSize: 12 }}>
+          {OUTCOME_LABEL[outcome]}
+        </span>
+      </div>
+
+      {/* requirements: roles + time pressure (checks carry their own thresholds below) */}
+      {(contract.roles.length > 0 || contract.timePressure) && (
+        <div style={{ color: "#a59c8b", marginBottom: 6 }}>
+          {contract.roles.length > 0 && (
+            <span>Needs {contract.roles.map((r) => `${r.count} ${r.roleName}`).join(", ")}. </span>
+          )}
+          {contract.timePressure && (
+            <span>Time pressure: {contract.timePressure.attributeName} ≥ {contract.timePressure.aggregateThreshold} over {contract.timePressure.rounds}.</span>
+          )}
+        </div>
+      )}
+
+      {/* per-check projection: name (checked attributes) · projected / threshold */}
+      <div style={{ display: "grid", gap: 3 }}>
+        {(readiness?.checks ?? []).map((c) => {
+          const attrs = contract.checks.find((cc) => cc.id === c.id)?.attributes.map((a) => a.name).join("+") ?? "";
+          return (
+            <div key={c.id} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+              <span style={{ color: STATUS_TONE[c.status] }}>
+                {STATUS_MARK[c.status]} {c.name}
+                <span style={{ color: "#6e675a" }}> {attrs ? `· ${attrs}` : ""} {c.scope === "team_aggregate" ? "(team)" : c.scope === "role_specific" ? "(role)" : ""}</span>
+              </span>
+              <span style={{ color: STATUS_TONE[c.status], whiteSpace: "nowrap" }}>{Math.round(c.projected)} / {Math.round(c.threshold)}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* why it isn't ready — the actionable part */}
+      {readiness && readiness.reasons.length > 0 && (
+        <ul style={{ margin: "6px 0 0", padding: "0 0 0 16px", color: "#d8cfbd", fontSize: 11.5, lineHeight: 1.45 }}>
+          {readiness.reasons.slice(0, 4).map((r, i) => (
+            <li key={i}>{r}</li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -328,8 +410,8 @@ function ReportCard(props: { lastReport: PlayReportView }): JSX.Element {
   );
 }
 
-function RosterRow(props: { m: RosterMember; inParty: boolean; selectable: boolean; onToggleAgent: (id: string) => void; onApplyDowntime: (id: string, a: DowntimeAction) => void }): JSX.Element {
-  const { m, inParty, selectable, onToggleAgent, onApplyDowntime } = props;
+function RosterRow(props: { m: RosterMember; inParty: boolean; selectable: boolean; contract: ContractRequirements | null; onToggleAgent: (id: string) => void; onApplyDowntime: (id: string, a: DowntimeAction) => void }): JSX.Element {
+  const { m, inParty, selectable, contract, onToggleAgent, onApplyDowntime } = props;
   const downtimeActions = Object.keys(DOWNTIME_ACTIONS) as DowntimeAction[];
   return (
     <div
@@ -358,10 +440,14 @@ function RosterRow(props: { m: RosterMember; inParty: boolean; selectable: boole
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <strong>{m.name}</strong>
+          <span><strong>{m.name}</strong><AfflictionBadge affliction={m.affliction} /></span>
           <span style={{ color: "#a59c8b" }}>{m.role}</span>
         </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 3 }}>
+        <AgentAttrLine m={m} contract={contract} />
+        {m.gear.length > 0 && (
+          <div style={{ fontSize: 10, color: "#74ad77", marginTop: 3 }}>⚒ {m.gear.map((g) => g.name).join(", ")}</div>
+        )}
+        <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
           <Meter label="STR" value={m.stress} good="low" />
           <Meter label="MOR" value={m.morale} good="high" />
         </div>
@@ -376,14 +462,14 @@ function RosterRow(props: { m: RosterMember; inParty: boolean; selectable: boole
 }
 
 /** Compact horizontal-scroll card for the mobile roster strip. */
-function RosterChip(props: { m: RosterMember; inParty: boolean; onToggleAgent: (id: string) => void; onApplyDowntime: (id: string, a: DowntimeAction) => void }): JSX.Element {
-  const { m, inParty, onToggleAgent, onApplyDowntime } = props;
+function RosterChip(props: { m: RosterMember; inParty: boolean; contract: ContractRequirements | null; onToggleAgent: (id: string) => void; onApplyDowntime: (id: string, a: DowntimeAction) => void }): JSX.Element {
+  const { m, inParty, contract, onToggleAgent, onApplyDowntime } = props;
   const downtimeActions = Object.keys(DOWNTIME_ACTIONS) as DowntimeAction[];
   return (
     <div
       style={{
         flex: "0 0 auto",
-        width: 132,
+        width: 150,
         padding: 7,
         borderRadius: 6,
         border: `1px solid ${inParty ? "#c9a14a" : "#3a352c"}`,
@@ -405,8 +491,12 @@ function RosterChip(props: { m: RosterMember; inParty: boolean; onToggleAgent: (
           font: "12px 'IBM Plex Mono', monospace",
         }}
       >
-        <div style={{ fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.name}</div>
+        <div style={{ fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.name}<AfflictionBadge affliction={m.affliction} /></div>
         <div style={{ color: "#a59c8b", fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.role}</div>
+        <AgentAttrLine m={m} contract={contract} />
+        {m.gear.length > 0 && (
+          <div style={{ fontSize: 9, color: "#74ad77", marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>⚒ {m.gear.map((g) => g.name).join(", ")}</div>
+        )}
         <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
           <Meter label="STR" value={m.stress} good="low" />
           <Meter label="MOR" value={m.morale} good="high" />
@@ -421,26 +511,71 @@ function RosterChip(props: { m: RosterMember; inParty: boolean; onToggleAgent: (
   );
 }
 
+function fmt(n: number): string {
+  return n >= 0 ? `+${n}` : `${n}`;
+}
+
+/** Downtime control that shows what it changes (stress/morale) right on the button, so
+ *  the effect is visible before use — and the readiness projection updates after. */
 function DowntimeButton(props: { action: DowntimeAction; onClick: () => void }): JSX.Element {
   const { action, onClick } = props;
   const def = DOWNTIME_ACTIONS[action];
   return (
     <button
       onClick={onClick}
-      title={`${def.label}: stress ${def.stressDelta >= 0 ? "+" : ""}${def.stressDelta}, morale ${def.moraleDelta >= 0 ? "+" : ""}${def.moraleDelta}`}
+      title={`${def.label}: stress ${fmt(def.stressDelta)}, morale ${fmt(def.moraleDelta)}`}
       style={{
         flex: 1,
         cursor: "pointer",
-        padding: "4px 0",
+        padding: "3px 0",
         borderRadius: 5,
         border: "1px solid #5e5850",
         background: "rgba(201,161,74,0.10)",
         color: "#e6dcc8",
         font: "11px 'IBM Plex Mono', monospace",
+        lineHeight: 1.15,
       }}
     >
-      {def.label}
+      <div style={{ fontWeight: 600 }}>{def.label}</div>
+      <div style={{ fontSize: 9, color: "#a59c8b" }}>
+        <span style={{ color: def.stressDelta <= 0 ? "#74ad77" : "#c9a14a" }}>{fmt(def.stressDelta)}s</span>{" "}
+        <span style={{ color: def.moraleDelta >= 0 ? "#74ad77" : "#c9a14a" }}>{fmt(def.moraleDelta)}m</span>
+      </div>
     </button>
+  );
+}
+
+/** The agent's scores on the attributes the selected contract actually checks, with
+ *  any gear bonus, so the player can see why an agent fits (or doesn't). */
+function AgentAttrLine(props: { m: RosterMember; contract: ContractRequirements | null }): JSX.Element | null {
+  const { m, contract } = props;
+  if (!contract || contract.checkedAttributes.length === 0) return null;
+  const attrs = contract.checkedAttributes.slice(0, 3);
+  // highlight the agent's strongest checked attribute
+  let bestId = attrs[0]?.id ?? "";
+  for (const a of attrs) if ((m.attributes[a.id] ?? 0) > (m.attributes[bestId] ?? 0)) bestId = a.id;
+  return (
+    <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap", fontSize: 11 }}>
+      {attrs.map((a) => {
+        const gear = m.gear.reduce((s, g) => s + (g.bonuses[a.id] ?? 0), 0);
+        const strong = a.id === bestId;
+        return (
+          <span key={a.id} style={{ color: strong ? "#ece4d4" : "#a59c8b" }}>
+            {a.name} <strong style={{ color: strong ? "#c9a14a" : "#d8cfbd" }}>{m.attributes[a.id] ?? 0}</strong>
+            {gear > 0 && <span style={{ color: "#74ad77" }}> +{gear}</span>}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function AfflictionBadge(props: { affliction: string | null }): JSX.Element | null {
+  if (!props.affliction) return null;
+  return (
+    <span style={{ marginLeft: 6, fontSize: 9, color: "#b01c18", border: "1px solid #5e2a26", borderRadius: 3, padding: "0 4px", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+      {props.affliction}
+    </span>
   );
 }
 

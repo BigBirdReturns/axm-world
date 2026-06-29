@@ -215,6 +215,9 @@ export function BoardScreen({ world, interaction: ix, onExit }: BoardScreenProps
         lastReport={world.lastReport}
         dispatches={world.dispatches}
         pendingDecision={world.pendingDecision !== null}
+        contract={ix.contract}
+        readiness={ix.readiness}
+        recommendation={ix.recommendation}
       />
 
       {!isMobile && (

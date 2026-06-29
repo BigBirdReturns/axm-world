@@ -2,9 +2,10 @@
 // 2D map). A costume just renders these values; the rules live here once. Reused by
 // WorldScreen and BoardScreen so no presentation re-derives the interaction model.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ArcWorld, ChallengeReq } from "./useArcWorld.js";
 import type { WorldNode } from "./contract.js";
+import type { ContractRequirements, PartyReadiness } from "./readiness.js";
 
 export function firstAvailableNodeId(nodes: Pick<WorldNode, "challengeId" | "status">[], excludeId?: string | null): string | null {
   return nodes.find((node) => node.status === "available" && node.challengeId !== excludeId)?.challengeId ?? null;
@@ -19,6 +20,12 @@ export interface ArcInteraction {
   req: ChallengeReq | null;
   canRun: boolean;
   run: () => void;
+  /** Structured requirements for the selected contract (null when none selected). */
+  contract: ContractRequirements | null;
+  /** Faithful projection of the resolver for the current selection + party. */
+  readiness: PartyReadiness | null;
+  /** Why the recommended party is recommended (selected contract). */
+  recommendation: string | null;
 }
 
 export function useArcInteraction(world: ArcWorld): ArcInteraction {
@@ -74,5 +81,18 @@ export function useArcInteraction(world: ArcWorld): ArcInteraction {
     if (selectedId) world.runChallenge(selectedId, party);
   }, [selectedId, party, world]);
 
-  return { selectedId, select: setSelectedId, party, toggleAgent, selected, req, canRun, run };
+  const contract = useMemo(
+    () => (selectedId ? world.describeContract(selectedId) : null),
+    [selectedId, world],
+  );
+  const readiness = useMemo(
+    () => (selectedId ? world.evaluateParty(selectedId, party) : null),
+    [selectedId, party, world],
+  );
+  const recommendation = useMemo(
+    () => (selectedId ? world.recommendationFor(selectedId) : null),
+    [selectedId, world],
+  );
+
+  return { selectedId, select: setSelectedId, party, toggleAgent, selected, req, canRun, run, contract, readiness, recommendation };
 }
