@@ -17,6 +17,7 @@ const MechanicCheckSchema = z.object({
   description: z.string(),
   attributeWeights: z.array(AttributeWeightSchema).min(1),
   difficultyThreshold: z.number().int(),
+  thresholdMode: z.enum(["fixed", "perAssignedAgent"]).optional(),
   scope: z.enum(["per_agent", "team_aggregate", "role_specific"]),
   roleIds: z.array(z.string()).optional(),
   failureConsequence: FailureConsequenceSchema,

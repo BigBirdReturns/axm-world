@@ -1,19 +1,14 @@
 // Readiness: a faithful, legible projection of the engine's resolver so party
-// assignment is a *decision*, not "accept recommended and press Run". It mirrors the
+// assignment is a decision, not "accept recommended and press Run". It mirrors the
 // deterministic core of resolveChallenge (Σ attr·weight + gear + morale + affliction)
-// and surfaces the same requirement/threshold logic the contract panel and roster
-// panel both read from. The engine adds RNG (variance, volatility) plus relationship
-// and trait modifiers at resolve time; those are represented here as a swing band, so
-// the readout never claims a certainty the engine doesn't have.
-//
-// Pure + arc-agnostic: every function takes (… , arc) and works for any cartridge.
+// and exposes actionable deltas without pretending RNG is knowable.
 
-import type { Agent, Arc, Challenge, MechanicCheck } from "../engine/types.js";
+import type { Agent, Arc, Challenge, MechanicCheck, ThresholdMode } from "../engine/types.js";
 import { AFFLICTION_PENALTIES } from "../engine/constants.js";
+import { DOWNTIME_ACTIONS, type DowntimeAction } from "./agent-management.js";
 
-/** The variance/volatility band the resolver can add or subtract at run time. Used to
- *  decide whether a margin is comfortable ("ready"), inside the swing ("thin"), or
- *  unrecoverable ("short"). Kept conservative against resolver.getVolatilitySwing. */
+/** The resolver adds variance/volatility at run time. A check only becomes
+ *  reliable when it clears the authored threshold by this safety buffer. */
 export const SWING = 5;
 
 export interface RoleRequirement {
@@ -26,6 +21,9 @@ export interface CheckRequirement {
   id: string;
   name: string;
   scope: MechanicCheck["scope"];
+  thresholdMode: ThresholdMode;
+  /** The authored base threshold (before any party-size scaling). */
+  baseThreshold: number;
   threshold: number;
   attributes: Array<{ id: string; name: string; weight: number }>;
   /** Explicit role scope for role_specific checks, if the cartridge defines it. */
@@ -39,16 +37,32 @@ export interface ContractRequirements {
   roles: RoleRequirement[];
   checks: CheckRequirement[];
   timePressure: { attributeId: string; attributeName: string; rounds: number; aggregateThreshold: number } | null;
-  /** Union of every attribute any check reads, ordered by total weight (what to show). */
+  /** Union of every attribute any check reads, ordered by total weight. */
   checkedAttributes: Array<{ id: string; name: string }>;
 }
 
 export type CheckStatus = "ready" | "thin" | "short";
 
+export interface CheckContributor {
+  agentId: string;
+  agentName: string;
+  roleName: string;
+  base: number;
+  gear: number;
+  morale: number;
+  affliction: number;
+  total: number;
+  inScope: boolean;
+}
+
 export interface CheckEval {
   id: string;
   name: string;
   scope: MechanicCheck["scope"];
+  thresholdMode: ThresholdMode;
+  /** The authored base threshold (before any party-size scaling). */
+  baseThreshold: number;
+  /** The effective threshold used for this evaluation (may be baseThreshold × partySize). */
   threshold: number;
   projected: number;
   margin: number;
@@ -59,6 +73,7 @@ export interface CheckEval {
   status: CheckStatus;
   roleIds: string[];
   roleNames: string[];
+  contributors: CheckContributor[];
 }
 
 export interface MissingRole {
@@ -70,9 +85,9 @@ export interface MissingRole {
 export type ProjectedOutcome = "success" | "partial" | "failure" | "none";
 
 export interface PartyReadiness {
-  /** Count is within [min,max] — the only gate the engine enforces to run. */
+  /** Count is within [min,max] — the only hard gate the engine enforces to run. */
   countOk: boolean;
-  /** Required roles are covered. Not enforced by the engine, but unmet roles project failure. */
+  /** Required roles are covered. Missing roles project failure. */
   rolesOk: boolean;
   missingRoles: MissingRole[];
   checks: CheckEval[];
@@ -81,21 +96,61 @@ export interface PartyReadiness {
   reasons: string[];
 }
 
+export type FixSuggestion =
+  | {
+      kind: "add-agent";
+      agentId: string;
+      agentName: string;
+      reason: string;
+      roleName?: string;
+      checkId?: string;
+      beforeScore?: number;
+      afterScore?: number;
+      beforeStatus?: CheckStatus;
+      afterStatus?: CheckStatus;
+    }
+  | {
+      kind: "swap-agent";
+      addAgentId: string;
+      addAgentName: string;
+      removeAgentId: string;
+      removeAgentName: string;
+      reason: string;
+      checkId?: string;
+      beforeScore?: number;
+      afterScore?: number;
+      beforeStatus?: CheckStatus;
+      afterStatus?: CheckStatus;
+    }
+  | {
+      kind: "downtime";
+      agentId: string;
+      agentName: string;
+      action: DowntimeAction;
+      reason: string;
+      checkId?: string;
+      beforeScore?: number;
+      afterScore?: number;
+      beforeStatus?: CheckStatus;
+      afterStatus?: CheckStatus;
+    }
+  | {
+      kind: "risk";
+      reason: string;
+    };
+
 function attrName(arc: Arc, id: string): string {
   return arc.attributes.find((a) => a.id === id)?.name ?? id;
 }
 
-function roleName(arc: Arc, id: string): string {
+function roleName(arc: Arc, id: string | null | undefined): string {
+  if (!id) return "Flex";
   return arc.roles.find((r) => r.id === id)?.name ?? id;
 }
 
 function scopedRoleIds(check: MechanicCheck, challenge: Challenge): string[] {
   if (check.roleIds && check.roleIds.length > 0) return check.roleIds;
   return challenge.rosterRequirements.roleRequirements.map((r) => r.roleId);
-}
-
-function scopedRoleNames(check: MechanicCheck, challenge: Challenge, arc: Arc): string[] {
-  return scopedRoleIds(check, challenge).map((id) => roleName(arc, id));
 }
 
 function primaryAttrId(check: MechanicCheck): string {
@@ -119,15 +174,20 @@ function afflictionMod(agent: Agent): number {
   return AFFLICTION_PENALTIES[agent.afflictionState.kind]?.scoreMod ?? 0;
 }
 
-/** Deterministic core of resolver.scoreAgent for one check (no RNG / rel / trait). */
-export function agentBaseScore(agent: Agent, check: MechanicCheck, arc: Arc): number {
-  const raw = check.attributeWeights.reduce(
+function componentScore(agent: Agent, check: MechanicCheck, arc: Arc): Omit<CheckContributor, "agentId" | "agentName" | "roleName" | "inScope"> {
+  const base = check.attributeWeights.reduce(
     (s, aw) => s + (agent.attributes[aw.attributeId] ?? 0) * aw.weight,
     0,
   );
   const gear = gearBonusForAttr(agent, primaryAttrId(check), arc);
-  const moraleMod = (agent.morale - 50) / 10;
-  return raw + gear + moraleMod + afflictionMod(agent);
+  const morale = (agent.morale - 50) / 10;
+  const affliction = afflictionMod(agent);
+  return { base, gear, morale, affliction, total: base + gear + morale + affliction };
+}
+
+/** Deterministic core of resolver.scoreAgent for one check (no RNG / rel / trait). */
+export function agentBaseScore(agent: Agent, check: MechanicCheck, arc: Arc): number {
+  return componentScore(agent, check, arc).total;
 }
 
 export function describeContract(challenge: Challenge, arc: Arc): ContractRequirements {
@@ -141,13 +201,14 @@ export function describeContract(challenge: Challenge, arc: Arc): ContractRequir
     id: c.id,
     name: c.name,
     scope: c.scope,
+    thresholdMode: c.thresholdMode ?? "fixed",
+    baseThreshold: c.difficultyThreshold,
     threshold: c.difficultyThreshold,
     attributes: c.attributeWeights.map((aw) => ({ id: aw.attributeId, name: attrName(arc, aw.attributeId), weight: aw.weight })),
     roleIds: c.scope === "role_specific" ? scopedRoleIds(c, challenge) : [],
-    roleNames: c.scope === "role_specific" ? scopedRoleNames(c, challenge, arc) : [],
+    roleNames: c.scope === "role_specific" ? scopedRoleIds(c, challenge).map((id) => roleName(arc, id)) : [],
   }));
 
-  // Union of checked attributes, ranked by summed weight so the most decisive show first.
   const weightById = new Map<string, number>();
   for (const c of challenge.mechanicChecks) {
     for (const aw of c.attributeWeights) weightById.set(aw.attributeId, (weightById.get(aw.attributeId) ?? 0) + aw.weight);
@@ -169,41 +230,79 @@ export function describeContract(challenge: Challenge, arc: Arc): ContractRequir
   };
 }
 
-function bandFor(margin: number): CheckStatus {
-  if (margin >= SWING) return "ready";
-  if (margin >= -SWING) return "thin";
-  return "short";
-}
-
-function evalFields(projected: number, threshold: number): Pick<CheckEval, "margin" | "reliableTarget" | "shortBy" | "status"> {
+function classify(projected: number, threshold: number): Pick<CheckEval, "margin" | "reliableTarget" | "shortBy" | "status"> {
   const margin = projected - threshold;
   const reliableTarget = threshold + SWING;
   const shortBy = Math.max(0, reliableTarget - projected);
-  return { margin, reliableTarget, shortBy, status: bandFor(margin) };
+  const status: CheckStatus = margin >= SWING ? "ready" : margin >= -SWING ? "thin" : "short";
+  return { margin, reliableTarget, shortBy, status };
 }
 
-/** team_aggregate and per_agent scopes. role_specific is handled in evaluateParty,
- *  which knows the contract's required roles (the resolver's scoping rule). */
-function evalCheck(check: MechanicCheck, party: Agent[], arc: Arc): CheckEval {
-  let projected: number;
-  let effThreshold = check.difficultyThreshold;
+function contributor(agent: Agent, check: MechanicCheck, arc: Arc, inScope = true): CheckContributor {
+  const parts = componentScore(agent, check, arc);
+  return {
+    agentId: agent.id,
+    agentName: agent.name,
+    roleName: roleName(arc, agent.role),
+    ...parts,
+    inScope,
+  };
+}
+
+function effectiveThreshold(check: MechanicCheck, partySize: number): number {
+  if (check.scope === "team_aggregate" && check.thresholdMode === "perAssignedAgent") {
+    return check.difficultyThreshold * Math.max(1, partySize);
+  }
+  return check.difficultyThreshold;
+}
+
+function evaluateCheck(check: MechanicCheck, challenge: Challenge, party: Agent[], arc: Arc): CheckEval {
+  let projected = 0;
+  const baseThreshold = check.difficultyThreshold;
+  const thresholdMode: import("../engine/types.js").ThresholdMode = check.thresholdMode ?? "fixed";
+  let threshold = effectiveThreshold(check, party.length);
+  let roleIds: string[] = [];
+  let scopedParty = party;
+
+  if (check.scope === "role_specific") {
+    roleIds = scopedRoleIds(check, challenge);
+    const roleSet = new Set(roleIds);
+    scopedParty = party.filter((a) => roleSet.has(a.role ?? ""));
+  }
+
+  const contributors = party.map((agent) => contributor(agent, check, arc, scopedParty.includes(agent)));
 
   if (check.scope === "team_aggregate") {
     projected = party.reduce((s, a) => s + agentBaseScore(a, check, arc), 0);
-    effThreshold = check.difficultyThreshold * Math.max(1, party.length);
+  } else if (scopedParty.length > 0) {
+    projected = Math.min(...scopedParty.map((a) => agentBaseScore(a, check, arc)));
+  } else if (check.scope === "role_specific") {
+    // Missing role is represented by role coverage. The check is neutral so the UI
+    // does not double-count one absence as both a missing role and a failed check.
+    projected = threshold + SWING;
   } else {
-    const scores = party.map((a) => agentBaseScore(a, check, arc));
-    projected = scores.length ? Math.min(...scores) : 0;
+    projected = 0;
   }
 
-  return { id: check.id, name: check.name, scope: check.scope, threshold: effThreshold, projected, ...evalFields(projected, effThreshold), roleIds: [], roleNames: [] };
+  return {
+    id: check.id,
+    name: check.name,
+    scope: check.scope,
+    thresholdMode,
+    baseThreshold,
+    threshold,
+    projected,
+    ...classify(projected, threshold),
+    roleIds,
+    roleNames: roleIds.map((id) => roleName(arc, id)),
+    contributors,
+  };
 }
 
 export function evaluateParty(challenge: Challenge, party: Agent[], arc: Arc): PartyReadiness {
   const rr = challenge.rosterRequirements;
   const countOk = party.length >= rr.minAgents && party.length <= rr.maxAgents;
 
-  // Role coverage
   const missingRoles: MissingRole[] = [];
   for (const req of rr.roleRequirements) {
     const have = party.filter((a) => a.role === req.roleId).length;
@@ -211,28 +310,7 @@ export function evaluateParty(challenge: Challenge, party: Agent[], arc: Arc): P
   }
   const rolesOk = missingRoles.length === 0;
 
-  // Per-check evaluation. role_specific checks score only the roles named on that check.
-  const checks: CheckEval[] = challenge.mechanicChecks.map((check) => {
-    if (check.scope === "role_specific") {
-      const checkRoleIds = scopedRoleIds(check, challenge);
-      const checkRoleSet = new Set(checkRoleIds);
-      const scoped = party.filter((a) => checkRoleSet.has(a.role ?? ""));
-      const scores = scoped.map((a) => agentBaseScore(a, check, arc));
-      const projected = scores.length ? Math.min(...scores) : check.difficultyThreshold;
-      const fields = scores.length ? evalFields(projected, check.difficultyThreshold) : { margin: 0, reliableTarget: check.difficultyThreshold + SWING, shortBy: 0, status: "ready" as CheckStatus };
-      return {
-        id: check.id,
-        name: check.name,
-        scope: check.scope,
-        threshold: check.difficultyThreshold,
-        projected,
-        ...fields,
-        roleIds: checkRoleIds,
-        roleNames: checkRoleIds.map((id) => roleName(arc, id)),
-      };
-    }
-    return evalCheck(check, party, arc);
-  });
+  const checks = challenge.mechanicChecks.map((check) => evaluateCheck(check, challenge, party, arc));
 
   const reasons: string[] = [];
   if (!countOk) {
@@ -243,53 +321,24 @@ export function evaluateParty(challenge: Challenge, party: Agent[], arc: Arc): P
     );
   }
   for (const m of missingRoles) {
-    reasons.push(`Missing ${m.need - m.have} ${m.roleName}${m.need - m.have > 1 ? "s" : ""} — that check is projected to fail.`);
+    reasons.push(`Missing ${m.need - m.have} ${m.roleName}${m.need - m.have > 1 ? "s" : ""} — add that role before trusting the projection.`);
   }
   for (const c of checks) {
     if (c.status === "short") reasons.push(`${c.name}: failing by ${Math.round(Math.abs(c.margin))} — needs +${Math.round(c.shortBy)} to become reliable.`);
   }
   for (const c of checks) {
-    if (c.status === "thin") reasons.push(`${c.name}: passing by +${Math.round(c.margin)}, but needs +${Math.round(c.shortBy)} more buffer to be reliable.`);
+    if (c.status === "thin") reasons.push(`${c.name}: passing by +${Math.round(c.margin)} — needs +${Math.round(c.shortBy)} more buffer to be reliable.`);
   }
 
   let projectedOutcome: ProjectedOutcome = "none";
   if (party.length > 0) {
-    const anyShort = checks.some((c) => c.status === "short") || !rolesOk;
+    const anyShort = checks.some((c) => c.status === "short") || !rolesOk || !countOk;
     const anyThin = checks.some((c) => c.status === "thin");
     projectedOutcome = anyShort ? "failure" : anyThin ? "partial" : "success";
   }
 
   return { countOk, rolesOk, missingRoles, checks, projectedOutcome, reasons };
 }
-
-
-export type FixSuggestion =
-  | {
-      kind: "add-agent";
-      agentId: string;
-      agentName: string;
-      reason: string;
-      roleName?: string;
-    }
-  | {
-      kind: "swap-agent";
-      addAgentId: string;
-      addAgentName: string;
-      removeAgentId: string;
-      removeAgentName: string;
-      reason: string;
-    }
-  | {
-      kind: "downtime";
-      agentId: string;
-      agentName: string;
-      action: "rest" | "train" | "rally";
-      reason: string;
-    }
-  | {
-      kind: "risk";
-      reason: string;
-    };
 
 export function scoreAgentForContract(agent: Agent, challenge: Challenge, arc: Arc): number {
   let score = 0;
@@ -306,38 +355,78 @@ export function scoreAgentForContract(agent: Agent, challenge: Challenge, arc: A
   return score;
 }
 
-function scoreAgentForCheck(agent: Agent, check: MechanicCheck, arc: Arc): number {
-  return agentBaseScore(agent, check, arc);
-}
-
 function weakestPartyAgent(party: Agent[], challenge: Challenge, arc: Arc): Agent | null {
   return [...party].sort((a, b) => scoreAgentForContract(a, challenge, arc) - scoreAgentForContract(b, challenge, arc))[0] ?? null;
 }
 
-function pushAgentFix(
-  out: FixSuggestion[],
-  candidate: Agent,
-  party: Agent[],
-  challenge: Challenge,
-  arc: Arc,
-  reason: string,
-  roleLabel?: string,
-): void {
+function cloneAgentWithDowntime(agent: Agent, action: DowntimeAction): Agent {
+  const def = DOWNTIME_ACTIONS[action];
+  return {
+    ...agent,
+    stress: Math.max(0, Math.min(100, agent.stress + def.stressDelta)),
+    morale: Math.max(0, Math.min(100, agent.morale + def.moraleDelta)),
+  };
+}
+
+function checkAfter(readiness: PartyReadiness, checkId?: string): CheckEval | undefined {
+  return checkId ? readiness.checks.find((c) => c.id === checkId) : readiness.checks.find((c) => c.status !== "ready");
+}
+
+function withProjection<T extends FixSuggestion>(fix: T, before: PartyReadiness, after: PartyReadiness, checkId?: string): T {
+  const beforeCheck = checkAfter(before, checkId);
+  const afterCheck = checkAfter(after, checkId ?? beforeCheck?.id);
+  if (!beforeCheck || !afterCheck || fix.kind === "risk") return fix;
+  return {
+    ...fix,
+    checkId: beforeCheck.id,
+    beforeScore: beforeCheck.projected,
+    afterScore: afterCheck.projected,
+    beforeStatus: beforeCheck.status,
+    afterStatus: afterCheck.status,
+  } as T;
+}
+
+function improves(fix: FixSuggestion): boolean {
+  if (fix.kind === "risk") return true;
+  if (fix.beforeScore === undefined || fix.afterScore === undefined) return true;
+  return fix.afterScore > fix.beforeScore || (fix.beforeStatus !== "ready" && fix.afterStatus === "ready");
+}
+
+function addOrSwapFix(input: {
+  out: FixSuggestion[];
+  candidate: Agent;
+  party: Agent[];
+  challenge: Challenge;
+  arc: Arc;
+  before: PartyReadiness;
+  reason: string;
+  roleLabel?: string;
+  checkId?: string;
+}): void {
+  const { out, candidate, party, challenge, arc, before, reason, roleLabel, checkId } = input;
+  let fix: FixSuggestion | null = null;
+  let nextParty: Agent[] | null = null;
+
   if (party.length < challenge.rosterRequirements.maxAgents) {
-    out.push({ kind: "add-agent", agentId: candidate.id, agentName: candidate.name, reason, roleName: roleLabel });
-    return;
+    nextParty = [...party, candidate];
+    fix = { kind: "add-agent", agentId: candidate.id, agentName: candidate.name, reason, roleName: roleLabel };
+  } else {
+    const remove = weakestPartyAgent(party, challenge, arc);
+    if (!remove || remove.id === candidate.id) return;
+    nextParty = party.filter((agent) => agent.id !== remove.id).concat(candidate);
+    fix = {
+      kind: "swap-agent",
+      addAgentId: candidate.id,
+      addAgentName: candidate.name,
+      removeAgentId: remove.id,
+      removeAgentName: remove.name,
+      reason: `${reason} Swap out ${remove.name}.`,
+    };
   }
 
-  const remove = weakestPartyAgent(party, challenge, arc);
-  if (!remove || remove.id === candidate.id) return;
-  out.push({
-    kind: "swap-agent",
-    addAgentId: candidate.id,
-    addAgentName: candidate.name,
-    removeAgentId: remove.id,
-    removeAgentName: remove.name,
-    reason: `${reason} Swap out ${remove.name}.`,
-  });
+  const after = evaluateParty(challenge, nextParty, arc);
+  const projectedFix = withProjection(fix, before, after, checkId);
+  if (roleLabel || improves(projectedFix)) out.push(projectedFix);
 }
 
 function dedupeFixes(items: FixSuggestion[]): FixSuggestion[] {
@@ -345,17 +434,25 @@ function dedupeFixes(items: FixSuggestion[]): FixSuggestion[] {
   const out: FixSuggestion[] = [];
   for (const item of items) {
     const key = item.kind === "add-agent"
-      ? `${item.kind}:${item.agentId}:${item.reason}`
+      ? `${item.kind}:${item.agentId}:${item.checkId ?? ""}:${item.reason}`
       : item.kind === "swap-agent"
-      ? `${item.kind}:${item.addAgentId}:${item.removeAgentId}:${item.reason}`
+      ? `${item.kind}:${item.addAgentId}:${item.removeAgentId}:${item.checkId ?? ""}:${item.reason}`
       : item.kind === "downtime"
-      ? `${item.kind}:${item.agentId}:${item.action}`
+      ? `${item.kind}:${item.agentId}:${item.action}:${item.checkId ?? ""}`
       : `${item.kind}:${item.reason}`;
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(item);
   }
   return out;
+}
+
+function fixRank(fix: FixSuggestion): number {
+  if (fix.kind === "risk") return -999;
+  const roleBonus = (fix.kind === "add-agent" && fix.roleName) ? 100 : 0;
+  const statusBonus = fix.afterStatus === "ready" ? 50 : fix.afterStatus === "thin" ? 20 : 0;
+  const delta = fix.beforeScore !== undefined && fix.afterScore !== undefined ? fix.afterScore - fix.beforeScore : 1;
+  return roleBonus + statusBonus + delta;
 }
 
 export function buildFixPlan(input: {
@@ -373,12 +470,11 @@ export function buildFixPlan(input: {
   for (const missing of readiness.missingRoles) {
     const role = arc.roles.find((r) => r.name === missing.roleName);
     if (!role) continue;
-    const candidates = available
-      .filter((agent) => agent.role === role.id)
+    for (const agent of available
+      .filter((a) => a.role === role.id)
       .sort((a, b) => scoreAgentForContract(b, challenge, arc) - scoreAgentForContract(a, challenge, arc))
-      .slice(0, 2);
-    for (const agent of candidates) {
-      pushAgentFix(out, agent, party, challenge, arc, `Adds required ${missing.roleName}.`, missing.roleName);
+      .slice(0, 2)) {
+      addOrSwapFix({ out, candidate: agent, party, challenge, arc, before: readiness, roleLabel: missing.roleName, reason: `Adds required ${missing.roleName}.` });
     }
   }
 
@@ -386,29 +482,41 @@ export function buildFixPlan(input: {
     const mechanic = challenge.mechanicChecks.find((check) => check.id === weak.id);
     if (!mechanic) continue;
     const roleScope = mechanic.scope === "role_specific" ? new Set(scopedRoleIds(mechanic, challenge)) : null;
-    const candidates = available
-      .filter((agent) => !roleScope || roleScope.has(agent.role ?? ""))
-      .map((agent) => ({ agent, score: scoreAgentForCheck(agent, mechanic, arc) }))
+    const attrNames = mechanic.attributeWeights.map((aw) => attrName(arc, aw.attributeId)).join(" + ");
+
+    for (const { agent } of available
+      .filter((a) => !roleScope || roleScope.has(a.role ?? ""))
+      .map((agent) => ({ agent, score: agentBaseScore(agent, mechanic, arc) }))
       .sort((a, b) => b.score - a.score)
-      .slice(0, 2);
-    for (const { agent } of candidates) {
-      const attrNames = mechanic.attributeWeights.map((aw) => attrName(arc, aw.attributeId)).join(" + ");
-      pushAgentFix(out, agent, party, challenge, arc, `Improves ${weak.name}${attrNames ? ` with ${attrNames}` : ""}.`);
+      .slice(0, 2)) {
+      addOrSwapFix({
+        out,
+        candidate: agent,
+        party,
+        challenge,
+        arc,
+        before: readiness,
+        checkId: weak.id,
+        reason: `Improves ${weak.name}${attrNames ? ` with ${attrNames}` : ""}.`,
+      });
+    }
+
+    for (const agent of party.filter((a) => !roleScope || roleScope.has(a.role ?? ""))) {
+      for (const action of ["rally", "train", "rest"] as const) {
+        const mutated = cloneAgentWithDowntime(agent, action);
+        const afterParty = party.map((a) => (a.id === agent.id ? mutated : a));
+        const after = evaluateParty(challenge, afterParty, arc);
+        const def = DOWNTIME_ACTIONS[action];
+        const reason = `${def.label} changes Stress ${def.stressDelta >= 0 ? "+" : ""}${def.stressDelta} and Morale ${def.moraleDelta >= 0 ? "+" : ""}${def.moraleDelta}.`;
+        const fix: FixSuggestion = { kind: "downtime", agentId: agent.id, agentName: agent.name, action, reason };
+        const projectedFix = withProjection(fix, readiness, after, weak.id);
+        if (improves(projectedFix)) out.push(projectedFix);
+      }
     }
   }
 
-  for (const agent of party) {
-    if (agent.stress > 0) {
-      out.push({ kind: "downtime", agentId: agent.id, agentName: agent.name, action: "rest", reason: "Reduces stress and improves reliability." });
-    }
-    if (agent.morale < 70) {
-      out.push({ kind: "downtime", agentId: agent.id, agentName: agent.name, action: "rally", reason: "Raises morale and improves projection." });
-    }
-    out.push({ kind: "downtime", agentId: agent.id, agentName: agent.name, action: "train", reason: "Raises morale but adds stress." });
-  }
-
-  const fixes = dedupeFixes(out).slice(0, 5);
-  if (fixes.length === 0 && readiness.projectedOutcome === "failure") {
+  const fixes = dedupeFixes(out).sort((a, b) => fixRank(b) - fixRank(a)).slice(0, 5);
+  if (fixes.length === 0 && readiness.projectedOutcome !== "success") {
     return [{ kind: "risk", reason: "No clean fix is available from the current roster. Run another contract, earn gear, or accept the risk." }];
   }
   return fixes;

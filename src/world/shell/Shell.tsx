@@ -21,6 +21,7 @@ import {
   RosterRegion,
   ContractRegion,
   ReportRegion,
+  LootRegion,
   CoachRegion,
   DispatchRegion,
   CompleteBanner,
@@ -153,6 +154,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   const contract = ix.selected ? (
     <ContractRegion selected={ix.selected} party={ix.party} min={min} max={max} canRun={ix.canRun} onRun={ix.run} contract={ix.contract} readiness={ix.readiness} recommendation={ix.recommendation} fixPlan={ix.fixPlan} onApplyFix={ix.applyFix} />
   ) : null;
+  const loot = <LootRegion loot={world.pendingLoot} onClaimLoot={world.claimLoot} />;
 
   return (
     <div data-testid="engine-shell" data-modal-open={modalOpen ? "true" : "false"} style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: "#0b0a08", overflow: "hidden", isolation: "isolate", fontFamily: "'IBM Plex Mono', ui-monospace, monospace" }}>
@@ -199,6 +201,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
           >
             {world.arcComplete && <Card style={{ borderColor: "#74ad77" }}><CompleteBanner /></Card>}
             {world.lastReport && <Card><ReportRegion lastReport={world.lastReport} /></Card>}
+            {world.pendingLoot.length > 0 && <Card>{loot}</Card>}
             {!ix.selected && coach && <Card style={{ borderColor: "#6b5935", background: "rgba(32,28,20,0.92)" }}><CoachRegion message={coach} /></Card>}
             {!ix.selected && world.dispatches.length > 0 && <Card style={{ padding: "8px 12px" }}><DispatchRegion dispatches={world.dispatches} limit={1} /></Card>}
             {ix.selected && <Card style={{ overflow: "hidden" }}>{roster}</Card>}
@@ -229,6 +232,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
           <aside style={{ width: 360, flex: "none", overflowY: "auto", padding: 12, borderLeft: "1px solid #2a2620", background: "rgba(15,13,9,0.6)" }}>
             {contract && <Card style={{ marginBottom: 10 }}>{contract}</Card>}
             {world.lastReport && <Card style={{ marginBottom: 10 }}><ReportRegion lastReport={world.lastReport} /></Card>}
+            {world.pendingLoot.length > 0 && <Card style={{ marginBottom: 10 }}>{loot}</Card>}
             {!ix.selected && coach && <Card style={{ marginBottom: 10, borderColor: "#6b5935", background: "rgba(32,28,20,0.9)" }}><CoachRegion message={coach} /></Card>}
             {world.dispatches.length > 0 && <Card><DispatchRegion dispatches={world.dispatches} limit={4} /></Card>}
           </aside>
