@@ -152,3 +152,7 @@ tests/**/*.js
 # Built game bundle — published directly to GitHub Pages by the deploy
 # workflow (Actions artifact), never committed to the repo.
 docs/game/
+
+# Playwright e2e output
+test-results/
+playwright-report/

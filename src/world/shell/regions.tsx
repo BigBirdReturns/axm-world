@@ -37,15 +37,17 @@ export function StatusRegion(props: {
   return (
     <div style={{ minWidth: 0 }}>
       <SectionLabel>Cartridge</SectionLabel>
-      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, margin: "2px 0 6px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+      <div data-testid="cartridge-title" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, margin: "2px 0 6px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "#ece4d4", opacity: 1, textShadow: "0 1px 0 rgba(0,0,0,0.5)" }}>
         {title}
       </div>
       <div style={{ display: "flex", gap: 6, overflowX: "auto", whiteSpace: "nowrap", font: "11px 'IBM Plex Mono', ui-monospace, monospace" }}>
         <Chip label="Cycle" value={String(cycle).padStart(2, "0")} />
+        {/* tokenName is cartridge-themed (here "Contracts" = reroll/assignment tokens);
+            the progress chip is renamed "Recorded" so two chips aren't both "Contracts". */}
         <Chip label={resources.tokenName} value={String(resources.tokens)} />
         <Chip label={resources.currencyName} value={String(resources.currency)} />
         <Chip label={resources.reputationName} value={String(resources.reputation)} />
-        <Chip label="Contracts" value={`${progress.cleared}/${progress.total}`} accent />
+        <Chip label="Recorded" value={`${progress.cleared}/${progress.total}`} accent testid="cartridge-mark-count" />
       </div>
     </div>
   );
@@ -458,9 +460,9 @@ export function SectionLabel(props: { children: ReactNode }): JSX.Element {
   return <div style={{ color: "#c9a14a", letterSpacing: "0.1em", textTransform: "uppercase", fontSize: 11, marginBottom: 6 }}>{props.children}</div>;
 }
 
-function Chip(props: { label: string; value: string; accent?: boolean }): JSX.Element {
+function Chip(props: { label: string; value: string; accent?: boolean; testid?: string }): JSX.Element {
   return (
-    <span style={{ flex: "0 0 auto", padding: "3px 8px", borderRadius: 5, border: `1px solid ${props.accent ? "#6b5935" : "#3a352c"}`, background: "rgba(23,21,15,0.7)" }}>
+    <span data-testid={props.testid} style={{ flex: "0 0 auto", padding: "3px 8px", borderRadius: 5, border: `1px solid ${props.accent ? "#6b5935" : "#3a352c"}`, background: "rgba(23,21,15,0.7)" }}>
       <span style={{ color: "#a59c8b" }}>{props.label} </span>
       <strong style={{ color: props.accent ? "#c9a14a" : "#ece4d4" }}>{props.value}</strong>
     </span>
