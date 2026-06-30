@@ -56,7 +56,13 @@ export function useArcInteraction(world: ArcWorld): ArcInteraction {
   // When focus moves to a different node, seed the party with the engine's
   // recommendation; they can then add/remove members.
   useEffect(() => {
-    setParty(selectedId ? world.recommendedParty(selectedId) : []);
+    if (!selectedId) {
+      setParty([]);
+      return;
+    }
+    const node = world.nodes.find((item) => item.challengeId === selectedId);
+    setParty(node?.status === "available" ? world.recommendedParty(selectedId) : []);
+    // Seed only when focus changes. Do not wipe manual roster edits on every world/state update.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
