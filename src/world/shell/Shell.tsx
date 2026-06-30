@@ -182,30 +182,22 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
 
       {/* stage */}
       {isMobile ? (
-        <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
-          {stage}
-          <div
-            style={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              bottom: 0,
-              maxHeight: "72%",
-              display: "flex",
-              flexDirection: "column",
-              gap: 8,
-              padding: "0 10px",
-              paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 10px)",
-              pointerEvents: "none",
-            }}
-          >
-            {world.arcComplete && <Card style={{ borderColor: "#74ad77" }}><CompleteBanner /></Card>}
-            {world.lastReport && <Card><ReportRegion lastReport={world.lastReport} /></Card>}
-            {world.pendingLoot.length > 0 && <Card>{loot}</Card>}
+        // Mobile: map takes a fixed slice at top; content stacks and scrolls below.
+        // No absolute overlays — every region is in normal flow.
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflowY: "auto" }}>
+          {/* map — capped so content below is reachable without scrolling past it */}
+          <div style={{ height: "clamp(150px, 24dvh, 230px)", flex: "none", position: "relative" }}>
+            {stage}
+          </div>
+          {/* content stack */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 12px", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}>
+            {world.arcComplete && <CompleteBanner />}
+            {world.lastReport && <ReportRegion lastReport={world.lastReport} />}
+            {world.pendingLoot.length > 0 && loot}
             {!ix.selected && coach && <Card style={{ borderColor: "#6b5935", background: "rgba(32,28,20,0.92)" }}><CoachRegion message={coach} /></Card>}
             {!ix.selected && world.dispatches.length > 0 && <Card style={{ padding: "8px 12px" }}><DispatchRegion dispatches={world.dispatches} limit={1} /></Card>}
-            {ix.selected && <Card style={{ overflow: "hidden" }}>{roster}</Card>}
-            {contract && <Card style={{ overflowY: "auto" }}>{contract}</Card>}
+            {contract}
+            {roster}
           </div>
         </div>
       ) : (

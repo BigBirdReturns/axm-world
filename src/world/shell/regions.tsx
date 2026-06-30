@@ -15,7 +15,6 @@ import type { ContractRequirements, FixSuggestion, PartyReadiness, CheckStatus, 
 import { DOWNTIME_ACTIONS, type DowntimeAction } from "../agent-management.js";
 import "../pixel-ui/pixel-ui.css";
 import { PixelBadge, PixelButton, PixelIcon, PixelMeter, PixelPanel, type PixelIconName } from "../pixel-ui/index.js";
-import { RodohRuntimeMark } from "../brand/RodohRuntimeMark.js";
 
 // The `panel` export is kept for Shell.tsx wrappers that set the outer chrome.
 // Gameplay content inside uses cream PixelPanel — this dark shell is system chrome only.
@@ -74,6 +73,8 @@ function fmt(n: number): string {
 }
 
 // ── Status (system chrome — stays dark) ──────────────────────────────────────
+// RodohRuntimeMark does NOT live here. It belongs on boot/loading/cartridge-select,
+// not in the active gameplay HUD.
 
 export function StatusRegion(props: {
   title: string;
@@ -84,21 +85,17 @@ export function StatusRegion(props: {
   const { title, cycle, resources, progress } = props;
   return (
     <div style={{ minWidth: 0 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-        <RodohRuntimeMark variant="micro" showText={false} />
-        <span className="pixel-panel__title" style={{ marginBottom: 0 }}>Cartridge</span>
-      </div>
       <div
         data-testid="cartridge-title"
-        style={{ fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontSize: 16, fontWeight: 800, letterSpacing: "0.04em", margin: "3px 0 7px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "#ece4d4" }}
+        style={{ fontFamily: "var(--px-font)", fontSize: 16, fontWeight: 800, letterSpacing: "0.04em", marginBottom: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "#ece4d4" }}
       >
         {title}
       </div>
-      <div style={{ display: "flex", gap: 5, overflowX: "auto", whiteSpace: "nowrap" }}>
+      <div style={{ display: "flex", gap: 5, overflowX: "auto", whiteSpace: "nowrap", scrollbarWidth: "none" }}>
         <StatusChip label="Cycle" value={String(cycle).padStart(2, "0")} />
         <StatusChip label={resources.tokenName} value={String(resources.tokens)} />
         <StatusChip label={resources.currencyName} value={String(resources.currency)} />
-        <StatusChip label={resources.reputationName} value={String(resources.reputation)} />
+        <StatusChip label="Renown" value={String(resources.reputation)} />
         <StatusChip label="Recorded" value={`${progress.cleared}/${progress.total}`} accent testid="cartridge-mark-count" />
       </div>
     </div>
@@ -155,7 +152,10 @@ export function RosterRegion(props: {
       <div className="pixel-panel__title">
         Roster {selectable ? `· party ${party.length}/${max}` : "· select a contract to assign"}
       </div>
-      <div style={strip ? { display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 } : { display: "grid", gap: 6 }}>
+      <div style={strip
+        ? { display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }
+        : { display: "grid", gap: 6 }
+      }>
         {roster.map((m) => (
           <RosterCard key={m.id} m={m} inParty={party.includes(m.id)} selectable={selectable} contract={contract} variant={variant} onToggleAgent={onToggleAgent} onApplyDowntime={onApplyDowntime} />
         ))}
@@ -180,7 +180,7 @@ function RosterCard(props: {
     <PixelPanel
       data-testid="roster-card"
       style={{
-        ...(strip ? { flex: "0 0 auto", width: 176 } : {}),
+        ...(strip ? { flex: "0 0 auto", width: "min(85vw, 290px)", scrollSnapAlign: "start" } : {}),
         padding: 10,
         borderColor: inParty ? "var(--gold-border)" : undefined,
         boxShadow: inParty ? "3px 3px 0 var(--gold-border)" : undefined,
@@ -329,24 +329,49 @@ export function ContractRegion(props: {
   onApplyFix: (fix: FixSuggestion) => void;
 }): JSX.Element {
   const { selected, party, min, max, canRun, onRun, contract, readiness, recommendation, fixPlan, onApplyFix } = props;
+
+  // Locked contracts show only unlock requirements — no party count, no readiness math,
+  // no fix plan. Party assignment is irrelevant until the node unlocks.
+  if (selected.status === "locked") {
+    return (
+      <PixelPanel style={{ padding: "12px 14px" }}>
+        <PixelBadge state="locked" style={{ marginBottom: 8, display: "inline-flex" }}>Locked</PixelBadge>
+        <div data-testid="selected-contract-title" style={{ fontFamily: "var(--px-font)", fontSize: 18, fontWeight: 800, color: "var(--ink)", marginBottom: 4 }}>
+          {selected.title}
+        </div>
+        <div style={{ color: "var(--ink-muted)", fontSize: 12, marginBottom: 12, lineHeight: 1.4 }}>{selected.description}</div>
+        {selected.requirements.length > 0 && (
+          <div data-testid="unlock-requirements">
+            <div className="pixel-panel__title">Unlock requirement</div>
+            <ul style={{ margin: 0, padding: "0 0 0 14px", fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6, fontFamily: "var(--px-font)" }}>
+              {selected.requirements.map((req, i) => <li key={i}>{req}</li>)}
+            </ul>
+          </div>
+        )}
+        <PixelButton disabled variant="disabled" style={{ width: "100%", marginTop: 14, fontSize: 13 }}>Locked</PixelButton>
+      </PixelPanel>
+    );
+  }
+
   const showReadiness = selected.status === "available" && contract;
-  const contractStateBadge: Record<string, "available" | "locked" | "recorded"> = {
-    available: "available", locked: "locked", cleared: "recorded",
-  };
-  const contractStateLabel: Record<string, string> = {
-    available: "Available", locked: "Locked", cleared: "Cleared",
-  };
+  const contractStateBadge: "available" | "recorded" = selected.status === "cleared" ? "recorded" : "available";
+  const contractStateLabel = selected.status === "cleared" ? "Cleared" : "Available";
+
   return (
     <PixelPanel style={{ padding: "12px 14px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-        <PixelBadge state={contractStateBadge[selected.status] ?? "available"}>
-          {contractStateLabel[selected.status] ?? selected.status}
-        </PixelBadge>
-      </div>
+      <PixelBadge state={contractStateBadge} style={{ marginBottom: 8, display: "inline-flex" }}>
+        {contractStateLabel}
+      </PixelBadge>
       <div data-testid="selected-contract-title" style={{ fontFamily: "var(--px-font)", fontSize: 18, fontWeight: 800, letterSpacing: "0.02em", color: "var(--ink)", marginBottom: 4 }}>
         {selected.title}
       </div>
       <div style={{ color: "var(--ink-muted)", fontSize: 12, marginBottom: 10, lineHeight: 1.4 }}>{selected.description}</div>
+
+      {selected.status === "cleared" && (
+        <div style={{ marginBottom: 8, fontSize: 11, color: "var(--teal-dark)", fontFamily: "var(--px-font)" }}>
+          This run has recorded a successful outcome here.
+        </div>
+      )}
 
       <div data-testid="party-count" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: party.length >= min && party.length <= max ? "var(--teal-dark)" : "var(--gold-dark)", marginBottom: 8, fontFamily: "var(--px-font)" }}>
         Party {party.length} · need {min}{max !== min ? `–${max}` : ""}
@@ -362,8 +387,6 @@ export function ContractRegion(props: {
       {showReadiness && recommendation && (
         <div style={{ marginTop: 8, fontSize: 10, lineHeight: 1.4, color: "var(--stone)", fontStyle: "italic", fontFamily: "var(--px-font)" }}>{recommendation}</div>
       )}
-
-      {selected.status !== "available" && <StateReadout selected={selected} />}
     </PixelPanel>
   );
 }
@@ -574,22 +597,6 @@ function ReadinessPanel(props: { contract: ContractRequirements; readiness: Part
   );
 }
 
-function StateReadout(props: { selected: WorldNode }): JSX.Element {
-  const { selected } = props;
-  const label = selected.status === "locked" ? "Requirement" : selected.status === "cleared" ? "Cartridge mark" : "Runnable because";
-  const copy = selected.status === "cleared"
-    ? "This run has recorded a successful outcome here."
-    : selected.requirements.length > 0
-    ? selected.requirements.join(" · ")
-    : "No extra requirements.";
-  const stateColor = selected.status === "cleared" ? "var(--teal-dark)" : selected.status === "locked" ? "var(--gold-dark)" : "var(--ink-soft)";
-  return (
-    <div style={{ borderTop: "1px solid var(--cream-border)", paddingTop: 8, marginTop: 10, fontFamily: "var(--px-font)" }}>
-      <div className="pixel-panel__title">{label}</div>
-      <div style={{ fontSize: 12, color: stateColor }}>{copy}</div>
-    </div>
-  );
-}
 
 // ── Loot / Equip ──────────────────────────────────────────────────────────────
 
