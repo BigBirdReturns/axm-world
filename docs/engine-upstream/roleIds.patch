@@ -1,0 +1,60 @@
+diff --git a/src/engine/projections.ts b/src/engine/projections.ts
+index 25b3c35..c3ee3d7 100644
+--- a/src/engine/projections.ts
++++ b/src/engine/projections.ts
+@@ -70,10 +70,10 @@ export function projectMechanics(opts: {
+             : `Keep average ${primaryAttributeName(check, arc)} above ${check.difficultyThreshold}; extra low-score agents can drag this check down.`,
+       });
+     } else if (check.scope === "role_specific") {
+-      const roleReqs = challenge.rosterRequirements.roleRequirements;
+-      const roleAgents = assignedAgents.filter((a) =>
+-        roleReqs.some((r) => r.roleId === a.role),
+-      );
++      const roleIds = check.roleIds && check.roleIds.length > 0
++        ? check.roleIds
++        : challenge.rosterRequirements.roleRequirements.map((r) => r.roleId);
++      const roleAgents = assignedAgents.filter((a) => roleIds.includes(a.role ?? ""));
+       const target = roleAgents[0] ?? assignedAgents[0];
+       if (!target) continue;
+       const score = estimateScore(target, check, assignedAgents, org, arc);
+diff --git a/src/engine/resolver.ts b/src/engine/resolver.ts
+index aae55c2..54b1a46 100644
+--- a/src/engine/resolver.ts
++++ b/src/engine/resolver.ts
+@@ -247,7 +247,9 @@ export function resolveChallenge(opts: ResolveChallengeOpts): RunReport {
+ 
+       if (check.scope === "per_agent" || check.scope === "role_specific") {
+         if (check.scope === "role_specific") {
+-          const roleReqs = challenge.rosterRequirements.roleRequirements.map((r) => r.roleId);
++          const roleReqs = check.roleIds && check.roleIds.length > 0
++            ? check.roleIds
++            : challenge.rosterRequirements.roleRequirements.map((r) => r.roleId);
+           if (!roleReqs.includes(agent.role ?? "")) {
+             // agent not in scope — record as neutral pass
+             mechanicResults.push({ mechanicId: check.id, score: threshold, threshold, passed: true });
+diff --git a/src/engine/schema.ts b/src/engine/schema.ts
+index 1358c9a..5016cf6 100644
+--- a/src/engine/schema.ts
++++ b/src/engine/schema.ts
+@@ -18,6 +18,7 @@ const MechanicCheckSchema = z.object({
+   attributeWeights: z.array(AttributeWeightSchema).min(1),
+   difficultyThreshold: z.number().int(),
+   scope: z.enum(["per_agent", "team_aggregate", "role_specific"]),
++  roleIds: z.array(z.string()).optional(),
+   failureConsequence: FailureConsequenceSchema,
+ });
+ 
+diff --git a/src/engine/types.ts b/src/engine/types.ts
+index 48ced87..48e0432 100644
+--- a/src/engine/types.ts
++++ b/src/engine/types.ts
+@@ -217,6 +217,9 @@ export interface MechanicCheck {
+   attributeWeights: AttributeWeight[];
+   difficultyThreshold: number;
+   scope: "per_agent" | "team_aggregate" | "role_specific";
++  /** Optional explicit role scope for role_specific checks. When omitted, legacy arcs
++   *  fall back to the challenge-level required roles. */
++  roleIds?: string[];
+   failureConsequence: FailureConsequence;
+ }
+ 
