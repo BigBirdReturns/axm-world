@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ArcWorld, ChallengeReq } from "./useArcWorld.js";
 import type { WorldNode } from "./contract.js";
-import type { ContractRequirements, PartyReadiness } from "./readiness.js";
+import type { ContractRequirements, FixSuggestion, PartyReadiness } from "./readiness.js";
 
 export function firstAvailableNodeId(nodes: Pick<WorldNode, "challengeId" | "status">[], excludeId?: string | null): string | null {
   return nodes.find((node) => node.status === "available" && node.challengeId !== excludeId)?.challengeId ?? null;
@@ -26,6 +26,9 @@ export interface ArcInteraction {
   readiness: PartyReadiness | null;
   /** Why the recommended party is recommended (selected contract). */
   recommendation: string | null;
+  /** Actionable ways to recover from weak/invalid readiness. */
+  fixPlan: FixSuggestion[] | null;
+  applyFix: (fix: FixSuggestion) => void;
 }
 
 export function useArcInteraction(world: ArcWorld): ArcInteraction {
@@ -69,6 +72,33 @@ export function useArcInteraction(world: ArcWorld): ArcInteraction {
     [selectedId, world],
   );
 
+  const applyFix = useCallback(
+    (fix: FixSuggestion) => {
+      if (fix.kind === "add-agent") {
+        setParty((prev) => {
+          if (prev.includes(fix.agentId)) return prev;
+          const max = selectedId ? world.reqFor(selectedId).maxAgents : 0;
+          if (prev.length >= max) return prev;
+          return [...prev, fix.agentId];
+        });
+        return;
+      }
+
+      if (fix.kind === "swap-agent") {
+        setParty((prev) => {
+          const without = prev.filter((id) => id !== fix.removeAgentId && id !== fix.addAgentId);
+          return [...without, fix.addAgentId];
+        });
+        return;
+      }
+
+      if (fix.kind === "downtime") {
+        world.applyDowntime(fix.agentId, fix.action);
+      }
+    },
+    [selectedId, world],
+  );
+
   const req = selectedId ? world.reqFor(selectedId) : null;
   const canRun =
     selected !== null &&
@@ -93,6 +123,10 @@ export function useArcInteraction(world: ArcWorld): ArcInteraction {
     () => (selectedId ? world.recommendationFor(selectedId) : null),
     [selectedId, world],
   );
+  const fixPlan = useMemo(
+    () => (selectedId ? world.fixPlanFor(selectedId, party) : null),
+    [selectedId, party, world],
+  );
 
-  return { selectedId, select: setSelectedId, party, toggleAgent, selected, req, canRun, run, contract, readiness, recommendation };
+  return { selectedId, select: setSelectedId, party, toggleAgent, selected, req, canRun, run, contract, readiness, recommendation, fixPlan, applyFix };
 }

@@ -25,6 +25,8 @@ const STATUS_GLYPH: Record<PlayNode["status"], string> = {
 export interface SceneProps {
   world: ArcWorld;
   interaction: ArcInteraction;
+  modalOpen?: boolean;
+  active?: boolean;
 }
 
 interface Placed {
@@ -35,7 +37,7 @@ interface Placed {
 
 const TARGET_SPAN = 42; // board units the larger axis maps to
 
-export function BoardScene({ world, interaction: ix }: SceneProps): JSX.Element {
+export function BoardScene({ world, interaction: ix, modalOpen = false, active = true }: SceneProps): JSX.Element {
   const scene = world.scene;
 
   const board = useMemo(() => {
@@ -71,7 +73,7 @@ export function BoardScene({ world, interaction: ix }: SceneProps): JSX.Element 
 
   return (
     <div style={{ position: "absolute", inset: 0 }}>
-      <Canvas shadows camera={{ position: [0, ext * 1.45, ext * 1.65], fov: 38 }} dpr={[1, 2]}>
+      <Canvas shadows frameloop={active ? "always" : "never"} camera={{ position: [0, ext * 1.45, ext * 1.65], fov: 38 }} dpr={[1, 2]} style={{ pointerEvents: modalOpen ? "none" : "auto" }}>
         <color attach="background" args={["#0b0a08"]} />
         <ambientLight intensity={0.65} />
         <directionalLight
@@ -111,25 +113,41 @@ export function BoardScene({ world, interaction: ix }: SceneProps): JSX.Element 
           const color = STATUS_COLOR[node.status];
           return (
             <group key={node.id} position={[x, 0, z]}>
+              {/* floor ring — subtle, never changes opacity on select */}
               <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
                 <circleGeometry args={[1.7, 28]} />
-                <meshStandardMaterial color={color} transparent opacity={selected ? 0.85 : 0.35} roughness={1} />
+                <meshStandardMaterial color={color} transparent opacity={0.25} roughness={1} />
               </mesh>
+
+              {/* selection back-plate — sits BEHIND the card, no scale on the card itself */}
+              {selected && (
+                <RoundedBox args={[2.68, 3.08, 0.08]} radius={0.15} smoothness={3} position={[0, 1.6, -0.14]}>
+                  <meshStandardMaterial color="#c9a14a" emissive="#c9a14a" emissiveIntensity={0.85} roughness={0.3} />
+                </RoundedBox>
+              )}
+
+              {/* justRecorded crown — small indicator above, doesn't touch the card geometry */}
+              {justRecorded && (
+                <mesh position={[0, 3.1, 0.15]}>
+                  <boxGeometry args={[0.18, 0.18, 0.18]} />
+                  <meshStandardMaterial color="#74ad77" emissive="#74ad77" emissiveIntensity={1.2} />
+                </mesh>
+              )}
+
               <RoundedBox
                 args={[2.4, 2.8, 0.3]}
                 radius={0.13}
                 smoothness={3}
                 position={[0, 1.6, 0]}
-                scale={justRecorded ? 1.24 : selected ? 1.14 : 1}
                 castShadow
                 onClick={(e) => { e.stopPropagation(); ix.select(node.challengeId); }}
                 onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = "pointer"; }}
                 onPointerOut={() => { document.body.style.cursor = "auto"; }}
               >
                 <meshStandardMaterial
-                  color={selected ? "#241f18" : "#2c2720"}
+                  color={selected ? "#1e1b14" : "#2c2720"}
                   emissive={color}
-                  emissiveIntensity={justRecorded ? 0.85 : selected ? 0.55 : node.status === "available" ? 0.22 : 0.06}
+                  emissiveIntensity={justRecorded ? 0.35 : selected ? 0.22 : node.status === "available" ? 0.16 : 0.05}
                   roughness={0.6}
                 />
               </RoundedBox>
@@ -140,17 +158,22 @@ export function BoardScene({ world, interaction: ix }: SceneProps): JSX.Element 
               {/* The label is part of the node: it selects like the card does, not a dead
                   target. Pointer events on; stopPropagation so it doesn't fall through to
                   OrbitControls. */}
-              <Html position={[0, 1.55, 0.28]} center distanceFactor={ext * 0.9}>
-                <div
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => { e.stopPropagation(); ix.select(node.challengeId); }}
-                  style={{ width: 130, textAlign: "center", font: "600 12px 'IBM Plex Mono', ui-monospace, monospace", color: "#ece4d4", userSelect: "none", cursor: "pointer" }}
-                >
-                  <div style={{ color }}>{STATUS_GLYPH[node.status]} {node.difficulty}</div>
-                  <div style={{ lineHeight: 1.2, marginTop: 2 }}>{node.title}</div>
-                  {justRecorded && <div style={{ marginTop: 4, color: "#74ad77", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>recorded</div>}
-                </div>
-              </Html>
+              {!modalOpen && (
+                <Html position={[0, 1.55, 0.28]} center distanceFactor={ext * 0.9} zIndexRange={[5, 0]}>
+                  <button
+                    type="button"
+                    className="node-label"
+                    data-testid={`node-label-${node.challengeId}`}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); ix.select(node.challengeId); }}
+                    style={{ width: 130, minHeight: 44, textAlign: "center", font: "600 12px 'IBM Plex Mono', ui-monospace, monospace", color: "#ece4d4", userSelect: "none", cursor: "pointer", background: "rgba(23,21,15,0.84)", border: `1px solid ${color}`, borderRadius: 6, padding: "4px 6px" }}
+                  >
+                    <div style={{ color }}>{STATUS_GLYPH[node.status]} {node.difficulty}</div>
+                    <div style={{ lineHeight: 1.2, marginTop: 2 }}>{node.title}</div>
+                    {justRecorded && <div style={{ marginTop: 4, color: "#74ad77", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>recorded</div>}
+                  </button>
+                </Html>
+              )}
             </group>
           );
         })}

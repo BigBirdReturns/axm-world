@@ -32,10 +32,21 @@ interface Props {
   nodes: WorldNode[];
   selectedId: string | null;
   onSelect: (challengeId: string) => void;
+  labelsEnabled?: boolean;
+  /** The planet mesh. When given, a node's label hides while the node is on the far
+   *  side of the globe, so labels stop floating over the front (representation honesty:
+   *  a label is only shown for a node you can actually see). */
+  occluder?: THREE.Object3D | null;
+  /** Projected readiness of the selected node, so risk is flagged on the marker in
+   *  place — connecting selection, party readiness, and world location in one view. */
+  selectedRisk?: "success" | "partial" | "failure" | "none";
 }
 
+const RISK_COLOR: Record<"partial" | "failure", string> = { partial: "#e0a23a", failure: "#b01c18" };
+
 export function NodeMarkers(props: Props): JSX.Element {
-  const { nodes, selectedId, onSelect } = props;
+  const { nodes, selectedId, onSelect, labelsEnabled = true, occluder = null, selectedRisk = "none" } = props;
+  const occludeRefs = useMemo(() => (occluder ? [{ current: occluder }] : undefined), [occluder]);
 
   const markers = useMemo<MarkerData[]>(() => {
     const tmp = new THREE.Vector3();
@@ -50,6 +61,8 @@ export function NodeMarkers(props: Props): JSX.Element {
     <group>
       {markers.map(({ node, quaternion, color }) => {
         const selected = node.challengeId === selectedId;
+        const risky = selected && (selectedRisk === "partial" || selectedRisk === "failure");
+        const riskColor = risky ? RISK_COLOR[selectedRisk as "partial" | "failure"] : null;
         return (
           <group key={node.id} position={node.position} quaternion={quaternion}>
             <mesh position={[0, 0.45, 0]} castShadow>
@@ -84,24 +97,46 @@ export function NodeMarkers(props: Props): JSX.Element {
               <ringGeometry args={[0.42, 0.58, 22]} />
               <meshBasicMaterial color={color} transparent opacity={selected ? 0.85 : 0.4} side={THREE.DoubleSide} />
             </mesh>
-            <Html position={[0, 1.7, 0]} center distanceFactor={16} pointerEvents="none">
-              <div
-                style={{
-                  font: "600 11px 'IBM Plex Mono', ui-monospace, monospace",
-                  whiteSpace: "nowrap",
-                  color: "#ece4d4",
-                  background: selected ? "rgba(176,28,24,0.92)" : "rgba(23,21,15,0.82)",
-                  border: `1px solid ${color}`,
-                  borderRadius: 5,
-                  padding: "3px 8px",
-                  transform: "translateY(-2px)",
-                  userSelect: "none",
-                }}
-              >
-                <span style={{ color }}>{STATUS_GLYPH[node.status]}</span> {node.title}
-                <span style={{ color: "#a59c8b" }}> · {node.difficulty}</span>
-              </div>
-            </Html>
+            {risky && riskColor && (
+              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}>
+                <ringGeometry args={[0.64, 0.82, 28]} />
+                <meshBasicMaterial color={riskColor} transparent opacity={0.9} side={THREE.DoubleSide} />
+              </mesh>
+            )}
+            {labelsEnabled && (
+              // The selected node always shows its label (never occluded), so the
+              // current choice stays legible even near the globe's limb.
+              <Html position={[0, 1.7, 0]} center distanceFactor={16} zIndexRange={[5, 0]} occlude={selected ? undefined : occludeRefs}>
+                <button
+                  type="button"
+                  className="node-label"
+                  data-testid={`node-label-${node.challengeId}`}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSelect(node.challengeId);
+                  }}
+                  style={{
+                    font: "600 11px 'IBM Plex Mono', ui-monospace, monospace",
+                    whiteSpace: "nowrap",
+                    color: "#ece4d4",
+                    background: selected ? "rgba(176,28,24,0.92)" : "rgba(23,21,15,0.82)",
+                    border: `1px solid ${risky && riskColor ? riskColor : color}`,
+                    borderRadius: 5,
+                    padding: "6px 9px",
+                    minHeight: 32,
+                    minWidth: 44,
+                    transform: "translateY(-2px)",
+                    userSelect: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  {risky && riskColor && <span style={{ color: riskColor }}>⚠ </span>}
+                  <span style={{ color }}>{STATUS_GLYPH[node.status]}</span> {node.title}
+                  <span style={{ color: "#a59c8b" }}> · {node.difficulty}</span>
+                </button>
+              </Html>
+            )}
           </group>
         );
       })}

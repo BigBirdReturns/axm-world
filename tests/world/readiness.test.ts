@@ -107,3 +107,50 @@ describe("readiness — generalizes to a second cartridge (Mini Arc)", () => {
     expect(Array.isArray(rWeak.reasons)).toBe(true);
   });
 });
+
+describe("readiness — role-specific scopes and fix plans", () => {
+  it("role_specific checks can target the specific role named on the mechanic", () => {
+    const escort = challenge(FIRST_CHARTER, "merchant-escort");
+    const req = describeContract(escort, FIRST_CHARTER);
+    const guard = req.checks.find((check) => check.id === "escort-guard");
+    const sustain = req.checks.find((check) => check.id === "escort-sustain");
+
+    expect(guard?.roleNames).toEqual(["Vanguard"]);
+    expect(sustain?.roleNames).toEqual(["Mender"]);
+  });
+
+  it("fix plan suggests missing required-role candidates", async () => {
+    const { buildFixPlan } = await import("../../src/world/readiness.js");
+    const escort = challenge(FIRST_CHARTER, "merchant-escort");
+    const noMenderParty = FIRST_CHARTER_STARTING_ROSTER
+      .filter((agent) => agent.role !== "mender")
+      .slice(0, escort.rosterRequirements.minAgents);
+
+    const readiness = evaluateParty(escort, noMenderParty, FIRST_CHARTER);
+    const plan = buildFixPlan({ challenge: escort, party: noMenderParty, roster: FIRST_CHARTER_STARTING_ROSTER, arc: FIRST_CHARTER, readiness });
+
+    expect(readiness.missingRoles.some((role) => role.roleName === "Mender")).toBe(true);
+    expect(plan).toContainEqual(expect.objectContaining({ kind: "add-agent", roleName: "Mender" }));
+  });
+
+  it("fix plan can offer a swap when the party is already full", async () => {
+    const { buildFixPlan } = await import("../../src/world/readiness.js");
+    const base = challenge(FIRST_CHARTER, "merchant-escort");
+    const fullNoMenderParty = FIRST_CHARTER_STARTING_ROSTER
+      .filter((agent) => agent.role !== "mender")
+      .slice(0, 3);
+    const escort: Challenge = {
+      ...base,
+      rosterRequirements: {
+        ...base.rosterRequirements,
+        minAgents: fullNoMenderParty.length,
+        maxAgents: fullNoMenderParty.length,
+      },
+    };
+
+    const readiness = evaluateParty(escort, fullNoMenderParty, FIRST_CHARTER);
+    const plan = buildFixPlan({ challenge: escort, party: fullNoMenderParty, roster: FIRST_CHARTER_STARTING_ROSTER, arc: FIRST_CHARTER, readiness });
+
+    expect(plan.some((fix) => fix.kind === "swap-agent")).toBe(true);
+  });
+});

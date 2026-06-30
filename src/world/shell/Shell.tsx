@@ -11,7 +11,7 @@
 //   mobile  → same top bar + a bottom flex dock that stacks the same regions by flow.
 
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { PRESENTATIONS } from "../presentations.js";
+import { PRESENTATIONS, type Representation } from "../presentations.js";
 import { loadCostume, saveCostume, isCostumeId } from "../presentation-prefs.js";
 import { useIsMobile } from "../use-viewport.js";
 import { getEngineCoachMessage } from "./coach.js";
@@ -42,17 +42,74 @@ function Card(props: { children: ReactNode; style?: CSSProperties }): JSX.Elemen
   return <div style={{ ...panel, ...props.style }}>{props.children}</div>;
 }
 
+/** Inside the active-representation region: a dismissible "what is this view for"
+ *  caption and a marker-state legend, so a representation explains itself and its node
+ *  states read at a glance — not only from tiny labels. Never covers the controls. */
+function RepresentationOverlay(props: { rep: Representation; showPurpose: boolean; onDismiss: () => void }): JSX.Element {
+  const { rep, showPurpose, onDismiss } = props;
+  return (
+    <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+      {showPurpose && (
+        <div
+          data-testid="view-purpose"
+          style={{ position: "absolute", top: 10, left: 10, maxWidth: 300, pointerEvents: "auto", display: "flex", gap: 8, alignItems: "flex-start", background: "rgba(15,13,9,0.92)", border: "1px solid #4a4238", borderRadius: 8, padding: "8px 10px", font: "11px/1.45 'IBM Plex Mono', ui-monospace, monospace", color: "#d8cfbd" }}
+        >
+          <div><strong style={{ color: "#c9a14a" }}>{rep.label}.</strong> {rep.purpose}</div>
+          <button onClick={onDismiss} aria-label="Dismiss view note" style={{ flex: "none", background: "transparent", border: "none", color: "#a59c8b", cursor: "pointer", font: "14px monospace", lineHeight: 1 }}>×</button>
+        </div>
+      )}
+      <div
+        data-testid="view-legend"
+        style={{ position: "absolute", top: 10, right: 10, pointerEvents: "none", background: "rgba(15,13,9,0.82)", border: "1px solid #3a352c", borderRadius: 8, padding: "6px 9px", font: "10px/1.6 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b" }}
+      >
+        {rep.legend.map((e) => (
+          <div key={e.label} style={{ display: "flex", gap: 6, alignItems: "center", whiteSpace: "nowrap" }}>
+            <span style={{ color: e.color, width: 12, textAlign: "center" }}>{e.glyph}</span>
+            <span>{e.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Element {
   const isMobile = useIsMobile();
   const [costumeId, setCostumeId] = useState<string>(() => loadCostume(world.cartridge.arc));
   const [showCartridge, setShowCartridge] = useState(false);
+  const [dismissedPurpose, setDismissedPurpose] = useState<Record<string, boolean>>({});
 
   const choose = (id: string) => {
     setCostumeId(id);
     if (isCostumeId(id)) saveCostume(world.cartridge.arc, id);
   };
   const active = useMemo(() => PRESENTATIONS.find((p) => p.id === costumeId) ?? PRESENTATIONS[0]!, [costumeId]);
-  const Scene = active.Scene;
+  const modalOpen = world.pendingDecision !== null;
+  const showPurpose = !dismissedPurpose[active.id] && !modalOpen;
+  const dismissPurpose = () => setDismissedPurpose((p) => ({ ...p, [active.id]: true }));
+
+  // All representations are mounted simultaneously; only the active one is visible.
+  // visibility:hidden (not display:none) keeps each Scene's WebGL context alive across
+  // costume switches, so orbit camera position and cleared node state survive the swap
+  // instead of the canvas rebuilding from scratch.
+  const stage = (
+    <>
+      {PRESENTATIONS.map((p) => {
+        const isActive = p.id === active.id;
+        const PresentationScene = p.Scene;
+        return (
+          <div
+            key={p.id}
+            data-testid={isActive ? "representation-region" : undefined}
+            style={{ position: "absolute", inset: 0, visibility: isActive ? "visible" : "hidden", pointerEvents: isActive ? "auto" : "none" }}
+          >
+            <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} active={isActive} />
+          </div>
+        );
+      })}
+      <RepresentationOverlay rep={active} showPurpose={showPurpose} onDismiss={dismissPurpose} />
+    </>
+  );
 
   const min = ix.req?.minAgents ?? 0;
   const max = ix.req?.maxAgents ?? 0;
@@ -71,7 +128,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     <StatusRegion title={world.arc.meta.name} cycle={world.cycle} resources={world.resources} progress={{ cleared: world.clearedCount, total: world.totalNodes }} />
   );
   const switcher = (
-    <ViewSwitcher costumes={PRESENTATIONS.map((p) => ({ id: p.id, label: p.label, blurb: p.blurb }))} activeId={active.id} onChoose={choose} />
+    <ViewSwitcher costumes={PRESENTATIONS.map((p) => ({ id: p.id, label: p.label, blurb: p.blurb }))} activeId={active.id} onChoose={choose} disabled={modalOpen} />
   );
   const cartridgeButton = (
     <button
@@ -94,11 +151,11 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     />
   );
   const contract = ix.selected ? (
-    <ContractRegion selected={ix.selected} party={ix.party} min={min} max={max} canRun={ix.canRun} onRun={ix.run} contract={ix.contract} readiness={ix.readiness} recommendation={ix.recommendation} />
+    <ContractRegion selected={ix.selected} party={ix.party} min={min} max={max} canRun={ix.canRun} onRun={ix.run} contract={ix.contract} readiness={ix.readiness} recommendation={ix.recommendation} fixPlan={ix.fixPlan} onApplyFix={ix.applyFix} />
   ) : null;
 
   return (
-    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: "#0b0a08", overflow: "hidden", fontFamily: "'IBM Plex Mono', ui-monospace, monospace" }}>
+    <div data-testid="engine-shell" data-modal-open={modalOpen ? "true" : "false"} style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: "#0b0a08", overflow: "hidden", isolation: "isolate", fontFamily: "'IBM Plex Mono', ui-monospace, monospace" }}>
       {/* top bar — status / view switcher / cartridge, in flow so it never overlaps.
           On mobile it wraps to two rows (controls above, full-width status below) so the
           status chips get a full-width scroll row instead of stacking. */}
@@ -124,7 +181,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
       {/* stage */}
       {isMobile ? (
         <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
-          <Scene world={world} interaction={ix} />
+          {stage}
           <div
             style={{
               position: "absolute",
@@ -157,7 +214,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
 
           {/* center — the one active-representation region */}
           <div style={{ flex: 1, position: "relative", minWidth: 0 }}>
-            <Scene world={world} interaction={ix} />
+            {stage}
             {world.arcComplete && (
               <div style={{ position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)" }}>
                 <Card style={{ borderColor: "#74ad77" }}><CompleteBanner /></Card>
@@ -180,7 +237,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
 
       {/* chrome: authored/pending decision, then the cartridge-as-object + exit */}
       {world.pendingDecision && (
-        <DecisionPanel key={world.pendingDecision.id} card={world.pendingDecision} onResolve={world.resolveDecision} />
+        <DecisionPanel key={world.pendingDecision.id} card={world.pendingDecision} onResolve={world.resolveDecision} targetName={world.effectTargetName} />
       )}
       {showCartridge && (
         <CartridgeObjectPanel

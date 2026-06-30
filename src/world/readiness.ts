@@ -28,6 +28,9 @@ export interface CheckRequirement {
   scope: MechanicCheck["scope"];
   threshold: number;
   attributes: Array<{ id: string; name: string; weight: number }>;
+  /** Explicit role scope for role_specific checks, if the cartridge defines it. */
+  roleIds: string[];
+  roleNames: string[];
 }
 
 export interface ContractRequirements {
@@ -50,6 +53,8 @@ export interface CheckEval {
   projected: number;
   margin: number;
   status: CheckStatus;
+  roleIds: string[];
+  roleNames: string[];
 }
 
 export interface MissingRole {
@@ -78,6 +83,15 @@ function attrName(arc: Arc, id: string): string {
 
 function roleName(arc: Arc, id: string): string {
   return arc.roles.find((r) => r.id === id)?.name ?? id;
+}
+
+function scopedRoleIds(check: MechanicCheck, challenge: Challenge): string[] {
+  if (check.roleIds && check.roleIds.length > 0) return check.roleIds;
+  return challenge.rosterRequirements.roleRequirements.map((r) => r.roleId);
+}
+
+function scopedRoleNames(check: MechanicCheck, challenge: Challenge, arc: Arc): string[] {
+  return scopedRoleIds(check, challenge).map((id) => roleName(arc, id));
 }
 
 function primaryAttrId(check: MechanicCheck): string {
@@ -125,6 +139,8 @@ export function describeContract(challenge: Challenge, arc: Arc): ContractRequir
     scope: c.scope,
     threshold: c.difficultyThreshold,
     attributes: c.attributeWeights.map((aw) => ({ id: aw.attributeId, name: attrName(arc, aw.attributeId), weight: aw.weight })),
+    roleIds: c.scope === "role_specific" ? scopedRoleIds(c, challenge) : [],
+    roleNames: c.scope === "role_specific" ? scopedRoleNames(c, challenge, arc) : [],
   }));
 
   // Union of checked attributes, ranked by summed weight so the most decisive show first.
@@ -172,7 +188,7 @@ function evalCheck(check: MechanicCheck, party: Agent[], arc: Arc): CheckEval {
   }
 
   const margin = projected - effThreshold;
-  return { id: check.id, name: check.name, scope: check.scope, threshold: effThreshold, projected, margin, status: bandFor(margin) };
+  return { id: check.id, name: check.name, scope: check.scope, threshold: effThreshold, projected, margin, status: bandFor(margin), roleIds: [], roleNames: [] };
 }
 
 export function evaluateParty(challenge: Challenge, party: Agent[], arc: Arc): PartyReadiness {
@@ -180,7 +196,6 @@ export function evaluateParty(challenge: Challenge, party: Agent[], arc: Arc): P
   const countOk = party.length >= rr.minAgents && party.length <= rr.maxAgents;
 
   // Role coverage
-  const roleIds = new Set(rr.roleRequirements.map((r) => r.roleId));
   const missingRoles: MissingRole[] = [];
   for (const req of rr.roleRequirements) {
     const have = party.filter((a) => a.role === req.roleId).length;
@@ -188,14 +203,26 @@ export function evaluateParty(challenge: Challenge, party: Agent[], arc: Arc): P
   }
   const rolesOk = missingRoles.length === 0;
 
-  // Per-check evaluation. role_specific checks score only the in-scope (required-role) agents.
+  // Per-check evaluation. role_specific checks score only the roles named on that check.
   const checks: CheckEval[] = challenge.mechanicChecks.map((check) => {
     if (check.scope === "role_specific") {
-      const scoped = party.filter((a) => roleIds.has(a.role ?? ""));
+      const checkRoleIds = scopedRoleIds(check, challenge);
+      const checkRoleSet = new Set(checkRoleIds);
+      const scoped = party.filter((a) => checkRoleSet.has(a.role ?? ""));
       const scores = scoped.map((a) => agentBaseScore(a, check, arc));
       const projected = scores.length ? Math.min(...scores) : check.difficultyThreshold;
       const margin = projected - check.difficultyThreshold;
-      return { id: check.id, name: check.name, scope: check.scope, threshold: check.difficultyThreshold, projected, margin, status: scores.length ? bandFor(margin) : "ready" };
+      return {
+        id: check.id,
+        name: check.name,
+        scope: check.scope,
+        threshold: check.difficultyThreshold,
+        projected,
+        margin,
+        status: scores.length ? bandFor(margin) : "ready",
+        roleIds: checkRoleIds,
+        roleNames: checkRoleIds.map((id) => roleName(arc, id)),
+      };
     }
     return evalCheck(check, party, arc);
   });
@@ -226,6 +253,158 @@ export function evaluateParty(challenge: Challenge, party: Agent[], arc: Arc): P
   }
 
   return { countOk, rolesOk, missingRoles, checks, projectedOutcome, reasons };
+}
+
+
+export type FixSuggestion =
+  | {
+      kind: "add-agent";
+      agentId: string;
+      agentName: string;
+      reason: string;
+      roleName?: string;
+    }
+  | {
+      kind: "swap-agent";
+      addAgentId: string;
+      addAgentName: string;
+      removeAgentId: string;
+      removeAgentName: string;
+      reason: string;
+    }
+  | {
+      kind: "downtime";
+      agentId: string;
+      agentName: string;
+      action: "rest" | "train" | "rally";
+      reason: string;
+    }
+  | {
+      kind: "risk";
+      reason: string;
+    };
+
+export function scoreAgentForContract(agent: Agent, challenge: Challenge, arc: Arc): number {
+  let score = 0;
+  for (const check of challenge.mechanicChecks) {
+    score += check.attributeWeights.reduce((sum, aw) => sum + (agent.attributes[aw.attributeId] ?? 0) * aw.weight, 0);
+  }
+  score += agent.morale / 100;
+  score -= agent.stress * 0.15;
+  score += Object.values(agent.equippedItems).reduce((sum, itemId) => {
+    const item = arc.items.find((it) => it.id === itemId);
+    if (!item) return sum;
+    return sum + Object.values(item.statBonuses).reduce((a, b) => a + b, 0) * 0.1;
+  }, 0);
+  return score;
+}
+
+function scoreAgentForCheck(agent: Agent, check: MechanicCheck, arc: Arc): number {
+  return agentBaseScore(agent, check, arc);
+}
+
+function weakestPartyAgent(party: Agent[], challenge: Challenge, arc: Arc): Agent | null {
+  return [...party].sort((a, b) => scoreAgentForContract(a, challenge, arc) - scoreAgentForContract(b, challenge, arc))[0] ?? null;
+}
+
+function pushAgentFix(
+  out: FixSuggestion[],
+  candidate: Agent,
+  party: Agent[],
+  challenge: Challenge,
+  arc: Arc,
+  reason: string,
+  roleLabel?: string,
+): void {
+  if (party.length < challenge.rosterRequirements.maxAgents) {
+    out.push({ kind: "add-agent", agentId: candidate.id, agentName: candidate.name, reason, roleName: roleLabel });
+    return;
+  }
+
+  const remove = weakestPartyAgent(party, challenge, arc);
+  if (!remove || remove.id === candidate.id) return;
+  out.push({
+    kind: "swap-agent",
+    addAgentId: candidate.id,
+    addAgentName: candidate.name,
+    removeAgentId: remove.id,
+    removeAgentName: remove.name,
+    reason: `${reason} Swap out ${remove.name}.`,
+  });
+}
+
+function dedupeFixes(items: FixSuggestion[]): FixSuggestion[] {
+  const seen = new Set<string>();
+  const out: FixSuggestion[] = [];
+  for (const item of items) {
+    const key = item.kind === "add-agent"
+      ? `${item.kind}:${item.agentId}:${item.reason}`
+      : item.kind === "swap-agent"
+      ? `${item.kind}:${item.addAgentId}:${item.removeAgentId}:${item.reason}`
+      : item.kind === "downtime"
+      ? `${item.kind}:${item.agentId}:${item.action}`
+      : `${item.kind}:${item.reason}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+  }
+  return out;
+}
+
+export function buildFixPlan(input: {
+  challenge: Challenge;
+  party: Agent[];
+  roster: Agent[];
+  arc: Arc;
+  readiness: PartyReadiness;
+}): FixSuggestion[] {
+  const { challenge, party, roster, arc, readiness } = input;
+  const partyIds = new Set(party.map((agent) => agent.id));
+  const available = roster.filter((agent) => agent.downedUntilCycle === null && !partyIds.has(agent.id));
+  const out: FixSuggestion[] = [];
+
+  for (const missing of readiness.missingRoles) {
+    const role = arc.roles.find((r) => r.name === missing.roleName);
+    if (!role) continue;
+    const candidates = available
+      .filter((agent) => agent.role === role.id)
+      .sort((a, b) => scoreAgentForContract(b, challenge, arc) - scoreAgentForContract(a, challenge, arc))
+      .slice(0, 2);
+    for (const agent of candidates) {
+      pushAgentFix(out, agent, party, challenge, arc, `Adds required ${missing.roleName}.`, missing.roleName);
+    }
+  }
+
+  for (const weak of readiness.checks.filter((check) => check.status !== "ready")) {
+    const mechanic = challenge.mechanicChecks.find((check) => check.id === weak.id);
+    if (!mechanic) continue;
+    const roleScope = mechanic.scope === "role_specific" ? new Set(scopedRoleIds(mechanic, challenge)) : null;
+    const candidates = available
+      .filter((agent) => !roleScope || roleScope.has(agent.role ?? ""))
+      .map((agent) => ({ agent, score: scoreAgentForCheck(agent, mechanic, arc) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 2);
+    for (const { agent } of candidates) {
+      const attrNames = mechanic.attributeWeights.map((aw) => attrName(arc, aw.attributeId)).join(" + ");
+      pushAgentFix(out, agent, party, challenge, arc, `Improves ${weak.name}${attrNames ? ` with ${attrNames}` : ""}.`);
+    }
+  }
+
+  for (const agent of party) {
+    if (agent.stress > 0) {
+      out.push({ kind: "downtime", agentId: agent.id, agentName: agent.name, action: "rest", reason: "Reduces stress and improves reliability." });
+    }
+    if (agent.morale < 70) {
+      out.push({ kind: "downtime", agentId: agent.id, agentName: agent.name, action: "rally", reason: "Raises morale and improves projection." });
+    }
+    out.push({ kind: "downtime", agentId: agent.id, agentName: agent.name, action: "train", reason: "Raises morale but adds stress." });
+  }
+
+  const fixes = dedupeFixes(out).slice(0, 5);
+  if (fixes.length === 0 && readiness.projectedOutcome === "failure") {
+    return [{ kind: "risk", reason: "No clean fix is available from the current roster. Run another contract, earn gear, or accept the risk." }];
+  }
+  return fixes;
 }
 
 /** Why the engine recommends who it recommends — surfaced so the pick isn't magic. */
