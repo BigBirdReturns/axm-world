@@ -25,6 +25,7 @@ const STATUS_GLYPH: Record<PlayNode["status"], string> = {
 export interface SceneProps {
   world: ArcWorld;
   interaction: ArcInteraction;
+  modalOpen?: boolean;
 }
 
 interface Placed {
@@ -35,7 +36,7 @@ interface Placed {
 
 const TARGET_SPAN = 42; // board units the larger axis maps to
 
-export function BoardScene({ world, interaction: ix }: SceneProps): JSX.Element {
+export function BoardScene({ world, interaction: ix, modalOpen = false }: SceneProps): JSX.Element {
   const scene = world.scene;
 
   const board = useMemo(() => {
@@ -71,7 +72,7 @@ export function BoardScene({ world, interaction: ix }: SceneProps): JSX.Element 
 
   return (
     <div style={{ position: "absolute", inset: 0 }}>
-      <Canvas shadows camera={{ position: [0, ext * 1.45, ext * 1.65], fov: 38 }} dpr={[1, 2]}>
+      <Canvas shadows camera={{ position: [0, ext * 1.45, ext * 1.65], fov: 38 }} dpr={[1, 2]} style={{ pointerEvents: modalOpen ? "none" : "auto" }}>
         <color attach="background" args={["#0b0a08"]} />
         <ambientLight intensity={0.65} />
         <directionalLight
@@ -140,17 +141,22 @@ export function BoardScene({ world, interaction: ix }: SceneProps): JSX.Element 
               {/* The label is part of the node: it selects like the card does, not a dead
                   target. Pointer events on; stopPropagation so it doesn't fall through to
                   OrbitControls. */}
-              <Html position={[0, 1.55, 0.28]} center distanceFactor={ext * 0.9}>
-                <div
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => { e.stopPropagation(); ix.select(node.challengeId); }}
-                  style={{ width: 130, textAlign: "center", font: "600 12px 'IBM Plex Mono', ui-monospace, monospace", color: "#ece4d4", userSelect: "none", cursor: "pointer" }}
-                >
-                  <div style={{ color }}>{STATUS_GLYPH[node.status]} {node.difficulty}</div>
-                  <div style={{ lineHeight: 1.2, marginTop: 2 }}>{node.title}</div>
-                  {justRecorded && <div style={{ marginTop: 4, color: "#74ad77", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>recorded</div>}
-                </div>
-              </Html>
+              {!modalOpen && (
+                <Html position={[0, 1.55, 0.28]} center distanceFactor={ext * 0.9} zIndexRange={[5, 0]}>
+                  <button
+                    type="button"
+                    className="node-label"
+                    data-testid={`node-label-${node.challengeId}`}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); ix.select(node.challengeId); }}
+                    style={{ width: 130, minHeight: 44, textAlign: "center", font: "600 12px 'IBM Plex Mono', ui-monospace, monospace", color: "#ece4d4", userSelect: "none", cursor: "pointer", background: "rgba(23,21,15,0.84)", border: `1px solid ${color}`, borderRadius: 6, padding: "4px 6px" }}
+                  >
+                    <div style={{ color }}>{STATUS_GLYPH[node.status]} {node.difficulty}</div>
+                    <div style={{ lineHeight: 1.2, marginTop: 2 }}>{node.title}</div>
+                    {justRecorded && <div style={{ marginTop: 4, color: "#74ad77", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>recorded</div>}
+                  </button>
+                </Html>
+              )}
             </group>
           );
         })}

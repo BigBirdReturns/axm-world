@@ -13,6 +13,7 @@ import type { ArcWorld } from "./useArcWorld.js";
 export interface SceneProps {
   world: ArcWorld;
   interaction: ArcInteraction;
+  modalOpen?: boolean;
 }
 
 export interface Representation {

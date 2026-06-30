@@ -1,62 +1,101 @@
 // Surfaces an authored/pending decision (the cartridge's opening oath, or any drama
-// card the engine generated). The player chooses; on Continue the engine resolves it
-// (effects applied, card cleared). Two phases: deciding -> consequence. The panel is
-// keyed by card id, so each new decision resets it. axm-world authors nothing here —
-// it only renders the card's options and reports the engine's response.
+// card the engine generated). This is a true modal: rendered through a document-level
+// portal so representation labels/canvas Html can never render above the decision.
 
-import { useState, type CSSProperties } from "react";
-import type { DramaCard } from "../../engine/types.js";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
+import type { DramaCard, DramaCardEffect } from "../../engine/types.js";
 
 interface Props {
   card: DramaCard;
   onResolve: (optionId: string) => void;
+  targetName?: (targetId: string) => string;
 }
 
-const wrap: CSSProperties = {
-  position: "absolute",
+const backdropStyle: CSSProperties = {
+  position: "fixed",
   inset: 0,
-  display: "grid",
-  placeItems: "center",
-  background: "rgba(11,10,8,0.62)",
+  background: "rgba(11,10,8,0.78)",
+  backdropFilter: "blur(2px)",
   pointerEvents: "auto",
-  zIndex: 25,
-  padding: 20,
+  zIndex: 9000,
 };
 
-const card: CSSProperties = {
-  background: "rgba(23,21,15,0.97)",
+const panelStyle: CSSProperties = {
+  position: "fixed",
+  zIndex: 9001,
+  top: "max(18px, env(safe-area-inset-top))",
+  left: "max(14px, env(safe-area-inset-left))",
+  right: "max(14px, env(safe-area-inset-right))",
+  maxWidth: 760,
+  margin: "0 auto",
+  maxHeight: "calc(100dvh - 36px - env(safe-area-inset-top) - env(safe-area-inset-bottom))",
+  overflow: "auto",
+  background: "rgba(23,21,15,0.98)",
   color: "#ece4d4",
-  border: "1px solid #4a4238",
-  borderRadius: 10,
-  padding: "24px 26px",
-  maxWidth: 560,
-  boxShadow: "0 24px 70px -24px rgba(0,0,0,0.85)",
+  border: "1px solid #5e5850",
+  borderRadius: 12,
+  padding: "22px 24px",
+  boxShadow: "0 28px 90px rgba(0,0,0,0.7)",
+  pointerEvents: "auto",
 };
 
-export function DecisionPanel({ card: drama, onResolve }: Props): JSX.Element {
-  const [chosen, setChosen] = useState<{ id: string; label: string; description: string } | null>(null);
+function effectLabel(effect: DramaCardEffect, targetName: (targetId: string) => string): string {
+  const sign = effect.value > 0 ? "+" : "";
+  return `${targetName(effect.target)}: ${effect.type} ${sign}${effect.value}`;
+}
 
-  return (
-    <div style={wrap}>
-      <div style={card}>
+function optionPreview(option: DramaCard["options"][number], targetName: (targetId: string) => string): string {
+  if (option.effects.length > 0) return option.effects.slice(0, 3).map((effect) => effectLabel(effect, targetName)).join(" · ");
+  if (option.hiddenEffects.length > 0) return "Hidden consequence";
+  return "No immediate visible effect";
+}
+
+export function DecisionPanel({ card: drama, onResolve, targetName = (id) => id }: Props): JSX.Element {
+  const [chosen, setChosen] = useState<{ id: string; label: string; description: string } | null>(null);
+  const titleRef = useRef<HTMLParagraphElement | null>(null);
+
+  useEffect(() => {
+    titleRef.current?.focus();
+  }, [drama.id, chosen?.id]);
+
+  return createPortal(
+    <>
+      <div style={backdropStyle} data-testid="decision-backdrop" />
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="decision-title"
+        data-testid="pending-decision-card"
+        style={panelStyle}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+      >
         <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "#c9a14a" }}>
           {chosen ? "The world responds" : "A decision"}
         </div>
 
         {!chosen ? (
           <>
-            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: 17, lineHeight: 1.5, margin: "10px 0 18px" }}>
+            <p
+              id="decision-title"
+              ref={titleRef}
+              tabIndex={-1}
+              style={{ fontFamily: "'Lora', Georgia, serif", fontSize: 18, lineHeight: 1.45, margin: "10px 0 18px", outline: "none" }}
+            >
               {drama.narrativeText}
             </p>
-            <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ display: "grid", gap: 10 }}>
               {drama.options.map((o) => (
                 <button
                   key={o.id}
+                  type="button"
                   onClick={() => setChosen({ id: o.id, label: o.label, description: o.description })}
                   style={{
                     textAlign: "left",
                     padding: "12px 14px",
-                    borderRadius: 6,
+                    minHeight: 56,
+                    borderRadius: 7,
                     border: "1px solid #5e5850",
                     background: "rgba(201,161,74,0.07)",
                     color: "#ece4d4",
@@ -65,7 +104,9 @@ export function DecisionPanel({ card: drama, onResolve }: Props): JSX.Element {
                     letterSpacing: "0.01em",
                   }}
                 >
-                  {o.label}
+                  <div>{o.label}</div>
+                  <div style={{ marginTop: 4, font: "11px/1.35 'IBM Plex Mono', monospace", color: "#a59c8b" }}>{o.description}</div>
+                  <div style={{ marginTop: 4, font: "10px/1.35 'IBM Plex Mono', monospace", color: "#c9a14a" }}>{optionPreview(o, targetName)}</div>
                 </button>
               ))}
             </div>
@@ -80,6 +121,7 @@ export function DecisionPanel({ card: drama, onResolve }: Props): JSX.Element {
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <button
+                type="button"
                 onClick={() => onResolve(chosen.id)}
                 style={{
                   font: "700 15px 'Barlow Condensed', sans-serif",
@@ -97,7 +139,8 @@ export function DecisionPanel({ card: drama, onResolve }: Props): JSX.Element {
             </div>
           </>
         )}
-      </div>
-    </div>
+      </section>
+    </>,
+    document.body,
   );
 }

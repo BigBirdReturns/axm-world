@@ -25,7 +25,9 @@ import {
   describeContract as describeContractReq,
   evaluateParty as evaluatePartyReq,
   recommendationRationale,
+  buildFixPlan,
   type ContractRequirements,
+  type FixSuggestion,
   type PartyReadiness,
 } from "./readiness.js";
 
@@ -99,6 +101,10 @@ export interface ArcWorld {
   evaluateParty: (challengeId: string, agentIds: string[]) => PartyReadiness | null;
   /** Plain-language reason the recommended party is the recommended party. */
   recommendationFor: (challengeId: string) => string | null;
+  /** Actionable fixes for a weak party: add/swap/downtime/risk. */
+  fixPlanFor: (challengeId: string, agentIds: string[]) => FixSuggestion[] | null;
+  /** Resolve effect/agent IDs into player-readable names for decision previews. */
+  effectTargetName: (targetId: string) => string;
   lastReport: PlayReportView | null;
   runChallenge: (challengeId: string, agentIds: string[]) => void;
   resolveDecision: (optionId: string) => void;
@@ -208,6 +214,25 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     [describeContract],
   );
 
+  const fixPlanFor = useCallback(
+    (challengeId: string, agentIds: string[]): FixSuggestion[] | null => {
+      const c = arc.challenges.find((x) => x.id === challengeId);
+      if (!c) return null;
+      const party = agentIds.map((id) => org.agents[id]).filter((a): a is NonNullable<typeof a> => !!a);
+      const readiness = evaluatePartyReq(c, party, arc);
+      return buildFixPlan({ challenge: c, party, roster: Object.values(org.agents), arc, readiness });
+    },
+    [arc, org],
+  );
+
+  const effectTargetName = useCallback(
+    (targetId: string): string => {
+      if (targetId === "_org_") return arc.meta.name;
+      return org.agents[targetId]?.name ?? targetId;
+    },
+    [arc.meta.name, org.agents],
+  );
+
   const runChallenge = useCallback(
     (challengeId: string, agentIds: string[]) => {
       const challenge = arc.challenges.find((c) => c.id === challengeId);
@@ -286,6 +311,8 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     describeContract,
     evaluateParty,
     recommendationFor,
+    fixPlanFor,
+    effectTargetName,
     lastReport,
     runChallenge,
     resolveDecision,

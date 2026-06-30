@@ -53,6 +53,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   };
   const active = useMemo(() => PRESENTATIONS.find((p) => p.id === costumeId) ?? PRESENTATIONS[0]!, [costumeId]);
   const Scene = active.Scene;
+  const modalOpen = world.pendingDecision !== null;
 
   const min = ix.req?.minAgents ?? 0;
   const max = ix.req?.maxAgents ?? 0;
@@ -71,7 +72,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     <StatusRegion title={world.arc.meta.name} cycle={world.cycle} resources={world.resources} progress={{ cleared: world.clearedCount, total: world.totalNodes }} />
   );
   const switcher = (
-    <ViewSwitcher costumes={PRESENTATIONS.map((p) => ({ id: p.id, label: p.label, blurb: p.blurb }))} activeId={active.id} onChoose={choose} />
+    <ViewSwitcher costumes={PRESENTATIONS.map((p) => ({ id: p.id, label: p.label, blurb: p.blurb }))} activeId={active.id} onChoose={choose} disabled={modalOpen} />
   );
   const cartridgeButton = (
     <button
@@ -94,11 +95,11 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     />
   );
   const contract = ix.selected ? (
-    <ContractRegion selected={ix.selected} party={ix.party} min={min} max={max} canRun={ix.canRun} onRun={ix.run} contract={ix.contract} readiness={ix.readiness} recommendation={ix.recommendation} />
+    <ContractRegion selected={ix.selected} party={ix.party} min={min} max={max} canRun={ix.canRun} onRun={ix.run} contract={ix.contract} readiness={ix.readiness} recommendation={ix.recommendation} fixPlan={ix.fixPlan} onApplyFix={ix.applyFix} />
   ) : null;
 
   return (
-    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: "#0b0a08", overflow: "hidden", fontFamily: "'IBM Plex Mono', ui-monospace, monospace" }}>
+    <div data-testid="engine-shell" data-modal-open={modalOpen ? "true" : "false"} style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: "#0b0a08", overflow: "hidden", isolation: "isolate", fontFamily: "'IBM Plex Mono', ui-monospace, monospace" }}>
       {/* top bar — status / view switcher / cartridge, in flow so it never overlaps.
           On mobile it wraps to two rows (controls above, full-width status below) so the
           status chips get a full-width scroll row instead of stacking. */}
@@ -123,8 +124,8 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
 
       {/* stage */}
       {isMobile ? (
-        <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
-          <Scene world={world} interaction={ix} />
+        <div data-testid="representation-region" style={{ flex: 1, position: "relative", minHeight: 0 }}>
+          <Scene world={world} interaction={ix} modalOpen={modalOpen} />
           <div
             style={{
               position: "absolute",
@@ -156,8 +157,8 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
           </aside>
 
           {/* center — the one active-representation region */}
-          <div style={{ flex: 1, position: "relative", minWidth: 0 }}>
-            <Scene world={world} interaction={ix} />
+          <div data-testid="representation-region" style={{ flex: 1, position: "relative", minWidth: 0 }}>
+            <Scene world={world} interaction={ix} modalOpen={modalOpen} />
             {world.arcComplete && (
               <div style={{ position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)" }}>
                 <Card style={{ borderColor: "#74ad77" }}><CompleteBanner /></Card>
@@ -180,7 +181,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
 
       {/* chrome: authored/pending decision, then the cartridge-as-object + exit */}
       {world.pendingDecision && (
-        <DecisionPanel key={world.pendingDecision.id} card={world.pendingDecision} onResolve={world.resolveDecision} />
+        <DecisionPanel key={world.pendingDecision.id} card={world.pendingDecision} onResolve={world.resolveDecision} targetName={world.effectTargetName} />
       )}
       {showCartridge && (
         <CartridgeObjectPanel

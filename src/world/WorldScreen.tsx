@@ -23,6 +23,7 @@ const SEED = 7;
 export interface SceneProps {
   world: ArcWorld;
   interaction: ArcInteraction;
+  modalOpen?: boolean;
 }
 
 /** Drop each node onto the actual displaced terrain (so markers don't float). */
@@ -41,7 +42,7 @@ function placeOnTerrain(nodes: WorldNode[], collider: THREE.Mesh | null): WorldN
   });
 }
 
-export function PlanetScene({ world, interaction: ix }: SceneProps): JSX.Element {
+export function PlanetScene({ world, interaction: ix, modalOpen = false }: SceneProps): JSX.Element {
   const [collider, setCollider] = useState<THREE.Mesh | null>(null);
 
   const geometry = useMemo(() => {
@@ -57,7 +58,7 @@ export function PlanetScene({ world, interaction: ix }: SceneProps): JSX.Element
   }, []);
 
   return (
-    <Canvas style={{ position: "absolute", inset: 0 }} camera={{ position: [0, RADIUS * 0.7, RADIUS * 2.6], fov: 45 }} dpr={[1, 2]}>
+    <Canvas style={{ position: "absolute", inset: 0, pointerEvents: modalOpen ? "none" : "auto" }} camera={{ position: [0, RADIUS * 0.7, RADIUS * 2.6], fov: 45 }} dpr={[1, 2]}>
       <color attach="background" args={["#0b0a08"]} />
       <ambientLight intensity={0.75} />
       <directionalLight position={[25, 18, 12]} intensity={1.2} />
@@ -67,7 +68,7 @@ export function PlanetScene({ world, interaction: ix }: SceneProps): JSX.Element
         <meshStandardMaterial vertexColors flatShading roughness={0.95} metalness={0} />
       </mesh>
       <Scatter items={scatterItems} />
-      <NodeMarkers nodes={placedNodes} selectedId={ix.selectedId} onSelect={ix.select} />
+      <NodeMarkers nodes={placedNodes} selectedId={ix.selectedId} onSelect={ix.select} labelsEnabled={!modalOpen} />
 
       <OrbitControls
         makeDefault

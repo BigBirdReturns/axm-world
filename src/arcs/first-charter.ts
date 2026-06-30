@@ -247,6 +247,7 @@ const CHALLENGES: Challenge[] = [
         attributeWeights: [{ attributeId: "mettle", weight: 1.0 }],
         difficultyThreshold: 12,
         scope: "role_specific",
+        roleIds: ["vanguard"],
         failureConsequence: { type: "agent_damage", severity: 0.5 },
       },
       {
@@ -313,6 +314,7 @@ const CHALLENGES: Challenge[] = [
         attributeWeights: [{ attributeId: "mettle", weight: 1.0 }],
         difficultyThreshold: 14,
         scope: "role_specific",
+        roleIds: ["vanguard"],
         failureConsequence: { type: "agent_damage", severity: 0.4 },
       },
       {
@@ -334,6 +336,7 @@ const CHALLENGES: Challenge[] = [
         attributeWeights: [{ attributeId: "spirit", weight: 1.0 }],
         difficultyThreshold: 14,
         scope: "role_specific",
+        roleIds: ["mender"],
         failureConsequence: { type: "stress", severity: 0.4 },
       },
     ],
@@ -405,6 +408,7 @@ const CHALLENGES: Challenge[] = [
         attributeWeights: [{ attributeId: "mettle", weight: 1.0 }],
         difficultyThreshold: 16,
         scope: "role_specific",
+        roleIds: ["vanguard"],
         failureConsequence: { type: "cascade", severity: 0.6 },
       },
       {
@@ -417,6 +421,7 @@ const CHALLENGES: Challenge[] = [
         ],
         difficultyThreshold: 16,
         scope: "role_specific",
+        roleIds: ["mender"],
         failureConsequence: { type: "stress", severity: 0.5 },
       },
     ],
@@ -491,6 +496,7 @@ const CHALLENGES: Challenge[] = [
         ],
         difficultyThreshold: 18,
         scope: "role_specific",
+        roleIds: ["skirmisher"],
         failureConsequence: { type: "debuff", severity: 0.3 },
       },
     ],
@@ -566,6 +572,7 @@ const CHALLENGES: Challenge[] = [
         attributeWeights: [{ attributeId: "mettle", weight: 1.0 }],
         difficultyThreshold: 20,
         scope: "role_specific",
+        roleIds: ["vanguard"],
         failureConsequence: { type: "cascade", severity: 0.7 },
       },
       {
@@ -578,6 +585,7 @@ const CHALLENGES: Challenge[] = [
         ],
         difficultyThreshold: 20,
         scope: "role_specific",
+        roleIds: ["skirmisher"],
         failureConsequence: { type: "team_damage", severity: 0.4 },
       },
       {
@@ -590,6 +598,7 @@ const CHALLENGES: Challenge[] = [
         ],
         difficultyThreshold: 18,
         scope: "role_specific",
+        roleIds: ["mender"],
         failureConsequence: { type: "stress", severity: 0.6 },
       },
     ],

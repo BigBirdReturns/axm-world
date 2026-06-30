@@ -11,7 +11,7 @@ import type { DramaCard } from "../../engine/types.js";
 import type { PlayReportView } from "../../play-pipeline/compile.js";
 import type { RosterMember } from "../useArcWorld.js";
 import type { WorldNode } from "../contract.js";
-import type { ContractRequirements, PartyReadiness, CheckStatus, ProjectedOutcome } from "../readiness.js";
+import type { ContractRequirements, FixSuggestion, PartyReadiness, CheckStatus, ProjectedOutcome } from "../readiness.js";
 import { DOWNTIME_ACTIONS, type DowntimeAction } from "../agent-management.js";
 
 export const panel: CSSProperties = {
@@ -57,6 +57,7 @@ export function ViewSwitcher(props: {
   costumes: Array<{ id: string; label: string; blurb: string }>;
   activeId: string;
   onChoose: (id: string) => void;
+  disabled?: boolean;
 }): JSX.Element {
   return (
     <div style={{ display: "flex", gap: 4, padding: 4, borderRadius: 8, background: "rgba(23,21,15,0.82)", border: "1px solid #4a4238", pointerEvents: "auto", font: "600 12px 'IBM Plex Mono', ui-monospace, monospace" }}>
@@ -66,8 +67,10 @@ export function ViewSwitcher(props: {
           <button
             key={c.id}
             onClick={() => props.onChoose(c.id)}
+            disabled={props.disabled}
+            data-testid={c.id === "board" ? "view-run-graph" : c.id === "globe" ? "view-planet" : `view-${c.id}`}
             title={c.blurb}
-            style={{ cursor: "pointer", padding: "5px 11px", borderRadius: 5, border: "none", background: on ? "#b01c18" : "transparent", color: on ? "#fff" : "#a59c8b" }}
+            style={{ cursor: props.disabled ? "not-allowed" : "pointer", padding: "5px 11px", borderRadius: 5, border: "none", background: on ? "#b01c18" : "transparent", color: props.disabled ? "#5e5850" : on ? "#fff" : "#a59c8b" }}
           >
             {c.label}
           </button>
@@ -236,43 +239,24 @@ export function ContractRegion(props: {
   contract: ContractRequirements | null;
   readiness: PartyReadiness | null;
   recommendation: string | null;
+  fixPlan: FixSuggestion[] | null;
+  onApplyFix: (fix: FixSuggestion) => void;
 }): JSX.Element {
-  const { selected, party, min, max, canRun, onRun, contract, readiness, recommendation } = props;
+  const { selected, party, min, max, canRun, onRun, contract, readiness, recommendation, fixPlan, onApplyFix } = props;
   const showReadiness = selected.status === "available" && contract;
   return (
     <div style={{ textAlign: "center" }}>
       <div style={{ color: statusColor(selected.status), textTransform: "uppercase", fontSize: 11, letterSpacing: "0.1em" }}>{selected.status}</div>
-      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 24, fontWeight: 700 }}>{selected.title}</div>
+      <div data-testid="selected-contract-title" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 24, fontWeight: 700 }}>{selected.title}</div>
       <div style={{ color: "#a59c8b", margin: "4px 0 8px" }}>{selected.description}</div>
-      <div style={{ color: party.length >= min && party.length <= max ? "#74ad77" : "#c9a14a", fontSize: 12 }}>
+      <div data-testid="party-count" style={{ color: party.length >= min && party.length <= max ? "#74ad77" : "#c9a14a", fontSize: 12 }}>
         Party {party.length} · need {min}{max !== min ? `–${max}` : ""}
       </div>
 
       {showReadiness && <ReadinessPanel contract={contract} readiness={readiness} />}
+      {showReadiness && fixPlan && fixPlan.length > 0 && <FixPlanPanel fixes={fixPlan} onApplyFix={onApplyFix} />}
 
-      <button
-        onClick={onRun}
-        disabled={!canRun}
-        style={{
-          marginTop: 8,
-          font: "700 15px 'Barlow Condensed', sans-serif",
-          letterSpacing: "0.02em",
-          padding: "9px 22px",
-          borderRadius: 5,
-          border: "none",
-          cursor: canRun ? "pointer" : "not-allowed",
-          background: canRun ? "#b01c18" : "#3a352c",
-          color: canRun ? "#fff" : "#6e675a",
-        }}
-      >
-        {selected.status === "locked"
-          ? "Locked — clear earlier contracts"
-          : selected.status === "cleared"
-          ? "Cleared ✓"
-          : canRun
-          ? "Run Contract"
-          : `Assign ${min}${max !== min ? `–${max}` : ""} to run`}
-      </button>
+      <RunButton selected={selected} min={min} max={max} canRun={canRun} readiness={readiness} onRun={onRun} />
 
       {showReadiness && recommendation && (
         <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.4, color: "#8a8270", fontStyle: "italic" }}>{recommendation}</div>
@@ -280,6 +264,83 @@ export function ContractRegion(props: {
 
       {selected.status !== "available" && <StateReadout selected={selected} />}
     </div>
+  );
+}
+
+
+function RunButton(props: { selected: WorldNode; min: number; max: number; canRun: boolean; readiness: PartyReadiness | null; onRun: () => void }): JSX.Element {
+  const { selected, min, max, canRun, readiness, onRun } = props;
+  const outcome = readiness?.projectedOutcome ?? "none";
+  const countOk = readiness?.countOk ?? canRun;
+  const riskRun = canRun && outcome === "failure";
+  const thinRun = canRun && outcome === "partial";
+  const disabled = !canRun;
+  const label = selected.status === "locked"
+    ? "Locked — clear earlier contracts"
+    : selected.status === "cleared"
+    ? "Cleared ✓"
+    : !countOk
+    ? `Assign ${min}${max !== min ? `–${max}` : ""} to run`
+    : riskRun
+    ? "Risk Contract"
+    : thinRun
+    ? "Run With Risk"
+    : "Run Contract";
+  const background = disabled ? "#3a352c" : riskRun ? "#8f1410" : thinRun ? "#9a6a18" : "#b01c18";
+  return (
+    <>
+      <button
+        onClick={onRun}
+        disabled={disabled}
+        data-testid="run-contract-button"
+        style={{
+          marginTop: 8,
+          font: "700 15px 'Barlow Condensed', sans-serif",
+          letterSpacing: "0.02em",
+          padding: "9px 22px",
+          borderRadius: 5,
+          border: "none",
+          cursor: disabled ? "not-allowed" : "pointer",
+          background,
+          color: disabled ? "#6e675a" : "#fff",
+        }}
+      >
+        {label}
+      </button>
+      {riskRun && <div style={{ marginTop: 6, color: "#b01c18", fontSize: 11 }}>Projected failure. Fix the party first or accept the risk.</div>}
+      {thinRun && <div style={{ marginTop: 6, color: "#c9a14a", fontSize: 11 }}>Thin projection. This can work, but variance may swing it.</div>}
+    </>
+  );
+}
+
+function FixPlanPanel(props: { fixes: FixSuggestion[]; onApplyFix: (fix: FixSuggestion) => void }): JSX.Element {
+  return (
+    <div data-testid="fix-plan" style={{ marginTop: 10, textAlign: "left", borderTop: "1px solid #3a352c", paddingTop: 8 }}>
+      <div style={{ color: "#c9a14a", textTransform: "uppercase", fontSize: 10, letterSpacing: "0.1em", marginBottom: 6 }}>Fix party</div>
+      <div style={{ display: "grid", gap: 6 }}>
+        {props.fixes.map((fix, i) => {
+          if (fix.kind === "add-agent") {
+            return <FixButton key={i} label={`Add ${fix.agentName}`} reason={fix.reason} onClick={() => props.onApplyFix(fix)} />;
+          }
+          if (fix.kind === "swap-agent") {
+            return <FixButton key={i} label={`Swap in ${fix.addAgentName}`} reason={fix.reason} onClick={() => props.onApplyFix(fix)} />;
+          }
+          if (fix.kind === "downtime") {
+            return <FixButton key={i} label={`${fix.action} ${fix.agentName}`} reason={fix.reason} onClick={() => props.onApplyFix(fix)} />;
+          }
+          return <div key={i} style={{ color: "#a59c8b", fontSize: 11 }}>{fix.reason}</div>;
+        })}
+      </div>
+    </div>
+  );
+}
+
+function FixButton(props: { label: string; reason: string; onClick: () => void }): JSX.Element {
+  return (
+    <button type="button" onClick={props.onClick} style={{ textAlign: "left", padding: "7px 8px", borderRadius: 5, border: "1px solid #5e5850", background: "rgba(201,161,74,0.07)", color: "#ece4d4", cursor: "pointer", font: "700 12px 'IBM Plex Mono', monospace" }}>
+      {props.label}
+      <span style={{ display: "block", marginTop: 2, color: "#a59c8b", fontWeight: 400, fontSize: 10 }}>{props.reason}</span>
+    </button>
   );
 }
 
@@ -294,7 +355,7 @@ function ReadinessPanel(props: { contract: ContractRequirements; readiness: Part
   return (
     <div style={{ borderTop: "1px solid #3a352c", margin: "8px 0 0", padding: "8px 0 0", textAlign: "left", fontSize: 12 }}>
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
-        <span style={{ color: OUTCOME_TONE[outcome], fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", fontSize: 12 }}>{OUTCOME_LABEL[outcome]}</span>
+        <span data-testid="readiness-status" style={{ color: OUTCOME_TONE[outcome], fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", fontSize: 12 }}>{OUTCOME_LABEL[outcome]}</span>
       </div>
 
       {(contract.roles.length > 0 || contract.timePressure) && (
@@ -311,7 +372,7 @@ function ReadinessPanel(props: { contract: ContractRequirements; readiness: Part
             <div key={c.id} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
               <span style={{ color: STATUS_TONE[c.status] }}>
                 {STATUS_MARK[c.status]} {c.name}
-                <span style={{ color: "#6e675a" }}> {attrs ? `· ${attrs}` : ""} {c.scope === "team_aggregate" ? "(team)" : c.scope === "role_specific" ? "(role)" : ""}</span>
+                <span style={{ color: "#6e675a" }}> {attrs ? `· ${attrs}` : ""} {c.scope === "team_aggregate" ? "(team)" : c.scope === "role_specific" ? `(${c.roleNames.join("+") || "role"})` : ""}</span>
               </span>
               <span style={{ color: STATUS_TONE[c.status], whiteSpace: "nowrap" }}>{Math.round(c.projected)} / {Math.round(c.threshold)}</span>
             </div>
@@ -349,7 +410,7 @@ function StateReadout(props: { selected: WorldNode }): JSX.Element {
 export function ReportRegion(props: { lastReport: PlayReportView }): JSX.Element {
   const { lastReport } = props;
   return (
-    <div>
+    <div data-testid="outcome-region">
       <div style={{ color: statusColor(lastReport.outcome), textTransform: "uppercase", fontSize: 11, letterSpacing: "0.1em" }}>{lastReport.outcome}</div>
       <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 700 }}>{lastReport.challengeName}</div>
       <div style={{ color: "#a59c8b", marginTop: 4 }}>{lastReport.rewardSummary}</div>
