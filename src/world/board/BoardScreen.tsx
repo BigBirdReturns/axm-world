@@ -112,25 +112,41 @@ export function BoardScene({ world, interaction: ix, modalOpen = false }: SceneP
           const color = STATUS_COLOR[node.status];
           return (
             <group key={node.id} position={[x, 0, z]}>
+              {/* floor ring — subtle, never changes opacity on select */}
               <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
                 <circleGeometry args={[1.7, 28]} />
-                <meshStandardMaterial color={color} transparent opacity={selected ? 0.85 : 0.35} roughness={1} />
+                <meshStandardMaterial color={color} transparent opacity={0.25} roughness={1} />
               </mesh>
+
+              {/* selection back-plate — sits BEHIND the card, no scale on the card itself */}
+              {selected && (
+                <RoundedBox args={[2.68, 3.08, 0.08]} radius={0.15} smoothness={3} position={[0, 1.6, -0.14]}>
+                  <meshStandardMaterial color="#c9a14a" emissive="#c9a14a" emissiveIntensity={0.85} roughness={0.3} />
+                </RoundedBox>
+              )}
+
+              {/* justRecorded crown — small indicator above, doesn't touch the card geometry */}
+              {justRecorded && (
+                <mesh position={[0, 3.1, 0.15]}>
+                  <boxGeometry args={[0.18, 0.18, 0.18]} />
+                  <meshStandardMaterial color="#74ad77" emissive="#74ad77" emissiveIntensity={1.2} />
+                </mesh>
+              )}
+
               <RoundedBox
                 args={[2.4, 2.8, 0.3]}
                 radius={0.13}
                 smoothness={3}
                 position={[0, 1.6, 0]}
-                scale={justRecorded ? 1.24 : selected ? 1.14 : 1}
                 castShadow
                 onClick={(e) => { e.stopPropagation(); ix.select(node.challengeId); }}
                 onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = "pointer"; }}
                 onPointerOut={() => { document.body.style.cursor = "auto"; }}
               >
                 <meshStandardMaterial
-                  color={selected ? "#241f18" : "#2c2720"}
+                  color={selected ? "#1e1b14" : "#2c2720"}
                   emissive={color}
-                  emissiveIntensity={justRecorded ? 0.85 : selected ? 0.55 : node.status === "available" ? 0.22 : 0.06}
+                  emissiveIntensity={justRecorded ? 0.35 : selected ? 0.22 : node.status === "available" ? 0.16 : 0.05}
                   roughness={0.6}
                 />
               </RoundedBox>

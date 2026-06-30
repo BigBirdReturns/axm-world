@@ -84,10 +84,32 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     if (isCostumeId(id)) saveCostume(world.cartridge.arc, id);
   };
   const active = useMemo(() => PRESENTATIONS.find((p) => p.id === costumeId) ?? PRESENTATIONS[0]!, [costumeId]);
-  const Scene = active.Scene;
   const modalOpen = world.pendingDecision !== null;
   const showPurpose = !dismissedPurpose[active.id] && !modalOpen;
   const dismissPurpose = () => setDismissedPurpose((p) => ({ ...p, [active.id]: true }));
+
+  // All representations are mounted simultaneously; only the active one is visible.
+  // visibility:hidden (not display:none) keeps each Scene's WebGL context alive across
+  // costume switches, so orbit camera position and cleared node state survive the swap
+  // instead of the canvas rebuilding from scratch.
+  const stage = (
+    <>
+      {PRESENTATIONS.map((p) => {
+        const isActive = p.id === active.id;
+        const PresentationScene = p.Scene;
+        return (
+          <div
+            key={p.id}
+            data-testid={isActive ? "representation-region" : undefined}
+            style={{ position: "absolute", inset: 0, visibility: isActive ? "visible" : "hidden", pointerEvents: isActive ? "auto" : "none" }}
+          >
+            <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} />
+          </div>
+        );
+      })}
+      <RepresentationOverlay rep={active} showPurpose={showPurpose} onDismiss={dismissPurpose} />
+    </>
+  );
 
   const min = ix.req?.minAgents ?? 0;
   const max = ix.req?.maxAgents ?? 0;
@@ -158,9 +180,8 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
 
       {/* stage */}
       {isMobile ? (
-        <div data-testid="representation-region" style={{ flex: 1, position: "relative", minHeight: 0 }}>
-          <Scene world={world} interaction={ix} modalOpen={modalOpen} />
-          <RepresentationOverlay rep={active} showPurpose={showPurpose} onDismiss={dismissPurpose} />
+        <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
+          {stage}
           <div
             style={{
               position: "absolute",
@@ -192,9 +213,8 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
           </aside>
 
           {/* center — the one active-representation region */}
-          <div data-testid="representation-region" style={{ flex: 1, position: "relative", minWidth: 0 }}>
-            <Scene world={world} interaction={ix} modalOpen={modalOpen} />
-            <RepresentationOverlay rep={active} showPurpose={showPurpose} onDismiss={dismissPurpose} />
+          <div style={{ flex: 1, position: "relative", minWidth: 0 }}>
+            {stage}
             {world.arcComplete && (
               <div style={{ position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)" }}>
                 <Card style={{ borderColor: "#74ad77" }}><CompleteBanner /></Card>
