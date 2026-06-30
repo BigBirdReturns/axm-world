@@ -103,7 +103,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
             data-testid={isActive ? "representation-region" : undefined}
             style={{ position: "absolute", inset: 0, visibility: isActive ? "visible" : "hidden", pointerEvents: isActive ? "auto" : "none" }}
           >
-            <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} />
+            <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} active={isActive} />
           </div>
         );
       })}

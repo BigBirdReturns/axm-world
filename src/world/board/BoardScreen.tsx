@@ -26,6 +26,7 @@ export interface SceneProps {
   world: ArcWorld;
   interaction: ArcInteraction;
   modalOpen?: boolean;
+  active?: boolean;
 }
 
 interface Placed {
@@ -36,7 +37,7 @@ interface Placed {
 
 const TARGET_SPAN = 42; // board units the larger axis maps to
 
-export function BoardScene({ world, interaction: ix, modalOpen = false }: SceneProps): JSX.Element {
+export function BoardScene({ world, interaction: ix, modalOpen = false, active = true }: SceneProps): JSX.Element {
   const scene = world.scene;
 
   const board = useMemo(() => {
@@ -72,7 +73,7 @@ export function BoardScene({ world, interaction: ix, modalOpen = false }: SceneP
 
   return (
     <div style={{ position: "absolute", inset: 0 }}>
-      <Canvas shadows camera={{ position: [0, ext * 1.45, ext * 1.65], fov: 38 }} dpr={[1, 2]} style={{ pointerEvents: modalOpen ? "none" : "auto" }}>
+      <Canvas shadows frameloop={active ? "always" : "never"} camera={{ position: [0, ext * 1.45, ext * 1.65], fov: 38 }} dpr={[1, 2]} style={{ pointerEvents: modalOpen ? "none" : "auto" }}>
         <color attach="background" args={["#0b0a08"]} />
         <ambientLight intensity={0.65} />
         <directionalLight

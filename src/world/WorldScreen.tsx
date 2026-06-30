@@ -24,6 +24,7 @@ export interface SceneProps {
   world: ArcWorld;
   interaction: ArcInteraction;
   modalOpen?: boolean;
+  active?: boolean;
 }
 
 /** Drop each node onto the actual displaced terrain (so markers don't float). */
@@ -42,7 +43,7 @@ function placeOnTerrain(nodes: WorldNode[], collider: THREE.Mesh | null): WorldN
   });
 }
 
-export function PlanetScene({ world, interaction: ix, modalOpen = false }: SceneProps): JSX.Element {
+export function PlanetScene({ world, interaction: ix, modalOpen = false, active = true }: SceneProps): JSX.Element {
   const [collider, setCollider] = useState<THREE.Mesh | null>(null);
 
   const geometry = useMemo(() => {
@@ -58,7 +59,7 @@ export function PlanetScene({ world, interaction: ix, modalOpen = false }: Scene
   }, []);
 
   return (
-    <Canvas style={{ position: "absolute", inset: 0, pointerEvents: modalOpen ? "none" : "auto" }} camera={{ position: [0, RADIUS * 0.7, RADIUS * 2.6], fov: 45 }} dpr={[1, 2]}>
+    <Canvas style={{ position: "absolute", inset: 0, pointerEvents: modalOpen ? "none" : "auto" }} frameloop={active ? "always" : "never"} camera={{ position: [0, RADIUS * 0.7, RADIUS * 2.6], fov: 45 }} dpr={[1, 2]}>
       <color attach="background" args={["#0b0a08"]} />
       <ambientLight intensity={0.75} />
       <directionalLight position={[25, 18, 12]} intensity={1.2} />

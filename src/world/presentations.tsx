@@ -14,6 +14,10 @@ export interface SceneProps {
   world: ArcWorld;
   interaction: ArcInteraction;
   modalOpen?: boolean;
+  /** False when this representation is mounted but not the visible one (kept alive across
+   *  costume switches). Scenes should stop their render loop while inactive so an idle,
+   *  hidden WebGL context doesn't compete with the active one for the main thread. */
+  active?: boolean;
 }
 
 export interface LegendEntry {
