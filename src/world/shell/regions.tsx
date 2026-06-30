@@ -227,19 +227,25 @@ function GearLine(props: { m: RosterMember }): JSX.Element {
   const { m } = props;
   if (m.gear.length === 0) {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--stone)", marginTop: 6 }}>
-        <PixelIcon name="emptySlot" /> Gear: empty slot
+      <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
+        <div style={{ width: 30, height: 30, border: "1px dashed var(--cream-border)", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--stone)", fontSize: 14, flexShrink: 0 }}>
+          <PixelIcon name="emptySlot" />
+        </div>
+        <div style={{ fontSize: 9, color: "var(--stone)", alignSelf: "center", fontFamily: "var(--px-font)" }}>No gear equipped</div>
       </div>
     );
   }
   return (
-    <div style={{ display: "grid", gap: 3, fontSize: 10, color: "var(--coffee)", marginTop: 6 }}>
+    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
       {m.gear.map((gear) => {
         const bonus = Object.entries(gear.bonuses).map(([attr, value]) => `${attrNameLabel(attr)} +${value}`).join(" · ");
         return (
-          <div key={gear.id}>
-            <PixelIcon name={itemIcon(gear.name)} /> {gear.name}
-            {bonus && <span style={{ color: "var(--ink-muted)", marginLeft: 4 }}>{bonus}</span>}
+          <div key={gear.id} style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(0,0,0,0.06)", border: "1px solid var(--cream-border)", borderRadius: 2, padding: "3px 7px", minHeight: 30 }}>
+            <span style={{ fontSize: 16, color: "var(--coffee)", lineHeight: 1 }}><PixelIcon name={itemIcon(gear.name)} /></span>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 10, color: "var(--ink)", lineHeight: 1.2, fontFamily: "var(--px-font)" }}>{gear.name}</div>
+              {bonus && <div style={{ fontSize: 9, color: "var(--teal-dark)", fontFamily: "var(--px-font)" }}>{bonus}</div>}
+            </div>
           </div>
         );
       })}
@@ -275,16 +281,22 @@ function AgentAttrLine(props: { m: RosterMember; contract: ContractRequirements 
   let bestId = attrs[0]?.id ?? "";
   for (const a of attrs) if ((m.attributes[a.id] ?? 0) > (m.attributes[bestId] ?? 0)) bestId = a.id;
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 4, marginTop: 8, fontSize: 10 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 5, marginTop: 8 }}>
       {attrs.map((a) => {
         const gear = m.gear.reduce((sum, g) => sum + (g.bonuses[a.id] ?? 0), 0);
         const strong = a.id === bestId;
+        const raw = m.attributes[a.id] ?? 0;
         return (
-          <span key={a.id} style={{ display: "flex", alignItems: "center", gap: 4, color: strong ? "var(--ink)" : "var(--ink-muted)" }}>
-            <PixelIcon name={attrIcon(a.id)} />
-            {a.name} <strong style={{ color: strong ? "var(--gold-dark)" : "var(--ink-soft)" }}>{m.attributes[a.id] ?? 0}</strong>
-            {gear > 0 && <span style={{ color: "var(--teal-dark)" }}>+{gear}</span>}
-          </span>
+          <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 5, background: strong ? "rgba(201,161,74,0.08)" : "rgba(0,0,0,0.04)", border: `1px solid ${strong ? "var(--gold-border)" : "var(--cream-border)"}`, borderRadius: 2, padding: "3px 6px", minHeight: 30 }}>
+            <PixelIcon name={attrIcon(a.id)} style={{ fontSize: 13, color: strong ? "var(--gold-dark)" : "var(--stone)" }} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 9, color: "var(--stone)", lineHeight: 1, fontFamily: "var(--px-font)" }}>{a.name}</div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+                <strong style={{ fontSize: 14, color: strong ? "var(--gold-dark)" : "var(--ink-soft)", fontFamily: "var(--px-font)", lineHeight: 1.1 }}>{raw}</strong>
+                {gear > 0 && <span style={{ fontSize: 10, color: "var(--teal-dark)", fontFamily: "var(--px-font)" }}>+{gear}</span>}
+              </div>
+            </div>
+          </div>
         );
       })}
     </div>
@@ -327,8 +339,9 @@ export function ContractRegion(props: {
   recommendation: string | null;
   fixPlan: FixSuggestion[] | null;
   onApplyFix: (fix: FixSuggestion) => void;
+  compact?: boolean;
 }): JSX.Element {
-  const { selected, party, min, max, canRun, onRun, contract, readiness, recommendation, fixPlan, onApplyFix } = props;
+  const { selected, party, min, max, canRun, onRun, contract, readiness, recommendation, fixPlan, onApplyFix, compact } = props;
 
   // Locked contracts show only unlock requirements — no party count, no readiness math,
   // no fix plan. Party assignment is irrelevant until the node unlocks.
@@ -336,10 +349,10 @@ export function ContractRegion(props: {
     return (
       <PixelPanel style={{ padding: "12px 14px" }}>
         <PixelBadge state="locked" style={{ marginBottom: 8, display: "inline-flex" }}>Locked</PixelBadge>
-        <div data-testid="selected-contract-title" style={{ fontFamily: "var(--px-font)", fontSize: 18, fontWeight: 800, color: "var(--ink)", marginBottom: 4 }}>
+        <div data-testid="selected-contract-title" style={{ fontFamily: "var(--px-font)", fontSize: compact ? 22 : 18, fontWeight: 800, color: "var(--ink)", marginBottom: 4 }}>
           {selected.title}
         </div>
-        <div style={{ color: "var(--ink-muted)", fontSize: 12, marginBottom: 12, lineHeight: 1.4 }}>{selected.description}</div>
+        <div style={{ color: "var(--ink-muted)", fontSize: compact ? 14 : 12, marginBottom: 12, lineHeight: 1.4 }}>{selected.description}</div>
         {selected.requirements.length > 0 && (
           <div data-testid="unlock-requirements">
             <div className="pixel-panel__title">Unlock requirement</div>
@@ -362,10 +375,10 @@ export function ContractRegion(props: {
       <PixelBadge state={contractStateBadge} style={{ marginBottom: 8, display: "inline-flex" }}>
         {contractStateLabel}
       </PixelBadge>
-      <div data-testid="selected-contract-title" style={{ fontFamily: "var(--px-font)", fontSize: 18, fontWeight: 800, letterSpacing: "0.02em", color: "var(--ink)", marginBottom: 4 }}>
+      <div data-testid="selected-contract-title" style={{ fontFamily: "var(--px-font)", fontSize: compact ? 22 : 18, fontWeight: 800, letterSpacing: "0.02em", color: "var(--ink)", marginBottom: 4 }}>
         {selected.title}
       </div>
-      <div style={{ color: "var(--ink-muted)", fontSize: 12, marginBottom: 10, lineHeight: 1.4 }}>{selected.description}</div>
+      <div style={{ color: "var(--ink-muted)", fontSize: compact ? 14 : 12, marginBottom: 10, lineHeight: 1.4 }}>{selected.description}</div>
 
       {selected.status === "cleared" && (
         <div style={{ marginBottom: 8, fontSize: 11, color: "var(--teal-dark)", fontFamily: "var(--px-font)" }}>
@@ -379,7 +392,7 @@ export function ContractRegion(props: {
 
       {showReadiness && <ReadinessPanel contract={contract} readiness={readiness} />}
       {showReadiness && readiness && readiness.projectedOutcome !== "success" && fixPlan && fixPlan.length > 0 && (
-        <FixPlanPanel fixes={fixPlan} onApplyFix={onApplyFix} />
+        <FixPlanPanel fixes={fixPlan} onApplyFix={onApplyFix} compact={compact} />
       )}
 
       <RunButton selected={selected} min={min} max={max} canRun={canRun} readiness={readiness} onRun={onRun} />
@@ -427,31 +440,43 @@ function RunButton(props: { selected: WorldNode; min: number; max: number; canRu
   );
 }
 
-function FixPlanPanel(props: { fixes: FixSuggestion[]; onApplyFix: (fix: FixSuggestion) => void }): JSX.Element {
+function FixPlanPanel(props: { fixes: FixSuggestion[]; onApplyFix: (fix: FixSuggestion) => void; compact?: boolean }): JSX.Element {
+  const { fixes, onApplyFix, compact } = props;
+  const primary = compact ? fixes.slice(0, 2) : fixes;
+  const extra = compact ? fixes.slice(2) : [];
+
+  function renderFix(fix: FixSuggestion, i: number): JSX.Element {
+    if (fix.kind === "add-agent") return <FixButton key={i} label={`Add ${fix.agentName}`} fix={fix} onClick={() => onApplyFix(fix)} />;
+    if (fix.kind === "swap-agent") return <FixButton key={i} label={`Swap in ${fix.addAgentName}`} fix={fix} onClick={() => onApplyFix(fix)} />;
+    if (fix.kind === "downtime") {
+      const def = DOWNTIME_ACTIONS[fix.action];
+      return <FixButton key={i} label={`${def.label} ${fix.agentName}`} fix={fix} onClick={() => onApplyFix(fix)} />;
+    }
+    return (
+      <div key={i} style={{ padding: "8px 10px", border: "1px solid var(--cream-border)", fontFamily: "var(--px-font)", color: "var(--ink-muted)", fontSize: 11 }}>
+        {fix.reason}
+      </div>
+    );
+  }
+
   return (
     <div data-testid="fix-plan" style={{ marginTop: 10, borderTop: "1px solid var(--cream-border)", paddingTop: 10 }}>
       <div className="pixel-panel__title" style={{ display: "flex", alignItems: "center", gap: 5 }}>
         <PixelIcon name="risky" /> Fix this contract
       </div>
       <div style={{ display: "grid", gap: 6 }}>
-        {props.fixes.map((fix, i) => {
-          if (fix.kind === "add-agent") {
-            return <FixButton key={i} label={`Add ${fix.agentName}`} fix={fix} onClick={() => props.onApplyFix(fix)} />;
-          }
-          if (fix.kind === "swap-agent") {
-            return <FixButton key={i} label={`Swap in ${fix.addAgentName}`} fix={fix} onClick={() => props.onApplyFix(fix)} />;
-          }
-          if (fix.kind === "downtime") {
-            const def = DOWNTIME_ACTIONS[fix.action];
-            return <FixButton key={i} label={`${def.label} ${fix.agentName}`} fix={fix} onClick={() => props.onApplyFix(fix)} />;
-          }
-          return (
-            <div key={i} style={{ padding: "8px 10px", border: "1px solid var(--cream-border)", fontFamily: "var(--px-font)", color: "var(--ink-muted)", fontSize: 11 }}>
-              {fix.reason}
-            </div>
-          );
-        })}
+        {primary.map((fix, i) => renderFix(fix, i))}
       </div>
+      {extra.length > 0 && (
+        <details style={{ marginTop: 6 }}>
+          <summary style={{ cursor: "pointer", fontSize: 10, color: "var(--stone)", fontFamily: "var(--px-font)", padding: "4px 0", userSelect: "none" }}>
+            +{extra.length} more option{extra.length > 1 ? "s" : ""}
+          </summary>
+          <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
+            {extra.map((fix, i) => renderFix(fix, primary.length + i))}
+          </div>
+        </details>
+      )}
     </div>
   );
 }

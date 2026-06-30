@@ -152,7 +152,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     />
   );
   const contract = ix.selected ? (
-    <ContractRegion selected={ix.selected} party={ix.party} min={min} max={max} canRun={ix.canRun} onRun={ix.run} contract={ix.contract} readiness={ix.readiness} recommendation={ix.recommendation} fixPlan={ix.fixPlan} onApplyFix={ix.applyFix} />
+    <ContractRegion selected={ix.selected} party={ix.party} min={min} max={max} canRun={ix.canRun} onRun={ix.run} contract={ix.contract} readiness={ix.readiness} recommendation={ix.recommendation} fixPlan={ix.fixPlan} onApplyFix={ix.applyFix} compact={isMobile} />
   ) : null;
   const loot = <LootRegion loot={world.pendingLoot} onClaimLoot={world.claimLoot} />;
 
