@@ -11,6 +11,7 @@
 //   mobile  → same top bar + a bottom flex dock that stacks the same regions by flow.
 
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useEncounterDirector } from "../encounter/EncounterDirector.js";
 import { PRESENTATIONS, type Representation } from "../presentations.js";
 import { loadCostume, saveCostume, isCostumeId } from "../presentation-prefs.js";
 import { useIsMobile } from "../use-viewport.js";
@@ -59,22 +60,25 @@ function RepresentationOverlay(props: { rep: Representation; showPurpose: boolea
           <button onClick={onDismiss} aria-label="Dismiss view note" style={{ flex: "none", background: "transparent", border: "none", color: "#a59c8b", cursor: "pointer", font: "14px monospace", lineHeight: 1 }}>×</button>
         </div>
       )}
-      <div
-        data-testid="view-legend"
-        style={{ position: "absolute", top: 10, right: 10, pointerEvents: "none", background: "rgba(15,13,9,0.82)", border: "1px solid #3a352c", borderRadius: 8, padding: "6px 9px", font: "10px/1.6 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b" }}
-      >
-        {rep.legend.map((e) => (
-          <div key={e.label} style={{ display: "flex", gap: 6, alignItems: "center", whiteSpace: "nowrap" }}>
-            <span style={{ color: e.color, width: 12, textAlign: "center" }}>{e.glyph}</span>
-            <span>{e.label}</span>
-          </div>
-        ))}
-      </div>
+      {rep.legend.length > 0 && (
+        <div
+          data-testid="view-legend"
+          style={{ position: "absolute", top: 10, right: 10, pointerEvents: "none", background: "rgba(15,13,9,0.82)", border: "1px solid #3a352c", borderRadius: 8, padding: "6px 9px", font: "10px/1.6 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b" }}
+        >
+          {rep.legend.map((e) => (
+            <div key={e.label} style={{ display: "flex", gap: 6, alignItems: "center", whiteSpace: "nowrap" }}>
+              <span style={{ color: e.color, width: 12, textAlign: "center" }}>{e.glyph}</span>
+              <span>{e.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Element {
+  const { interceptedRun, overlay: encounterOverlay } = useEncounterDirector(ix, world);
   const isMobile = useIsMobile();
   const [costumeId, setCostumeId] = useState<string>(() => loadCostume(world.cartridge.arc));
   const [showCartridge, setShowCartridge] = useState(false);
@@ -89,25 +93,15 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   const showPurpose = !dismissedPurpose[active.id] && !modalOpen;
   const dismissPurpose = () => setDismissedPurpose((p) => ({ ...p, [active.id]: true }));
 
-  // All representations are mounted simultaneously; only the active one is visible.
-  // visibility:hidden (not display:none) keeps each Scene's WebGL context alive across
-  // costume switches, so orbit camera position and cleared node state survive the swap
-  // instead of the canvas rebuilding from scratch.
+  // Only the active renderer is mounted. 3D renderers are lazy-loaded, so keeping them
+  // alive with visibility:hidden would force their WebGL context into memory even when
+  // not in use. The 2D board (default) pays no 3D cost; switching to 3D loads it once.
+  const PresentationScene = active.Scene;
   const stage = (
     <>
-      {PRESENTATIONS.map((p) => {
-        const isActive = p.id === active.id;
-        const PresentationScene = p.Scene;
-        return (
-          <div
-            key={p.id}
-            data-testid={isActive ? "representation-region" : undefined}
-            style={{ position: "absolute", inset: 0, visibility: isActive ? "visible" : "hidden", pointerEvents: isActive ? "auto" : "none" }}
-          >
-            <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} active={isActive} />
-          </div>
-        );
-      })}
+      <div data-testid="representation-region" style={{ position: "absolute", inset: 0 }}>
+        <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} active />
+      </div>
       <RepresentationOverlay rep={active} showPurpose={showPurpose} onDismiss={dismissPurpose} />
     </>
   );
@@ -152,7 +146,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     />
   );
   const contract = ix.selected ? (
-    <ContractRegion selected={ix.selected} party={ix.party} min={min} max={max} canRun={ix.canRun} onRun={ix.run} contract={ix.contract} readiness={ix.readiness} recommendation={ix.recommendation} fixPlan={ix.fixPlan} onApplyFix={ix.applyFix} compact={isMobile} />
+    <ContractRegion selected={ix.selected} party={ix.party} min={min} max={max} canRun={ix.canRun} onRun={interceptedRun} contract={ix.contract} readiness={ix.readiness} recommendation={ix.recommendation} fixPlan={ix.fixPlan} onApplyFix={ix.applyFix} compact={isMobile} />
   ) : null;
   const loot = <LootRegion loot={world.pendingLoot} onClaimLoot={world.claimLoot} />;
 
@@ -247,6 +241,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
           onLeave={onExit}
         />
       )}
+      {encounterOverlay}
     </div>
   );
 }
