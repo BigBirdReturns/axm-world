@@ -13,6 +13,7 @@ import type { RosterMember } from "../useArcWorld.js";
 import type { WorldNode } from "../contract.js";
 import type { ContractRequirements, FixSuggestion, PartyReadiness, CheckStatus, ProjectedOutcome } from "../readiness.js";
 import { DOWNTIME_ACTIONS, type DowntimeAction } from "../agent-management.js";
+import "../pixel-ui/pixel-ui.css";
 
 export const panel: CSSProperties = {
   background: "rgba(23,21,15,0.88)",
@@ -156,8 +157,10 @@ function RosterCard(props: {
           <span style={{ color: "#a59c8b", ...(strip ? { display: "block", fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } : {}) }}>{m.role}</span>
         </div>
         <AgentAttrLine m={m} contract={contract} />
-        {m.gear.length > 0 && (
-          <div style={{ fontSize: strip ? 9 : 10, color: "#74ad77", marginTop: 3, ...(strip ? { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } : {}) }}>⚒ {m.gear.map((g) => g.name).join(", ")}</div>
+        {m.gear.length > 0 ? (
+          <div style={{ fontSize: strip ? 9 : 10, color: "#74c476", marginTop: 3, ...(strip ? { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } : {}) }}>⚒ {m.gear.map((g) => g.name).join(", ")}</div>
+        ) : (
+          <div style={{ fontSize: strip ? 9 : 10, color: "#5e5850", marginTop: 3 }}>⊡ No gear</div>
         )}
         <div style={{ display: "flex", gap: strip ? 6 : 8, marginTop: 4 }}>
           <Meter label="STR" value={m.stress} good="low" />
@@ -177,21 +180,21 @@ function fmt(n: number): string {
   return n >= 0 ? `+${n}` : `${n}`;
 }
 
-/** Downtime control that shows what it changes (stress/morale) right on the button, so
- *  the effect is visible before use — and the readiness projection updates after. */
 function DowntimeButton(props: { action: DowntimeAction; onClick: () => void }): JSX.Element {
   const { action, onClick } = props;
   const def = DOWNTIME_ACTIONS[action];
+  const stressColor = def.stressDelta <= 0 ? "#74c476" : "#ffc21d";
+  const moraleColor = def.moraleDelta >= 0 ? "#74c476" : "#ffc21d";
   return (
     <button
       onClick={onClick}
-      title={`${def.label}: stress ${fmt(def.stressDelta)}, morale ${fmt(def.moraleDelta)}`}
-      style={{ flex: 1, cursor: "pointer", padding: "3px 0", borderRadius: 5, border: "1px solid #5e5850", background: "rgba(201,161,74,0.10)", color: "#e6dcc8", font: "11px 'IBM Plex Mono', monospace", lineHeight: 1.15 }}
+      style={{ flex: 1, cursor: "pointer", padding: "4px 5px", borderRadius: 4, border: "1px solid #5e5850", background: "rgba(201,161,74,0.08)", color: "#e6dcc8", font: "11px 'IBM Plex Mono', monospace", lineHeight: 1.2, minHeight: 44 }}
     >
-      <div style={{ fontWeight: 600 }}>{def.label}</div>
-      <div style={{ fontSize: 9, color: "#a59c8b" }}>
-        <span style={{ color: def.stressDelta <= 0 ? "#74ad77" : "#c9a14a" }}>{fmt(def.stressDelta)}s</span>{" "}
-        <span style={{ color: def.moraleDelta >= 0 ? "#74ad77" : "#c9a14a" }}>{fmt(def.moraleDelta)}m</span>
+      <div style={{ fontWeight: 700 }}>{def.label}</div>
+      <div style={{ fontSize: 9, marginTop: 2 }}>
+        <span style={{ color: stressColor }}>Stress {fmt(def.stressDelta)}</span>
+        <br />
+        <span style={{ color: moraleColor }}>Morale {fmt(def.moraleDelta)}</span>
       </div>
     </button>
   );
@@ -322,8 +325,8 @@ function RunButton(props: { selected: WorldNode; min: number; max: number; canRu
 function FixPlanPanel(props: { fixes: FixSuggestion[]; onApplyFix: (fix: FixSuggestion) => void }): JSX.Element {
   return (
     <div data-testid="fix-plan" style={{ marginTop: 10, textAlign: "left", borderTop: "1px solid #3a352c", paddingTop: 8 }}>
-      <div style={{ color: "#c9a14a", textTransform: "uppercase", fontSize: 10, letterSpacing: "0.1em", marginBottom: 6 }}>Fix party</div>
-      <div style={{ display: "grid", gap: 6 }}>
+      <div style={{ color: "#ffc21d", textTransform: "uppercase", fontSize: 10, letterSpacing: "0.1em", marginBottom: 6 }}>! Fix Plan</div>
+      <div style={{ display: "grid", gap: 5 }}>
         {props.fixes.map((fix, i) => {
           if (fix.kind === "add-agent") {
             return <FixButton key={i} label={`Add ${fix.agentName}`} reason={fix.reason} onClick={() => props.onApplyFix(fix)} />;
@@ -332,9 +335,14 @@ function FixPlanPanel(props: { fixes: FixSuggestion[]; onApplyFix: (fix: FixSugg
             return <FixButton key={i} label={`Swap in ${fix.addAgentName}`} reason={fix.reason} onClick={() => props.onApplyFix(fix)} />;
           }
           if (fix.kind === "downtime") {
-            return <FixButton key={i} label={`${fix.action} ${fix.agentName}`} reason={fix.reason} onClick={() => props.onApplyFix(fix)} />;
+            const def = DOWNTIME_ACTIONS[fix.action];
+            return <FixButton key={i} label={`${def.label} ${fix.agentName}`} reason={fix.reason} onClick={() => props.onApplyFix(fix)} />;
           }
-          return <div key={i} style={{ color: "#a59c8b", fontSize: 11 }}>{fix.reason}</div>;
+          return (
+            <div key={i} style={{ padding: "6px 8px", border: "1px solid #5e5850", borderRadius: 4, color: "#a59c8b", fontSize: 11 }}>
+              {fix.reason}
+            </div>
+          );
         })}
       </div>
     </div>
@@ -343,17 +351,23 @@ function FixPlanPanel(props: { fixes: FixSuggestion[]; onApplyFix: (fix: FixSugg
 
 function FixButton(props: { label: string; reason: string; onClick: () => void }): JSX.Element {
   return (
-    <button type="button" onClick={props.onClick} style={{ textAlign: "left", padding: "7px 8px", borderRadius: 5, border: "1px solid #5e5850", background: "rgba(201,161,74,0.07)", color: "#ece4d4", cursor: "pointer", font: "700 12px 'IBM Plex Mono', monospace" }}>
+    <button
+      type="button"
+      onClick={props.onClick}
+      className="pixel-button"
+      data-variant="primary"
+      style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 10px", font: "700 12px 'IBM Plex Mono', monospace", minHeight: 44 }}
+    >
       {props.label}
-      <span style={{ display: "block", marginTop: 2, color: "#a59c8b", fontWeight: 400, fontSize: 10 }}>{props.reason}</span>
+      <span style={{ display: "block", marginTop: 2, fontWeight: 400, fontSize: 10, color: "#28282b", opacity: 0.75 }}>{props.reason}</span>
     </button>
   );
 }
 
-const STATUS_TONE: Record<CheckStatus, string> = { ready: "#74ad77", thin: "#c9a14a", short: "#b01c18" };
-const STATUS_MARK: Record<CheckStatus, string> = { ready: "✓", thin: "~", short: "✗" };
-const OUTCOME_TONE: Record<ProjectedOutcome, string> = { success: "#74ad77", partial: "#c9a14a", failure: "#b01c18", none: "#a59c8b" };
-const OUTCOME_LABEL: Record<ProjectedOutcome, string> = { success: "Projected success", partial: "Projected partial", failure: "Projected to fail", none: "Assign a party" };
+const STATUS_TONE: Record<CheckStatus, string> = { ready: "#74c476", thin: "#ffc21d", short: "#d7372f" };
+const STATUS_MARK: Record<CheckStatus, string> = { ready: "✓", thin: "!", short: "✖" };
+const OUTCOME_TONE: Record<ProjectedOutcome, string> = { success: "#74c476", partial: "#ffc21d", failure: "#d7372f", none: "#7a7368" };
+const OUTCOME_LABEL: Record<ProjectedOutcome, string> = { success: "Projected Reliable", partial: "Projected Risky", failure: "Projected to Fail", none: "Assign a party" };
 
 function ReadinessPanel(props: { contract: ContractRequirements; readiness: PartyReadiness | null }): JSX.Element {
   const { contract, readiness } = props;
@@ -371,16 +385,30 @@ function ReadinessPanel(props: { contract: ContractRequirements; readiness: Part
         </div>
       )}
 
-      <div style={{ display: "grid", gap: 3 }}>
+      <div style={{ display: "grid", gap: 6 }}>
         {(readiness?.checks ?? []).map((c) => {
-          const attrs = contract.checks.find((cc) => cc.id === c.id)?.attributes.map((a) => a.name).join("+") ?? "";
+          const attrs = contract.checks.find((cc) => cc.id === c.id)?.attributes.map((a) => a.name).join(" + ") ?? "";
+          const scope = c.scope === "team_aggregate" ? "team" : c.scope === "role_specific" ? (c.roleNames.join("+") || "role") : "";
+          const tone = STATUS_TONE[c.status];
           return (
-            <div key={c.id} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-              <span style={{ color: STATUS_TONE[c.status] }}>
-                {STATUS_MARK[c.status]} {c.name}
-                <span style={{ color: "#6e675a" }}> {attrs ? `· ${attrs}` : ""} {c.scope === "team_aggregate" ? "(team)" : c.scope === "role_specific" ? `(${c.roleNames.join("+") || "role"})` : ""}</span>
-              </span>
-              <span style={{ color: STATUS_TONE[c.status], whiteSpace: "nowrap" }}>{Math.round(c.projected)} / {Math.round(c.threshold)}</span>
+            <div key={c.id} style={{ borderLeft: `3px solid ${tone}`, paddingLeft: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                <span style={{ color: tone, fontWeight: 700 }}>
+                  {STATUS_MARK[c.status]} {c.name}
+                </span>
+                <span style={{ color: tone, whiteSpace: "nowrap", fontWeight: 700 }}>{Math.round(c.projected)} / {Math.round(c.threshold)}</span>
+              </div>
+              {attrs && <div style={{ fontSize: 10, color: "#6e675a", marginTop: 1 }}>{attrs}{scope ? ` · ${scope}` : ""}</div>}
+              {c.status === "thin" && (
+                <div style={{ fontSize: 11, color: "#ffc21d", marginTop: 2 }}>
+                  Passing by +{Math.round(c.margin)} · needs +{Math.round(c.shortBy)} more buffer to be reliable
+                </div>
+              )}
+              {c.status === "short" && (
+                <div style={{ fontSize: 11, color: "#d7372f", marginTop: 2 }}>
+                  Failing by {Math.round(Math.abs(c.margin))} · needs +{Math.round(c.shortBy)} to become reliable
+                </div>
+              )}
             </div>
           );
         })}

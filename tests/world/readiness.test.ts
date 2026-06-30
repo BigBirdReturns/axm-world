@@ -7,6 +7,7 @@ import {
   evaluateParty,
   agentBaseScore,
   recommendationRationale,
+  SWING,
 } from "../../src/world/readiness.js";
 
 function challenge(arc: Arc, id: string): Challenge {
@@ -105,6 +106,44 @@ describe("readiness — generalizes to a second cartridge (Mini Arc)", () => {
     // and the readout always produces an outcome + reasons array
     expect(["success", "partial", "failure"]).toContain(rStrong.projectedOutcome);
     expect(Array.isArray(rWeak.reasons)).toBe(true);
+  });
+});
+
+describe("readiness — reliableTarget and shortBy (buffer math)", () => {
+  const cellar = FIRST_CHARTER.challenges.find((c) => c.id === "cellar")!;
+
+  it("thin check exposes reliableTarget and shortBy so UI can say 'needs +N buffer'", () => {
+    // Build a party whose score lands between threshold and threshold+SWING
+    const check = cellar.mechanicChecks[0]!;
+    const threshold = check.difficultyThreshold;
+    // Use a single agent with attributes tuned to score just above threshold
+    const baseAgent = FIRST_CHARTER_STARTING_ROSTER[0]!;
+    const party = [baseAgent];
+    const r = evaluateParty(cellar, party, FIRST_CHARTER);
+
+    for (const c of r.checks) {
+      expect(typeof c.reliableTarget).toBe("number");
+      expect(c.reliableTarget).toBe(c.threshold + SWING);
+      if (c.status === "thin") {
+        expect(c.shortBy).toBeGreaterThan(0);
+        expect(c.shortBy).toBe(c.reliableTarget - c.projected);
+      }
+      if (c.status === "ready") {
+        expect(c.shortBy).toBe(0);
+      }
+    }
+  });
+
+  it("thin reason string mentions buffer shortfall", () => {
+    const party = FIRST_CHARTER_STARTING_ROSTER.slice(0, 1);
+    const r = evaluateParty(cellar, party, FIRST_CHARTER);
+    const thinReasons = r.reasons.filter((reason) => reason.includes("buffer"));
+    const thinChecks = r.checks.filter((c) => c.status === "thin");
+    // every thin check produces a buffer-explaining reason
+    expect(thinReasons.length).toBe(thinChecks.length);
+    if (thinReasons.length > 0) {
+      expect(thinReasons[0]).toMatch(/needs \+\d+ more buffer/);
+    }
   });
 });
 

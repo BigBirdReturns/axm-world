@@ -52,6 +52,10 @@ export interface CheckEval {
   threshold: number;
   projected: number;
   margin: number;
+  /** Score needed to be considered reliable (threshold + SWING). */
+  reliableTarget: number;
+  /** How much more score is needed to reach reliableTarget. 0 when already ready. */
+  shortBy: number;
   status: CheckStatus;
   roleIds: string[];
   roleNames: string[];
@@ -171,6 +175,13 @@ function bandFor(margin: number): CheckStatus {
   return "short";
 }
 
+function evalFields(projected: number, threshold: number): Pick<CheckEval, "margin" | "reliableTarget" | "shortBy" | "status"> {
+  const margin = projected - threshold;
+  const reliableTarget = threshold + SWING;
+  const shortBy = Math.max(0, reliableTarget - projected);
+  return { margin, reliableTarget, shortBy, status: bandFor(margin) };
+}
+
 /** team_aggregate and per_agent scopes. role_specific is handled in evaluateParty,
  *  which knows the contract's required roles (the resolver's scoping rule). */
 function evalCheck(check: MechanicCheck, party: Agent[], arc: Arc): CheckEval {
@@ -178,17 +189,14 @@ function evalCheck(check: MechanicCheck, party: Agent[], arc: Arc): CheckEval {
   let effThreshold = check.difficultyThreshold;
 
   if (check.scope === "team_aggregate") {
-    // The team's summed score vs threshold × party size (matches resolver).
     projected = party.reduce((s, a) => s + agentBaseScore(a, check, arc), 0);
     effThreshold = check.difficultyThreshold * Math.max(1, party.length);
   } else {
-    // per_agent: every agent must clear; the weakest decides.
     const scores = party.map((a) => agentBaseScore(a, check, arc));
     projected = scores.length ? Math.min(...scores) : 0;
   }
 
-  const margin = projected - effThreshold;
-  return { id: check.id, name: check.name, scope: check.scope, threshold: effThreshold, projected, margin, status: bandFor(margin), roleIds: [], roleNames: [] };
+  return { id: check.id, name: check.name, scope: check.scope, threshold: effThreshold, projected, ...evalFields(projected, effThreshold), roleIds: [], roleNames: [] };
 }
 
 export function evaluateParty(challenge: Challenge, party: Agent[], arc: Arc): PartyReadiness {
@@ -211,15 +219,14 @@ export function evaluateParty(challenge: Challenge, party: Agent[], arc: Arc): P
       const scoped = party.filter((a) => checkRoleSet.has(a.role ?? ""));
       const scores = scoped.map((a) => agentBaseScore(a, check, arc));
       const projected = scores.length ? Math.min(...scores) : check.difficultyThreshold;
-      const margin = projected - check.difficultyThreshold;
+      const fields = scores.length ? evalFields(projected, check.difficultyThreshold) : { margin: 0, reliableTarget: check.difficultyThreshold + SWING, shortBy: 0, status: "ready" as CheckStatus };
       return {
         id: check.id,
         name: check.name,
         scope: check.scope,
         threshold: check.difficultyThreshold,
         projected,
-        margin,
-        status: scores.length ? bandFor(margin) : "ready",
+        ...fields,
         roleIds: checkRoleIds,
         roleNames: checkRoleIds.map((id) => roleName(arc, id)),
       };
@@ -239,10 +246,10 @@ export function evaluateParty(challenge: Challenge, party: Agent[], arc: Arc): P
     reasons.push(`Missing ${m.need - m.have} ${m.roleName}${m.need - m.have > 1 ? "s" : ""} — that check is projected to fail.`);
   }
   for (const c of checks) {
-    if (c.status === "short") reasons.push(`${c.name}: projected ${Math.round(c.projected)} vs ${Math.round(c.threshold)} — short by ${Math.round(c.threshold - c.projected)}.`);
+    if (c.status === "short") reasons.push(`${c.name}: failing by ${Math.round(Math.abs(c.margin))} — needs +${Math.round(c.shortBy)} to become reliable.`);
   }
   for (const c of checks) {
-    if (c.status === "thin") reasons.push(`${c.name}: thin (${Math.round(c.projected)} vs ${Math.round(c.threshold)}) — variance could swing it.`);
+    if (c.status === "thin") reasons.push(`${c.name}: passing by +${Math.round(c.margin)}, but needs +${Math.round(c.shortBy)} more buffer to be reliable.`);
   }
 
   let projectedOutcome: ProjectedOutcome = "none";
