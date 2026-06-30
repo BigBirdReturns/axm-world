@@ -33,10 +33,15 @@ interface Props {
   selectedId: string | null;
   onSelect: (challengeId: string) => void;
   labelsEnabled?: boolean;
+  /** The planet mesh. When given, a node's label hides while the node is on the far
+   *  side of the globe, so labels stop floating over the front (representation honesty:
+   *  a label is only shown for a node you can actually see). */
+  occluder?: THREE.Object3D | null;
 }
 
 export function NodeMarkers(props: Props): JSX.Element {
-  const { nodes, selectedId, onSelect, labelsEnabled = true } = props;
+  const { nodes, selectedId, onSelect, labelsEnabled = true, occluder = null } = props;
+  const occludeRefs = useMemo(() => (occluder ? [{ current: occluder }] : undefined), [occluder]);
 
   const markers = useMemo<MarkerData[]>(() => {
     const tmp = new THREE.Vector3();
@@ -86,7 +91,9 @@ export function NodeMarkers(props: Props): JSX.Element {
               <meshBasicMaterial color={color} transparent opacity={selected ? 0.85 : 0.4} side={THREE.DoubleSide} />
             </mesh>
             {labelsEnabled && (
-              <Html position={[0, 1.7, 0]} center distanceFactor={16} zIndexRange={[5, 0]}>
+              // The selected node always shows its label (never occluded), so the
+              // current choice stays legible even near the globe's limb.
+              <Html position={[0, 1.7, 0]} center distanceFactor={16} zIndexRange={[5, 0]} occlude={selected ? undefined : occludeRefs}>
                 <button
                   type="button"
                   className="node-label"

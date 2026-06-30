@@ -254,7 +254,11 @@ export function ContractRegion(props: {
       </div>
 
       {showReadiness && <ReadinessPanel contract={contract} readiness={readiness} />}
-      {showReadiness && fixPlan && fixPlan.length > 0 && <FixPlanPanel fixes={fixPlan} onApplyFix={onApplyFix} />}
+      {/* Only offer a fix plan when there's actually something to fix — never alongside
+          a clean PROJECTED SUCCESS, which would contradict it. */}
+      {showReadiness && readiness && readiness.projectedOutcome !== "success" && fixPlan && fixPlan.length > 0 && (
+        <FixPlanPanel fixes={fixPlan} onApplyFix={onApplyFix} />
+      )}
 
       <RunButton selected={selected} min={min} max={max} canRun={canRun} readiness={readiness} onRun={onRun} />
 

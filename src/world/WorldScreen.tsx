@@ -68,7 +68,7 @@ export function PlanetScene({ world, interaction: ix, modalOpen = false }: Scene
         <meshStandardMaterial vertexColors flatShading roughness={0.95} metalness={0} />
       </mesh>
       <Scatter items={scatterItems} />
-      <NodeMarkers nodes={placedNodes} selectedId={ix.selectedId} onSelect={ix.select} labelsEnabled={!modalOpen} />
+      <NodeMarkers nodes={placedNodes} selectedId={ix.selectedId} onSelect={ix.select} labelsEnabled={!modalOpen} occluder={collider} />
 
       <OrbitControls
         makeDefault
