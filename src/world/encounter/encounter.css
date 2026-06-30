@@ -1,0 +1,266 @@
+/* Encounter Director overlay — dark vignette over the shell during an encounter. */
+
+.enc-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 10, 8, 0.88);
+  animation: enc-fade-in 0.25s ease forwards;
+  cursor: pointer;
+}
+
+@keyframes enc-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Vignette card (doesn't swallow click — parent overlay does) ─── */
+.enc-vignette {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  background: #1a1712;
+  border: 1px solid #3a352c;
+  border-radius: 10px;
+  padding: 32px 40px 28px;
+  min-width: 280px;
+  max-width: min(480px, 90vw);
+  text-align: center;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  cursor: default; /* clicks on the card don't propagate to overlay */
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+  animation: enc-slide-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes enc-slide-up {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+/* ── Location icon ─────────────────────────────────────────────── */
+.enc-icon {
+  font-size: 56px;
+  line-height: 1;
+  animation: enc-icon-pulse 1.4s ease-in-out infinite;
+}
+.enc-icon--resolve-checks {
+  animation: enc-icon-shake 0.3s ease-in-out infinite;
+}
+.enc-icon--result,
+.enc-icon--record {
+  animation: enc-icon-land 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes enc-icon-pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.08); }
+}
+@keyframes enc-icon-shake {
+  0%, 100% { transform: translateX(0); }
+  25%       { transform: translateX(-4px) rotate(-3deg); }
+  75%       { transform: translateX(4px) rotate(3deg); }
+}
+@keyframes enc-icon-land {
+  from { transform: scale(1.3); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* ── Phase content ─────────────────────────────────────────────── */
+.enc-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.enc-phase-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #6b6050;
+}
+
+.enc-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #f0e8d8;
+  line-height: 1.2;
+}
+
+.enc-flavor {
+  font-size: 12px;
+  color: #a59c8b;
+  font-style: italic;
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+/* ── Party tokens ──────────────────────────────────────────────── */
+.enc-party {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.enc-agent-token {
+  font-size: 10px;
+  color: #c9a14a;
+  background: rgba(201, 161, 74, 0.12);
+  border: 1px solid rgba(201, 161, 74, 0.28);
+  border-radius: 3px;
+  padding: 3px 8px;
+  animation: enc-token-in 0.3s ease both;
+}
+.enc-agent-token:nth-child(1) { animation-delay: 0.05s; }
+.enc-agent-token:nth-child(2) { animation-delay: 0.12s; }
+.enc-agent-token:nth-child(3) { animation-delay: 0.19s; }
+.enc-agent-token:nth-child(4) { animation-delay: 0.26s; }
+.enc-agent-token:nth-child(5) { animation-delay: 0.33s; }
+.enc-agent-token:nth-child(6) { animation-delay: 0.40s; }
+
+@keyframes enc-token-in {
+  from { transform: translateY(6px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+/* ── Travel bar ────────────────────────────────────────────────── */
+.enc-travel-bar {
+  width: 200px;
+  height: 4px;
+  background: #2a2620;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.enc-travel-fill {
+  height: 100%;
+  background: #c9a14a;
+  border-radius: 2px;
+  animation: enc-travel-fill 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: 0.1s;
+  width: 0;
+}
+
+@keyframes enc-travel-fill {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+
+/* ── Checks ────────────────────────────────────────────────────── */
+.enc-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.enc-check-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  animation: enc-token-in 0.2s ease both;
+}
+.enc-check-row:nth-child(1) { animation-delay: 0s; }
+.enc-check-row:nth-child(2) { animation-delay: 0.1s; }
+.enc-check-row:nth-child(3) { animation-delay: 0.2s; }
+
+.enc-check-name {
+  font-size: 11px;
+  color: #d8cfbd;
+}
+
+.enc-check-dice {
+  font-size: 20px;
+  animation: enc-dice-spin 0.3s linear infinite;
+  display: inline-block;
+}
+
+@keyframes enc-dice-spin {
+  0%   { transform: rotate(0deg); }
+  33%  { transform: rotate(15deg); }
+  66%  { transform: rotate(-10deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* ── Result ────────────────────────────────────────────────────── */
+.enc-content--result {
+  animation: enc-slide-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.enc-result-glyph {
+  font-size: 40px;
+  line-height: 1;
+  font-weight: 900;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+.enc-result-label {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.enc-result-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.enc-result-line {
+  font-size: 11px;
+  color: #a59c8b;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+.enc-dismiss-btn {
+  margin-top: 8px;
+  background: transparent;
+  border: 1px solid #4a4238;
+  border-radius: 4px;
+  color: #c9a14a;
+  font: 700 12px 'IBM Plex Mono', ui-monospace, monospace;
+  padding: 7px 20px;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.enc-dismiss-btn:hover {
+  background: rgba(201, 161, 74, 0.1);
+  border-color: #c9a14a;
+}
+
+/* ── Skip hint ─────────────────────────────────────────────────── */
+.enc-skip-hint {
+  font-size: 9px;
+  color: #4a4238;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  position: absolute;
+  bottom: 12px;
+  right: 16px;
+}
+
+/* ── Mobile ────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .enc-vignette {
+    padding: 24px 20px 20px;
+    min-width: 0;
+    width: 90vw;
+  }
+
+  .enc-icon {
+    font-size: 44px;
+  }
+
+  .enc-title {
+    font-size: 16px;
+  }
+}

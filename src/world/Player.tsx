@@ -4,6 +4,7 @@
 
 import { Suspense, lazy, useState, type CSSProperties } from "react";
 import { BUNDLED_CARTRIDGES, type Cartridge, type TrustLevel } from "./cartridge.js";
+import { RodohRuntimeMark } from "./brand/RodohRuntimeMark.js";
 
 // Lazy: the world pulls in three.js / R3F (~1MB). Keep it out of the entry bundle so
 // the cartridge-select screen is instant; three only loads when a cartridge is played.
@@ -12,7 +13,7 @@ const WorldHost = lazy(() => import("./WorldHost.js").then((m) => ({ default: m.
 const screen: CSSProperties = {
   position: "absolute",
   inset: 0,
-  background: "radial-gradient(120% 130% at 50% -10%, #211d16 0%, #17150f 60%)",
+  background: "radial-gradient(120% 130% at 50% -10%, #1b1a14 0%, #0b0a08 62%)",
   color: "#ece4d4",
   display: "grid",
   placeItems: "center",
@@ -34,7 +35,9 @@ export function Player(): JSX.Element {
       <Suspense
         fallback={
           <div style={{ ...screen, font: "14px 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b" }}>
-            Loading {cartridge.manifest.name}…
+            <div style={{ display: "grid", gap: 14, justifyItems: "center" }}>
+              <RodohRuntimeMark variant="boot" label="RODOH RUNTIME v1.0" caption={`Loading ${cartridge.manifest.name}`} />
+            </div>
           </div>
         }
       >
@@ -46,15 +49,17 @@ export function Player(): JSX.Element {
   return (
     <div style={screen}>
       <div style={{ width: "min(560px, 92vw)" }}>
-        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase", color: "#b01c18" }}>
-          axm-world
+        <div style={{ marginBottom: 18 }}>
+          <RodohRuntimeMark variant="boot" label="RODOH RUNTIME v1.0" caption="Hold the loop." />
+        </div>
+        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase", color: "#6f8f57" }}>
+          AXM-WORLD runtime shell
         </div>
         <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: "clamp(34px, 7vw, 56px)", lineHeight: 1, margin: "6px 0 4px" }}>
-          Drop in a cartridge.
+          Cartridge worlds that remember.
         </h1>
-        <p style={{ color: "#a59c8b", margin: "0 0 22px", maxWidth: "46ch" }}>
-          A player for AXM cartridges. Pick one below and it renders — deterministic engine
-          underneath, your choice of costume on top.
+        <p style={{ color: "#a59c8b", margin: "0 0 22px", maxWidth: "48ch" }}>
+          Pick up a cartridge. Hold the loop. Mark what happened. Keep going.
         </p>
 
         <div style={{ display: "grid", gap: 10 }}>
@@ -83,18 +88,18 @@ export function Player(): JSX.Element {
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <RodohRuntimeMark variant="micro" showText={false} />
                 <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: TRUST_COLOR[c.manifest.trust] }}>
                   {c.manifest.trust}
                 </span>
-                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 16, color: "#b01c18" }}>Play →</span>
+                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 16, color: "#b01c18" }}>Enter →</span>
               </div>
             </button>
           ))}
         </div>
 
         <p style={{ color: "#a59c8b", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, marginTop: 18 }}>
-          Load a cartridge by URL or file — coming. The same cartridge plays in other
-          players too; it stays yours.
+          Rodoh records the run. AXM-WORLD renders the shell. The cartridge stays yours.
         </p>
       </div>
     </div>

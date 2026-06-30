@@ -7,8 +7,9 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { Arc, DramaCard, DramaCardEffect, Organization, RunReport } from "../engine/types.js";
-import type { ChallengeAssignment } from "../engine/cycle.js";
+import type { ChallengeAssignment, PendingRewardChoice } from "../engine/cycle.js";
 import { runCycle } from "../engine/cycle.js";
+import { awardItem } from "../engine/rewards.js";
 import { resolveDramaCard } from "../engine/drama.js";
 import { bootstrapOrg } from "../spoke/bootstrap.js";
 import {
@@ -32,7 +33,9 @@ import {
 } from "./readiness.js";
 
 export interface RosterGear {
+  id: string;
   name: string;
+  slot: string;
   bonuses: Record<string, number>;
 }
 
@@ -54,6 +57,17 @@ export interface RosterMember {
 export interface ChallengeReq {
   minAgents: number;
   maxAgents: number;
+}
+
+export interface PendingLootChoice {
+  id: string;
+  itemId: string;
+  itemName: string;
+  slot: string;
+  bonuses: Record<string, number>;
+  flavorText: string;
+  sourceChallenge: string;
+  eligibleAgents: Array<{ id: string; name: string; role: string }>;
 }
 
 export interface CustodyObject {
@@ -105,6 +119,8 @@ export interface ArcWorld {
   fixPlanFor: (challengeId: string, agentIds: string[]) => FixSuggestion[] | null;
   /** Resolve effect/agent IDs into player-readable names for decision previews. */
   effectTargetName: (targetId: string) => string;
+  pendingLoot: PendingLootChoice[];
+  claimLoot: (choiceId: string, agentId: string) => void;
   lastReport: PlayReportView | null;
   runChallenge: (challengeId: string, agentIds: string[]) => void;
   resolveDecision: (optionId: string) => void;
@@ -117,6 +133,11 @@ function expandEffects(effects: AuthoredEffect[], agentIds: string[]): DramaCard
   const out: DramaCardEffect[] = [];
   for (const e of effects) for (const id of agentIds) out.push({ target: id, type: e.type, value: e.value });
   return out;
+}
+
+function roleName(arc: Arc, id: string | null): string {
+  if (!id) return "Flex";
+  return arc.roles.find((r) => r.id === id)?.name ?? id;
 }
 
 function buildOpeningCard(opening: AuthoredOpening, org: Organization): DramaCard {
@@ -145,6 +166,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     return { ...base, dramaQueue: [buildOpeningCard(cartridge.opening, base), ...base.dramaQueue] };
   });
   const [lastReport, setLastReport] = useState<PlayReportView | null>(null);
+  const [pendingRewardChoices, setPendingRewardChoices] = useState<PendingRewardChoice[]>([]);
   const [openingChoice, setOpeningChoice] = useState<string | null>(null);
 
   const scene = useMemo(() => compileArcToPlayScene(arc, org), [arc, org]);
@@ -163,7 +185,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
         gear: Object.values(a.equippedItems)
           .map((itemId) => arc.items.find((it) => it.id === itemId))
           .filter((it): it is NonNullable<typeof it> => !!it)
-          .map((it) => ({ name: it.name, bonuses: it.statBonuses })),
+          .map((it) => ({ id: it.id, name: it.name, slot: it.slot, bonuses: it.statBonuses })),
         affliction: a.afflictionState.kind === "none" ? null : a.afflictionState.kind,
       })),
     [org, arc],
@@ -246,6 +268,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
       };
       const result = runCycle({ org, arc, assignments: [assignment] });
       setOrg(result.org);
+      setPendingRewardChoices(result.pendingRewardChoices);
       const report: RunReport | undefined = result.reports[0];
       setLastReport(report ? summarizeReport(report, arc) : null);
     },
@@ -267,6 +290,37 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   const applyDowntime = useCallback((agentId: string, action: DowntimeAction) => {
     setOrg((cur) => applyAgentDowntime(cur, agentId, action));
   }, []);
+
+
+  const pendingLoot = useMemo<PendingLootChoice[]>(
+    () => pendingRewardChoices.map((choice) => {
+      const item = arc.items.find((it) => it.id === choice.itemId);
+      return {
+        id: `${choice.sourceChallenge}:${choice.itemId}:${choice.cycle}`,
+        itemId: choice.itemId,
+        itemName: item?.name ?? choice.itemId,
+        slot: item?.slot ?? "item",
+        bonuses: item?.statBonuses ?? {},
+        flavorText: item?.flavorText ?? "Recovered from the contract.",
+        sourceChallenge: choice.sourceChallenge,
+        eligibleAgents: choice.eligibleAgentIds
+          .map((id) => org.agents[id])
+          .filter((agent): agent is NonNullable<typeof agent> => Boolean(agent))
+          .map((agent) => ({ id: agent.id, name: agent.name, role: roleName(arc, agent.role) })),
+      };
+    }),
+    [arc, org.agents, pendingRewardChoices],
+  );
+
+  const claimLoot = useCallback((choiceId: string, agentId: string) => {
+    setOrg((current) => {
+      const choice = pendingRewardChoices.find((entry) => `${entry.sourceChallenge}:${entry.itemId}:${entry.cycle}` === choiceId);
+      const item = choice ? arc.items.find((it) => it.id === choice.itemId) : null;
+      if (!choice || !item || !choice.eligibleAgentIds.includes(agentId)) return current;
+      return awardItem(current, agentId, item, current.cycle, choice.sourceChallenge);
+    });
+    setPendingRewardChoices((current) => current.filter((entry) => `${entry.sourceChallenge}:${entry.itemId}:${entry.cycle}` !== choiceId));
+  }, [arc, pendingRewardChoices]);
 
   const clearedCount = layout.nodes.filter((n) => n.status === "cleared").length;
   const totalNodes = layout.nodes.length;
@@ -313,6 +367,8 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     recommendationFor,
     fixPlanFor,
     effectTargetName,
+    pendingLoot,
+    claimLoot,
     lastReport,
     runChallenge,
     resolveDecision,

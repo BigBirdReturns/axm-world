@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import type { DramaCard, DramaCardEffect } from "../../engine/types.js";
+import { RodohRuntimeMark } from "../brand/RodohRuntimeMark.js";
 
 interface Props {
   card: DramaCard;
@@ -53,6 +54,7 @@ function optionPreview(option: DramaCard["options"][number], targetName: (target
 
 export function DecisionPanel({ card: drama, onResolve, targetName = (id) => id }: Props): JSX.Element {
   const [chosen, setChosen] = useState<{ id: string; label: string; description: string } | null>(null);
+  const isOpening = drama.id.startsWith("opening:");
   const titleRef = useRef<HTMLParagraphElement | null>(null);
 
   useEffect(() => {
@@ -71,12 +73,18 @@ export function DecisionPanel({ card: drama, onResolve, targetName = (id) => id 
         onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
-        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "#c9a14a" }}>
-          {chosen ? "The world responds" : "A decision"}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "#c9a14a" }}>
+          <RodohRuntimeMark variant="micro" showText={false} />
+          {chosen ? "The world responds" : isOpening ? "Founding the hall" : "A decision"}
         </div>
 
         {!chosen ? (
           <>
+            {isOpening && (
+              <div style={{ margin: "10px 0 12px", padding: "10px 12px", border: "1px solid #4a4238", borderRadius: 8, background: "rgba(201,161,74,0.07)", color: "#d8cfbd", font: "12px/1.45 'IBM Plex Mono', monospace" }}>
+                You run a contract hall. Choices mark the cartridge. Morale improves projections. Stress makes outcomes less reliable. Contracts can earn gear that changes the next run.
+              </div>
+            )}
             <p
               id="decision-title"
               ref={titleRef}
@@ -106,7 +114,7 @@ export function DecisionPanel({ card: drama, onResolve, targetName = (id) => id 
                 >
                   <div>{o.label}</div>
                   <div style={{ marginTop: 4, font: "11px/1.35 'IBM Plex Mono', monospace", color: "#a59c8b" }}>{o.description}</div>
-                  <div style={{ marginTop: 4, font: "10px/1.35 'IBM Plex Mono', monospace", color: "#c9a14a" }}>{optionPreview(o, targetName)}</div>
+                  <div style={{ marginTop: 4, font: "10px/1.35 'IBM Plex Mono', monospace", color: "#c9a14a" }}><strong style={{ color: "#d8cfbd" }}>Effect:</strong> {optionPreview(o, targetName)}{isOpening ? " · Mark: cartridge doctrine" : ""}</div>
                 </button>
               ))}
             </div>

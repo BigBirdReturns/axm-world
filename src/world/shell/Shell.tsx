@@ -11,6 +11,7 @@
 //   mobile  → same top bar + a bottom flex dock that stacks the same regions by flow.
 
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useEncounterDirector } from "../encounter/EncounterDirector.js";
 import { PRESENTATIONS, type Representation } from "../presentations.js";
 import { loadCostume, saveCostume, isCostumeId } from "../presentation-prefs.js";
 import { useIsMobile } from "../use-viewport.js";
@@ -21,6 +22,7 @@ import {
   RosterRegion,
   ContractRegion,
   ReportRegion,
+  LootRegion,
   CoachRegion,
   DispatchRegion,
   CompleteBanner,
@@ -58,22 +60,25 @@ function RepresentationOverlay(props: { rep: Representation; showPurpose: boolea
           <button onClick={onDismiss} aria-label="Dismiss view note" style={{ flex: "none", background: "transparent", border: "none", color: "#a59c8b", cursor: "pointer", font: "14px monospace", lineHeight: 1 }}>×</button>
         </div>
       )}
-      <div
-        data-testid="view-legend"
-        style={{ position: "absolute", top: 10, right: 10, pointerEvents: "none", background: "rgba(15,13,9,0.82)", border: "1px solid #3a352c", borderRadius: 8, padding: "6px 9px", font: "10px/1.6 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b" }}
-      >
-        {rep.legend.map((e) => (
-          <div key={e.label} style={{ display: "flex", gap: 6, alignItems: "center", whiteSpace: "nowrap" }}>
-            <span style={{ color: e.color, width: 12, textAlign: "center" }}>{e.glyph}</span>
-            <span>{e.label}</span>
-          </div>
-        ))}
-      </div>
+      {rep.legend.length > 0 && (
+        <div
+          data-testid="view-legend"
+          style={{ position: "absolute", top: 10, right: 10, pointerEvents: "none", background: "rgba(15,13,9,0.82)", border: "1px solid #3a352c", borderRadius: 8, padding: "6px 9px", font: "10px/1.6 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b" }}
+        >
+          {rep.legend.map((e) => (
+            <div key={e.label} style={{ display: "flex", gap: 6, alignItems: "center", whiteSpace: "nowrap" }}>
+              <span style={{ color: e.color, width: 12, textAlign: "center" }}>{e.glyph}</span>
+              <span>{e.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Element {
+  const { interceptedRun, overlay: encounterOverlay } = useEncounterDirector(ix, world);
   const isMobile = useIsMobile();
   const [costumeId, setCostumeId] = useState<string>(() => loadCostume(world.cartridge.arc));
   const [showCartridge, setShowCartridge] = useState(false);
@@ -88,25 +93,15 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   const showPurpose = !dismissedPurpose[active.id] && !modalOpen;
   const dismissPurpose = () => setDismissedPurpose((p) => ({ ...p, [active.id]: true }));
 
-  // All representations are mounted simultaneously; only the active one is visible.
-  // visibility:hidden (not display:none) keeps each Scene's WebGL context alive across
-  // costume switches, so orbit camera position and cleared node state survive the swap
-  // instead of the canvas rebuilding from scratch.
+  // Only the active renderer is mounted. 3D renderers are lazy-loaded, so keeping them
+  // alive with visibility:hidden would force their WebGL context into memory even when
+  // not in use. The 2D board (default) pays no 3D cost; switching to 3D loads it once.
+  const PresentationScene = active.Scene;
   const stage = (
     <>
-      {PRESENTATIONS.map((p) => {
-        const isActive = p.id === active.id;
-        const PresentationScene = p.Scene;
-        return (
-          <div
-            key={p.id}
-            data-testid={isActive ? "representation-region" : undefined}
-            style={{ position: "absolute", inset: 0, visibility: isActive ? "visible" : "hidden", pointerEvents: isActive ? "auto" : "none" }}
-          >
-            <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} active={isActive} />
-          </div>
-        );
-      })}
+      <div data-testid="representation-region" style={{ position: "absolute", inset: 0 }}>
+        <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} active />
+      </div>
       <RepresentationOverlay rep={active} showPurpose={showPurpose} onDismiss={dismissPurpose} />
     </>
   );
@@ -151,8 +146,9 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     />
   );
   const contract = ix.selected ? (
-    <ContractRegion selected={ix.selected} party={ix.party} min={min} max={max} canRun={ix.canRun} onRun={ix.run} contract={ix.contract} readiness={ix.readiness} recommendation={ix.recommendation} fixPlan={ix.fixPlan} onApplyFix={ix.applyFix} />
+    <ContractRegion selected={ix.selected} party={ix.party} min={min} max={max} canRun={ix.canRun} onRun={interceptedRun} contract={ix.contract} readiness={ix.readiness} recommendation={ix.recommendation} fixPlan={ix.fixPlan} onApplyFix={ix.applyFix} compact={isMobile} />
   ) : null;
+  const loot = <LootRegion loot={world.pendingLoot} onClaimLoot={world.claimLoot} />;
 
   return (
     <div data-testid="engine-shell" data-modal-open={modalOpen ? "true" : "false"} style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: "#0b0a08", overflow: "hidden", isolation: "isolate", fontFamily: "'IBM Plex Mono', ui-monospace, monospace" }}>
@@ -180,29 +176,22 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
 
       {/* stage */}
       {isMobile ? (
-        <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
-          {stage}
-          <div
-            style={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              bottom: 0,
-              maxHeight: "72%",
-              display: "flex",
-              flexDirection: "column",
-              gap: 8,
-              padding: "0 10px",
-              paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 10px)",
-              pointerEvents: "none",
-            }}
-          >
-            {world.arcComplete && <Card style={{ borderColor: "#74ad77" }}><CompleteBanner /></Card>}
-            {world.lastReport && <Card><ReportRegion lastReport={world.lastReport} /></Card>}
+        // Mobile: map takes a fixed slice at top; content stacks and scrolls below.
+        // No absolute overlays — every region is in normal flow.
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflowY: "auto" }}>
+          {/* map — capped so content below is reachable without scrolling past it */}
+          <div style={{ height: "clamp(150px, 24dvh, 230px)", flex: "none", position: "relative" }}>
+            {stage}
+          </div>
+          {/* content stack */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 12px", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}>
+            {world.arcComplete && <CompleteBanner />}
+            {world.lastReport && <ReportRegion lastReport={world.lastReport} />}
+            {world.pendingLoot.length > 0 && loot}
             {!ix.selected && coach && <Card style={{ borderColor: "#6b5935", background: "rgba(32,28,20,0.92)" }}><CoachRegion message={coach} /></Card>}
             {!ix.selected && world.dispatches.length > 0 && <Card style={{ padding: "8px 12px" }}><DispatchRegion dispatches={world.dispatches} limit={1} /></Card>}
-            {ix.selected && <Card style={{ overflow: "hidden" }}>{roster}</Card>}
-            {contract && <Card style={{ overflowY: "auto" }}>{contract}</Card>}
+            {contract}
+            {roster}
           </div>
         </div>
       ) : (
@@ -229,6 +218,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
           <aside style={{ width: 360, flex: "none", overflowY: "auto", padding: 12, borderLeft: "1px solid #2a2620", background: "rgba(15,13,9,0.6)" }}>
             {contract && <Card style={{ marginBottom: 10 }}>{contract}</Card>}
             {world.lastReport && <Card style={{ marginBottom: 10 }}><ReportRegion lastReport={world.lastReport} /></Card>}
+            {world.pendingLoot.length > 0 && <Card style={{ marginBottom: 10 }}>{loot}</Card>}
             {!ix.selected && coach && <Card style={{ marginBottom: 10, borderColor: "#6b5935", background: "rgba(32,28,20,0.9)" }}><CoachRegion message={coach} /></Card>}
             {world.dispatches.length > 0 && <Card><DispatchRegion dispatches={world.dispatches} limit={4} /></Card>}
           </aside>
@@ -251,6 +241,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
           onLeave={onExit}
         />
       )}
+      {encounterOverlay}
     </div>
   );
 }

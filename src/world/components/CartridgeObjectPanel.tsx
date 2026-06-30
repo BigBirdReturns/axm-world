@@ -6,6 +6,7 @@
 
 import { type CSSProperties } from "react";
 import type { CartridgeManifest } from "../cartridge.js";
+import { RodohRuntimeMark } from "../brand/RodohRuntimeMark.js";
 import type { CustodyObject } from "../useArcWorld.js";
 
 interface Props {
@@ -75,11 +76,16 @@ export function CartridgeObjectPanel({ manifest, openingChoice, cycle, clearedCo
           boxShadow: "0 24px 70px -24px rgba(0,0,0,0.85)",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-          <span style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "#c9a14a" }}>Cartridge</span>
-          <span style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: TRUST_COLOR[manifest.trust] ?? "#a59c8b" }}>{manifest.trust}</span>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14 }}>
+          <div>
+            <span style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "#c9a14a" }}>Cartridge</span>
+            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 26, fontWeight: 700, margin: "2px 0 12px" }}>{manifest.name}</div>
+          </div>
+          <div style={{ display: "grid", justifyItems: "end", gap: 4 }}>
+            <RodohRuntimeMark variant="inline" showText={false} />
+            <span style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: TRUST_COLOR[manifest.trust] ?? "#a59c8b" }}>{manifest.trust}</span>
+          </div>
         </div>
-        <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 26, fontWeight: 700, margin: "2px 0 12px" }}>{manifest.name}</div>
 
         {row("Domain", manifest.domain)}
         {row("Engine", manifest.engineVersion)}
@@ -92,7 +98,7 @@ export function CartridgeObjectPanel({ manifest, openingChoice, cycle, clearedCo
         {row("Decision mark", openingChoice ?? "—")}
 
         <p style={{ color: "#a59c8b", fontFamily: "'Lora', Georgia, serif", fontSize: 13, lineHeight: 1.5, margin: "14px 0 16px" }}>
-          The world did not swallow it. The object now carries engine marks — decisions,
+          Rodoh held the loop. This cartridge now carries engine marks — decisions,
           cleared nodes, cycle count, and roster state — that survive representation changes.
         </p>
 

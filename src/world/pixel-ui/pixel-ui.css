@@ -1,93 +1,267 @@
+/* ── Rodoh Runtime UI — Core Tokens ─────────────────────────────────────────
+   Palette from Rodoh Platform Identity System v1.0 + AXM-World Starter Pack.
+   All layout sizes are multiples of 8px. Touch targets min 44px.            */
+
 :root {
-  --rodoh-cream: #fff3e0;
-  --rodoh-charcoal: #1e1e1e;
-  --rodoh-yellow: #ffc21d;
-  --rodoh-teal: #17a589;
-  --rodoh-warm-gray: #7a7368;
-  --rodoh-success: #74c476;
-  --rodoh-risk: #ffc21d;
-  --rodoh-danger: #d7372f;
-  --rodoh-moss: #6b784d;
-  --rodoh-gold: #d4a93a;
-  --rodoh-rust: #b24a3a;
-  --rodoh-parchment: #f6efe3;
-  --rodoh-ink: #28282b;
-  --rodoh-border: #1e1e1e;
-  --rodoh-panel: #fff3e0;
-  --rodoh-panel-dark: #1e1e1e;
-  --rodoh-pixel-font: "Rodoh Pixel", "Silkscreen", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* palette */
+  --cream:          #f6efe3;
+  --cream-mid:      #ede3d3;
+  --cream-border:   #d4c9b2;
+  --parchment-gold: #d8b276;
+  --ink:            #1b1b1b;
+  --ink-soft:       #3a3228;
+  --ink-muted:      #6b6254;
+  --gold:           #fec210;
+  --gold-dark:      #d4a93a;
+  --gold-border:    #c9901a;
+  --teal:           #17a589;
+  --teal-dark:      #0f7a63;
+  --danger:         #d7372f;
+  --danger-dark:    #9e2020;
+  --olive:          #6a7f52;
+  --olive-dark:     #4e6038;
+  --coffee:         #684a2f;
+  --stone:          #7a7368;
+  --stone-light:    #b9b0a0;
+
+  /* state semantics */
+  --state-ready:    #17a589;
+  --state-risky:    #fec210;
+  --state-fail:     #d7372f;
+  --state-locked:   #7a7368;
+  --state-recorded: #684a2f;
+  --state-loot:     #d4a93a;
+
+  /* pixel font stack */
+  --px-font: "IBM Plex Mono", "Courier New", ui-monospace, monospace;
 }
 
-.rodoh-pixel-root, .rodoh-pixel-root * {
-  image-rendering: pixelated;
+/* ── PIXEL PANEL (cream gameplay card) ───────────────────────────────────── */
+
+.pixel-panel {
+  background: var(--cream);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  font-family: var(--px-font);
   box-sizing: border-box;
 }
 
-.pixel-panel {
-  background: var(--rodoh-panel);
-  color: var(--rodoh-ink);
-  border: 2px solid var(--rodoh-border);
-  box-shadow: 4px 4px 0 var(--rodoh-border);
-  font-family: var(--rodoh-pixel-font);
+.pixel-panel[data-tone="dark"] {
+  background: #1b1b1b;
+  color: var(--cream);
+  border-color: #4a4238;
+  box-shadow: none;
 }
 
-.pixel-panel[data-tone="dark"] {
-  background: var(--rodoh-panel-dark);
-  color: var(--rodoh-cream);
-  border-color: var(--rodoh-warm-gray);
+/* section label inside a panel */
+.pixel-panel__title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--coffee);
+  margin-bottom: 6px;
 }
+
+/* ── PIXEL BUTTON ────────────────────────────────────────────────────────── */
 
 .pixel-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 44px;
   min-width: 48px;
-  border: 2px solid var(--rodoh-border);
-  box-shadow: 3px 3px 0 var(--rodoh-border);
-  font-family: var(--rodoh-pixel-font);
+  padding: 8px 12px;
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  font-family: var(--px-font);
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   cursor: pointer;
+  border-radius: 0;
+  touch-action: manipulation;
+  transition: transform 80ms, box-shadow 80ms;
+  box-sizing: border-box;
 }
 
-.pixel-button:active {
+.pixel-button:active:not(:disabled) {
   transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 var(--rodoh-border);
+  box-shadow: 1px 1px 0 var(--ink);
 }
 
-.pixel-button[data-variant="primary"] { background: var(--rodoh-yellow); color: var(--rodoh-charcoal); }
-.pixel-button[data-variant="confirm"] { background: var(--rodoh-teal); color: white; }
-.pixel-button[data-variant="secondary"] { background: var(--rodoh-cream); color: var(--rodoh-charcoal); }
-.pixel-button[data-variant="danger"] { background: var(--rodoh-danger); color: white; }
-.pixel-button:disabled, .pixel-button[data-variant="disabled"] { background: #d8d0c0; color: #7a7368; cursor: not-allowed; }
+.pixel-button[data-variant="primary"]  { background: var(--gold);    color: var(--ink); border-color: var(--gold-border); }
+.pixel-button[data-variant="confirm"]  { background: var(--teal);    color: #fff;       border-color: var(--teal-dark); }
+.pixel-button[data-variant="danger"]   { background: var(--danger);  color: #fff;       border-color: var(--danger-dark); }
+.pixel-button[data-variant="secondary"]{ background: var(--cream);   color: var(--ink); border-color: var(--ink); }
+.pixel-button[data-variant="ghost"]    { background: transparent;    color: var(--ink); border-color: var(--stone); box-shadow: none; }
+.pixel-button:disabled, .pixel-button[data-variant="disabled"] {
+  background: var(--cream-mid);
+  color: var(--stone);
+  border-color: var(--stone-light);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* ── PIXEL BADGE (state chip) ────────────────────────────────────────────── */
 
 .pixel-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 28px;
-  padding: 4px 8px;
-  border: 2px solid var(--rodoh-border);
-  background: var(--rodoh-panel-dark);
-  color: var(--rodoh-cream);
-  font-family: var(--rodoh-pixel-font);
-  font-size: 12px;
+  gap: 5px;
+  min-height: 24px;
+  padding: 3px 8px;
+  border: 2px solid var(--ink);
+  font-family: var(--px-font);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 0;
+  box-sizing: border-box;
+  /* default: dark */
+  background: var(--ink);
+  color: var(--cream);
+}
+
+.pixel-badge[data-state="available"]   { background: var(--teal);    color: #fff;            border-color: var(--teal-dark); }
+.pixel-badge[data-state="reliable"]    { background: var(--teal);    color: #fff;            border-color: var(--teal-dark); }
+.pixel-badge[data-state="risky"]       { background: var(--gold);    color: var(--ink);      border-color: var(--gold-border); }
+.pixel-badge[data-state="failing"]     { background: var(--danger);  color: #fff;            border-color: var(--danger-dark); }
+.pixel-badge[data-state="locked"]      { background: var(--stone);   color: #fff;            border-color: #555; }
+.pixel-badge[data-state="recorded"]    { background: var(--coffee);  color: #fff;            border-color: #4a3020; }
+.pixel-badge[data-state="selected"]    { background: var(--teal);    color: #fff;            border-color: var(--teal-dark); }
+.pixel-badge[data-state="lootAvailable"]{ background: var(--gold-dark); color: var(--ink);   border-color: var(--coffee); }
+
+/* ── ROLE BADGE ──────────────────────────────────────────────────────────── */
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  font-family: var(--px-font);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  border-radius: 0;
+}
+.role-badge--vanguard   { color: var(--teal);   border-color: var(--teal); }
+.role-badge--skirmisher { color: var(--gold-dark); border-color: var(--gold-dark); }
+.role-badge--mender     { color: var(--olive);  border-color: var(--olive); }
+
+/* ── ATTRIBUTE ICON ──────────────────────────────────────────────────────── */
+
+.pixel-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 1.1em;
+  min-width: 1.1em;
+  height: 1.1em;
+  font-weight: 900;
   line-height: 1;
 }
 
-.pixel-badge[data-state="reliable"] { background: var(--rodoh-success); color: var(--rodoh-charcoal); }
-.pixel-badge[data-state="risky"] { background: var(--rodoh-risk); color: var(--rodoh-charcoal); }
-.pixel-badge[data-state="failing"] { background: var(--rodoh-danger); color: white; }
-.pixel-badge[data-state="selected"] { background: var(--rodoh-teal); color: white; }
+.pixel-icon--available  { color: var(--teal); }
+.pixel-icon--reliable   { color: var(--teal); }
+.pixel-icon--risky      { color: var(--gold-dark); }
+.pixel-icon--failing    { color: var(--danger); }
+.pixel-icon--locked     { color: var(--stone); }
+.pixel-icon--recorded   { color: var(--coffee); }
+.pixel-icon--selected   { color: var(--teal); }
+.pixel-icon--lootAvailable { color: var(--gold-dark); }
+
+.pixel-icon--vanguard   { color: var(--teal); }
+.pixel-icon--skirmisher { color: var(--gold-dark); }
+.pixel-icon--mender     { color: var(--olive); }
+
+.pixel-icon--power      { color: #c0392b; }
+.pixel-icon--mettle     { color: var(--gold-dark); }
+.pixel-icon--wits       { color: #2980b9; }
+.pixel-icon--spirit     { color: var(--teal); }
+
+.pixel-icon--rustyBlade,
+.pixel-icon--guardCharm,
+.pixel-icon--fieldSatchel { color: var(--coffee); }
+.pixel-icon--emptySlot  { color: var(--stone-light); }
+
+/* ── PIXEL METER (segment bar) ───────────────────────────────────────────── */
 
 .pixel-meter {
   display: grid;
-  grid-template-columns: repeat(var(--segments, 5), minmax(10px, 1fr));
-  gap: 3px;
+  grid-template-columns: repeat(var(--segments, 5), minmax(8px, 1fr));
+  gap: 2px;
 }
 
 .pixel-meter__segment {
-  height: 10px;
-  border: 1px solid var(--rodoh-border);
-  background: #2d2d2d;
+  height: 8px;
+  border: 1px solid var(--ink);
+  background: var(--cream-mid);
 }
 
-.pixel-meter__segment[data-filled="true"] { background: var(--meter-color, var(--rodoh-yellow)); }
+.pixel-meter__segment[data-filled="true"] {
+  background: var(--meter-color, var(--gold));
+}
+
+/* ── READINESS PIPS (small colored circles) ──────────────────────────────── */
+
+.readiness-pip {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  display: inline-block;
+  flex-shrink: 0;
+}
+.readiness-pip[data-status="ready"]  { background: var(--teal); }
+.readiness-pip[data-status="thin"]   { background: var(--gold); }
+.readiness-pip[data-status="short"]  { background: var(--danger); }
+.readiness-pip[data-status="empty"]  { background: var(--cream-mid); }
+
+/* ── PIXEL FRAME ─────────────────────────────────────────────────────────── */
+
+.pixel-frame {
+  border: 2px solid var(--parchment-gold);
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  background: var(--cream);
+}
+
+/* ── CHECK ROW ───────────────────────────────────────────────────────────── */
+
+.check-row {
+  background: var(--cream);
+  border: 1px solid var(--cream-border);
+  padding: 8px 10px;
+}
+.check-row--ready  { border-left: 4px solid var(--state-ready); }
+.check-row--thin   { border-left: 4px solid var(--state-risky); }
+.check-row--short  { border-left: 4px solid var(--state-fail); }
+
+/* ── MOBILE RULES ────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .pixel-button {
+    min-height: 44px;
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+  .pixel-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+}
+
+.renderer-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--rodoh-cream);
+  background: #0b0a08;
+  font: 13px/1.4 var(--rodoh-pixel-font);
+}
