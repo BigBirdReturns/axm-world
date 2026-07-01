@@ -1,0 +1,41 @@
+/* First Charter theme motif styling — replaces placeholder emoji glyphs with
+   on-brand SVG iconography drawn from FIRST_CHARTER_MOTIFS. */
+
+.fc-board-bg {
+  background:
+    radial-gradient(circle at top, rgba(255, 243, 224, 0.08), transparent 38%),
+    linear-gradient(180deg, #11100d, #080706 70%);
+}
+
+.fc-motif-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--parchment-gold, #d8b276);
+  line-height: 1;
+}
+
+.fc-motif-icon--dandelion        { color: #cbb98a; }
+.fc-motif-icon--archiveBox       { color: #8b7d6a; }
+.fc-motif-icon--coffeeMug        { color: #a9835a; }
+.fc-motif-icon--crossedCalendar  { color: #b01c18; }
+.fc-motif-icon--receiptTab       { color: #74ad77; }
+.fc-motif-icon--notebook         { color: #7a94b0; }
+.fc-motif-icon--starSpark        { color: #d8b276; }
+
+.fc-lane-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.enc-motif-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: enc-icon-pulse 1.4s ease-in-out infinite;
+}
+
+.enc-motif-frame {
+  display: inline-flex;
+}
