@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { Challenge } from "../../engine/types.js";
 import type { WorldNode } from "../contract.js";
-import { PixelBadge, PixelIcon, PixelPanel, type PixelIconName } from "../pixel-ui/index.js";
+import { PixelContractCard, PixelIcon, type ContractCardState, type PixelIconName } from "../pixel-ui/index.js";
 import type { ArcInteraction } from "../useArcInteraction.js";
 import type { ArcWorld } from "../useArcWorld.js";
 import type { CheckStatus, PartyReadiness } from "../readiness.js";
@@ -14,28 +14,6 @@ export interface ContractBoardSceneProps {
   active?: boolean;
 }
 
-type CardState = "selected" | "available" | "reliable" | "risky" | "failing" | "locked" | "recorded";
-
-const STATE_ICON: Record<CardState, PixelIconName> = {
-  selected: "selected",
-  available: "available",
-  reliable: "reliable",
-  risky: "risky",
-  failing: "failing",
-  locked: "locked",
-  recorded: "recorded",
-};
-
-const STATUS_LABEL: Record<CardState, string> = {
-  selected: "Selected",
-  available: "Available",
-  reliable: "Reliable",
-  risky: "Risky",
-  failing: "Failing",
-  locked: "Locked",
-  recorded: "Recorded",
-};
-
 function outcomeState(readiness: PartyReadiness | null): "reliable" | "risky" | "failing" | "available" {
   if (!readiness || readiness.projectedOutcome === "none") return "available";
   if (readiness.projectedOutcome === "success") return "reliable";
@@ -43,7 +21,7 @@ function outcomeState(readiness: PartyReadiness | null): "reliable" | "risky" | 
   return "failing";
 }
 
-function nodeState(node: WorldNode, selected: boolean, readiness: PartyReadiness | null): CardState {
+function nodeState(node: WorldNode, selected: boolean, readiness: PartyReadiness | null): ContractCardState {
   if (selected) return "selected";
   if (node.status === "locked") return "locked";
   if (node.status === "cleared") return "recorded";
@@ -115,21 +93,6 @@ function laneTitle(tierIndex: number): string {
   return tierIndex === 0 ? "Opening Work" : tierIndex === 1 ? "First Pressure" : tierIndex === 2 ? "Escalation" : `Chapter ${tierIndex + 1}`;
 }
 
-function StateBadge({ state }: { state: CardState }): JSX.Element {
-  const badgeState =
-    state === "selected" ? "selected" :
-    state === "available" ? "available" :
-    state === "reliable" ? "reliable" :
-    state === "risky" ? "risky" :
-    state === "failing" ? "failing" :
-    state === "locked" ? "locked" : "recorded";
-  return (
-    <PixelBadge state={badgeState} icon={<PixelIcon name={STATE_ICON[state]} />}>
-      {STATUS_LABEL[state]}
-    </PixelBadge>
-  );
-}
-
 function ContractLocationCard(props: {
   node: WorldNode;
   world: ArcWorld;
@@ -146,57 +109,33 @@ function ContractLocationCard(props: {
   const weak = strongestWeakness(readiness);
   const req = challenge?.rosterRequirements;
 
+  const requirements = node.status === "locked" ? null : (
+    <>
+      {contract?.roles.slice(0, 2).map((r) => (
+        <span key={r.roleId} className="pixel-contract-card__pill"><PixelIcon name={roleIcon(r.roleName)} /> {r.count} {r.roleName}</span>
+      ))}
+      {contract?.checkedAttributes.slice(0, 3).map((a) => (
+        <span key={a.id} className="pixel-contract-card__pill"><PixelIcon name={attrIcon(a.id)} /> {a.name}</span>
+      ))}
+    </>
+  );
+
   return (
-    <button
-      className="contract-board-card"
-      data-state={state}
-      data-selected={selected ? "true" : undefined}
+    <PixelContractCard
       data-testid={`contract-board-card-${node.challengeId}`}
-      type="button"
+      state={state}
+      selected={selected}
+      difficulty={node.difficulty}
+      title={node.title}
+      description={shortDescription(node.description)}
+      unlockRequirements={node.requirements}
+      requirements={requirements}
+      riskNote={weak ? <><PixelIcon name={state === "failing" ? "failing" : "risky"} /> {weak}</> : undefined}
+      readyNote={readiness?.projectedOutcome === "success" ? <><PixelIcon name="reliable" /> Recommended party is reliable.</> : undefined}
+      footerLeft={req ? `Party ${req.minAgents}${req.maxAgents !== req.minAgents ? `–${req.maxAgents}` : ""}` : "Party"}
+      footerRight={rewards.length > 0 ? rewards.map((item) => <PixelIcon key={item.name} name={item.icon} label={item.name} />) : undefined}
       onClick={() => onSelect(node.challengeId)}
-    >
-      <PixelPanel className="contract-board-card__panel">
-        <div className="contract-board-card__top">
-          <StateBadge state={state} />
-          <span className="contract-board-card__difficulty">{node.difficulty}</span>
-        </div>
-        <h3>{node.title}</h3>
-        <p>{shortDescription(node.description)}</p>
-
-        {node.status === "locked" ? (
-          <div className="contract-board-gate">
-            <strong>Needs</strong>
-            {(node.requirements.length ? node.requirements : ["Clear earlier contracts"]).slice(0, 2).map((reqText, i) => (
-              <span key={i}><PixelIcon name="locked" /> {reqText}</span>
-            ))}
-          </div>
-        ) : (
-          <>
-            <div className="contract-board-card__requirements">
-              {contract?.roles.slice(0, 2).map((r) => (
-                <span key={r.roleId} className="board-requirement-pill"><PixelIcon name={roleIcon(r.roleName)} /> {r.count} {r.roleName}</span>
-              ))}
-              {contract?.checkedAttributes.slice(0, 3).map((a) => (
-                <span key={a.id} className="board-attr-pill"><PixelIcon name={attrIcon(a.id)} /> {a.name}</span>
-              ))}
-            </div>
-            {weak && <div className="contract-board-risk"><PixelIcon name={state === "failing" ? "failing" : "risky"} /> {weak}</div>}
-            {readiness?.projectedOutcome === "success" && (
-              <div className="contract-board-ready"><PixelIcon name="reliable" /> Recommended party is reliable.</div>
-            )}
-          </>
-        )}
-
-        <footer className="contract-board-card__footer">
-          <span>{req ? `Party ${req.minAgents}${req.maxAgents !== req.minAgents ? `–${req.maxAgents}` : ""}` : "Party"}</span>
-          {rewards.length > 0 && (
-            <span className="contract-board-rewards">
-              {rewards.map((item) => <PixelIcon key={item.name} name={item.icon} label={item.name} />)}
-            </span>
-          )}
-        </footer>
-      </PixelPanel>
-    </button>
+    />
   );
 }
 
