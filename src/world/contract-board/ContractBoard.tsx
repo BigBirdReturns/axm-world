@@ -144,9 +144,9 @@ interface EdgeLine {
   key: string;
   path: string;
   arrow: string;
-  /** The unlocking contract is already cleared — the gate is satisfied. */
+  /** The unlocking contract is already cleared. The gate is satisfied. */
   satisfied: boolean;
-  /** The gated contract is still locked — draw as a pending (dashed) link. */
+  /** The gated contract is still locked. Draw as a pending dashed link. */
   pending: boolean;
 }
 
@@ -204,7 +204,7 @@ export function ContractBoardScene({ world, interaction, modalOpen = false }: Co
     }));
   }, [world.nodes]);
 
-  // Locked→unlocking adjacency, derived from the engine's own milestone links.
+  // Locked to unlocking adjacency, derived from the engine's own milestone links.
   const edges = useMemo(() => unlockEdges(world.nodes, world.arc.challenges), [world.nodes, world.arc.challenges]);
   const statusById = useMemo(() => new Map(world.nodes.map((n) => [n.challengeId, n.status])), [world.nodes]);
 
@@ -278,6 +278,8 @@ export function ContractBoardScene({ world, interaction, modalOpen = false }: Co
                 <div
                   key={node.id}
                   className="contract-board-cardwrap"
+                  data-contract-board-card-id={node.challengeId}
+                  data-testid={`contract-board-cardwrap-${node.challengeId}`}
                   ref={(el) => {
                     if (el) cardEls.current.set(node.challengeId, el);
                     else cardEls.current.delete(node.challengeId);
