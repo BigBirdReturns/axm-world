@@ -37,11 +37,11 @@ function MotifPath({ name }: { name: FirstCharterMotifName }): JSX.Element {
     case "dandelion":
       return (
         <>
-          <circle cx="8" cy="4" r="1.4" />
-          <circle cx="5" cy="3" r="1" />
-          <circle cx="11" cy="3" r="1" />
-          <circle cx="4" cy="6" r="0.8" />
-          <circle cx="12" cy="6" r="0.8" />
+          <circle cx="8" cy="4" r="1.4" fill="currentColor" />
+          <circle cx="5" cy="3" r="1" fill="currentColor" />
+          <circle cx="11" cy="3" r="1" fill="currentColor" />
+          <circle cx="4" cy="6" r="0.8" fill="currentColor" />
+          <circle cx="12" cy="6" r="0.8" fill="currentColor" />
           <path d="M8 5.5 L8 14" strokeWidth="1" stroke="currentColor" fill="none" />
         </>
       );
