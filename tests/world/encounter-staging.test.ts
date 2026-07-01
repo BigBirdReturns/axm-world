@@ -51,8 +51,8 @@ describe("encounter and reward staging (PR B)", () => {
     expect(shell).toContain('data-testid="loot-reward-moment"');
     expect(shell).toContain("This rail belongs only to loot until the claim is resolved");
     expect(shell).toContain('data-testid="equip-flash"');
+    expect(shell).toContain("Readiness below has recalculated");
     expect(world).toContain("lastEquip: LastEquipEvent | null");
     expect(world).toContain("setLastEquip({");
-    expect(world).toContain("Readiness below has recalculated");
   });
 });
