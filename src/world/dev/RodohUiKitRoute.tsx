@@ -111,9 +111,11 @@ export function RodohUiKitRoute(): JSX.Element {
           <h1>Pixel-UI Reference Sheet</h1>
           <p className="rk-sub">
             Every live component and state below is the exact same gameplay import — not a
-            mockup. Icons are redrawn 8x8/16x16 pixel-grid derivatives of the harvested reference
-            sheets in <code>docs/design/references/</code> (not font-glyph placeholders, and not
-            slices of the source PNGs). See "Source vs Runtime Mapping" below and
+            mockup. PixelIcon shapes are 32x32 grids extracted programmatically from
+            <code> 02_axm_world_runtime_ui_asset_pack.png</code> (connected-component detection,
+            LANCZOS downsample, luminance-based fill/outline/detail classification) — traced
+            directly from the sheet, not invented and not an embedded image slice. See "Source vs
+            Runtime Mapping" below and
             <code> docs/design/references/component-inventory.md</code> for the per-icon citation
             and honest match-quality rating.
           </p>
@@ -155,7 +157,7 @@ export function RodohUiKitRoute(): JSX.Element {
         </div>
       </Section>
 
-      <Section id="icons" title="Icon Matrix" note="Every PixelIcon at 16 / 24 / 32 / 64px. Each is a redrawn 8×8 pixel-grid derivative of 02_axm_world_runtime_ui_asset_pack.png — never a text glyph, and not a slice of the source PNG. Match quality varies per icon; see component-inventory.md.">
+      <Section id="icons" title="Icon Matrix" note="Every PixelIcon at 16 / 24 / 32 / 64px. Each is a 32×32 grid extracted programmatically from 02_axm_world_runtime_ui_asset_pack.png (fill/outline/detail classified by luminance) — never a text glyph, and not a slice of the source PNG. A few lost minor flourishes in extraction (selected's corner brackets, lootAvailable's sparkles); see component-inventory.md.">
         <IconMatrix />
       </Section>
 

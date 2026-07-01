@@ -38,33 +38,51 @@ tokens, components, and a small controlled icon set" —
 
 ## PixelIcon per-icon provenance
 
-Every `PixelIconName` is an 8x8 pixel-grid SVG (`src/world/pixel-ui/PixelIcon.tsx`,
-`GRIDS` map) — not a font glyph, not a slice of the PNG. Column "match quality"
-is an honest self-assessment: how closely the redrawn 8x8 shape tracks the
-harvested sheet's icon versus being a loose approximation forced by the low
-pixel budget.
+**Revision 2 (extraction pass).** Every `PixelIconName` is now a 32x32
+pixel-grid SVG (`src/world/pixel-ui/PixelIcon.tsx`, `GRIDS` map), generated
+programmatically from `02_axm_world_runtime_ui_asset_pack.png` rather than
+hand-drawn from visual memory (the first pass, at 8x8, was hand-traced and is
+now superseded):
+
+1. Locate each icon's bounding box via connected-component detection on
+   non-background pixels (per section: contract state icons, role badges,
+   attribute icons, starter item icons).
+2. Crop tightly, pad to square, downsample to 32x32 with LANCZOS resampling.
+3. Classify every cell by luminance/background-distance into one of three
+   tones: `#` colored fill (rendered in CSS `currentColor`, so gameplay still
+   controls the semantic color per state/role/attribute), `o` dark outline
+   (the source art's pixel-art border, rendered in a fixed dark tone), `w`
+   light/white detail (stars, crosses, highlights, page lines, rendered in a
+   fixed light tone). `.` is background/transparent.
+
+This is a **redrawn derivative**, not a harvested asset — the extraction
+produces a small categorical grid, not an embedded copy of the source image —
+but the shape, proportions, and multi-tone structure are traced directly from
+the sheet, not invented. Column "match quality" flags the few icons where
+disconnected fragments (thin flourishes, distant accent marks) were dropped
+by the connected-component step rather than merged in.
 
 | icon | harvested source | match quality |
 |---|---|---|
-| available | `02_...asset_pack.png` §1 "Contract State Icons" — document/page icon | close — page rectangle + text bars |
-| reliable | `02_...asset_pack.png` §1 — shield with white star | approximate — shield + filled center mark (no true star at 8x8) |
-| risky | `02_...asset_pack.png` §1 — gold diamond with exclamation | close — diamond outline + exclamation stem |
-| failing | `02_...asset_pack.png` §1 — red skull | close — skull silhouette (head, eye sockets, teeth) |
-| locked | `02_...asset_pack.png` §1 / §6 — padlock | close — padlock body + shackle |
-| recorded | `02_...asset_pack.png` §1 — stacked lines / ledger | close — stacked ledger bars |
-| selected | `02_...asset_pack.png` §1 — corner-bracket viewfinder frame | close — four corner brackets |
-| lootAvailable | `02_...asset_pack.png` §1 / §6 — treasure chest | approximate — chest silhouette with clasp band |
-| vanguard | `02_...asset_pack.png` §2 "Role Badges" — teal shield | close — shield outline |
-| skirmisher | `02_...asset_pack.png` §2 — shield with crossed axes | approximate — shield + crossed interior lines |
-| mender | `02_...asset_pack.png` §2 — shield with white cross | close — shield + cross |
-| power | `02_...asset_pack.png` §3 "Attribute Icons" — red fist | approximate — rounded fist silhouette |
-| mettle | `02_...asset_pack.png` §3 — gold shield | close — plain shield outline |
-| wits | `02_...asset_pack.png` §3 — blue book | approximate — rectangle + spine line (reads more like a frame than a book at 8x8) |
-| spirit | `02_...asset_pack.png` §3 — teal flame | close — flame/droplet silhouette |
-| rustyBlade | `02_...asset_pack.png` §4 "Starter Item Icons" — gray sword | approximate — diagonal blade + crossguard |
-| guardCharm | `02_...asset_pack.png` §4 — brown/gold pendant | approximate — concentric-circle amulet (no chain loop at 8x8) |
-| fieldSatchel | `02_...asset_pack.png` §4 — brown satchel | close — bag body + flap/strap line |
-| emptySlot | `02_...asset_pack.png` §4 — dashed empty slot outline | close — dashed square |
+| available | `02_...asset_pack.png` §1 "Contract State Icons" — document/page icon | close — page, fold corner, highlight dot, 3 text bars |
+| reliable | `02_...asset_pack.png` §1 — shield with white star | close — full shield + 5-point star, extracted directly |
+| risky | `02_...asset_pack.png` §1 — gold diamond with exclamation | close — diamond + exclamation mark |
+| failing | `02_...asset_pack.png` §1 — red skull | close — skull, eye sockets, nose, teeth |
+| locked | `02_...asset_pack.png` §1 / §6 — padlock | close — shackle + body + keyhole |
+| recorded | `02_...asset_pack.png` §1 — stacked lines / ledger | close — charcoal ledger body + 3 bars |
+| selected | `02_...asset_pack.png` §1 — filled tile + corner-bracket viewfinder frame | approximate — filled tile extracted cleanly; the 4 corner brackets are a disconnected fragment the extraction dropped |
+| lootAvailable | `02_...asset_pack.png` §1 / §6 — treasure chest with sparkle accents | approximate — chest with clasp band extracted cleanly; the orbiting sparkle accents are disconnected fragments the extraction dropped |
+| vanguard | `02_...asset_pack.png` §2 "Role Badges" — nested shield-in-shield | close — outer shield + inner white shield + inner teal shield |
+| skirmisher | `02_...asset_pack.png` §2 — shield with crossed swords | close — shield + crossed blades |
+| mender | `02_...asset_pack.png` §2 — shield with white cross | close — shield + cross, extracted directly |
+| power | `02_...asset_pack.png` §3 "Attribute Icons" — clenched fist | close — fist with visible knuckles/fingers |
+| mettle | `02_...asset_pack.png` §3 — gold shield with highlight stripe | close — shield + highlight |
+| wits | `02_...asset_pack.png` §3 — angled blue book | close — book body, spine, page-edge stripes |
+| spirit | `02_...asset_pack.png` §3 — teal flame with dark/white core | close — flame silhouette + core detail |
+| rustyBlade | `02_...asset_pack.png` §4 "Starter Item Icons" — silver sword | close — full blade, crossguard, hilt |
+| guardCharm | `02_...asset_pack.png` §4 — medallion on a ring loop | close — ring loop + medallion, extracted as one merged region |
+| fieldSatchel | `02_...asset_pack.png` §4 — brown satchel with flap/buckle | close — satchel body, flap, buckle (fixed a bounding-box bug that had split it into two fragments) |
+| emptySlot | `02_...asset_pack.png` §4 — dashed corner-bracket outline | close — both corner brackets merged into one icon (fixed a bounding-box bug that mapped this slot to a stray fragment of fieldSatchel) |
 
 ## MotifIcon per-motif provenance
 
@@ -91,7 +109,12 @@ newly invented placeholder because no gameplay surface currently has a
 justified use for that decorative wrapper, so no harvested section was
 targeted for it.
 
-Every icon above is a **redrawn derivative**, not a harvested asset and not a
-newly invented placeholder — the PNGs were used as direct visual reference
-while drawing each 8x8/16x16 shape. None are pixel-perfect reproductions;
-"match quality" states how close the low-resolution redraw tracks the source.
+Every `PixelIcon` shape above is a **redrawn derivative** extracted directly
+from `02_axm_world_runtime_ui_asset_pack.png` by the pipeline described above
+— not a harvested asset (it's a generated grid, not the source file) and not
+a newly invented placeholder (every shape traces a real icon on the sheet).
+Two icons (`selected`, `lootAvailable`) are missing a minor accent that was a
+disconnected fragment in the source image; everything else is a close match.
+`MotifIcon` remains hand-authored SVG paths (not grid-extracted) — a
+reasonable choice for organic shapes like the dandelion, but a candidate for
+the same extraction treatment in a future pass if exact fidelity matters.
