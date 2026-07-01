@@ -1,26 +1,27 @@
-// Live catalogue of every Rodoh pixel-ui component and First Charter motif icon.
-// This is the acceptance surface: if a component only exists here and not in
-// gameplay, the integration is incomplete. Every component rendered below must
-// also appear in the actual gameplay surfaces (regions.tsx, ContractBoard,
-// EncounterDirector) using the same class names and component APIs.
+// Live design-system reference sheet for the Rodoh pixel-ui asset payload.
+// This is the acceptance surface: every component here is the SAME component
+// imported by gameplay (regions.tsx, ContractBoard, EncounterDirector) — not a
+// separate mockup. If a component only exists here and not in gameplay, the
+// integration is incomplete (see tests/world/pixel-ui-integration.test.ts).
 
 import "../pixel-ui/pixel-ui.css";
 import "../themes/first-charter/first-charter.css";
+import "./rodoh-ui-kit.css";
 import {
   PixelAttribute,
-  PixelBadge,
   PixelButton,
   PixelContractCard,
-  PixelFrame,
   PixelGearSlot,
   PixelIcon,
   PixelLootCard,
-  PixelMeter,
   PixelPanel,
   PixelReadinessRow,
   PixelRoleBadge,
   PixelRosterCard,
   PixelStateBadge,
+  PIXEL_ICON_NAMES,
+  type ContractCardState,
+  type PixelBadgeState,
 } from "../pixel-ui/index.js";
 import { MotifIcon, type FirstCharterMotifName } from "../themes/first-charter/motif-icons.js";
 
@@ -28,83 +29,151 @@ const MOTIFS: FirstCharterMotifName[] = [
   "dandelion", "archiveBox", "coffeeMug", "crossedCalendar", "receiptTab", "notebook", "starSpark",
 ];
 
-function Section(props: { title: string; children: React.ReactNode }): JSX.Element {
+const CONTRACT_STATES: ContractCardState[] = [
+  "selected", "available", "reliable", "risky", "failing", "locked", "recorded",
+];
+
+const BADGE_STATES: PixelBadgeState[] = [
+  "available", "reliable", "risky", "failing", "locked", "recorded", "selected", "lootAvailable",
+];
+
+const PALETTE: Array<{ name: string; css: string }> = [
+  { name: "cream", css: "var(--cream)" },
+  { name: "ink", css: "var(--ink)" },
+  { name: "gold", css: "var(--gold)" },
+  { name: "teal", css: "var(--teal)" },
+  { name: "danger", css: "var(--danger)" },
+  { name: "coffee", css: "var(--coffee)" },
+  { name: "stone", css: "var(--stone)" },
+];
+
+const TOC: Array<{ id: string; label: string }> = [
+  { id: "icons", label: "Icon Matrix" },
+  { id: "roles", label: "Role Badges" },
+  { id: "attributes", label: "Attributes" },
+  { id: "gear", label: "Gear Slots" },
+  { id: "states", label: "State Badges" },
+  { id: "readiness", label: "Readiness Rows" },
+  { id: "roster", label: "Roster Cards" },
+  { id: "contracts", label: "Contract Cards" },
+  { id: "loot", label: "Loot / Equip" },
+  { id: "encounter", label: "Encounter Motifs" },
+  { id: "tone", label: "Dark / Light" },
+  { id: "context", label: "Gameplay Context" },
+  { id: "mobile", label: "Mobile Preview" },
+];
+
+function Section(props: { id: string; title: string; note?: string; wide?: boolean; children: React.ReactNode }): JSX.Element {
   return (
-    <section style={{ marginBottom: 28 }}>
-      <h2 style={{ fontFamily: "var(--px-font)", fontSize: 14, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--parchment-gold)", marginBottom: 12 }}>
-        {props.title}
-      </h2>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>{props.children}</div>
+    <section id={props.id} className="rk-section">
+      <h2>{props.title}</h2>
+      {props.note && <p className="rk-section-note">{props.note}</p>}
+      {props.children}
     </section>
+  );
+}
+
+function IconMatrix(): JSX.Element {
+  return (
+    <div>
+      {PIXEL_ICON_NAMES.map((name) => (
+        <div key={name} className="rk-icon-row">
+          <span className="rk-icon-name">{name}</span>
+          <div className="rk-icon-sizes">
+            {[16, 24, 32, 64].map((size) => (
+              <div key={size} className="rk-icon-size-cell">
+                <PixelIcon name={name} size={size} />
+                <span className="rk-icon-size-label">{size}px</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
 export function RodohUiKitRoute(): JSX.Element {
   return (
-    <div
-      data-testid="rodoh-ui-kit"
-      style={{
-        position: "absolute",
-        inset: 0,
-        overflow: "auto",
-        padding: 24,
-        background: "linear-gradient(180deg, #11100d, #080706 70%)",
-        color: "#ece4d4",
-        fontFamily: "var(--px-font)",
-      }}
-    >
-      <h1 style={{ fontSize: 24, marginBottom: 4 }}>Rodoh UI Kit</h1>
-      <p style={{ color: "#a59c8b", fontSize: 12, marginBottom: 24, maxWidth: 560 }}>
-        Every live Rodoh pixel-ui component and First Charter motif icon, rendered directly
-        from the same source used in gameplay. No emoji, no placeholder glyphs.
-      </p>
+    <div data-testid="rodoh-ui-kit" className="rk-page">
+      <header className="rk-header">
+        <div>
+          <div className="rk-eyebrow">Rodoh Runtime · Design System</div>
+          <h1>Pixel-UI Reference Sheet</h1>
+          <p className="rk-sub">
+            Every live component, state, and First Charter motif icon in the runtime, rendered
+            from the exact same source gameplay imports. No emoji, no font-glyph placeholders —
+            every icon below is a hand-drawn pixel SVG.
+          </p>
+        </div>
+        <div className="rk-meta">
+          <span><strong>v1.0</strong> component set</span>
+          <span>8px grid unit</span>
+          <span>touch targets ≥ 44px</span>
+          <span className="rk-palette">
+            {PALETTE.map((p) => (
+              <span key={p.name} className="rk-swatch" style={{ background: p.css }} title={p.name} />
+            ))}
+          </span>
+        </div>
+      </header>
 
-      <Section title="Role Badges">
-        <PixelRoleBadge role="Vanguard" />
-        <PixelRoleBadge role="Skirmisher" />
-        <PixelRoleBadge role="Mender" />
+      <nav className="rk-toc">
+        {TOC.map((t) => <a key={t.id} href={`#${t.id}`}>{t.label}</a>)}
+      </nav>
+
+      <Section id="icons" title="Icon Matrix" note="Every PixelIcon at 16 / 24 / 32 / 64px. Each is a hand-authored 8×8 pixel grid rendered as SVG rects — never a text glyph.">
+        <IconMatrix />
       </Section>
 
-      <Section title="Attributes">
-        <PixelAttribute name="Power" value={7} icon="power" gearBonus={2} highlighted />
-        <PixelAttribute name="Mettle" value={4} icon="mettle" />
-        <PixelAttribute name="Wits" value={5} icon="wits" gearBonus={1} />
-        <PixelAttribute name="Spirit" value={3} icon="spirit" />
+      <Section id="roles" title="Role Badges" note="PixelRoleBadge — used inside PixelRosterCard in live gameplay.">
+        <div className="rk-grid rk-grid--narrow">
+          <div className="rk-cell"><PixelRoleBadge role="Vanguard" /><span className="rk-cell-label">Vanguard</span></div>
+          <div className="rk-cell"><PixelRoleBadge role="Skirmisher" /><span className="rk-cell-label">Skirmisher</span></div>
+          <div className="rk-cell"><PixelRoleBadge role="Mender" /><span className="rk-cell-label">Mender</span></div>
+        </div>
       </Section>
 
-      <Section title="Gear Slots">
-        <PixelGearSlot name="Rusty Blade" icon="rustyBlade" bonusText="Power +2" />
-        <PixelGearSlot name="Guard Charm" icon="guardCharm" bonusText="Spirit +1" />
-        <PixelGearSlot />
+      <Section id="attributes" title="Attributes" note="PixelAttribute — normal and highlighted (best-in-party) states, with and without gear bonus.">
+        <div className="rk-grid rk-grid--narrow">
+          <div className="rk-cell"><PixelAttribute name="Power" value={7} icon="power" /><span className="rk-cell-label">Base</span></div>
+          <div className="rk-cell"><PixelAttribute name="Power" value={7} icon="power" gearBonus={2} /><span className="rk-cell-label">With gear bonus</span></div>
+          <div className="rk-cell"><PixelAttribute name="Wits" value={5} icon="wits" gearBonus={1} highlighted /><span className="rk-cell-label">Highlighted (strongest)</span></div>
+          <div className="rk-cell"><PixelAttribute name="Mettle" value={4} icon="mettle" /><span className="rk-cell-label">Mettle</span></div>
+          <div className="rk-cell"><PixelAttribute name="Spirit" value={3} icon="spirit" /><span className="rk-cell-label">Spirit</span></div>
+        </div>
       </Section>
 
-      <Section title="State Badges">
-        <PixelStateBadge state="available">Available</PixelStateBadge>
-        <PixelStateBadge state="reliable">Reliable</PixelStateBadge>
-        <PixelStateBadge state="risky">Risky</PixelStateBadge>
-        <PixelStateBadge state="failing">Failing</PixelStateBadge>
-        <PixelStateBadge state="locked">Locked</PixelStateBadge>
-        <PixelStateBadge state="recorded">Recorded</PixelStateBadge>
+      <Section id="gear" title="Gear Slots" note="PixelGearSlot — filled and empty states.">
+        <div className="rk-grid rk-grid--narrow">
+          <div className="rk-cell"><PixelGearSlot name="Rusty Blade" icon="rustyBlade" bonusText="Power +2" /><span className="rk-cell-label">Filled</span></div>
+          <div className="rk-cell"><PixelGearSlot name="Guard Charm" icon="guardCharm" bonusText="Spirit +1" /><span className="rk-cell-label">Filled</span></div>
+          <div className="rk-cell"><PixelGearSlot name="Field Satchel" icon="fieldSatchel" bonusText="Wits +1" /><span className="rk-cell-label">Filled</span></div>
+          <div className="rk-cell"><PixelGearSlot /><span className="rk-cell-label">Empty</span></div>
+        </div>
       </Section>
 
-      <Section title="Readiness Rows">
-        <div style={{ display: "grid", gap: 8, width: 320 }}>
+      <Section id="states" title="State Badges" note="PixelStateBadge — every state the engine can project onto a contract or check.">
+        <div className="rk-grid rk-grid--narrow">
+          {BADGE_STATES.map((s) => (
+            <div key={s} className="rk-cell">
+              <PixelStateBadge state={s}>{s[0]?.toUpperCase()}{s.slice(1)}</PixelStateBadge>
+              <span className="rk-cell-label">{s}</span>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section id="readiness" title="Readiness Rows" note="PixelReadinessRow — ready, thin (risky), and short (failing) states, as shown in ContractRegion.">
+        <div style={{ display: "grid", gap: 8, maxWidth: 420 }}>
           <PixelReadinessRow name="Power Check" status="ready" projected={9} threshold={7} margin={2} shortBy={0} attributeNames={["Power"]} scope="team" />
           <PixelReadinessRow name="Wits Check" status="thin" projected={6} threshold={5.5} margin={0.5} shortBy={1.2} attributeNames={["Wits"]} scope="per-agent" />
           <PixelReadinessRow name="Spirit Check" status="short" projected={3} threshold={6} margin={-3} shortBy={3.5} attributeNames={["Spirit"]} scope="team" />
         </div>
       </Section>
 
-      <Section title="Loot Cards">
-        <div style={{ width: 320 }}>
-          <PixelLootCard itemName="Guard's Trophy" icon="guardCharm" slot="Trinket" bonusText="Spirit +1" flavorText="Taken from a warden who no longer needs it.">
-            <PixelButton variant="confirm" style={{ minHeight: 36, fontSize: 10, padding: "5px 10px" }}>Equip → Rook</PixelButton>
-          </PixelLootCard>
-        </div>
-      </Section>
-
-      <Section title="Roster Card">
-        <div style={{ width: 300 }}>
+      <Section id="roster" title="Roster Cards" note="PixelRosterCard — in-party, benched, downed, and afflicted states." wide>
+        <div className="rk-grid rk-grid--wide">
           <PixelRosterCard
             name="Rook"
             role="Vanguard"
@@ -118,39 +187,158 @@ export function RodohUiKitRoute(): JSX.Element {
             morale={70}
             selectable
           />
-        </div>
-      </Section>
-
-      <Section title="Contract Card">
-        <div style={{ width: 260 }}>
-          <PixelContractCard
-            state="reliable"
-            difficulty={3}
-            title="The Bridge Toll"
-            description="A troll wants coin or trouble."
-            requirements={<span className="pixel-contract-card__pill"><PixelIcon name="vanguard" /> 1 Vanguard</span>}
-            footerLeft="Party 2–3"
-            footerRight={<PixelIcon name="lootAvailable" label="Loot" />}
-            onClick={() => {}}
+          <PixelRosterCard
+            name="Sable"
+            role="Skirmisher"
+            attributes={[{ id: "wits", name: "Wits", value: 6, icon: "wits" }]}
+            gear={[]}
+            stress={55}
+            morale={45}
+            selectable
+          />
+          <PixelRosterCard
+            name="Iven"
+            role="Mender"
+            downed
+            affliction="Wounded"
+            attributes={[{ id: "spirit", name: "Spirit", value: 5, icon: "spirit" }]}
+            gear={[{ id: "g2", name: "Guard Charm", icon: "guardCharm", bonusText: "Spirit +1" }]}
+            stress={80}
+            morale={20}
           />
         </div>
       </Section>
 
-      <Section title="Meters &amp; Frames">
-        <div style={{ width: 160 }}>
-          <PixelMeter value={60} max={100} segments={5} color="var(--teal)" label="Stress" />
+      <Section id="contracts" title="Contract Cards" note="PixelContractCard — every projected outcome state, including locked with unlock requirements." wide>
+        <div className="rk-grid rk-grid--wide">
+          {CONTRACT_STATES.map((state) => (
+            <PixelContractCard
+              key={state}
+              state={state}
+              selected={state === "selected"}
+              difficulty={3}
+              title={state === "locked" ? "The Warden's Keep" : "The Bridge Toll"}
+              description={state === "locked" ? "The old warden has gone rogue." : "A troll wants coin or trouble."}
+              unlockRequirements={["Clear The Cellar", "Clear The Bridge Troll"]}
+              requirements={state !== "locked" ? <span className="pixel-contract-card__pill"><PixelIcon name="vanguard" /> 1 Vanguard</span> : undefined}
+              riskNote={state === "risky" || state === "failing" ? <><PixelIcon name={state === "failing" ? "failing" : "risky"} /> Wits needs +1.2 buffer.</> : undefined}
+              readyNote={state === "reliable" ? <><PixelIcon name="reliable" /> Recommended party is reliable.</> : undefined}
+              footerLeft="Party 2–3"
+              footerRight={state !== "locked" ? <PixelIcon name="lootAvailable" label="Loot" /> : undefined}
+              onClick={() => {}}
+            />
+          ))}
         </div>
-        <PixelFrame style={{ padding: 12, width: 160 }}>Pixel Frame</PixelFrame>
-        <PixelBadge state="lootAvailable" icon={<PixelIcon name="lootAvailable" />}>Loot Ready</PixelBadge>
       </Section>
 
-      <Section title="First Charter Motif Icons">
-        {MOTIFS.map((name) => (
-          <PixelPanel key={name} style={{ padding: 12, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, width: 96 }}>
-            <MotifIcon name={name} size={32} />
-            <span style={{ fontSize: 9 }}>{name}</span>
+      <Section id="loot" title="Loot / Equip" note="PixelLootCard — as rendered in LootRegion, with multiple eligible-agent equip targets." wide>
+        <div className="rk-grid rk-grid--wide">
+          <PixelLootCard itemName="Guard's Trophy" icon="guardCharm" slot="Trinket" bonusText="Spirit +1" flavorText="Taken from a warden who no longer needs it.">
+            <PixelButton variant="confirm" style={{ minHeight: 36, fontSize: 10, padding: "5px 10px" }}>Equip → Rook</PixelButton>
+            <PixelButton variant="secondary" style={{ minHeight: 36, fontSize: 10, padding: "5px 10px" }}>Equip → Sable</PixelButton>
+          </PixelLootCard>
+          <PixelLootCard itemName="Rusty Pick" icon="rustyBlade" slot="Weapon" bonusText="Power +2" flavorText="Better than fists. Barely.">
+            <PixelButton variant="confirm" style={{ minHeight: 36, fontSize: 10, padding: "5px 10px" }}>Equip → Iven</PixelButton>
+          </PixelLootCard>
+        </div>
+      </Section>
+
+      <Section id="encounter" title="Encounter Motifs" note="First Charter MotifIcon set — replaces the emoji glyphs EncounterDirector used to render per-location." wide>
+        <div className="rk-grid rk-grid--narrow">
+          {MOTIFS.map((name) => (
+            <div key={name} className="rk-cell">
+              <MotifIcon name={name} size={40} className="enc-motif-stage" />
+              <span className="rk-cell-label">{name}</span>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section id="tone" title="Dark / Light Examples" note="Gameplay chrome is dark (Board/Encounter shell); gameplay content panels are cream. Both share the same tokens.">
+        <div className="rk-tone-demo">
+          <div className="rk-tone-card rk-tone-card--dark">
+            <span className="rk-tone-card-label">Dark shell chrome</span>
+            <PixelStateBadge state="reliable">Reliable</PixelStateBadge>
+            <PixelRoleBadge role="Vanguard" />
+          </div>
+          <PixelPanel className="rk-tone-card rk-tone-card--light" tone="light">
+            <span className="rk-tone-card-label">Light gameplay panel</span>
+            <PixelStateBadge state="risky">Risky</PixelStateBadge>
+            <PixelGearSlot name="Rusty Blade" icon="rustyBlade" bonusText="Power +2" />
           </PixelPanel>
-        ))}
+        </div>
+      </Section>
+
+      <Section id="context" title="Gameplay Context Sample" note="The same roster and contract components as they actually appear together in the Shell — not isolated swatches." wide>
+        <div className="rk-context-board">
+          <PixelRosterCard
+            name="Rook"
+            role="Vanguard"
+            inParty
+            attributes={[
+              { id: "power", name: "Power", value: 7, icon: "power", gearBonus: 2, highlighted: true },
+              { id: "mettle", name: "Mettle", value: 4, icon: "mettle" },
+            ]}
+            gear={[{ id: "g1", name: "Rusty Blade", icon: "rustyBlade", bonusText: "Power +2" }]}
+            stress={30}
+            morale={70}
+            selectable
+          />
+          <div style={{ display: "grid", gap: 12 }}>
+            <PixelContractCard
+              state="risky"
+              difficulty={4}
+              title="The Bridge Troll"
+              description="A troll has claimed the river crossing north of town, demanding tolls and searching merchant wagons."
+              requirements={<span className="pixel-contract-card__pill"><PixelIcon name="vanguard" /> 1 Vanguard</span>}
+              riskNote={<><PixelIcon name="risky" /> Wits needs +1.2 more buffer.</>}
+              footerLeft="Party 2–3"
+              footerRight={<PixelIcon name="lootAvailable" label="Loot" />}
+              onClick={() => {}}
+            />
+            <PixelReadinessRow name="Wits Check" status="thin" projected={6} threshold={5.5} margin={0.5} shortBy={1.2} attributeNames={["Wits"]} scope="per-agent" />
+          </div>
+        </div>
+      </Section>
+
+      <Section id="mobile" title="Mobile Preview (390px)" note="Same components in the mobile bottom-dock / carousel layout used by the Shell below 480px.">
+        <div className="rk-mobile-frame-wrap">
+          <div className="rk-mobile-frame">
+            <div className="rk-mobile-frame__notch" />
+            <div className="rk-mobile-frame__screen">
+              <div style={{ fontSize: 10, color: "#8b7d6a", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>Roster · party 2/4</div>
+              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8 }}>
+                <div style={{ flex: "0 0 auto", width: "min(85vw, 240px)" }}>
+                  <PixelRosterCard
+                    name="Rook" role="Vanguard" inParty
+                    attributes={[{ id: "power", name: "Power", value: 7, icon: "power", highlighted: true }]}
+                    gear={[{ id: "g1", name: "Rusty Blade", icon: "rustyBlade", bonusText: "Power +2" }]}
+                    stress={30} morale={70} selectable
+                  />
+                </div>
+                <div style={{ flex: "0 0 auto", width: "min(85vw, 240px)" }}>
+                  <PixelRosterCard
+                    name="Sable" role="Skirmisher"
+                    attributes={[{ id: "wits", name: "Wits", value: 6, icon: "wits" }]}
+                    gear={[]}
+                    stress={55} morale={45} selectable
+                  />
+                </div>
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <PixelContractCard
+                  state="available"
+                  difficulty={2}
+                  title="The Cellar"
+                  description="A nest of giant rats has infested the guild cellar."
+                  footerLeft="Party 6"
+                  onClick={() => {}}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="rk-mobile-label">390px viewport · bottom-dock roster carousel</div>
       </Section>
     </div>
   );
