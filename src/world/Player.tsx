@@ -34,7 +34,9 @@ const TRUST_COLOR: Record<TrustLevel, string> = {
 export function Player(): JSX.Element {
   const [cartridge, setCartridge] = useState<Cartridge | null>(null);
 
-  if (typeof window !== "undefined" && window.location.pathname === "/rodoh/ui-kit") {
+  // Base-path agnostic: the app deploys under /axm-world/game/ on GitHub Pages
+  // but at root in local dev, so match on suffix rather than exact pathname.
+  if (typeof window !== "undefined" && window.location.pathname.endsWith("/rodoh/ui-kit")) {
     return (
       <Suspense fallback={<div style={screen} />}>
         <RodohUiKitRoute />
