@@ -11,10 +11,22 @@ import type { DramaCard } from "../../engine/types.js";
 import type { PlayReportView } from "../../play-pipeline/compile.js";
 import type { PendingLootChoice, RosterMember } from "../useArcWorld.js";
 import type { WorldNode } from "../contract.js";
-import type { ContractRequirements, FixSuggestion, PartyReadiness, CheckStatus, ProjectedOutcome } from "../readiness.js";
+import type { ContractRequirements, FixSuggestion, PartyReadiness, ProjectedOutcome } from "../readiness.js";
 import { DOWNTIME_ACTIONS, type DowntimeAction } from "../agent-management.js";
 import "../pixel-ui/pixel-ui.css";
-import { PixelBadge, PixelButton, PixelIcon, PixelMeter, PixelPanel, type PixelIconName } from "../pixel-ui/index.js";
+import {
+  PixelBadge,
+  PixelButton,
+  PixelIcon,
+  PixelPanel,
+  PixelRosterCard,
+  PixelLootCard,
+  PixelReadinessRow,
+  type PixelIconName,
+  type ReadinessStatus,
+  type RosterCardAttribute,
+  type RosterCardGear,
+} from "../pixel-ui/index.js";
 
 // The `panel` export is kept for Shell.tsx wrappers that set the outer chrome.
 // Gameplay content inside uses cream PixelPanel — this dark shell is system chrome only.
@@ -44,14 +56,6 @@ function attrIcon(nameOrId: string): PixelIconName {
   return ATTR_ICON[nameOrId] ?? "available";
 }
 
-function roleIcon(name: string): PixelIconName {
-  return ROLE_ICON[name] ?? "selected";
-}
-
-function roleBadgeClass(name: string): string {
-  return `role-badge role-badge--${name.toLowerCase()}`;
-}
-
 function itemIcon(name: string): PixelIconName {
   const key = name.toLowerCase();
   if (key.includes("blade") || key.includes("pick")) return "rustyBlade";
@@ -72,7 +76,7 @@ function fmt(n: number): string {
   return n >= 0 ? `+${n}` : `${n}`;
 }
 
-// ── Status (system chrome — stays dark) ──────────────────────────────────────
+// ── Status (system chrome — stays dark) ─────────────────────────────────────────────────────
 // RodohRuntimeMark does NOT live here. It belongs on boot/loading/cartridge-select,
 // not in the active gameplay HUD.
 
@@ -102,7 +106,7 @@ export function StatusRegion(props: {
   );
 }
 
-// ── View switcher ─────────────────────────────────────────────────────────────
+// ── View switcher ────────────────────────────────────────────────────────
 
 export function ViewSwitcher(props: {
   costumes: Array<{ id: string; label: string; blurb: string }>;
@@ -131,7 +135,7 @@ export function ViewSwitcher(props: {
   );
 }
 
-// ── Roster ────────────────────────────────────────────────────────────────────
+// ── Roster ─────────────────────────────────────────────────────────────
 
 export type RosterVariant = "list" | "strip";
 
@@ -164,6 +168,30 @@ export function RosterRegion(props: {
   );
 }
 
+function buildAttributes(m: RosterMember, contract: ContractRequirements | null): RosterCardAttribute[] {
+  if (!contract || contract.checkedAttributes.length === 0) return [];
+  const attrs = contract.checkedAttributes.slice(0, 4);
+  let bestId = attrs[0]?.id ?? "";
+  for (const a of attrs) if ((m.attributes[a.id] ?? 0) > (m.attributes[bestId] ?? 0)) bestId = a.id;
+  return attrs.map((a) => ({
+    id: a.id,
+    name: a.name,
+    value: m.attributes[a.id] ?? 0,
+    icon: attrIcon(a.id),
+    gearBonus: m.gear.reduce((sum, g) => sum + (g.bonuses[a.id] ?? 0), 0),
+    highlighted: a.id === bestId,
+  }));
+}
+
+function buildGear(m: RosterMember): RosterCardGear[] {
+  return m.gear.map((gear) => ({
+    id: gear.id,
+    name: gear.name,
+    icon: itemIcon(gear.name),
+    bonusText: Object.entries(gear.bonuses).map(([attr, value]) => `${attrNameLabel(attr)} +${value}`).join(" · "),
+  }));
+}
+
 function RosterCard(props: {
   m: RosterMember;
   inParty: boolean;
@@ -177,79 +205,26 @@ function RosterCard(props: {
   const strip = variant === "strip";
   const downtimeActions = Object.keys(DOWNTIME_ACTIONS) as DowntimeAction[];
   return (
-    <PixelPanel
-      data-testid="roster-card"
-      style={{
-        ...(strip ? { flex: "0 0 auto", width: "min(85vw, 290px)", scrollSnapAlign: "start" } : {}),
-        padding: 10,
-        borderColor: inParty ? "var(--gold-border)" : undefined,
-        boxShadow: inParty ? "3px 3px 0 var(--gold-border)" : undefined,
-        opacity: m.downed ? 0.55 : 1,
-      }}
+    <PixelRosterCard
+      name={m.name}
+      role={m.role}
+      inParty={inParty}
+      downed={m.downed}
+      affliction={m.affliction}
+      attributes={buildAttributes(m, contract)}
+      gear={buildGear(m)}
+      stress={m.stress}
+      morale={m.morale}
+      selectable={selectable}
+      onToggle={() => onToggleAgent(m.id)}
+      style={strip ? { flex: "0 0 auto", width: "min(85vw, 290px)", scrollSnapAlign: "start" } : undefined}
     >
-      <button
-        disabled={m.downed || !selectable}
-        onClick={() => onToggleAgent(m.id)}
-        title={selectable ? "Assign to the selected contract" : "Select a contract first"}
-        style={{ display: "block", width: "100%", minHeight: 44, textAlign: "left", padding: 0, border: "none", background: "transparent", cursor: m.downed || !selectable ? "default" : "pointer", fontFamily: "var(--px-font)" }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "start" }}>
-          <div style={{ minWidth: 0 }}>
-            <strong style={{ display: "block", fontSize: 13, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.name}</strong>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
-              <span className={roleBadgeClass(m.role)}>
-                <PixelIcon name={roleIcon(m.role)} />
-                {m.role}
-              </span>
-              {inParty && <span className="role-badge" style={{ color: "var(--teal)", borderColor: "var(--teal)" }}>Assigned</span>}
-              <AfflictionBadge affliction={m.affliction} />
-            </div>
-          </div>
-          {inParty && <PixelIcon name="selected" label="Assigned" />}
-        </div>
-        <AgentAttrLine m={m} contract={contract} />
-        <GearLine m={m} />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 8 }}>
-          <MeterRow label="Stress" value={m.stress} goodWhen="low" />
-          <MeterRow label="Morale" value={m.morale} goodWhen="high" />
-        </div>
-      </button>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 4, marginTop: 8, borderTop: "1px solid var(--cream-border)", paddingTop: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 4 }}>
         {downtimeActions.map((a) => (
           <DowntimeButton key={a} action={a} onClick={() => onApplyDowntime(m.id, a)} />
         ))}
       </div>
-    </PixelPanel>
-  );
-}
-
-function GearLine(props: { m: RosterMember }): JSX.Element {
-  const { m } = props;
-  if (m.gear.length === 0) {
-    return (
-      <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
-        <div style={{ width: 30, height: 30, border: "1px dashed var(--cream-border)", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--stone)", fontSize: 14, flexShrink: 0 }}>
-          <PixelIcon name="emptySlot" />
-        </div>
-        <div style={{ fontSize: 9, color: "var(--stone)", alignSelf: "center", fontFamily: "var(--px-font)" }}>No gear equipped</div>
-      </div>
-    );
-  }
-  return (
-    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
-      {m.gear.map((gear) => {
-        const bonus = Object.entries(gear.bonuses).map(([attr, value]) => `${attrNameLabel(attr)} +${value}`).join(" · ");
-        return (
-          <div key={gear.id} style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(0,0,0,0.06)", border: "1px solid var(--cream-border)", borderRadius: 2, padding: "3px 7px", minHeight: 30 }}>
-            <span style={{ fontSize: 16, color: "var(--coffee)", lineHeight: 1 }}><PixelIcon name={itemIcon(gear.name)} /></span>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 10, color: "var(--ink)", lineHeight: 1.2, fontFamily: "var(--px-font)" }}>{gear.name}</div>
-              {bonus && <div style={{ fontSize: 9, color: "var(--teal-dark)", fontFamily: "var(--px-font)" }}>{bonus}</div>}
-            </div>
-          </div>
-        );
-      })}
-    </div>
+    </PixelRosterCard>
   );
 }
 
@@ -274,58 +249,7 @@ function DowntimeButton(props: { action: DowntimeAction; onClick: () => void }):
   );
 }
 
-function AgentAttrLine(props: { m: RosterMember; contract: ContractRequirements | null }): JSX.Element | null {
-  const { m, contract } = props;
-  if (!contract || contract.checkedAttributes.length === 0) return null;
-  const attrs = contract.checkedAttributes.slice(0, 4);
-  let bestId = attrs[0]?.id ?? "";
-  for (const a of attrs) if ((m.attributes[a.id] ?? 0) > (m.attributes[bestId] ?? 0)) bestId = a.id;
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 5, marginTop: 8 }}>
-      {attrs.map((a) => {
-        const gear = m.gear.reduce((sum, g) => sum + (g.bonuses[a.id] ?? 0), 0);
-        const strong = a.id === bestId;
-        const raw = m.attributes[a.id] ?? 0;
-        return (
-          <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 5, background: strong ? "rgba(201,161,74,0.08)" : "rgba(0,0,0,0.04)", border: `1px solid ${strong ? "var(--gold-border)" : "var(--cream-border)"}`, borderRadius: 2, padding: "3px 6px", minHeight: 30 }}>
-            <PixelIcon name={attrIcon(a.id)} style={{ fontSize: 13, color: strong ? "var(--gold-dark)" : "var(--stone)" }} />
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 9, color: "var(--stone)", lineHeight: 1, fontFamily: "var(--px-font)" }}>{a.name}</div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
-                <strong style={{ fontSize: 14, color: strong ? "var(--gold-dark)" : "var(--ink-soft)", fontFamily: "var(--px-font)", lineHeight: 1.1 }}>{raw}</strong>
-                {gear > 0 && <span style={{ fontSize: 10, color: "var(--teal-dark)", fontFamily: "var(--px-font)" }}>+{gear}</span>}
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function AfflictionBadge(props: { affliction: string | null }): JSX.Element | null {
-  if (!props.affliction) return null;
-  return (
-    <PixelBadge state="failing" style={{ fontSize: 8, minHeight: 18, padding: "1px 5px" }}>
-      {props.affliction}
-    </PixelBadge>
-  );
-}
-
-function MeterRow(props: { label: string; value: number; goodWhen: "high" | "low" }): JSX.Element {
-  const { label, value, goodWhen } = props;
-  const pct = Math.max(0, Math.min(100, value));
-  const isGood = goodWhen === "high" ? pct >= 50 : pct <= 50;
-  const color = isGood ? "var(--teal)" : "var(--danger)";
-  return (
-    <div>
-      <div style={{ fontSize: 9, color: "var(--ink-muted)", marginBottom: 2 }}>{label} {Math.round(pct)}</div>
-      <PixelMeter value={pct} max={100} segments={5} color={color} label={label} />
-    </div>
-  );
-}
-
-// ── Contract + Readiness ──────────────────────────────────────────────────────
+// ── Contract + Readiness ───────────────────────────────────────────────────────────
 
 export function ContractRegion(props: {
   selected: WorldNode;
@@ -507,9 +431,6 @@ function FixButton(props: { label: string; fix: FixSuggestion; onClick: () => vo
   );
 }
 
-const STATUS_MARK: Record<CheckStatus, PixelIconName> = { ready: "reliable", thin: "risky", short: "failing" };
-const STATUS_LABEL: Record<CheckStatus, string> = { ready: "Reliable", thin: "Risky", short: "Failing" };
-const STATUS_ROW_CLASS: Record<CheckStatus, string> = { ready: "check-row check-row--ready", thin: "check-row check-row--thin", short: "check-row check-row--short" };
 const OUTCOME_STATE: Record<ProjectedOutcome, "reliable" | "risky" | "failing" | "recorded"> = { success: "reliable", partial: "risky", failure: "failing", none: "recorded" };
 const OUTCOME_LABEL: Record<ProjectedOutcome, string> = { success: "Projected Reliable", partial: "Projected Risky", failure: "Projected to Fail", none: "Assign a party" };
 
@@ -549,7 +470,8 @@ function ReadinessPanel(props: { contract: ContractRequirements; readiness: Part
           const topContrib = [...c.contributors]
             .filter((x) => x.inScope)
             .sort((a, b) => b.total - a.total)
-            .slice(0, 2);
+            .slice(0, 2)
+            .map((x) => `${x.agentName} ${scoreText(x.total)}`);
 
           // Threshold explanation for authored perAssignedAgent scaling
           const partySize = c.thresholdMode === "perAssignedAgent" && c.baseThreshold > 0
@@ -561,54 +483,19 @@ function ReadinessPanel(props: { contract: ContractRequirements; readiness: Part
             : null;
 
           return (
-            <div key={c.id} className={STATUS_ROW_CLASS[c.status]} style={{ fontFamily: "var(--px-font)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
-                <span style={{ fontWeight: 800, fontSize: 12, color: "var(--ink)", display: "flex", alignItems: "center", gap: 5 }}>
-                  <PixelIcon name={STATUS_MARK[c.status]} /> {c.name}
-                </span>
-                <span style={{ fontWeight: 700, fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
-                  {scoreText(c.projected)} / {Math.round(c.threshold)}
-                </span>
-              </div>
-
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, fontSize: 10, color: "var(--stone)", marginTop: 4 }}>
-                {attrs.map((a) => (
-                  <span key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
-                    <PixelIcon name={attrIcon(a.id)} /> {a.name}
-                  </span>
-                ))}
-                <span>· {scope}</span>
-                <span>· {STATUS_LABEL[c.status]}</span>
-              </div>
-
-              {thresholdCopy && (
-                <div style={{ fontSize: 10, color: "var(--coffee)", marginTop: 4 }}>
-                  {thresholdCopy}
-                </div>
-              )}
-
-              {c.status === "thin" && (
-                <div style={{ fontSize: 11, color: "var(--gold-dark)", marginTop: 5 }}>
-                  Passing by +{scoreText(c.margin)} · needs +{scoreText(c.shortBy)} more buffer to become reliable.
-                </div>
-              )}
-              {c.status === "short" && (
-                <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 5 }}>
-                  Failing by {scoreText(Math.abs(c.margin))} · needs +{scoreText(c.shortBy)} to become reliable.
-                </div>
-              )}
-              {c.status === "ready" && (
-                <div style={{ fontSize: 10, color: "var(--teal-dark)", marginTop: 5 }}>
-                  Reliable buffer reached.
-                </div>
-              )}
-
-              {topContrib.length > 0 && (
-                <div style={{ fontSize: 10, color: "var(--stone)", marginTop: 5 }}>
-                  Top: {topContrib.map((x) => `${x.agentName} ${scoreText(x.total)}`).join(" · ")}
-                </div>
-              )}
-            </div>
+            <PixelReadinessRow
+              key={c.id}
+              name={c.name}
+              status={c.status as ReadinessStatus}
+              projected={c.projected}
+              threshold={c.threshold}
+              margin={c.margin}
+              shortBy={c.shortBy}
+              attributeNames={attrs.map((a) => a.name)}
+              scope={scope}
+              topContributors={topContrib}
+              thresholdCopy={thresholdCopy}
+            />
           );
         })}
       </div>
@@ -623,7 +510,7 @@ function ReadinessPanel(props: { contract: ContractRequirements; readiness: Part
 }
 
 
-// ── Loot / Equip ──────────────────────────────────────────────────────────────
+// ── Loot / Equip ─────────────────────────────────────────────────────────────
 
 export function LootRegion(props: { loot: PendingLootChoice[]; onClaimLoot: (choiceId: string, agentId: string) => void }): JSX.Element | null {
   if (props.loot.length === 0) return null;
@@ -636,32 +523,27 @@ export function LootRegion(props: { loot: PendingLootChoice[]; onClaimLoot: (cho
         const bonus = Object.entries(choice.bonuses).map(([attr, value]) => `${attrNameLabel(attr)} +${value}`).join(" · ");
         const preferred = choice.eligibleAgents[0];
         return (
-          <PixelPanel key={choice.id} style={{ padding: 12 }}>
-            <div style={{ display: "flex", gap: 12, alignItems: "start" }}>
-              <div style={{ fontSize: 24, color: "var(--coffee)", lineHeight: 1 }}>
-                <PixelIcon name={itemIcon(choice.itemName)} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 800, fontSize: 13, color: "var(--ink)", fontFamily: "var(--px-font)" }}>{choice.itemName}</div>
-                <div style={{ color: "var(--coffee)", fontSize: 11, marginTop: 2, fontFamily: "var(--px-font)" }}>{choice.slot} · {bonus || "utility"}</div>
-                <div style={{ color: "var(--stone)", fontSize: 10, marginTop: 4, lineHeight: 1.4, fontFamily: "var(--px-font)" }}>{choice.flavorText}</div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
-                  {choice.eligibleAgents.slice(0, 3).map((agent) => (
-                    <PixelButton key={agent.id} variant={agent.id === preferred?.id ? "confirm" : "secondary"} onClick={() => props.onClaimLoot(choice.id, agent.id)} style={{ minHeight: 36, fontSize: 10, padding: "5px 10px" }}>
-                      Equip → {agent.name}
-                    </PixelButton>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </PixelPanel>
+          <PixelLootCard
+            key={choice.id}
+            itemName={choice.itemName}
+            icon={itemIcon(choice.itemName)}
+            slot={choice.slot}
+            bonusText={bonus}
+            flavorText={choice.flavorText}
+          >
+            {choice.eligibleAgents.slice(0, 3).map((agent) => (
+              <PixelButton key={agent.id} variant={agent.id === preferred?.id ? "confirm" : "secondary"} onClick={() => props.onClaimLoot(choice.id, agent.id)} style={{ minHeight: 36, fontSize: 10, padding: "5px 10px" }}>
+                Equip → {agent.name}
+              </PixelButton>
+            ))}
+          </PixelLootCard>
         );
       })}
     </div>
   );
 }
 
-// ── Report · Coach · Dispatches · Complete ────────────────────────────────────
+// ── Report · Coach · Dispatches · Complete ──────────────────────────────────────────────────
 
 export function ReportRegion(props: { lastReport: PlayReportView }): JSX.Element {
   const { lastReport } = props;
@@ -718,7 +600,7 @@ export function CompleteBanner(): JSX.Element {
   );
 }
 
-// ── Small shared bits ──────────────────────────────────────────────────────────
+// ── Small shared bits ─────────────────────────────────────────────────────
 
 export function SectionLabel(props: { children: ReactNode }): JSX.Element {
   return <div className="pixel-panel__title">{props.children}</div>;
