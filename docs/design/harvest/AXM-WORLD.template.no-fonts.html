@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AXM-WORLD · Runtime Engine</title>
+
+<!-- pixel fonts -->
+<style>/* font-face removed from harvest package */
+/* font-face removed from harvest package */
+/* font-face removed from harvest package */
+/* font-face removed from harvest package */
+/* font-face removed from harvest package */
+/* font-face removed from harvest package */
+/* font-face removed from harvest package */
+/* font-face removed from harvest package */
+/* font-face removed from harvest package */
+/* font-face removed from harvest package */
+/* font-face removed from harvest package */
+/* font-face removed from harvest package */
+</style>
+
+<style>/* ============================================================
+   RODOH PLATFORM IDENTITY SYSTEM  -  v1.0
+   AXM-WORLD runtime shell stylesheet.
+   Cartridges override theme tokens via [data-cartridge].
+   8px grid. Pixel-perfect. 16-bit heart, enduring soul.
+   ============================================================ */
+
+:root {
+  /* ---- RODOH CORE PALETTE (AXM-WORLD default shell skin) ---- */
+  --cream:    #FFF5E6;
+  --charcoal: #1B1818;
+  --moss:     #6B784D;
+  --gold:     #D4A93A;
+  --brown:    #8B5E34;
+  --rust:     #B2443A;
+  --stone:    #7A7A7A;
+  --teal:     #1F9F90;
+  --yellow:   #FFC250;
+
+  /* ---- SEMANTIC TOKENS (what components actually reference) ---- */
+  --bg:        #0e0c0c;        /* letterbox / void */
+  --paper:     #efe4cb;        /* panel fill */
+  --paper-2:   #e4d6b6;        /* panel fill, deeper */
+  --ink:       var(--charcoal);
+  --ink-soft:  #4a4038;
+  --line:      var(--charcoal);
+  --accent:    var(--moss);
+  --attention: var(--gold);
+  --danger:    var(--rust);
+  --success:   var(--moss);
+  --warning:   var(--gold);
+  --muted:     var(--stone);
+
+  /* meaning -> color (per design sheet "COLOR USAGE") */
+  --c-available: var(--teal);
+  --c-reliable:  var(--moss);
+  --c-risky:     var(--gold);
+  --c-failing:   var(--rust);
+  --c-locked:    var(--stone);
+
+  /* ---- SPACING (8px grid) ---- */
+  --u: 8px;
+  --u2: 16px;
+  --u3: 24px;
+  --u4: 32px;
+
+  /* ---- FONTS ---- */
+  --font-display: 'Press Start 2P', monospace;  /* wordmarks / titles */
+  --font-ui: 'Silkscreen', monospace;           /* labels / buttons (caps) */
+  --font-body: 'VT323', monospace;              /* readable body / numbers */
+
+  --pix: 2px;  /* base pixel unit for bevels/borders */
+}
+
+/* ============================================================
+   CARTRIDGE SKIN OVERRIDES
+   This is the skinning mechanism: a cartridge swaps theme
+   tokens; the AXM-WORLD runtime structure is untouched.
+   ============================================================ */
+[data-cartridge="first-charter"] {
+  --cream:    #F6EFE3;
+  --charcoal: #2D2D2D;
+  --moss:     #6A7F52;   /* olive resolve */
+  --gold:     #D8B276;   /* parchment gold */
+  --brown:    #6B4A2F;   /* coffee brown */
+  --rust:     #9E2F2F;   /* counterattack red */
+  --stone:    #8C8C8C;   /* archive gray */
+  --teal:     #6A7F52;
+  --yellow:   #D8B276;
+
+  --bg:     #16110c;
+  --paper:  #f2e9d6;
+  --paper-2:#e7d9bd;
+  --accent: var(--moss);
+  --c-available: var(--moss);
+  --c-reliable:  var(--moss);
+}
+
+/* ============================================================
+   RESET / BASE
+   ============================================================ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+  image-rendering: pixelated;
+  overflow: hidden;
+}
+canvas { image-rendering: pixelated; }
+button { font-family: inherit; cursor: pointer; }
+::selection { background: var(--gold); color: var(--charcoal); }
+
+/* scrollbars, pixel style */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: var(--paper-2); }
+*::-webkit-scrollbar-thumb { background: var(--charcoal); border: 2px solid var(--paper-2); }
+
+/* ============================================================
+   STAGE  (fixed virtual resolution, scaled to viewport)
+   ============================================================ */
+#stage-wrap {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 40%, #1a1614 0%, var(--bg) 70%);
+}
+#stage {
+  width: 1280px; height: 800px;
+  position: relative;
+  transform-origin: center center;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* ============================================================
+   TYPOGRAPHY HELPERS
+   ============================================================ */
+.t-display { font-family: var(--font-display); line-height: 1.25; letter-spacing: 0; }
+.t-ui { font-family: var(--font-ui); text-transform: uppercase; letter-spacing: .04em; }
+.t-body { font-family: var(--font-body); font-size: 20px; line-height: 1.05; }
+.muted { color: var(--ink-soft); }
+.title-16 { font-family: var(--font-display); font-size: 16px; }
+.header-12 { font-family: var(--font-display); font-size: 12px; }
+
+/* wordmark */
+.wordmark {
+  font-family: var(--font-display);
+  color: var(--charcoal);
+  text-shadow: 3px 3px 0 rgba(0,0,0,.18);
+  letter-spacing: 2px;
+}
+
+/* ============================================================
+   PANEL FRAME  (9-slice look via layered borders)
+   ============================================================ */
+.panel {
+  position: relative;
+  background: var(--paper);
+  color: var(--ink);
+  border: var(--pix) solid var(--charcoal);
+  box-shadow:
+    inset 0 0 0 var(--pix) var(--paper),
+    inset 0 0 0 calc(var(--pix) * 2) var(--charcoal),
+    inset 0 0 0 calc(var(--pix) * 3) var(--paper),
+    0 var(--pix) 0 rgba(0,0,0,.35);
+  padding: var(--u2);
+}
+.panel--selected {
+  box-shadow:
+    inset 0 0 0 var(--pix) var(--paper),
+    inset 0 0 0 calc(var(--pix) * 2) var(--gold),
+    inset 0 0 0 calc(var(--pix) * 3) var(--paper),
+    0 0 0 var(--pix) var(--gold),
+    0 var(--pix) 0 rgba(0,0,0,.35);
+}
+.panel--dark {
+  background: var(--charcoal);
+  color: var(--cream);
+  box-shadow:
+    inset 0 0 0 var(--pix) var(--charcoal),
+    inset 0 0 0 calc(var(--pix)*2) var(--stone),
+    inset 0 0 0 calc(var(--pix)*3) var(--charcoal);
+}
+.panel__title {
+  position: absolute; top: calc(var(--u) * -1.5); left: var(--u2);
+  background: var(--charcoal); color: var(--cream);
+  font-family: var(--font-display); font-size: 11px;
+  padding: 6px 10px; letter-spacing: 1px;
+}
+
+/* section header tab (like the black tabs in the sheets) */
+.section-tab {
+  display: inline-block;
+  background: var(--charcoal); color: var(--cream);
+  font-family: var(--font-display); font-size: 12px;
+  padding: 8px 14px; letter-spacing: 1px;
+}
+
+/* ============================================================
+   BUTTONS  (pixel bevel; states: default/hover/pressed/disabled)
+   ============================================================ */
+.btn {
+  font-family: var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-size: 13px;
+  color: var(--cream);
+  background: var(--moss);
+  border: var(--pix) solid var(--charcoal);
+  padding: 10px 16px;
+  display: inline-flex; align-items: center; gap: 8px;
+  box-shadow:
+    inset calc(var(--pix) * -1) calc(var(--pix) * -1) 0 rgba(0,0,0,.35),
+    inset var(--pix) var(--pix) 0 rgba(255,255,255,.28),
+    0 var(--pix) 0 var(--charcoal);
+  transition: transform .04s, filter .08s;
+  position: relative; top: 0;
+  user-select: none;
+  min-height: 44px;
+}
+.btn:hover { filter: brightness(1.1); }
+.btn:active, .btn.is-pressed {
+  top: var(--pix);
+  box-shadow:
+    inset var(--pix) var(--pix) 0 rgba(0,0,0,.4),
+    inset calc(var(--pix) * -1) calc(var(--pix) * -1) 0 rgba(255,255,255,.18);
+}
+.btn:disabled, .btn.is-disabled {
+  background: var(--stone); color: #d8cfc0;
+  cursor: not-allowed; filter: none; top: 0;
+  box-shadow: inset 0 0 0 var(--pix) rgba(0,0,0,.15), 0 var(--pix) 0 #5c5c5c;
+}
+.btn--primary   { background: var(--gold);  color: var(--charcoal); }
+.btn--secondary { background: var(--paper-2); color: var(--charcoal); }
+.btn--confirm   { background: var(--teal);  color: var(--cream); }
+.btn--danger    { background: var(--rust);  color: var(--cream); }
+.btn--ghost     { background: transparent;  color: var(--charcoal);
+  box-shadow: inset 0 0 0 var(--pix) var(--charcoal); }
+.btn--lg { font-size: 15px; padding: 14px 22px; min-height: 52px; }
+.btn--sm { font-size: 11px; padding: 7px 11px; min-height: 36px; }
+.btn--block { width: 100%; justify-content: center; }
+
+/* ============================================================
+   CHIPS  (count / alert / info / tab)
+   ============================================================ */
+.chip {
+  font-family: var(--font-ui); text-transform: uppercase;
+  font-size: 11px; letter-spacing: .05em;
+  padding: 5px 9px; color: var(--cream);
+  background: var(--moss);
+  border: var(--pix) solid var(--charcoal);
+  display: inline-flex; align-items: center; gap: 6px;
+  box-shadow: inset calc(var(--pix)*-1) calc(var(--pix)*-1) 0 rgba(0,0,0,.3);
+}
+.chip--active   { background: var(--moss); }
+.chip--risk     { background: var(--rust); }
+.chip--complete { background: var(--charcoal); color: var(--gold); }
+.chip--locked   { background: var(--stone); }
+.chip--count    { background: var(--charcoal); color: var(--gold); font-family: var(--font-body); font-size: 16px; padding: 3px 8px; }
+.chip--alert    { background: var(--gold); color: var(--charcoal); }
+.chip--info     { background: var(--charcoal); color: var(--teal); }
+
+/* tab chips */
+.tab {
+  font-family: var(--font-ui); text-transform: uppercase; font-size: 12px;
+  padding: 9px 14px; letter-spacing: .05em;
+  background: var(--charcoal); color: var(--stone);
+  border: var(--pix) solid var(--charcoal);
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.tab.is-active { background: var(--teal); color: var(--cream); }
+
+/* ============================================================
+   BADGES  (status / contract state)
+   ============================================================ */
+.badge {
+  display: inline-flex; flex-direction: column; align-items: center;
+  gap: 4px; font-family: var(--font-ui); text-transform: uppercase;
+  font-size: 9px; letter-spacing: .04em; color: var(--ink-soft);
+}
+.badge__icon {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--paper-2);
+  border: var(--pix) solid var(--charcoal);
+  box-shadow: inset calc(var(--pix)*-1) calc(var(--pix)*-1) 0 rgba(0,0,0,.2);
+}
+
+/* ============================================================
+   METERS  (xp / readiness / hearts)
+   ============================================================ */
+.meter {
+  display: flex; gap: 3px; align-items: center;
+  background: var(--charcoal); padding: 3px;
+  border: var(--pix) solid var(--charcoal);
+}
+.meter__seg {
+  width: 14px; height: 14px;
+  background: #2a2622;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,.06);
+}
+.meter__seg.is-full { background: var(--gold); box-shadow: inset 1px 1px 0 rgba(255,255,255,.4); }
+.meter--xp .meter__seg.is-full { background: var(--gold); }
+.meter--ready .meter__seg.is-full { background: var(--moss); }
+
+/* slim progress bar */
+.bar {
+  height: 14px; background: #2a2622;
+  border: var(--pix) solid var(--charcoal);
+  position: relative; overflow: hidden;
+}
+.bar__fill { position: absolute; inset: 0 auto 0 0; background: var(--gold);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.35); transition: width .4s steps(12); }
+
+/* ============================================================
+   ROSTER CARD
+   ============================================================ */
+.roster-card { display: flex; gap: var(--u2); align-items: stretch; }
+.portrait {
+  width: 72px; height: 72px; flex: none;
+  background: var(--paper-2);
+  border: var(--pix) solid var(--charcoal);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: inset calc(var(--pix)*-1) calc(var(--pix)*-1) 0 rgba(0,0,0,.25);
+}
+
+/* ============================================================
+   CONTRACT CARD
+   ============================================================ */
+.contract {
+  display: flex; gap: var(--u2); align-items: center;
+  cursor: pointer; transition: transform .05s;
+}
+.contract:hover { transform: translateX(3px); }
+
+/* ============================================================
+   DIVIDER ORNAMENT
+   ============================================================ */
+.divider {
+  display: flex; align-items: center; gap: 10px;
+  color: var(--gold); font-family: var(--font-display); font-size: 10px;
+}
+.divider::before, .divider::after {
+  content: ""; flex: 1; height: var(--pix); background: var(--gold);
+  box-shadow: 0 4px 0 var(--paper), 0 -4px 0 var(--paper);
+}
+
+/* ============================================================
+   FORM CONTROLS  (AXM-ARC authoring)
+   ============================================================ */
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field > label {
+  font-family: var(--font-ui); text-transform: uppercase;
+  font-size: 10px; letter-spacing: .05em; color: var(--ink-soft);
+}
+.pix-input, .pix-area, .pix-select {
+  font-family: var(--font-body); font-size: 19px; line-height: 1.1;
+  color: var(--ink); background: var(--cream);
+  border: var(--pix) solid var(--charcoal);
+  padding: 8px 10px; width: 100%;
+  box-shadow: inset var(--pix) var(--pix) 0 rgba(0,0,0,.18);
+  outline: none;
+}
+.pix-input::placeholder, .pix-area::placeholder { color: #b3a892; }
+.pix-input:focus, .pix-area:focus, .pix-select:focus {
+  border-color: var(--gold);
+  box-shadow: inset var(--pix) var(--pix) 0 rgba(0,0,0,.18), 0 0 0 var(--pix) var(--gold);
+}
+.pix-area { resize: vertical; min-height: 64px; }
+.pix-select {
+  font-family: var(--font-ui); text-transform: uppercase; font-size: 12px;
+  cursor: pointer; appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--charcoal) 50%),
+                    linear-gradient(135deg, var(--charcoal) 50%, transparent 50%);
+  background-position: calc(100% - 14px) 14px, calc(100% - 8px) 14px;
+  background-size: 6px 6px, 6px 6px; background-repeat: no-repeat;
+  padding-right: 28px;
+}
+.pix-num {
+  width: 64px; text-align: center; font-family: var(--font-display); font-size: 13px;
+}
+.stepper { display: inline-flex; align-items: center; gap: 0; }
+.stepper button {
+  width: 30px; height: 38px; background: var(--paper-2); color: var(--charcoal);
+  border: var(--pix) solid var(--charcoal); font-family: var(--font-display); font-size: 12px;
+}
+.stepper button:active { background: var(--gold); }
+
+/* pickable swatch / sprite chooser */
+.swatch {
+  width: 40px; height: 40px; border: var(--pix) solid var(--charcoal); cursor: pointer;
+  box-shadow: inset calc(var(--pix)*-1) calc(var(--pix)*-1) 0 rgba(0,0,0,.25);
+}
+.swatch.is-on { box-shadow: 0 0 0 var(--pix) var(--gold), inset 0 0 0 var(--pix) var(--cream); }
+.pick {
+  display: flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px; background: var(--paper-2);
+  border: var(--pix) solid var(--charcoal); cursor: pointer;
+}
+.pick.is-on { background: var(--cream); box-shadow: 0 0 0 var(--pix) var(--gold); }
+
+/* left rail nav (authoring) */
+.rail-item {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-ui); text-transform: uppercase; font-size: 12px;
+  letter-spacing: .04em; color: var(--stone);
+  padding: 12px 14px; cursor: pointer; width: 100%; text-align: left;
+  background: transparent; border: none; border-left: 4px solid transparent;
+}
+.rail-item:hover { color: var(--cream); background: rgba(255,255,255,.04); }
+.rail-item.is-active { color: var(--cream); border-left-color: var(--gold); background: rgba(212,169,58,.12); }
+
+/* ============================================================
+   SCANLINE / CRT FX (subtle, runtime ambience)
+   ============================================================ */
+.crt::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.06) 2px 4px);
+  mix-blend-mode: multiply; z-index: 9999;
+}
+
+/* ============================================================
+   LAYOUT UTILITIES
+   ============================================================ */
+.row { display: flex; gap: var(--u2); align-items: center; }
+.col { display: flex; flex-direction: column; gap: var(--u2); }
+.between { justify-content: space-between; }
+.center { align-items: center; justify-content: center; }
+.wrap { flex-wrap: wrap; }
+.grow { flex: 1; }
+.gap1 { gap: var(--u); } .gap2 { gap: var(--u2); } .gap3 { gap: var(--u3); }
+.scroll-y { overflow-y: auto; overflow-x: hidden; }
+
+/* fade/scale entrance for screen transitions */
+/* entrance: transform-only so a paused/suppressed animation never hides content */
+@keyframes screen-in { from { transform: translateY(8px); } to { transform: none; } }
+.screen-in { animation: screen-in .18s steps(4); }
+
+@keyframes pop-in { from { transform: scale(.96); } to { transform: none; } }
+.pop-in { animation: pop-in .14s steps(3); }
+
+@keyframes blink { 50% { opacity: .25; } }
+.blink { animation: blink 1s steps(1) infinite; }
+
+@keyframes float-seed {
+  0% { transform: translateY(0) translateX(0) rotate(0); opacity: .9; }
+  100% { transform: translateY(-40px) translateX(30px) rotate(40deg); opacity: 0; }
+}
+</style>
+
+<!-- React + Babel (pinned) -->
+<script src="8644b1c3-e54f-4f50-84bd-f9326894dc29" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="b66dff45-2b7a-46fb-b054-e70f90f1b4ff" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="0d8228b1-1efe-42b7-82f5-b955e5b7b84a" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  
+  <div id="stage-wrap">
+    <div id="stage" class="crt" data-cartridge="default">
+      <div id="root"></div>
+    </div>
+  </div>
+
+  <!-- engine modules (order matters; each exports to window) -->
+  <script type="text/babel" src="75f7fd4e-aeac-45ed-981e-d2502ab6afbf"></script>
+  <script type="text/babel" src="c26a4920-ebd1-4ef6-b7aa-d934be84c035"></script>
+  <script type="text/babel" src="670c646a-dd5e-45d9-a437-13259aee460d"></script>
+  <script type="text/babel" src="a6281215-71ad-4a08-bbe4-6919955b7e73"></script>
+  <script type="text/babel" src="3a9f4097-5c05-43f0-9c1a-bc5a2906864a"></script>
+  <script type="text/babel" src="63000eec-775b-47e9-8657-371e48e854bb"></script>
+  <script type="text/babel" src="d0d6c7a4-2922-4a76-b031-c3d0a49b282a"></script>
+
+
+</body></html>

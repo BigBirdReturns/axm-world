@@ -1,0 +1,281 @@
+/* Layout for the /rodoh/ui-kit reference sheet. Route-only styling — never
+   imported by gameplay surfaces, so it can't leak into runtime bundles. */
+
+.rk-page {
+  min-height: 100%;
+  background: radial-gradient(120% 60% at 50% -10%, #1e1b14 0%, #0b0a08 60%);
+  color: #ece4d4;
+  font-family: var(--px-font);
+  padding: clamp(16px, 4vw, 40px);
+  box-sizing: border-box;
+}
+
+.rk-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  padding-bottom: 20px;
+  margin-bottom: 32px;
+  border-bottom: 2px solid #3a352c;
+}
+
+.rk-header h1 {
+  font-size: clamp(26px, 3.4vw, 38px);
+  margin: 0 0 6px;
+  letter-spacing: 0.01em;
+}
+
+.rk-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--parchment-gold);
+}
+
+.rk-sub {
+  color: #a59c8b;
+  font-size: 13px;
+  max-width: 640px;
+  line-height: 1.5;
+  margin: 6px 0 0;
+}
+
+.rk-meta {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: #a59c8b;
+  align-items: center;
+}
+
+.rk-meta strong {
+  color: var(--parchment-gold);
+}
+
+.rk-palette {
+  display: flex;
+  gap: 5px;
+}
+
+.rk-swatch {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #000;
+}
+
+.rk-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 11px;
+  color: #8b7d6a;
+  margin-bottom: 28px;
+}
+
+.rk-toc a {
+  color: #8b7d6a;
+  text-decoration: none;
+  border-bottom: 1px dotted #4a4238;
+}
+.rk-toc a:hover {
+  color: var(--parchment-gold);
+}
+
+.rk-section {
+  margin-bottom: 44px;
+  scroll-margin-top: 16px;
+}
+
+.rk-section h2 {
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--parchment-gold);
+  margin: 0 0 4px;
+}
+
+.rk-section-note {
+  color: #8b7d6a;
+  font-size: 11px;
+  margin: 0 0 16px;
+  max-width: 640px;
+  line-height: 1.5;
+}
+
+.rk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.rk-grid--wide {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.rk-grid--narrow {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.rk-cell {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #2a2620;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+}
+
+.rk-cell-label {
+  font-size: 10px;
+  color: #8b7d6a;
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+
+/* Icon matrix */
+.rk-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 10px 4px;
+  border-bottom: 1px solid #211f1a;
+  flex-wrap: wrap;
+}
+
+.rk-icon-name {
+  width: 116px;
+  font-size: 11px;
+  color: #c9bfae;
+  flex-shrink: 0;
+}
+
+.rk-icon-sizes {
+  display: flex;
+  align-items: flex-end;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+
+.rk-icon-size-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.rk-icon-size-label {
+  font-size: 9px;
+  color: #6b6050;
+}
+
+/* Dark / light tone examples */
+.rk-tone-demo {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.rk-tone-card {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+  min-width: 220px;
+  flex: 1 1 260px;
+}
+
+.rk-tone-card--dark {
+  background: #14120d;
+  border: 2px solid #3a352c;
+}
+
+.rk-tone-card--light {
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+}
+
+.rk-tone-card-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8b7d6a;
+}
+.rk-tone-card--light .rk-tone-card-label {
+  color: var(--coffee);
+}
+
+/* Mobile preview frame */
+.rk-mobile-frame-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.rk-mobile-frame {
+  width: 390px;
+  max-width: 100%;
+  border: 8px solid #211f1a;
+  border-radius: 26px;
+  padding: 10px;
+  background: #0b0a08;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.rk-mobile-frame__notch {
+  width: 70px;
+  height: 6px;
+  border-radius: 4px;
+  background: #211f1a;
+  margin: 0 auto 8px;
+}
+
+.rk-mobile-frame__screen {
+  border-radius: 14px;
+  overflow: hidden;
+  background: #11100d;
+  padding: 10px;
+  max-height: 620px;
+  overflow-y: auto;
+}
+
+.rk-mobile-label {
+  text-align: center;
+  font-size: 10px;
+  color: #6b6050;
+  margin-top: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Gameplay-in-context sample */
+.rk-context-board {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) 1fr;
+  gap: 16px;
+  background: radial-gradient(circle at top, rgba(255, 243, 224, 0.06), transparent 38%), linear-gradient(180deg, #11100d, #080706 70%);
+  border: 1px solid #2a2620;
+  padding: 16px;
+}
+
+@media (max-width: 760px) {
+  .rk-context-board {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .rk-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .rk-icon-name {
+    width: 100%;
+  }
+}
