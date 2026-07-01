@@ -1,0 +1,24 @@
+{
+  "AXM-ARC": {
+    "source_title": "AXM-ARC",
+    "template_no_fonts": "AXM-ARC.template.no-fonts.html",
+    "resources_total": 22,
+    "resources_by_mime": {
+      "text/javascript": 3,
+      "application/javascript": 7,
+      "font/woff2": 12
+    },
+    "note": "Raw embedded font resources and original manifests are intentionally excluded from this harvest."
+  },
+  "AXM-WORLD": {
+    "source_title": "AXM-WORLD",
+    "template_no_fonts": "AXM-WORLD.template.no-fonts.html",
+    "resources_total": 22,
+    "resources_by_mime": {
+      "text/javascript": 3,
+      "application/javascript": 7,
+      "font/woff2": 12
+    },
+    "note": "Raw embedded font resources and original manifests are intentionally excluded from this harvest."
+  }
+}

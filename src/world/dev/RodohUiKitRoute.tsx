@@ -47,7 +47,16 @@ const PALETTE: Array<{ name: string; css: string }> = [
   { name: "stone", css: "var(--stone)" },
 ];
 
+const SOURCE_RUNTIME_ROWS: Array<{ source: string; runtime: string; provenance: string }> = [
+  { source: "01_rodoh_platform_identity_system_guide.png", runtime: "PixelPanel / PixelButton / PixelBadge tokens", provenance: "redrawn derivative — palette, panel frames, button/chip states" },
+  { source: "02_axm_world_runtime_ui_asset_pack.png", runtime: "PixelIcon (all 19 state/role/attribute/item icons)", provenance: "redrawn derivative — see component-inventory.md for per-icon match quality" },
+  { source: "03_first_charter_theme_asset_pack_overview.png", runtime: "MotifIcon (7 First Charter motifs)", provenance: "redrawn derivative — see component-inventory.md for per-motif match quality" },
+  { source: "docs/design/harvest/AXM-WORLD.template.no-fonts.html", runtime: "reference only, not wired into runtime", provenance: "harvested asset (no-font standalone export)" },
+  { source: "docs/design/harvest/standalone_inventory.json", runtime: "reference only, not wired into runtime", provenance: "harvested asset" },
+];
+
 const TOC: Array<{ id: string; label: string }> = [
+  { id: "provenance", label: "Source Mapping" },
   { id: "icons", label: "Icon Matrix" },
   { id: "roles", label: "Role Badges" },
   { id: "attributes", label: "Attributes" },
@@ -101,9 +110,12 @@ export function RodohUiKitRoute(): JSX.Element {
           <div className="rk-eyebrow">Rodoh Runtime · Design System</div>
           <h1>Pixel-UI Reference Sheet</h1>
           <p className="rk-sub">
-            Every live component, state, and First Charter motif icon in the runtime, rendered
-            from the exact same source gameplay imports. No emoji, no font-glyph placeholders —
-            every icon below is a hand-drawn pixel SVG.
+            Every live component and state below is the exact same gameplay import — not a
+            mockup. Icons are redrawn 8x8/16x16 pixel-grid derivatives of the harvested reference
+            sheets in <code>docs/design/references/</code> (not font-glyph placeholders, and not
+            slices of the source PNGs). See "Source vs Runtime Mapping" below and
+            <code> docs/design/references/component-inventory.md</code> for the per-icon citation
+            and honest match-quality rating.
           </p>
         </div>
         <div className="rk-meta">
@@ -122,7 +134,28 @@ export function RodohUiKitRoute(): JSX.Element {
         {TOC.map((t) => <a key={t.id} href={`#${t.id}`}>{t.label}</a>)}
       </nav>
 
-      <Section id="icons" title="Icon Matrix" note="Every PixelIcon at 16 / 24 / 32 / 64px. Each is a hand-authored 8×8 pixel grid rendered as SVG rects — never a text glyph.">
+      <Section id="provenance" title="Source vs Runtime Mapping" note="Every harvested reference sheet actually present in this repo, and what runtime code was redrawn from it. See docs/design/references/component-inventory.md for the full per-icon table.">
+        <div style={{ display: "grid", gap: 8 }}>
+          {SOURCE_RUNTIME_ROWS.map((row) => (
+            <PixelPanel key={row.source} style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1.3fr", gap: 12, padding: 10, alignItems: "start" }}>
+              <div>
+                <div className="pixel-panel__title">Harvested source</div>
+                <div style={{ fontSize: 10, color: "var(--ink-soft)", lineHeight: 1.4, fontFamily: "var(--px-font)" }}>{row.source}</div>
+              </div>
+              <div>
+                <div className="pixel-panel__title">Runtime</div>
+                <div style={{ fontSize: 10, color: "var(--ink-soft)", lineHeight: 1.4, fontFamily: "var(--px-font)" }}>{row.runtime}</div>
+              </div>
+              <div>
+                <div className="pixel-panel__title">Provenance</div>
+                <div style={{ fontSize: 10, color: "var(--ink-soft)", lineHeight: 1.4, fontFamily: "var(--px-font)" }}>{row.provenance}</div>
+              </div>
+            </PixelPanel>
+          ))}
+        </div>
+      </Section>
+
+      <Section id="icons" title="Icon Matrix" note="Every PixelIcon at 16 / 24 / 32 / 64px. Each is a redrawn 8×8 pixel-grid derivative of 02_axm_world_runtime_ui_asset_pack.png — never a text glyph, and not a slice of the source PNG. Match quality varies per icon; see component-inventory.md.">
         <IconMatrix />
       </Section>
 
@@ -243,7 +276,7 @@ export function RodohUiKitRoute(): JSX.Element {
         </div>
       </Section>
 
-      <Section id="encounter" title="Encounter Motifs" note="First Charter MotifIcon set — replaces the emoji glyphs EncounterDirector used to render per-location." wide>
+      <Section id="encounter" title="Encounter Motifs" note="First Charter MotifIcon set — redrawn derivatives of 03_first_charter_theme_asset_pack_overview.png §1, replacing the emoji glyphs EncounterDirector used to render per-location." wide>
         <div className="rk-grid rk-grid--narrow">
           {MOTIFS.map((name) => (
             <div key={name} className="rk-cell">
