@@ -137,7 +137,8 @@
 
 /* ── ROLE BADGE ──────────────────────────────────────────────────────────── */
 
-.role-badge {
+.role-badge,
+.pixel-role-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -150,9 +151,9 @@
   border: 1px solid currentColor;
   border-radius: 0;
 }
-.role-badge--vanguard   { color: var(--teal);   border-color: var(--teal); }
-.role-badge--skirmisher { color: var(--gold-dark); border-color: var(--gold-dark); }
-.role-badge--mender     { color: var(--olive);  border-color: var(--olive); }
+.role-badge--vanguard, .pixel-role-badge--vanguard     { color: var(--teal);   border-color: var(--teal); }
+.role-badge--skirmisher, .pixel-role-badge--skirmisher { color: var(--gold-dark); border-color: var(--gold-dark); }
+.role-badge--mender, .pixel-role-badge--mender         { color: var(--olive);  border-color: var(--olive); }
 
 /* ── ATTRIBUTE ICON ──────────────────────────────────────────────────────── */
 
@@ -242,6 +243,325 @@
 .check-row--thin   { border-left: 4px solid var(--state-risky); }
 .check-row--short  { border-left: 4px solid var(--state-fail); }
 
+.pixel-readiness-row {
+  display: block;
+}
+
+/* ── PIXEL ATTRIBUTE ─────────────────────────────────────────────────────── */
+
+.pixel-attribute {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0,0,0,0.04);
+  border: 1px solid var(--cream-border);
+  border-radius: 2px;
+  padding: 3px 6px;
+  min-height: 30px;
+  font-family: var(--px-font);
+}
+.pixel-attribute--highlighted {
+  background: rgba(201,161,74,0.08);
+  border-color: var(--gold-border);
+}
+.pixel-attribute__body { min-width: 0; }
+.pixel-attribute__label {
+  font-size: 9px;
+  color: var(--stone);
+  line-height: 1;
+}
+.pixel-attribute--highlighted .pixel-attribute__label { color: var(--gold-dark); }
+.pixel-attribute__value {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+.pixel-attribute__value strong {
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.1;
+}
+.pixel-attribute--highlighted .pixel-attribute__value strong { color: var(--gold-dark); }
+.pixel-attribute__gear {
+  font-size: 10px;
+  color: var(--teal-dark);
+}
+
+/* ── PIXEL GEAR SLOT ──────────────────────────────────────────────────────── */
+
+.pixel-gear-slot {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0,0,0,0.06);
+  border: 1px solid var(--cream-border);
+  border-radius: 2px;
+  padding: 3px 7px;
+  min-height: 30px;
+  font-family: var(--px-font);
+}
+.pixel-gear-slot--empty {
+  border-style: dashed;
+  color: var(--stone);
+}
+.pixel-gear-slot__icon {
+  font-size: 16px;
+  color: var(--coffee);
+  line-height: 1;
+}
+.pixel-gear-slot--empty .pixel-gear-slot__icon { color: var(--stone-light); }
+.pixel-gear-slot__body { min-width: 0; }
+.pixel-gear-slot__name {
+  font-weight: 700;
+  font-size: 10px;
+  color: var(--ink);
+  line-height: 1.2;
+}
+.pixel-gear-slot__bonus {
+  font-size: 9px;
+  color: var(--teal-dark);
+}
+
+/* ── PIXEL ROSTER CARD ────────────────────────────────────────────────────── */
+
+.pixel-roster-card { padding: 10px; }
+.pixel-roster-card__toggle {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  text-align: left;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: var(--px-font);
+}
+.pixel-roster-card__toggle:disabled { cursor: default; }
+.pixel-roster-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: start;
+}
+.pixel-roster-card__identity { min-width: 0; }
+.pixel-roster-card__name {
+  display: block;
+  font-size: 13px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pixel-roster-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.pixel-roster-card__attrs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 5px;
+  margin-top: 8px;
+}
+.pixel-roster-card__gear {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.pixel-roster-card__meters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 8px;
+}
+.pixel-roster-card__meter-label {
+  font-size: 9px;
+  color: var(--ink-muted);
+  margin-bottom: 2px;
+}
+.pixel-roster-card__actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 4px;
+  margin-top: 8px;
+  border-top: 1px solid var(--cream-border);
+  padding-top: 8px;
+}
+
+/* ── PIXEL CONTRACT CARD ──────────────────────────────────────────────────── */
+
+.pixel-contract-card {
+  appearance: none;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pixel-contract-card:focus-visible {
+  outline: 3px solid var(--teal);
+  outline-offset: 4px;
+}
+.pixel-contract-card__panel {
+  min-height: 154px;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+.pixel-contract-card:hover .pixel-contract-card__panel {
+  transform: translateY(-2px);
+}
+.pixel-contract-card[data-selected="true"] .pixel-contract-card__panel {
+  outline: 3px solid var(--teal);
+  outline-offset: -3px;
+}
+.pixel-contract-card[data-state="locked"] .pixel-contract-card__panel {
+  opacity: 0.75;
+}
+.pixel-contract-card[data-state="recorded"] .pixel-contract-card__panel {
+  background-image:
+    radial-gradient(circle at 92% 18%, rgba(116, 196, 118, 0.22), transparent 20%),
+    linear-gradient(135deg, rgba(116, 196, 118, 0.08), transparent 38%);
+}
+.pixel-contract-card__top,
+.pixel-contract-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.pixel-contract-card__difficulty {
+  display: inline-flex;
+  min-width: 28px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink);
+  color: var(--gold);
+  border: 2px solid var(--ink-soft);
+  box-shadow: 2px 2px 0 #000;
+  font-size: 12px;
+  font-weight: 800;
+}
+.pixel-contract-card__title {
+  margin: 0;
+  color: var(--ink);
+  font-size: 19px;
+  line-height: 1.05;
+}
+.pixel-contract-card__desc {
+  margin: 0;
+  color: #684a33;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.pixel-contract-card__requirements {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.pixel-contract-card__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 3px 6px;
+  border: 1px solid var(--cream-border);
+  background: rgba(255, 255, 255, 0.42);
+  color: var(--ink);
+  font-size: 10px;
+  line-height: 1;
+}
+.pixel-contract-card__risk,
+.pixel-contract-card__ready,
+.pixel-contract-card__gate {
+  display: grid;
+  gap: 4px;
+  padding: 7px 8px;
+  border: 1px solid var(--cream-border);
+  font-size: 11px;
+  line-height: 1.25;
+}
+.pixel-contract-card__risk {
+  background: rgba(255, 194, 29, 0.16);
+  color: #7a5200;
+}
+.pixel-contract-card__ready {
+  background: rgba(116, 196, 118, 0.14);
+  color: #1f6b28;
+}
+.pixel-contract-card__gate {
+  background: rgba(30, 30, 30, 0.08);
+  color: #6b4a2f;
+}
+.pixel-contract-card__gate strong {
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.pixel-contract-card__gate span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.pixel-contract-card__footer {
+  margin-top: auto;
+  padding-top: 7px;
+  border-top: 1px solid var(--cream-border);
+  color: #6b4a2f;
+  font-size: 11px;
+}
+.pixel-contract-card__rewards {
+  display: inline-flex;
+  gap: 4px;
+  font-size: 15px;
+}
+
+/* ── PIXEL LOOT CARD ──────────────────────────────────────────────────────── */
+
+.pixel-loot-card { padding: 12px; }
+.pixel-loot-card__inner {
+  display: flex;
+  gap: 12px;
+  align-items: start;
+}
+.pixel-loot-card__icon {
+  font-size: 24px;
+  color: var(--coffee);
+  line-height: 1;
+}
+.pixel-loot-card__body { flex: 1; min-width: 0; }
+.pixel-loot-card__name {
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--ink);
+  font-family: var(--px-font);
+}
+.pixel-loot-card__slot {
+  color: var(--coffee);
+  font-size: 11px;
+  margin-top: 2px;
+  font-family: var(--px-font);
+}
+.pixel-loot-card__flavor {
+  color: var(--stone);
+  font-size: 10px;
+  margin-top: 4px;
+  line-height: 1.4;
+  font-family: var(--px-font);
+}
+.pixel-loot-card__actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
 /* ── MOBILE RULES ────────────────────────────────────────────────────────── */
 
 @media (max-width: 480px) {
@@ -261,7 +581,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  color: var(--rodoh-cream);
+  color: var(--cream);
   background: #0b0a08;
-  font: 13px/1.4 var(--rodoh-pixel-font);
+  font: 13px/1.4 var(--px-font);
 }
