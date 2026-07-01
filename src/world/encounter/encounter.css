@@ -42,9 +42,11 @@
   to   { transform: translateY(0); opacity: 1; }
 }
 
-/* ── Location icon ─────────────────────────────────────────────── */
+/* ── Location motif icon ───────────────────────────────────── */
 .enc-icon {
-  font-size: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
   animation: enc-icon-pulse 1.4s ease-in-out infinite;
 }
@@ -70,7 +72,7 @@
   to   { transform: scale(1); opacity: 1; }
 }
 
-/* ── Phase content ─────────────────────────────────────────────── */
+/* ── Phase content ───────────────────────────────────────────── */
 .enc-content {
   display: flex;
   flex-direction: column;
@@ -101,7 +103,7 @@
   line-height: 1.5;
 }
 
-/* ── Party tokens ──────────────────────────────────────────────── */
+/* ── Party tokens ─────────────────────────────────────────── */
 .enc-party {
   display: flex;
   flex-wrap: wrap;
@@ -130,7 +132,7 @@
   to   { transform: translateY(0); opacity: 1; }
 }
 
-/* ── Travel bar ────────────────────────────────────────────────── */
+/* ── Travel bar ──────────────────────────────────────────── */
 .enc-travel-bar {
   width: 200px;
   height: 4px;
@@ -153,7 +155,7 @@
   to   { width: 100%; }
 }
 
-/* ── Checks ────────────────────────────────────────────────────── */
+/* ── Checks ──────────────────────────────────────────────────────── */
 .enc-checks {
   display: flex;
   flex-direction: column;
@@ -190,7 +192,7 @@
   100% { transform: rotate(0deg); }
 }
 
-/* ── Result ────────────────────────────────────────────────────── */
+/* ── Result ───────────────────────────────────────────────────── */
 .enc-content--result {
   animation: enc-slide-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
@@ -237,7 +239,7 @@
   border-color: #c9a14a;
 }
 
-/* ── Skip hint ─────────────────────────────────────────────────── */
+/* ── Skip hint ──────────────────────────────────────────────────── */
 .enc-skip-hint {
   font-size: 9px;
   color: #4a4238;
@@ -248,16 +250,12 @@
   right: 16px;
 }
 
-/* ── Mobile ────────────────────────────────────────────────────── */
+/* ── Mobile ───────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .enc-vignette {
     padding: 24px 20px 20px;
     min-width: 0;
     width: 90vw;
-  }
-
-  .enc-icon {
-    font-size: 44px;
   }
 
   .enc-title {
