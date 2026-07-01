@@ -10,6 +10,10 @@ import { RodohRuntimeMark } from "./brand/RodohRuntimeMark.js";
 // the cartridge-select screen is instant; three only loads when a cartridge is played.
 const WorldHost = lazy(() => import("./WorldHost.js").then((m) => ({ default: m.WorldHost })));
 
+// Lazy: the UI kit dev route pulls in every pixel-ui component. Only loaded when
+// visiting /rodoh/ui-kit directly, never part of the cartridge-select bundle.
+const RodohUiKitRoute = lazy(() => import("./dev/RodohUiKitRoute.js").then((m) => ({ default: m.RodohUiKitRoute })));
+
 const screen: CSSProperties = {
   position: "absolute",
   inset: 0,
@@ -29,6 +33,16 @@ const TRUST_COLOR: Record<TrustLevel, string> = {
 
 export function Player(): JSX.Element {
   const [cartridge, setCartridge] = useState<Cartridge | null>(null);
+
+  // Base-path agnostic: the app deploys under /axm-world/game/ on GitHub Pages
+  // but at root in local dev, so match on suffix rather than exact pathname.
+  if (typeof window !== "undefined" && window.location.pathname.endsWith("/rodoh/ui-kit")) {
+    return (
+      <Suspense fallback={<div style={screen} />}>
+        <RodohUiKitRoute />
+      </Suspense>
+    );
+  }
 
   if (cartridge) {
     return (

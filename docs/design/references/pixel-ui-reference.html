@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rodoh Pixel-UI Reference Sheet</title>
+<style>
+  :root {
+    --cream: #f6efe3; --cream-mid: #ede3d3; --cream-border: #d4c9b2;
+    --ink: #1b1b1b; --ink-soft: #3a3228; --ink-muted: #6b6254;
+    --gold: #fec210; --gold-dark: #d4a93a; --gold-border: #c9901a;
+    --teal: #17a589; --teal-dark: #0f7a63;
+    --danger: #d7372f; --coffee: #684a2f; --stone: #7a7368;
+  }
+  body { background: #0b0a08; color: var(--cream); margin: 0; padding: 24px; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  p.sub { color: #a59c8b; font-size: 12px; margin-bottom: 24px; max-width: 560px; }
+  section { margin-bottom: 28px; }
+  h2 { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #d8b276; margin-bottom: 10px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .swatch { width: 96px; height: 64px; border: 2px solid var(--ink); display: flex; align-items: flex-end; padding: 4px; font-size: 10px; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border: 2px solid var(--ink); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+  .badge--reliable { background: var(--teal); color: #fff; }
+  .badge--risky { background: var(--gold); color: var(--ink); }
+  .badge--failing { background: var(--danger); color: #fff; }
+  .badge--locked { background: var(--stone); color: #fff; }
+  .badge--recorded { background: var(--coffee); color: #fff; }
+  .card { background: var(--cream); color: var(--ink); border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); padding: 10px; width: 200px; }
+</style>
+</head>
+<body>
+  <h1>Rodoh Pixel-UI Reference Sheet</h1>
+  <p class="sub">Static, no-font design reference. Tokens and states mirror
+  <code>src/world/pixel-ui/pixel-ui.css</code>. The live, interactive version of
+  this sheet is the <code>/rodoh/ui-kit</code> route in the running app.</p>
+
+  <section>
+    <h2>Palette</h2>
+    <div class="row">
+      <div class="swatch" style="background:var(--cream);color:var(--ink)">--cream</div>
+      <div class="swatch" style="background:var(--ink);color:var(--cream)">--ink</div>
+      <div class="swatch" style="background:var(--gold);color:var(--ink)">--gold</div>
+      <div class="swatch" style="background:var(--teal);color:#fff">--teal</div>
+      <div class="swatch" style="background:var(--danger);color:#fff">--danger</div>
+      <div class="swatch" style="background:var(--coffee);color:#fff">--coffee</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>State Badges</h2>
+    <div class="row">
+      <span class="badge badge--reliable">Reliable</span>
+      <span class="badge badge--risky">Risky</span>
+      <span class="badge badge--failing">Failing</span>
+      <span class="badge badge--locked">Locked</span>
+      <span class="badge badge--recorded">Recorded</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Contract Card Anatomy</h2>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span class="badge badge--reliable">Reliable</span>
+        <span style="border:2px solid var(--ink);padding:2px 6px">3</span>
+      </div>
+      <strong style="font-size:16px">The Bridge Toll</strong>
+      <p style="font-size:11px;color:var(--coffee)">A troll wants coin or trouble.</p>
+    </div>
+  </section>
+</body>
+</html>

@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ArcInteraction } from "../useArcInteraction.js";
 import type { ArcWorld } from "../useArcWorld.js";
 import type { WorldNode } from "../contract.js";
+import { MotifIcon, locationMotif } from "../themes/first-charter/motif-icons.js";
 import "./encounter.css";
 
 export type EncounterPhase =
@@ -19,16 +20,6 @@ export type EncounterPhase =
   | "result"
   | "record";
 
-const LOCATION_ICON: Record<string, string> = {
-  cellar: "🐀",
-  "the-cellar": "🐀",
-  "bridge-troll": "🌉",
-  "merchant-escort": "🛒",
-  "mine-collapse": "⛏️",
-  "bandit-camp": "🔥",
-  "wardens-keep": "🏰",
-};
-
 const LOCATION_FLAVOR: Record<string, string> = {
   cellar: "Something stirs below…",
   "the-cellar": "Something stirs below…",
@@ -38,13 +29,6 @@ const LOCATION_FLAVOR: Record<string, string> = {
   "bandit-camp": "Smoke rises through the trees.",
   "wardens-keep": "The gates are sealed. For now.",
 };
-
-function locationIcon(id: string): string {
-  for (const [key, icon] of Object.entries(LOCATION_ICON)) {
-    if (id.toLowerCase().includes(key)) return icon;
-  }
-  return "📍";
-}
 
 function locationFlavor(id: string): string {
   for (const [key, flavor] of Object.entries(LOCATION_FLAVOR)) {
@@ -197,7 +181,7 @@ interface OverlayProps {
 }
 
 function EncounterOverlay({ phase, node, party, roster, lastReport, onSkip, onDismiss }: OverlayProps): JSX.Element {
-  const icon = locationIcon(node.challengeId);
+  const motif = locationMotif(node.challengeId);
   const flavor = locationFlavor(node.challengeId);
   const partyNames = party.map((id) => roster.find((m) => m.id === id)?.name ?? id);
 
@@ -225,9 +209,9 @@ function EncounterOverlay({ phase, node, party, roster, lastReport, onSkip, onDi
       aria-label="Encounter in progress"
     >
       <div className="enc-vignette" onClick={(e) => e.stopPropagation()}>
-        {/* Location icon */}
-        <div className={`enc-icon enc-icon--${phase}`} aria-hidden="true">
-          {icon}
+        {/* Location motif icon */}
+        <div className={`enc-icon enc-icon--${phase} enc-motif-stage`} aria-hidden="true">
+          <MotifIcon name={motif} size={56} className="enc-motif-frame" />
         </div>
 
         {/* Phase content */}
