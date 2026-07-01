@@ -44,35 +44,36 @@ function Card(props: { children: ReactNode; style?: CSSProperties }): JSX.Elemen
   return <div style={{ ...panel, ...props.style }}>{props.children}</div>;
 }
 
-/** Inside the active-representation region: a dismissible "what is this view for"
- *  caption and a marker-state legend, so a representation explains itself and its node
- *  states read at a glance — not only from tiny labels. Never covers the controls. */
-function RepresentationOverlay(props: { rep: Representation; showPurpose: boolean; onDismiss: () => void }): JSX.Element {
+/** The view-context strip: a fixed, normal-flow shell slot for the "what is this
+ *  view for" onboarding note, the marker legend, and the controls hint. Nothing in
+ *  it is absolutely positioned over the play surface — it can never overlap the
+ *  board, roster, or detail rail. Dismissing the note collapses the strip to a
+ *  thin context row; it does not float back. */
+function ViewContextStrip(props: { rep: Representation; showPurpose: boolean; onDismiss: () => void }): JSX.Element {
   const { rep, showPurpose, onDismiss } = props;
   return (
-    <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-      {showPurpose && (
-        <div
-          data-testid="view-purpose"
-          style={{ position: "absolute", top: 10, left: 10, maxWidth: 300, pointerEvents: "auto", display: "flex", gap: 8, alignItems: "flex-start", background: "rgba(15,13,9,0.92)", border: "1px solid #4a4238", borderRadius: 8, padding: "8px 10px", font: "11px/1.45 'IBM Plex Mono', ui-monospace, monospace", color: "#d8cfbd" }}
-        >
-          <div><strong style={{ color: "#c9a14a" }}>{rep.label}.</strong> {rep.purpose}</div>
+    <div
+      data-testid="onboarding-strip"
+      style={{ flex: "none", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px 14px", padding: "7px 12px", borderBottom: "1px solid #2a2620", background: "rgba(18,15,11,0.95)", font: "11px/1.5 'IBM Plex Mono', ui-monospace, monospace", color: "#c9bfae" }}
+    >
+      {showPurpose ? (
+        <span data-testid="view-purpose" style={{ display: "flex", gap: 8, alignItems: "baseline", minWidth: 0 }}>
+          <strong style={{ color: "#c9a14a", whiteSpace: "nowrap" }}>{rep.label}.</strong>
+          <span>{rep.purpose}</span>
           <button onClick={onDismiss} aria-label="Dismiss view note" style={{ flex: "none", background: "transparent", border: "none", color: "#a59c8b", cursor: "pointer", font: "14px monospace", lineHeight: 1 }}>×</button>
-        </div>
+        </span>
+      ) : (
+        <strong style={{ color: "#8b7d6a" }}>{rep.label}</strong>
       )}
-      {rep.legend.length > 0 && (
-        <div
-          data-testid="view-legend"
-          style={{ position: "absolute", top: 10, right: 10, pointerEvents: "none", background: "rgba(15,13,9,0.82)", border: "1px solid #3a352c", borderRadius: 8, padding: "6px 9px", font: "10px/1.6 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b" }}
-        >
-          {rep.legend.map((e) => (
-            <div key={e.label} style={{ display: "flex", gap: 6, alignItems: "center", whiteSpace: "nowrap" }}>
-              <span style={{ color: e.color, width: 12, textAlign: "center" }}>{e.glyph}</span>
-              <span>{e.label}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      <span style={{ marginLeft: "auto", display: "flex", flexWrap: "wrap", gap: "2px 12px", alignItems: "center", color: "#6b6050", whiteSpace: "nowrap" }}>
+        {rep.legend.map((e) => (
+          <span key={e.label} data-testid="view-legend" style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+            <span style={{ color: e.color }}>{e.glyph}</span>
+            {e.label}
+          </span>
+        ))}
+        <span>{rep.controlsHint}</span>
+      </span>
     </div>
   );
 }
@@ -98,13 +99,11 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   // not in use. The 2D board (default) pays no 3D cost; switching to 3D loads it once.
   const PresentationScene = active.Scene;
   const stage = (
-    <>
-      <div data-testid="representation-region" style={{ position: "absolute", inset: 0 }}>
-        <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} active />
-      </div>
-      <RepresentationOverlay rep={active} showPurpose={showPurpose} onDismiss={dismissPurpose} />
-    </>
+    <div data-testid="representation-region" style={{ position: "absolute", inset: 0 }}>
+      <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} active />
+    </div>
   );
+  const contextStrip = <ViewContextStrip rep={active} showPurpose={showPurpose} onDismiss={dismissPurpose} />;
 
   const min = ix.req?.minAgents ?? 0;
   const max = ix.req?.maxAgents ?? 0;
@@ -133,16 +132,26 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
       {isMobile ? "◧" : "◧ Cartridge"}
     </button>
   );
+  // The "who do I send" question is only live for an available contract; locked and
+  // cleared selections have no party to commit, so the roster stays in capacity view.
+  const selectionActive = ix.selected?.status === "available";
+  const recommendedIds = useMemo(
+    () => (selectionActive && ix.selectedId ? world.recommendedParty(ix.selectedId) : []),
+    [selectionActive, ix.selectedId, world],
+  );
   const roster = (
     <RosterRegion
       roster={world.roster}
       party={ix.party}
-      selectable={!!ix.selected}
+      selectable={selectionActive}
+      selectionActive={selectionActive}
+      recommendedIds={recommendedIds}
+      fixPlan={ix.fixPlan}
       max={max}
       contract={ix.contract}
       variant={isMobile ? "strip" : "list"}
       onToggleAgent={ix.toggleAgent}
-      onApplyDowntime={world.applyDowntime}
+      onApplyFix={ix.applyFix}
     />
   );
   const contract = ix.selected ? (
@@ -179,48 +188,61 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
         // Mobile: map takes a fixed slice at top; content stacks and scrolls below.
         // No absolute overlays — every region is in normal flow.
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflowY: "auto" }}>
+          {contextStrip}
           {/* map — capped so content below is reachable without scrolling past it */}
           <div style={{ height: "clamp(150px, 24dvh, 230px)", flex: "none", position: "relative" }}>
             {stage}
           </div>
-          {/* content stack */}
+          {/* content stack — same one-occupant precedence as the desktop detail rail:
+              loot beats contract detail; report/coach/dispatches only when idle. */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 12px", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}>
             {world.arcComplete && <CompleteBanner />}
-            {world.lastReport && <ReportRegion lastReport={world.lastReport} />}
-            {world.pendingLoot.length > 0 && loot}
-            {!ix.selected && coach && <Card style={{ borderColor: "#6b5935", background: "rgba(32,28,20,0.92)" }}><CoachRegion message={coach} /></Card>}
-            {!ix.selected && world.dispatches.length > 0 && <Card style={{ padding: "8px 12px" }}><DispatchRegion dispatches={world.dispatches} limit={1} /></Card>}
-            {contract}
+            {world.pendingLoot.length > 0 ? loot : contract}
+            {!ix.selected && world.pendingLoot.length === 0 && (
+              <>
+                {world.lastReport && <ReportRegion lastReport={world.lastReport} />}
+                {coach && <Card style={{ borderColor: "#6b5935", background: "rgba(32,28,20,0.92)" }}><CoachRegion message={coach} /></Card>}
+                {world.dispatches.length > 0 && <Card style={{ padding: "8px 12px" }}><DispatchRegion dispatches={world.dispatches} limit={1} /></Card>}
+              </>
+            )}
             {roster}
           </div>
         </div>
       ) : (
         <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
-          {/* left rail — roster / assignment / training */}
+          {/* left rail — roster: the capacity/commitment surface */}
           <aside style={{ width: 320, flex: "none", overflowY: "auto", padding: 12, borderRight: "1px solid #2a2620", background: "rgba(15,13,9,0.6)" }}>
             <Card>{roster}</Card>
           </aside>
 
-          {/* center — the one active-representation region */}
-          <div style={{ flex: 1, position: "relative", minWidth: 0 }}>
-            {stage}
-            {world.arcComplete && (
-              <div style={{ position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)" }}>
-                <Card style={{ borderColor: "#74ad77" }}><CompleteBanner /></Card>
-              </div>
-            )}
-            <div style={{ position: "absolute", bottom: 14, left: 14, font: "11px/1.4 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b", pointerEvents: "none" }}>
-              {active.controlsHint}
+          {/* center — view-context strip in flow above the one active-representation region */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+            {contextStrip}
+            <div style={{ flex: 1, position: "relative", minWidth: 0 }}>
+              {stage}
+              {world.arcComplete && (
+                <div style={{ position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)" }}>
+                  <Card style={{ borderColor: "#74ad77" }}><CompleteBanner /></Card>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* right rail — selected contract / readiness / outcome / coach */}
+          {/* right rail — one occupant at a time: claiming (loot) beats choosing
+              (contract detail) beats idle (report / coach / dispatches). The choosing
+              phase never shares its scroll column with outcome or loot. */}
           <aside style={{ width: 360, flex: "none", overflowY: "auto", padding: 12, borderLeft: "1px solid #2a2620", background: "rgba(15,13,9,0.6)" }}>
-            {contract && <Card style={{ marginBottom: 10 }}>{contract}</Card>}
-            {world.lastReport && <Card style={{ marginBottom: 10 }}><ReportRegion lastReport={world.lastReport} /></Card>}
-            {world.pendingLoot.length > 0 && <Card style={{ marginBottom: 10 }}>{loot}</Card>}
-            {!ix.selected && coach && <Card style={{ marginBottom: 10, borderColor: "#6b5935", background: "rgba(32,28,20,0.9)" }}><CoachRegion message={coach} /></Card>}
-            {world.dispatches.length > 0 && <Card><DispatchRegion dispatches={world.dispatches} limit={4} /></Card>}
+            {world.pendingLoot.length > 0 ? (
+              <Card>{loot}</Card>
+            ) : contract ? (
+              <Card>{contract}</Card>
+            ) : (
+              <>
+                {world.lastReport && <Card style={{ marginBottom: 10 }}><ReportRegion lastReport={world.lastReport} /></Card>}
+                {coach && <Card style={{ marginBottom: 10, borderColor: "#6b5935", background: "rgba(32,28,20,0.9)" }}><CoachRegion message={coach} /></Card>}
+                {world.dispatches.length > 0 && <Card><DispatchRegion dispatches={world.dispatches} limit={4} /></Card>}
+              </>
+            )}
           </aside>
         </div>
       )}

@@ -1,10 +1,11 @@
-import { useMemo } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Challenge } from "../../engine/types.js";
 import type { WorldNode } from "../contract.js";
 import { PixelContractCard, PixelIcon, type ContractCardState, type PixelIconName } from "../pixel-ui/index.js";
 import type { ArcInteraction } from "../useArcInteraction.js";
 import type { ArcWorld } from "../useArcWorld.js";
 import type { CheckStatus, PartyReadiness } from "../readiness.js";
+import { unlockEdges } from "./adjacency.js";
 import "./contract-board.css";
 
 export interface ContractBoardSceneProps {
@@ -139,6 +140,56 @@ function ContractLocationCard(props: {
   );
 }
 
+interface EdgeLine {
+  key: string;
+  path: string;
+  arrow: string;
+  /** The unlocking contract is already cleared — the gate is satisfied. */
+  satisfied: boolean;
+  /** The gated contract is still locked — draw as a pending (dashed) link. */
+  pending: boolean;
+}
+
+function edgeGeometry(from: DOMRect, to: DOMRect, board: DOMRect): { path: string; arrow: string } {
+  let x1: number, y1: number, x2: number, y2: number;
+  let c1x: number, c1y: number, c2x: number, c2y: number;
+  if (to.left >= from.right - 2) {
+    x1 = from.right; y1 = from.top + from.height / 2;
+    x2 = to.left; y2 = to.top + to.height / 2;
+    const k = Math.min(90, Math.max(24, Math.abs(x2 - x1) * 0.45));
+    c1x = x1 + k; c1y = y1; c2x = x2 - k; c2y = y2;
+  } else if (from.left >= to.right - 2) {
+    x1 = from.left; y1 = from.top + from.height / 2;
+    x2 = to.right; y2 = to.top + to.height / 2;
+    const k = Math.min(90, Math.max(24, Math.abs(x2 - x1) * 0.45));
+    c1x = x1 - k; c1y = y1; c2x = x2 + k; c2y = y2;
+  } else if (to.top >= from.bottom) {
+    x1 = from.left + from.width / 2; y1 = from.bottom;
+    x2 = to.left + to.width / 2; y2 = to.top;
+    const k = Math.min(70, Math.max(20, Math.abs(y2 - y1) * 0.45));
+    c1x = x1; c1y = y1 + k; c2x = x2; c2y = y2 - k;
+  } else {
+    x1 = from.left + from.width / 2; y1 = from.top;
+    x2 = to.left + to.width / 2; y2 = to.bottom;
+    const k = Math.min(70, Math.max(20, Math.abs(y2 - y1) * 0.45));
+    c1x = x1; c1y = y1 - k; c2x = x2; c2y = y2 + k;
+  }
+  x1 -= board.left; y1 -= board.top; x2 -= board.left; y2 -= board.top;
+  c1x -= board.left; c1y -= board.top; c2x -= board.left; c2y -= board.top;
+
+  const ang = Math.atan2(y2 - c2y, x2 - c2x);
+  const a = 7;
+  const ax1 = x2 - a * Math.cos(ang) + a * 0.55 * Math.cos(ang + Math.PI / 2);
+  const ay1 = y2 - a * Math.sin(ang) + a * 0.55 * Math.sin(ang + Math.PI / 2);
+  const ax2 = x2 - a * Math.cos(ang) + a * 0.55 * Math.cos(ang - Math.PI / 2);
+  const ay2 = y2 - a * Math.sin(ang) + a * 0.55 * Math.sin(ang - Math.PI / 2);
+
+  return {
+    path: `M ${x1.toFixed(1)} ${y1.toFixed(1)} C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${x2.toFixed(1)} ${y2.toFixed(1)}`,
+    arrow: `M ${x2.toFixed(1)} ${y2.toFixed(1)} L ${ax1.toFixed(1)} ${ay1.toFixed(1)} L ${ax2.toFixed(1)} ${ay2.toFixed(1)} Z`,
+  };
+}
+
 export function ContractBoardScene({ world, interaction, modalOpen = false }: ContractBoardSceneProps): JSX.Element {
   const lanes = useMemo(() => {
     const groups = new Map<number, WorldNode[]>();
@@ -153,6 +204,51 @@ export function ContractBoardScene({ world, interaction, modalOpen = false }: Co
     }));
   }, [world.nodes]);
 
+  // Locked→unlocking adjacency, derived from the engine's own milestone links.
+  const edges = useMemo(() => unlockEdges(world.nodes, world.arc.challenges), [world.nodes, world.arc.challenges]);
+  const statusById = useMemo(() => new Map(world.nodes.map((n) => [n.challengeId, n.status])), [world.nodes]);
+
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const cardEls = useRef(new Map<string, HTMLDivElement>());
+  const [lines, setLines] = useState<EdgeLine[]>([]);
+
+  const measure = useCallback(() => {
+    const board = boardRef.current;
+    if (!board) return;
+    const bRect = board.getBoundingClientRect();
+    const next: EdgeLine[] = [];
+    for (const edge of edges) {
+      const fromEl = cardEls.current.get(edge.fromChallengeId);
+      const toEl = cardEls.current.get(edge.toChallengeId);
+      if (!fromEl || !toEl) continue;
+      const { path, arrow } = edgeGeometry(fromEl.getBoundingClientRect(), toEl.getBoundingClientRect(), bRect);
+      next.push({
+        key: `${edge.fromChallengeId}->${edge.toChallengeId}`,
+        path,
+        arrow,
+        satisfied: statusById.get(edge.fromChallengeId) === "cleared",
+        pending: statusById.get(edge.toChallengeId) === "locked",
+      });
+    }
+    setLines(next);
+  }, [edges, statusById]);
+
+  useLayoutEffect(() => {
+    measure();
+    const board = boardRef.current;
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => measure()) : null;
+    if (board && ro) ro.observe(board);
+    window.addEventListener("resize", measure);
+    // Re-measure once webfonts settle: card heights shift slightly when the pixel font loads.
+    let cancelled = false;
+    document.fonts?.ready.then(() => { if (!cancelled) measure(); });
+    return () => {
+      cancelled = true;
+      ro?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [measure]);
+
   return (
     <section className="contract-board-shell" data-testid="contract-board" aria-label="Contract Board" aria-disabled={modalOpen ? "true" : undefined}>
       <header className="contract-board-header">
@@ -160,9 +256,17 @@ export function ContractBoardScene({ world, interaction, modalOpen = false }: Co
           <span className="pixel-eyebrow">Contract Board</span>
           <h2>Choose the next place</h2>
         </div>
-        <p>Cards show what is available, what is locked, what is risky, and what the cartridge has recorded.</p>
+        <p>Cards show what is available, what is locked, what is risky, and what the cartridge has recorded. Lines show which cleared place opens which locked one.</p>
       </header>
-      <div className="contract-board">
+      <div className="contract-board" ref={boardRef}>
+        <svg className="contract-board-adjacency" data-testid="board-adjacency" aria-hidden="true">
+          {lines.map((line) => (
+            <g key={line.key} stroke={line.satisfied ? "var(--teal)" : "var(--stone)"} fill={line.satisfied ? "var(--teal)" : "var(--stone)"}>
+              <path d={line.path} fill="none" strokeWidth={2} strokeDasharray={line.pending ? "6 4" : undefined} opacity={0.9} />
+              <path d={line.arrow} stroke="none" opacity={0.9} />
+            </g>
+          ))}
+        </svg>
         {lanes.map((lane) => (
           <section className="contract-lane" key={lane.tierIndex} aria-label={laneTitle(lane.tierIndex)}>
             <div className="contract-lane__title">
@@ -171,13 +275,21 @@ export function ContractBoardScene({ world, interaction, modalOpen = false }: Co
             </div>
             <div className="contract-lane__cards">
               {lane.nodes.map((node) => (
-                <ContractLocationCard
+                <div
                   key={node.id}
-                  node={node}
-                  world={world}
-                  selected={interaction.selectedId === node.challengeId}
-                  onSelect={interaction.select}
-                />
+                  className="contract-board-cardwrap"
+                  ref={(el) => {
+                    if (el) cardEls.current.set(node.challengeId, el);
+                    else cardEls.current.delete(node.challengeId);
+                  }}
+                >
+                  <ContractLocationCard
+                    node={node}
+                    world={world}
+                    selected={interaction.selectedId === node.challengeId}
+                    onSelect={(id) => interaction.select(interaction.selectedId === id ? null : id)}
+                  />
+                </div>
               ))}
             </div>
           </section>

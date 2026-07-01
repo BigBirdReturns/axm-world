@@ -2,7 +2,7 @@
 // 2D map). A costume just renders these values; the rules live here once. Reused by
 // WorldScreen and BoardScreen so no presentation re-derives the interaction model.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ArcWorld, ChallengeReq } from "./useArcWorld.js";
 import type { WorldNode } from "./contract.js";
 import type { ContractRequirements, FixSuggestion, PartyReadiness } from "./readiness.js";
@@ -38,15 +38,23 @@ export function useArcInteraction(world: ArcWorld): ArcInteraction {
   const selected = selectedId ? world.nodes.find((n) => n.challengeId === selectedId) ?? null : null;
 
   // Cold start: focus the first actionable engine node once blocking decisions are
-  // resolved. After a run records the selected node, advance focus to the next
-  // available node while the graph still highlights what changed.
+  // resolved — but only once. An explicit deselect (select(null)) must stick, so the
+  // roster can answer "who exists" instead of "who do I send" when nothing is chosen.
+  // After a run records the selected node, advance focus to the next available node
+  // while the graph still highlights what changed.
+  const coldStartDone = useRef(false);
   useEffect(() => {
     if (world.pendingDecision) return;
     if (!selectedId) {
+      if (coldStartDone.current) return;
       const next = firstAvailableNodeId(world.nodes);
-      if (next) setSelectedId(next);
+      if (next) {
+        setSelectedId(next);
+        coldStartDone.current = true;
+      }
       return;
     }
+    coldStartDone.current = true;
     if (world.lastReport?.challengeId === selectedId && selected?.status === "cleared") {
       const next = firstAvailableNodeId(world.nodes, selectedId);
       if (next) setSelectedId(next);

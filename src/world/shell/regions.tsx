@@ -6,13 +6,13 @@
 // Regions: StatusRegion · ViewSwitcher · RosterRegion · ContractRegion · ReportRegion
 //        · CoachRegion · DispatchRegion · CompleteBanner.
 
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import type { DramaCard } from "../../engine/types.js";
 import type { PlayReportView } from "../../play-pipeline/compile.js";
 import type { PendingLootChoice, RosterMember } from "../useArcWorld.js";
 import type { WorldNode } from "../contract.js";
 import type { ContractRequirements, FixSuggestion, PartyReadiness, ProjectedOutcome } from "../readiness.js";
-import { DOWNTIME_ACTIONS, type DowntimeAction } from "../agent-management.js";
+import { DOWNTIME_ACTIONS } from "../agent-management.js";
 import "../pixel-ui/pixel-ui.css";
 import {
   PixelBadge,
@@ -136,36 +136,154 @@ export function ViewSwitcher(props: {
 }
 
 // ── Roster ─────────────────────────────────────────────────────────────
+// The capacity/commitment surface: with a contract selected, the top of the rail IS
+// the answer (recommended party, expanded); everyone else is a compact reference row.
+// With nothing selected there is no "who do I send" question, so every row is compact.
 
 export type RosterVariant = "list" | "strip";
+
+type DowntimeFix = Extract<FixSuggestion, { kind: "downtime" }>;
 
 export function RosterRegion(props: {
   roster: RosterMember[];
   party: string[];
   selectable: boolean;
+  /** True only when an available contract is selected — the commitment question is live. */
+  selectionActive: boolean;
+  /** Engine-recommended party for the selected contract (empty when none). */
+  recommendedIds: string[];
+  /** Live fix plan for the selection; downtime buttons render ONLY from this. */
+  fixPlan: FixSuggestion[] | null;
   max: number;
   contract: ContractRequirements | null;
   variant: RosterVariant;
   onToggleAgent: (id: string) => void;
-  onApplyDowntime: (id: string, a: DowntimeAction) => void;
+  onApplyFix: (fix: FixSuggestion) => void;
 }): JSX.Element {
-  const { roster, party, selectable, max, contract, variant, onToggleAgent, onApplyDowntime } = props;
+  const { roster, party, selectable, selectionActive, recommendedIds, fixPlan, max, contract, variant, onToggleAgent, onApplyFix } = props;
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const strip = variant === "strip";
+
+  const byId = new Map(roster.map((m) => [m.id, m] as const));
+  const focusSet = new Set<string>(selectionActive ? [...recommendedIds, ...party] : []);
+  const focusMembers: RosterMember[] = selectionActive
+    ? [
+        ...recommendedIds.map((id) => byId.get(id)).filter((m): m is RosterMember => m !== undefined),
+        ...roster.filter((m) => party.includes(m.id) && !recommendedIds.includes(m.id)),
+      ]
+    : [];
+  const benchMembers = roster.filter((m) => !focusSet.has(m.id));
+
+  const downtimeFixesFor = (id: string): DowntimeFix[] =>
+    (fixPlan ?? []).filter((fix): fix is DowntimeFix => fix.kind === "downtime" && fix.agentId === id);
+
+  const expandedCard = (m: RosterMember): JSX.Element => (
+    <RosterCard
+      key={m.id}
+      m={m}
+      inParty={party.includes(m.id)}
+      selectable={selectable}
+      contract={contract}
+      variant={variant}
+      onToggleAgent={onToggleAgent}
+      downtimeFixes={downtimeFixesFor(m.id)}
+      onApplyFix={onApplyFix}
+    />
+  );
+
   return (
     <div>
       <div className="pixel-panel__title">
-        Roster {selectable ? `· party ${party.length}/${max}` : "· select a contract to assign"}
+        {selectionActive ? `Roster · party ${party.length}/${max}` : `Roster · ${roster.length} agents · select a contract to assign`}
       </div>
       <div style={strip
-        ? { display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch" }
+        ? { display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", alignItems: "flex-start" }
         : { display: "grid", gap: 6 }
       }>
-        {roster.map((m) => (
-          <RosterCard key={m.id} m={m} inParty={party.includes(m.id)} selectable={selectable} contract={contract} variant={variant} onToggleAgent={onToggleAgent} onApplyDowntime={onApplyDowntime} />
+        {selectionActive && focusMembers.length > 0 && !strip && (
+          <div className="pixel-panel__title" style={{ marginBottom: 0 }}>Recommended party</div>
+        )}
+        {focusMembers.map(expandedCard)}
+        {selectionActive && benchMembers.length > 0 && !strip && (
+          <div className="pixel-panel__title" style={{ margin: "6px 0 0" }}>Bench</div>
+        )}
+        {benchMembers.map((m) => (
+          <div key={m.id} style={strip ? { flex: "0 0 auto", width: expandedIds[m.id] ? "min(85vw, 290px)" : 180, scrollSnapAlign: "start" } : undefined}>
+            <RosterCompactRow
+              m={m}
+              contract={contract}
+              inParty={party.includes(m.id)}
+              open={!!expandedIds[m.id]}
+              onToggle={() => setExpandedIds((prev) => ({ ...prev, [m.id]: !prev[m.id] }))}
+            />
+            {expandedIds[m.id] && (
+              <RosterCard
+                m={m}
+                inParty={party.includes(m.id)}
+                selectable={selectable}
+                contract={contract}
+                variant={variant}
+                onToggleAgent={onToggleAgent}
+                downtimeFixes={downtimeFixesFor(m.id)}
+                onApplyFix={onApplyFix}
+              />
+            )}
+          </div>
         ))}
       </div>
     </div>
   );
+}
+
+/** One-line collapsed roster row: name, role, the single most contract-relevant
+ *  number, assignment/downed markers. Click to expand the full card below it. */
+function RosterCompactRow(props: {
+  m: RosterMember;
+  contract: ContractRequirements | null;
+  inParty: boolean;
+  open: boolean;
+  onToggle: () => void;
+}): JSX.Element {
+  const { m, contract, inParty, open, onToggle } = props;
+  return (
+    <button
+      type="button"
+      data-testid="roster-compact-row"
+      onClick={onToggle}
+      title={open ? `Collapse ${m.name}` : `Expand ${m.name}`}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 7,
+        width: "100%",
+        minHeight: 44,
+        padding: "4px 10px",
+        background: "var(--cream)",
+        border: "1px solid var(--cream-border)",
+        borderLeft: inParty ? "3px solid var(--gold-border)" : "1px solid var(--cream-border)",
+        fontFamily: "var(--px-font)",
+        cursor: "pointer",
+        textAlign: "left",
+        opacity: m.downed ? 0.55 : 1,
+      }}
+    >
+      <PixelIcon name={ROLE_ICON[m.role] ?? "selected"} />
+      <strong style={{ fontSize: 11, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</strong>
+      {m.downed && <PixelBadge state="failing" style={{ minHeight: 18, padding: "1px 5px", fontSize: 8 }}>Down</PixelBadge>}
+      {inParty && <PixelIcon name="selected" label="Assigned" />}
+      <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--ink-muted)", whiteSpace: "nowrap" }}>{topContractStat(m, contract)}</span>
+      <span aria-hidden="true" style={{ color: "var(--stone)", fontSize: 10 }}>{open ? "▾" : "▸"}</span>
+    </button>
+  );
+}
+
+function topContractStat(m: RosterMember, contract: ContractRequirements | null): string {
+  const attrs = contract?.checkedAttributes ?? [];
+  const first = attrs[0];
+  if (!first) return m.role;
+  let best = first;
+  for (const a of attrs) if ((m.attributes[a.id] ?? 0) > (m.attributes[best.id] ?? 0)) best = a;
+  return `${best.name} ${m.attributes[best.id] ?? 0}`;
 }
 
 function buildAttributes(m: RosterMember, contract: ContractRequirements | null): RosterCardAttribute[] {
@@ -199,11 +317,13 @@ function RosterCard(props: {
   contract: ContractRequirements | null;
   variant: RosterVariant;
   onToggleAgent: (id: string) => void;
-  onApplyDowntime: (id: string, a: DowntimeAction) => void;
+  /** Downtime actions the selected contract's fix plan names for THIS agent.
+   *  Empty = no downtime buttons. The roster never invents its own actions. */
+  downtimeFixes: DowntimeFix[];
+  onApplyFix: (fix: FixSuggestion) => void;
 }): JSX.Element {
-  const { m, inParty, selectable, contract, variant, onToggleAgent, onApplyDowntime } = props;
+  const { m, inParty, selectable, contract, variant, onToggleAgent, downtimeFixes, onApplyFix } = props;
   const strip = variant === "strip";
-  const downtimeActions = Object.keys(DOWNTIME_ACTIONS) as DowntimeAction[];
   return (
     <PixelRosterCard
       name={m.name}
@@ -219,32 +339,36 @@ function RosterCard(props: {
       onToggle={() => onToggleAgent(m.id)}
       style={strip ? { flex: "0 0 auto", width: "min(85vw, 290px)", scrollSnapAlign: "start" } : undefined}
     >
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 4 }}>
-        {downtimeActions.map((a) => (
-          <DowntimeButton key={a} action={a} onClick={() => onApplyDowntime(m.id, a)} />
-        ))}
-      </div>
+      {downtimeFixes.length > 0 ? (
+        <div style={{ display: "grid", gap: 4 }}>
+          {downtimeFixes.map((fix) => (
+            <DowntimeFixButton key={fix.action} fix={fix} onClick={() => onApplyFix(fix)} />
+          ))}
+        </div>
+      ) : undefined}
     </PixelRosterCard>
   );
 }
 
-function DowntimeButton(props: { action: DowntimeAction; onClick: () => void }): JSX.Element {
-  const { action, onClick } = props;
-  const def = DOWNTIME_ACTIONS[action];
+/** A downtime action sourced from the live fix plan — shows what the action does to
+ *  the failing/thin check, not just its generic stress/morale deltas. */
+function DowntimeFixButton(props: { fix: DowntimeFix; onClick: () => void }): JSX.Element {
+  const { fix, onClick } = props;
+  const def = DOWNTIME_ACTIONS[fix.action];
+  const delta = fix.beforeScore !== undefined && fix.afterScore !== undefined
+    ? `${scoreText(fix.beforeScore)} → ${scoreText(fix.afterScore)}`
+    : `Stress ${fmt(def.stressDelta)} · Morale ${fmt(def.moraleDelta)}`;
   return (
     <PixelButton
       type="button"
       variant="secondary"
+      data-testid="roster-downtime-fix"
       onClick={onClick}
-      title={`${def.label}: Stress ${fmt(def.stressDelta)} · Morale ${fmt(def.moraleDelta)}`}
-      style={{ padding: "5px 4px", minHeight: 44, minWidth: 44, fontSize: 9, lineHeight: 1.2 }}
+      title={fix.reason}
+      style={{ padding: "5px 8px", minHeight: 44, fontSize: 9, lineHeight: 1.25, display: "flex", justifyContent: "space-between", gap: 8, width: "100%" }}
     >
-      <div style={{ fontWeight: 800 }}>{def.label}</div>
-      <div style={{ fontSize: 8, marginTop: 2 }}>
-        <span style={{ color: def.stressDelta <= 0 ? "var(--teal-dark)" : "var(--gold-dark)" }}>Str {fmt(def.stressDelta)}</span>
-        {" "}
-        <span style={{ color: def.moraleDelta >= 0 ? "var(--teal-dark)" : "var(--gold-dark)" }}>Mor {fmt(def.moraleDelta)}</span>
-      </div>
+      <span style={{ fontWeight: 800 }}>{def.label}</span>
+      <span style={{ color: "var(--teal-dark)" }}>{delta}</span>
     </PixelButton>
   );
 }
