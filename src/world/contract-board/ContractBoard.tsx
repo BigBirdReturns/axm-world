@@ -5,6 +5,7 @@ import { PixelContractCard, PixelIcon, type ContractCardState, type PixelIconNam
 import type { ArcInteraction } from "../useArcInteraction.js";
 import type { ArcWorld } from "../useArcWorld.js";
 import type { CheckStatus, PartyReadiness } from "../readiness.js";
+import { attrIcon, roleIcon, itemIcon } from "../theme-icons.js";
 import { unlockEdges } from "./adjacency.js";
 import "./contract-board.css";
 
@@ -27,29 +28,6 @@ function nodeState(node: WorldNode, selected: boolean, readiness: PartyReadiness
   if (node.status === "locked") return "locked";
   if (node.status === "cleared") return "recorded";
   return outcomeState(readiness);
-}
-
-function attrIcon(id: string): PixelIconName {
-  if (id === "power" || id === "Power") return "power";
-  if (id === "mettle" || id === "Mettle") return "mettle";
-  if (id === "wits" || id === "Wits") return "wits";
-  if (id === "spirit" || id === "Spirit") return "spirit";
-  return "available";
-}
-
-function roleIcon(name: string): PixelIconName {
-  if (name.toLowerCase().includes("vanguard")) return "vanguard";
-  if (name.toLowerCase().includes("skirmisher")) return "skirmisher";
-  if (name.toLowerCase().includes("mender")) return "mender";
-  return "selected";
-}
-
-function itemIcon(name: string): PixelIconName {
-  const key = name.toLowerCase();
-  if (key.includes("blade") || key.includes("pick")) return "rustyBlade";
-  if (key.includes("charm") || key.includes("favor") || key.includes("seal") || key.includes("trophy")) return "guardCharm";
-  if (key.includes("satchel") || key.includes("cloak") || key.includes("pauldron")) return "fieldSatchel";
-  return "lootAvailable";
 }
 
 function scoreText(value: number | undefined): string {
@@ -90,8 +68,11 @@ function strongestWeakness(readiness: PartyReadiness | null): string | null {
   return `${weak.name} needs +${scoreText(weak.shortBy)} to recover.`;
 }
 
-function laneTitle(tierIndex: number): string {
-  return tierIndex === 0 ? "Opening Work" : tierIndex === 1 ? "First Pressure" : tierIndex === 2 ? "Escalation" : `Chapter ${tierIndex + 1}`;
+// Lane names come from the loaded arc's own progression tiers — never invented here.
+// A tier index past what the arc defines (or a cartridge with no progressionTiers
+// entries) falls back to a domain-neutral "Chapter N" label.
+function laneTitle(tierIndex: number, world: ArcWorld): string {
+  return world.arc.progressionTiers[tierIndex]?.name ?? `Chapter ${tierIndex + 1}`;
 }
 
 /** An available contract left unaddressed this many cycles starts signalling. */
@@ -278,9 +259,9 @@ export function ContractBoardScene({ world, interaction, modalOpen = false }: Co
           ))}
         </svg>
         {lanes.map((lane) => (
-          <section className="contract-lane" key={lane.tierIndex} aria-label={laneTitle(lane.tierIndex)}>
+          <section className="contract-lane" key={lane.tierIndex} aria-label={laneTitle(lane.tierIndex, world)}>
             <div className="contract-lane__title">
-              <span>{laneTitle(lane.tierIndex)}</span>
+              <span>{laneTitle(lane.tierIndex, world)}</span>
               <small>{lane.nodes.length}</small>
             </div>
             <div className="contract-lane__cards">

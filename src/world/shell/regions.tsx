@@ -13,6 +13,7 @@ import type { PendingLootChoice, RosterMember } from "../useArcWorld.js";
 import type { WorldNode } from "../contract.js";
 import type { ContractRequirements, FixSuggestion, PartyReadiness, ProjectedOutcome } from "../readiness.js";
 import { DOWNTIME_ACTIONS } from "../agent-management.js";
+import { attrIcon, roleIcon, itemIcon } from "../theme-icons.js";
 import "../pixel-ui/pixel-ui.css";
 import {
   PixelBadge,
@@ -22,7 +23,6 @@ import {
   PixelRosterCard,
   PixelLootCard,
   PixelReadinessRow,
-  type PixelIconName,
   type ReadinessStatus,
   type RosterCardAttribute,
   type RosterCardGear,
@@ -40,29 +40,6 @@ export const panel: CSSProperties = {
   pointerEvents: "auto",
   backdropFilter: "blur(4px)",
 };
-
-const ROLE_ICON: Record<string, PixelIconName> = {
-  Vanguard: "vanguard",
-  Skirmisher: "skirmisher",
-  Mender: "mender",
-};
-
-const ATTR_ICON: Record<string, PixelIconName> = {
-  power: "power", mettle: "mettle", wits: "wits", spirit: "spirit",
-  Power: "power", Mettle: "mettle", Wits: "wits", Spirit: "spirit",
-};
-
-function attrIcon(nameOrId: string): PixelIconName {
-  return ATTR_ICON[nameOrId] ?? "available";
-}
-
-function itemIcon(name: string): PixelIconName {
-  const key = name.toLowerCase();
-  if (key.includes("blade") || key.includes("pick")) return "rustyBlade";
-  if (key.includes("charm") || key.includes("favor") || key.includes("seal") || key.includes("trophy")) return "guardCharm";
-  if (key.includes("satchel") || key.includes("cloak") || key.includes("pauldron")) return "fieldSatchel";
-  return "lootAvailable";
-}
 
 function scoreText(value?: number): string {
   return value === undefined ? "" : String(Math.round(value * 10) / 10);
@@ -99,7 +76,7 @@ export function StatusRegion(props: {
         <StatusChip label="Cycle" value={String(cycle).padStart(2, "0")} />
         <StatusChip label={resources.tokenName} value={String(resources.tokens)} />
         <StatusChip label={resources.currencyName} value={String(resources.currency)} />
-        <StatusChip label="Renown" value={String(resources.reputation)} />
+        <StatusChip label={resources.reputationName} value={String(resources.reputation)} />
         <StatusChip label="Recorded" value={`${progress.cleared}/${progress.total}`} accent testid="cartridge-mark-count" />
       </div>
     </div>
@@ -280,7 +257,7 @@ function RosterCompactRow(props: {
         opacity: m.downed ? 0.55 : 1,
       }}
     >
-      <PixelIcon name={ROLE_ICON[m.role] ?? "selected"} />
+      <PixelIcon name={roleIcon(m.role)} />
       <strong style={{ fontSize: 11, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</strong>
       {m.downed && <PixelBadge state="failing" style={{ minHeight: 18, padding: "1px 5px", fontSize: 8 }}>Down</PixelBadge>}
       {inParty && <PixelIcon name="selected" label="Assigned" />}
@@ -726,10 +703,10 @@ export function DispatchRegion(props: { dispatches: DramaCard[]; limit: number }
   );
 }
 
-export function CompleteBanner(): JSX.Element {
+export function CompleteBanner(props: { arcName: string }): JSX.Element {
   return (
     <PixelPanel style={{ padding: "16px 20px", textAlign: "center" }}>
-      <PixelBadge state="reliable" style={{ marginBottom: 8, display: "inline-flex" }}>Charter Complete</PixelBadge>
+      <PixelBadge state="reliable" style={{ marginBottom: 8, display: "inline-flex" }}>{props.arcName} — Complete</PixelBadge>
       <div style={{ fontFamily: "var(--px-font)", fontSize: 16, fontWeight: 800, color: "var(--teal-dark)" }}>
         Every contract cleared
       </div>

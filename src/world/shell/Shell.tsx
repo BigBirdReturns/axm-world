@@ -236,7 +236,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
             {stage}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 12px", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}>
-            {world.arcComplete && <CompleteBanner />}
+            {world.arcComplete && <CompleteBanner arcName={world.arc.meta.name} />}
             {world.pendingLoot.length > 0 ? loot : contract}
             {!ix.selected && world.pendingLoot.length === 0 && (
               <>
@@ -259,7 +259,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
               {stage}
               {world.arcComplete && (
                 <div style={{ position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)" }}>
-                  <Card style={{ borderColor: "#74ad77" }}><CompleteBanner /></Card>
+                  <Card style={{ borderColor: "#74ad77" }}><CompleteBanner arcName={world.arc.meta.name} /></Card>
                 </div>
               )}
             </div>
