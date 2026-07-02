@@ -88,6 +88,12 @@ const ChallengeSchema = z.object({
             message: `Mechanic check "${check.id}" attribute weights must sum to 1.0 (got ${total.toFixed(3)})`,
           });
         }
+        if (check.thresholdMode !== undefined && check.scope !== "team_aggregate") {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Mechanic check "${check.id}" sets thresholdMode but has scope "${check.scope}" — thresholdMode only applies to team_aggregate checks`,
+          });
+        }
       }
     }),
   completionCriteria: z.object({

@@ -1,18 +1,26 @@
 name: engine-drift
 
-# Fails if the vendored src/engine/ has silently diverged from the axm-arc
-# commit pinned in src/engine/VENDORED_FROM. Intentional engine changes are
-# fine — re-sync with `npm run engine:sync` so the pinned commit moves too.
+# Fails if the vendored shared surface (src/engine, src/arcs, tests/engine,
+# tests/fixtures) has silently diverged from the axm-arc commit pinned in
+# src/engine/VENDORED_FROM. Intentional changes are fine — land them in
+# axm-arc first, then re-sync with `npm run engine:sync` so the pinned commit
+# moves too. See RECONCILIATION.md.
 
 on:
   push:
     paths:
       - "src/engine/**"
+      - "src/arcs/**"
+      - "tests/engine/**"
+      - "tests/fixtures/**"
       - "scripts/check-engine-drift.sh"
       - ".github/workflows/engine-drift.yml"
   pull_request:
     paths:
       - "src/engine/**"
+      - "src/arcs/**"
+      - "tests/engine/**"
+      - "tests/fixtures/**"
       - "scripts/check-engine-drift.sh"
   workflow_dispatch:
 
@@ -21,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check vendored engine against pinned axm-arc commit
+      - name: Check vendored shared surface against pinned axm-arc commit
         env:
           # CI is expected to reach axm-arc; treat unreachable as a failure.
           ENGINE_DRIFT_STRICT: "1"

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Verify that the vendored src/engine/ still matches the axm-arc commit
-# pinned in src/engine/VENDORED_FROM.
+# Verify that the vendored shared surface (src/engine, src/arcs, tests/engine,
+# tests/fixtures) still matches the axm-arc commit pinned in
+# src/engine/VENDORED_FROM.
 #
 # Exit codes:
 #   0  in sync (or axm-arc unreachable -> soft-skip, see ENGINE_DRIFT_STRICT)
@@ -12,11 +13,10 @@
 set -euo pipefail
 
 ARC_REPO="https://github.com/BigBirdReturns/axm-arc.git"
-ARC_ENGINE_PATH="src/engine"
+SHARED_PATHS=("src/engine" "src/arcs" "tests/engine" "tests/fixtures")
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DEST="$ROOT/src/engine"
-PROV="$DEST/VENDORED_FROM"
+PROV="$ROOT/src/engine/VENDORED_FROM"
 
 [ -f "$PROV" ] || { echo "ERROR: $PROV not found"; exit 2; }
 SHA="$(awk '/^commit:/ {print $2}' "$PROV")"
@@ -34,14 +34,24 @@ if ! git clone --quiet "$ARC_REPO" "$TMP/arc" 2>/dev/null; then
 fi
 git -C "$TMP/arc" checkout --quiet "$SHA" || { echo "ERROR: pinned commit $SHA not found in axm-arc"; exit 1; }
 
-if diff -rq "$TMP/arc/$ARC_ENGINE_PATH" "$DEST" \
-     --exclude='VENDORED_FROM' --exclude='*.js' --exclude='*.js.map'; then
-  echo "OK: vendored engine matches axm-arc@$SHA"
+DRIFTED=0
+for p in "${SHARED_PATHS[@]}"; do
+  if diff -rq "$TMP/arc/$p" "$ROOT/$p" \
+       --exclude='VENDORED_FROM' --exclude='*.js' --exclude='*.js.map'; then
+    echo "OK: $p matches axm-arc@$SHA"
+  else
+    DRIFTED=1
+  fi
+done
+
+if [ "$DRIFTED" = "0" ]; then
+  echo "OK: vendored shared surface matches axm-arc@$SHA"
   exit 0
 else
   echo
-  echo "DRIFT: vendored src/engine no longer matches the pinned commit."
-  echo "  - intended change? run scripts/sync-engine.sh and commit."
-  echo "  - unintended?      revert local edits to src/engine."
+  echo "DRIFT: the vendored shared surface no longer matches the pinned commit."
+  echo "  - intended change? upstream it to axm-arc first, then run"
+  echo "    scripts/sync-engine.sh <arc ref> and commit (see RECONCILIATION.md)."
+  echo "  - unintended?      revert local edits to the paths above."
   exit 1
 fi
