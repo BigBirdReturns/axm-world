@@ -1,7 +1,7 @@
 // The cartridge <-> world bridge. The player reads a cartridge: it bootstraps a
 // populated org from the cartridge's arc, enqueues the cartridge's AUTHORED opening
 // decision as a real drama card, and resolves every choice through the deterministic
-// engine (runCycle, resolveDramaCard). axm-world authors nothing — it surfaces what
+// engine (runCycle, resolveDramaCard). axm-world authors nothing. It surfaces what
 // the cartridge holds and shows what the engine returns. It also builds the custody
 // object (manifest + arc + run state) so the cartridge can leave intact.
 
@@ -70,6 +70,17 @@ export interface PendingLootChoice {
   eligibleAgents: Array<{ id: string; name: string; role: string }>;
 }
 
+export interface LastEquipEvent {
+  choiceId: string;
+  itemId: string;
+  itemName: string;
+  slot: string;
+  bonuses: Record<string, number>;
+  sourceChallenge: string;
+  agentId: string;
+  agentName: string;
+}
+
 export interface CustodyObject {
   format: "axm-cartridge-run/v1";
   manifest: Cartridge["manifest"];
@@ -121,6 +132,8 @@ export interface ArcWorld {
   effectTargetName: (targetId: string) => string;
   pendingLoot: PendingLootChoice[];
   claimLoot: (choiceId: string, agentId: string) => void;
+  /** Last reward equip, kept only to stage the immediate after-equip rail transition. */
+  lastEquip: LastEquipEvent | null;
   lastReport: PlayReportView | null;
   runChallenge: (challengeId: string, agentIds: string[]) => void;
   resolveDecision: (optionId: string) => void;
@@ -167,6 +180,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   });
   const [lastReport, setLastReport] = useState<PlayReportView | null>(null);
   const [pendingRewardChoices, setPendingRewardChoices] = useState<PendingRewardChoice[]>([]);
+  const [lastEquip, setLastEquip] = useState<LastEquipEvent | null>(null);
   const [openingChoice, setOpeningChoice] = useState<string | null>(null);
 
   const scene = useMemo(() => compileArcToPlayScene(arc, org), [arc, org]);
@@ -266,6 +280,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
         agentIds: agentIds.slice(0, challenge.rosterRequirements.maxAgents),
         tokensSpent: org.resources.tokens > 0 ? 1 : 0,
       };
+      setLastEquip(null);
       const result = runCycle({ org, arc, assignments: [assignment] });
       setOrg(result.org);
       setPendingRewardChoices(result.pendingRewardChoices);
@@ -291,7 +306,6 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     setOrg((cur) => applyAgentDowntime(cur, agentId, action));
   }, []);
 
-
   const pendingLoot = useMemo<PendingLootChoice[]>(
     () => pendingRewardChoices.map((choice) => {
       const item = arc.items.find((it) => it.id === choice.itemId);
@@ -313,14 +327,24 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   );
 
   const claimLoot = useCallback((choiceId: string, agentId: string) => {
-    setOrg((current) => {
-      const choice = pendingRewardChoices.find((entry) => `${entry.sourceChallenge}:${entry.itemId}:${entry.cycle}` === choiceId);
-      const item = choice ? arc.items.find((it) => it.id === choice.itemId) : null;
-      if (!choice || !item || !choice.eligibleAgentIds.includes(agentId)) return current;
-      return awardItem(current, agentId, item, current.cycle, choice.sourceChallenge);
+    const choice = pendingRewardChoices.find((entry) => `${entry.sourceChallenge}:${entry.itemId}:${entry.cycle}` === choiceId);
+    const item = choice ? arc.items.find((it) => it.id === choice.itemId) : null;
+    const agent = org.agents[agentId] ?? null;
+    if (!choice || !item || !agent || !choice.eligibleAgentIds.includes(agentId)) return;
+
+    setOrg((current) => awardItem(current, agentId, item, current.cycle, choice.sourceChallenge));
+    setLastEquip({
+      choiceId,
+      itemId: item.id,
+      itemName: item.name,
+      slot: item.slot,
+      bonuses: item.statBonuses,
+      sourceChallenge: choice.sourceChallenge,
+      agentId,
+      agentName: agent.name,
     });
     setPendingRewardChoices((current) => current.filter((entry) => `${entry.sourceChallenge}:${entry.itemId}:${entry.cycle}` !== choiceId));
-  }, [arc, pendingRewardChoices]);
+  }, [arc, org.agents, pendingRewardChoices]);
 
   const clearedCount = layout.nodes.filter((n) => n.status === "cleared").length;
   const totalNodes = layout.nodes.length;
@@ -369,6 +393,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     effectTargetName,
     pendingLoot,
     claimLoot,
+    lastEquip,
     lastReport,
     runChallenge,
     resolveDecision,
