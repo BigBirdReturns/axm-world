@@ -1,11 +1,17 @@
-# Provenance for the vendored simulation engine.
+# Provenance for the surface shared with axm-arc.
 #
-# The files in this directory (src/engine/) are vendored verbatim from
-# axm-arc. world keeps a local copy so its build/deploy stay self-contained
-# (no axm-arc access required at build time). This file records exactly which
-# axm-arc commit the copy corresponds to, so drift can be detected.
+# The following paths are vendored verbatim from axm-arc so world's
+# build/deploy stay self-contained (no axm-arc access required at build time):
 #
-# To re-sync after axm-arc's engine changes:
+#   src/engine  src/arcs  tests/engine  tests/fixtures
+#
+# This file records exactly which axm-arc commit the copies correspond to, so
+# drift can be detected. The reconciliation contract (what is shared, and the
+# rule that shared-surface changes land in axm-arc first) lives in axm-arc's
+# RECONCILIATION.md; see this repo's RECONCILIATION.md for the world-side
+# workflow.
+#
+# To re-sync after axm-arc changes:
 #   scripts/sync-engine.sh [<axm-arc ref, default: main>]
 #
 # To check for silent drift against the pinned commit:
@@ -14,6 +20,6 @@
 # Both are wired as npm scripts: `npm run engine:sync`, `npm run engine:check`.
 
 repo: BigBirdReturns/axm-arc
-path: src/engine
-commit: 7c413c6eff4107fd7694fb9b7965d89a4c15de04
-synced: 2026-06-30
+paths: src/engine src/arcs tests/engine tests/fixtures
+commit: 3c0b8ba1cb1bb1fb94fcbe126780d1c72b8538ec
+synced: 2026-07-02

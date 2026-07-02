@@ -44,7 +44,9 @@ npm run build      # emits docs/game
 
 ## Status
 
-Early. The engine and player are vendored from `axm-arc` and the generic
-bootstrap is new here. Next steps: a cartridge loader (open an arc from a
-file/URL instead of the bundled default), and turning the vendored engine into a
-shared dependency so the hub and spoke can't drift.
+Early. The engine, tutorial arc, and engine tests are vendored from `axm-arc`
+and pinned to an exact commit — see [RECONCILIATION.md](RECONCILIATION.md) for
+the contract that keeps hub and spoke from drifting (changes to the shared
+surface land in `axm-arc` first; `npm run engine:sync` re-vendors, and CI fails
+on silent divergence). Next step: a cartridge loader (open an arc from a
+file/URL instead of the bundled default).
