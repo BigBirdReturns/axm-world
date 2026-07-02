@@ -1,6 +1,17 @@
 // Inline SVG motif icons for the First Charter theme. These replace placeholder
 // emoji glyphs (🐀, 🌉, 🛒, ⛏️, 🔥, 🏰) in encounter surfaces with on-theme,
 // no-font iconography drawn from FIRST_CHARTER_MOTIFS.
+//
+// Source: docs/design/references/first_charter_theme_asset_pack_overview.png
+// §1 "Motif Icons" — every FirstCharterMotifName below is a redrawn
+// derivative of that section's per-motif art (dandelion, archive box, coffee
+// mug, crossed-off calendar, receipt tab, notebook, star spark); see
+// docs/design/references/component-inventory.md's "MotifIcon per-motif
+// provenance" table for the match-quality rating of each one.
+// Grid: 16x16 viewBox (hand-authored SVG paths, not a character grid)
+// Encoding: one <MotifPath> case per FirstCharterMotifName; each draws its
+//           shape with `currentColor` strokes/fills so gameplay CSS still
+//           controls the rendered color.
 
 import type { HTMLAttributes } from "react";
 import "./first-charter.css";

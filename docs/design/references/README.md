@@ -11,18 +11,18 @@ real hand-drawn pixel-art reference sheets, not slices or exports of any
 production sprite — the contract explicitly says "the sheets are reference,
 not production slices."
 
-- `01_rodoh_platform_identity_system_guide.png` — Rodoh brand identity: core
+- `rodoh_platform_identity_system_guide.png` — Rodoh brand identity: core
   palette, wordmark, root motifs (threshold/dandelion/record-seal/cartridge),
   runtime UI component language (button states, panel frames, chips, status
   badges), badges & chips library, type & spacing guide.
-- `02_axm_world_runtime_ui_asset_pack.png` — the primary source for
+- `axm_world_runtime_ui_asset_pack.png` — the primary source for
   `PixelIcon`: contract state icons (available/reliable/risky/failing/
   locked/recorded/selected/loot-available), role badges (vanguard/skirmisher/
   mender), attribute icons (power/mettle/wits/spirit), starter item icons
   (rusty blade/guard charm/field satchel/empty slot), button states, UI
   controls, meter pieces, UI frame exports, 9-slice breakdowns, palette
   tokens.
-- `03_first_charter_theme_asset_pack_overview.png` — the source for
+- `first_charter_theme_asset_pack_overview.png` — the source for
   `src/world/themes/first-charter/motif-icons.tsx`: motif icons (dandelion,
   archive box, coffee mug, crossed-off calendar, receipt tab, notebook, star
   spark), themed state/progress symbols, cartridge-skin UI pieces, theme
@@ -49,8 +49,9 @@ to `docs/design/references/rodoh-buffalo-harvest (1).zip`).
   bootstrapped from. Its `README.md` explicitly instructs: "Do not slice the
   reference sheets directly into production UI. Convert them into tokens,
   components, and a small controlled icon set." That instruction is why
-  `PixelIcon` and `motif-icons.tsx` are redrawn 8x8 pixel-grid derivatives
-  (see `component-inventory.md`), not exported slices of the PNGs.
+  `PixelIcon` (32x32 pixel-grid derivatives) and `motif-icons.tsx` (16x16
+  viewBox hand-SVG derivatives) are redrawn derivatives (see
+  `component-inventory.md`), not exported slices of the PNGs.
 - `docs/design/harvest/AXM-WORLD.template.no-fonts.html`,
   `AXM-ARC.template.no-fonts.html`, `standalone_inventory.json` — extracted
   from the harvest zip's `dist-harvest/` folder: the no-font HTML exports and

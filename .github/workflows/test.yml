@@ -1,0 +1,31 @@
+name: test
+
+# Runs the type checker and the full vitest suite on every push and pull
+# request, across all paths. Before this workflow existed there was no CI
+# running tests at all (engine-drift.yml only guards the vendored
+# src/engine/src/arcs surface, and pages.yml only builds the demo) — this
+# closes that hole.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
