@@ -1,3 +1,13 @@
+// Source: docs/design/references/rodoh_platform_identity_system_guide.png
+// §2 "Wordmark & Emblem" (EMBLEM / PRIMARY — "SYSTEM SOUL · DANDELION. Small.
+// Stubborn. Persistent."), also depicted in §3 "Root Motifs". This 14x18 grid
+// is a redrawn derivative reproducing that emblem's shape (round puff head on
+// a stem with leaves) as hand-authored runtime code — not a traced/extracted
+// grid like PixelIcon's programmatic pipeline, and not an invented shape with
+// no reference. See docs/design/references/component-inventory.md.
+// Grid: 14x18
+// Encoding: 0=transparent p=puff-shade w=puff b=ink(eyes) m=ink(mouth)
+//           s=stem l=leaf(left) r=leaf(right)
 import type { CSSProperties } from "react";
 
 export type RodohRuntimeMarkVariant = "boot" | "card" | "inline" | "micro";
@@ -16,7 +26,6 @@ const PUFF_SHADE = "#d9d0b8";
 const INK = "#151515";
 const STEM = "#7da15c";
 const LEAF = "#4f6f36";
-const SEED = "#efe8d2";
 
 const PIXELS = [
   "000000p0000000",
@@ -24,7 +33,7 @@ const PIXELS = [
   "000pwwwwwp0000",
   "00pwwwwwwwp000",
   "00wwwwwwwww000",
-  "0pwwwbbwwwp00",
+  "00pwwwbbwwwp00",
   "00wwwwmwwww000",
   "00pwwwwwwwp000",
   "000pwwwwwp0000",
@@ -48,7 +57,6 @@ function colorFor(token: string): string | null {
     case "s": return STEM;
     case "l": return LEAF;
     case "r": return "#5f7f41";
-    case "e": return SEED;
     default: return null;
   }
 }

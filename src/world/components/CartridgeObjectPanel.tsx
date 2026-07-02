@@ -7,6 +7,8 @@
 import { type CSSProperties } from "react";
 import type { CartridgeManifest } from "../cartridge.js";
 import { RodohRuntimeMark } from "../brand/RodohRuntimeMark.js";
+import { PixelButton, PixelIcon } from "../pixel-ui/index.js";
+import { t } from "../i18n/index.js";
 import type { CustodyObject } from "../useArcWorld.js";
 
 interface Props {
@@ -78,7 +80,7 @@ export function CartridgeObjectPanel({ manifest, openingChoice, cycle, clearedCo
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14 }}>
           <div>
-            <span style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "#c9a14a" }}>Cartridge</span>
+            <span style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "#c9a14a" }}>{t("cartridgePanel.eyebrow")}</span>
             <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 26, fontWeight: 700, margin: "2px 0 12px" }}>{manifest.name}</div>
           </div>
           <div style={{ display: "grid", justifyItems: "end", gap: 4 }}>
@@ -87,44 +89,37 @@ export function CartridgeObjectPanel({ manifest, openingChoice, cycle, clearedCo
           </div>
         </div>
 
-        {row("Domain", manifest.domain)}
-        {row("Engine", manifest.engineVersion)}
+        {row(t("cartridgePanel.domain"), manifest.domain)}
+        {row(t("cartridgePanel.engine"), manifest.engineVersion)}
         <div style={{ height: 1, background: "#2a2620", margin: "8px 0" }} />
-        {row("Cycle", String(cycle).padStart(2, "0"))}
-        {row("Recorded nodes", `${clearedCount} / ${totalNodes}`)}
+        {row(t("cartridgePanel.cycle"), String(cycle).padStart(2, "0"))}
+        {row(t("cartridgePanel.recordedNodes"), `${clearedCount} / ${totalNodes}`)}
         <div style={{ height: 6, background: "#2a2620", borderRadius: 999, overflow: "hidden", margin: "4px 0 8px" }}>
           <div style={{ width: `${progressPct}%`, height: "100%", background: "#74ad77" }} />
         </div>
-        {row("Decision mark", openingChoice ?? "—")}
+        {row(t("cartridgePanel.decisionMark"), openingChoice ?? "—")}
 
         <p style={{ color: "#a59c8b", fontFamily: "'Lora', Georgia, serif", fontSize: 13, lineHeight: 1.5, margin: "14px 0 16px" }}>
-          Rodoh held the loop. This cartridge now carries engine marks — decisions,
-          cleared nodes, cycle count, and roster state — that survive representation changes.
+          {t("cartridgePanel.body")}
         </p>
 
-        <button
+        {/* PixelButton + icon + short catalog label, replacing the raw "⤓" glyph glued
+            to a long English phrase that ran wide and cramped at narrow widths. */}
+        <PixelButton
+          type="button"
+          variant="danger"
           onClick={handleExport}
-          style={{
-            width: "100%",
-            font: "700 15px 'Barlow Condensed', sans-serif",
-            letterSpacing: "0.02em",
-            padding: "11px 0",
-            borderRadius: 5,
-            border: "none",
-            background: "#b01c18",
-            color: "#fff",
-            cursor: "pointer",
-          }}
+          style={{ width: "100%", minHeight: 44, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}
         >
-          ⤓ Export cartridge + run
-        </button>
+          <PixelIcon name="lootAvailable" /> <span>{t("cartridgePanel.exportRun")}</span>
+        </PixelButton>
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: "9px 0", borderRadius: 5, border: "1px solid #4a4238", background: "transparent", color: "#ece4d4", cursor: "pointer", font: "600 13px 'IBM Plex Mono', monospace" }}>
-            Resume
-          </button>
-          <button onClick={onLeave} style={{ flex: 1, padding: "9px 0", borderRadius: 5, border: "1px solid #4a4238", background: "transparent", color: "#a59c8b", cursor: "pointer", font: "600 13px 'IBM Plex Mono', monospace" }}>
-            Leave cartridge
-          </button>
+          <PixelButton type="button" variant="secondary" onClick={onClose} style={{ flex: 1, minHeight: 40, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <PixelIcon name="available" /> <span>{t("cartridgePanel.resume")}</span>
+          </PixelButton>
+          <PixelButton type="button" variant="secondary" onClick={onLeave} style={{ flex: 1, minHeight: 40, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <PixelIcon name="failing" /> <span>{t("cartridgePanel.leave")}</span>
+          </PixelButton>
         </div>
       </div>
     </div>

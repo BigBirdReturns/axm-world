@@ -48,9 +48,9 @@ const PALETTE: Array<{ name: string; css: string }> = [
 ];
 
 const SOURCE_RUNTIME_ROWS: Array<{ source: string; runtime: string; provenance: string }> = [
-  { source: "01_rodoh_platform_identity_system_guide.png", runtime: "PixelPanel / PixelButton / PixelBadge tokens", provenance: "redrawn derivative — palette, panel frames, button/chip states" },
-  { source: "02_axm_world_runtime_ui_asset_pack.png", runtime: "PixelIcon (all 19 state/role/attribute/item icons)", provenance: "redrawn derivative — see component-inventory.md for per-icon match quality" },
-  { source: "03_first_charter_theme_asset_pack_overview.png", runtime: "MotifIcon (7 First Charter motifs)", provenance: "redrawn derivative — see component-inventory.md for per-motif match quality" },
+  { source: "rodoh_platform_identity_system_guide.png", runtime: "PixelPanel / PixelButton / PixelBadge tokens", provenance: "redrawn derivative — palette, panel frames, button/chip states" },
+  { source: "axm_world_runtime_ui_asset_pack.png", runtime: "PixelIcon (all 19 state/role/attribute/item icons)", provenance: "redrawn derivative — see component-inventory.md for per-icon match quality" },
+  { source: "first_charter_theme_asset_pack_overview.png", runtime: "MotifIcon (7 First Charter motifs)", provenance: "redrawn derivative — see component-inventory.md for per-motif match quality" },
   { source: "docs/design/harvest/AXM-WORLD.template.no-fonts.html", runtime: "reference only, not wired into runtime", provenance: "harvested asset (no-font standalone export)" },
   { source: "docs/design/harvest/standalone_inventory.json", runtime: "reference only, not wired into runtime", provenance: "harvested asset" },
 ];
@@ -112,7 +112,7 @@ export function RodohUiKitRoute(): JSX.Element {
           <p className="rk-sub">
             Every live component and state below is the exact same gameplay import — not a
             mockup. PixelIcon shapes are 32x32 grids extracted programmatically from
-            <code> 02_axm_world_runtime_ui_asset_pack.png</code> (connected-component detection,
+            <code> axm_world_runtime_ui_asset_pack.png</code> (connected-component detection,
             LANCZOS downsample, luminance-based fill/outline/detail classification) — traced
             directly from the sheet, not invented and not an embedded image slice. See "Source vs
             Runtime Mapping" below and
@@ -157,7 +157,7 @@ export function RodohUiKitRoute(): JSX.Element {
         </div>
       </Section>
 
-      <Section id="icons" title="Icon Matrix" note="Every PixelIcon at 16 / 24 / 32 / 64px. Each is a 32×32 grid extracted programmatically from 02_axm_world_runtime_ui_asset_pack.png (fill/outline/detail classified by luminance) — never a text glyph, and not a slice of the source PNG. A few lost minor flourishes in extraction (selected's corner brackets, lootAvailable's sparkles); see component-inventory.md.">
+      <Section id="icons" title="Icon Matrix" note="Every PixelIcon at 16 / 24 / 32 / 64px. Each is a 32×32 grid extracted programmatically from axm_world_runtime_ui_asset_pack.png (fill/outline/detail classified by luminance) — never a text glyph, and not a slice of the source PNG. A few lost minor flourishes in extraction (selected's corner brackets, lootAvailable's sparkles); see component-inventory.md.">
         <IconMatrix />
       </Section>
 
@@ -278,7 +278,7 @@ export function RodohUiKitRoute(): JSX.Element {
         </div>
       </Section>
 
-      <Section id="encounter" title="Encounter Motifs" note="First Charter MotifIcon set — redrawn derivatives of 03_first_charter_theme_asset_pack_overview.png §1, replacing the emoji glyphs EncounterDirector used to render per-location." wide>
+      <Section id="encounter" title="Encounter Motifs" note="First Charter MotifIcon set — redrawn derivatives of first_charter_theme_asset_pack_overview.png §1, replacing the emoji glyphs EncounterDirector used to render per-location." wide>
         <div className="rk-grid rk-grid--narrow">
           {MOTIFS.map((name) => (
             <div key={name} className="rk-cell">

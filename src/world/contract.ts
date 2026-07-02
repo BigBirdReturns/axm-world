@@ -44,6 +44,8 @@ export interface WorldNode {
   difficulty: number;
   tierIndex: number;
   requirements: string[];
+  /** First cycle this node was choosable; null when locked or cleared. */
+  availableSinceCycle: number | null;
   /** Unit surface normal = direction from planet center to the node. */
   normal: Vec3;
   /** World-space position on the planet surface. */
@@ -110,6 +112,7 @@ export function buildWorldLayout(
         difficulty: node.difficulty,
         tierIndex: node.tierIndex,
         requirements: node.requirements,
+        availableSinceCycle: node.availableSinceCycle,
         normal: n,
         position: [n[0] * config.planetRadius, n[1] * config.planetRadius, n[2] * config.planetRadius],
       });

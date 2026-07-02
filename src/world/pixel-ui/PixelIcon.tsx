@@ -1,3 +1,16 @@
+// Source: docs/design/references/axm_world_runtime_ui_asset_pack.png — every
+// PixelIconName's bounding box was extracted programmatically (connected-
+// component detection, LANCZOS downsample to 32x32, luminance classification
+// into 3 tones). Redrawn derivative, not a slice of the source PNG — a
+// generated grid, not an embedded image — but shapes/proportions trace the
+// sheet rather than being invented. See component-inventory.md for per-icon
+// provenance/simplifications ("selected" lost its corner brackets,
+// "lootAvailable" lost its sparkles — both disconnected fragments the
+// extraction didn't merge).
+// Grid: 32x32 (every PixelIconName)
+// Encoding: .=transparent(background) #=colored fill (currentColor, so
+//   gameplay CSS controls the semantic color) o=dark outline (source art's
+//   pixel-art border) w=light/white detail (highlights, stars, page lines)
 import type { HTMLAttributes } from "react";
 import "./pixel-ui.css";
 
@@ -29,23 +42,10 @@ export const PIXEL_ICON_NAMES: PixelIconName[] = [
   "rustyBlade", "guardCharm", "fieldSatchel", "emptySlot",
 ];
 
-// Every icon is a 32x32 pixel grid derived directly from
-// docs/design/references/02_axm_world_runtime_ui_asset_pack.png: each icon's
-// bounding box was extracted programmatically (connected-component detection
-// on non-background pixels), downsampled to a clean 32x32 grid with LANCZOS
-// resampling, and each cell classified into one of three tones by luminance:
-//   "#" = colored fill (rendered in currentColor, so gameplay CSS still
-//         controls the semantic color per state/role/attribute)
-//   "o" = dark outline (the source art's black pixel-art border)
-//   "w" = light/white detail (highlights, stars, crosses, page lines)
-//   "." = background (transparent)
-// This is a redrawn derivative, not a slice of the source PNG — the
-// extraction produces a grid, not an embedded image — but the shapes and
-// proportions are traced directly from the sheet rather than invented.
-// See docs/design/references/component-inventory.md for per-icon provenance
-// and any simplifications (e.g. "selected" lost its outer corner-bracket
-// accent because it was a disconnected fragment the extraction didn't merge;
-// "lootAvailable" lost its sparkle flourishes for the same reason).
+// See the file header above for Source/Grid/Encoding. Per-icon provenance
+// and simplifications ("selected" lost its corner brackets, "lootAvailable"
+// lost its sparkles — both disconnected fragments the extraction didn't
+// merge) are in docs/design/references/component-inventory.md.
 const GRIDS: Record<PixelIconName, string[]> = {
   available: [
     "................................",

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ArcWorld, ChallengeReq } from "./useArcWorld.js";
 import type { WorldNode } from "./contract.js";
 import type { ContractRequirements, FixSuggestion, PartyReadiness } from "./readiness.js";
+import { useLocale } from "./i18n/index.js";
 
 export function firstAvailableNodeId(nodes: Pick<WorldNode, "challengeId" | "status">[], excludeId?: string | null): string | null {
   return nodes.find((node) => node.status === "available" && node.challengeId !== excludeId)?.challengeId ?? null;
@@ -129,17 +130,20 @@ export function useArcInteraction(world: ArcWorld): ArcInteraction {
     () => (selectedId ? world.describeContract(selectedId) : null),
     [selectedId, world],
   );
+  // readiness/recommendation/fixPlan carry t()-translated reason strings, so the
+  // memos must invalidate on locale switch, not just on selection/world changes.
+  const [locale] = useLocale();
   const readiness = useMemo(
     () => (selectedId ? world.evaluateParty(selectedId, party) : null),
-    [selectedId, party, world],
+    [selectedId, party, world, locale],
   );
   const recommendation = useMemo(
     () => (selectedId ? world.recommendationFor(selectedId) : null),
-    [selectedId, world],
+    [selectedId, world, locale],
   );
   const fixPlan = useMemo(
     () => (selectedId ? world.fixPlanFor(selectedId, party) : null),
-    [selectedId, party, world],
+    [selectedId, party, world, locale],
   );
 
   return { selectedId, select: setSelectedId, party, toggleAgent, selected, req, canRun, run, contract, readiness, recommendation, fixPlan, applyFix };

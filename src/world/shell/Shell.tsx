@@ -11,13 +11,14 @@
 
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useEncounterDirector } from "../encounter/EncounterDirector.js";
-import { PRESENTATIONS, type Representation } from "../presentations.js";
+import { getPresentations, type Representation } from "../presentations.js";
 import { loadCostume, saveCostume, isCostumeId } from "../presentation-prefs.js";
 import { useIsMobile } from "../use-viewport.js";
 import { getEngineCoachMessage } from "./coach.js";
 import {
   StatusRegion,
   ViewSwitcher,
+  LocaleSwitcher,
   RosterRegion,
   ContractRegion,
   ReportRegion,
@@ -27,8 +28,10 @@ import {
   CompleteBanner,
   panel,
 } from "./regions.js";
+import { PixelButton, PixelIcon } from "../pixel-ui/index.js";
 import { DecisionPanel } from "../components/DecisionPanel.js";
 import { CartridgeObjectPanel } from "../components/CartridgeObjectPanel.js";
+import { t, useLocale } from "../i18n/index.js";
 import type { ArcInteraction } from "../useArcInteraction.js";
 import type { ArcWorld } from "../useArcWorld.js";
 
@@ -56,7 +59,7 @@ function ViewContextStrip(props: { rep: Representation; showPurpose: boolean; on
         <span data-testid="view-purpose" style={{ display: "flex", gap: 8, alignItems: "baseline", minWidth: 0 }}>
           <strong style={{ color: "#c9a14a", whiteSpace: "nowrap" }}>{rep.label}.</strong>
           <span>{rep.purpose}</span>
-          <button onClick={onDismiss} aria-label="Dismiss view note" style={{ flex: "none", background: "transparent", border: "none", color: "#a59c8b", cursor: "pointer", font: "14px monospace", lineHeight: 1 }}>×</button>
+          <button onClick={onDismiss} aria-label={t("shell.dismissViewNote")} style={{ flex: "none", background: "transparent", border: "none", color: "#a59c8b", cursor: "pointer", font: "14px monospace", lineHeight: 1 }}>×</button>
         </span>
       ) : (
         <strong style={{ color: "#8b7d6a" }}>{rep.label}</strong>
@@ -85,8 +88,8 @@ function EquipFlash(props: { event: NonNullable<ArcWorld["lastEquip"]> }): JSX.E
       data-testid="equip-flash"
       style={{ marginBottom: 10, padding: "8px 10px", border: "1px solid rgba(116,173,119,0.65)", background: "rgba(116,173,119,0.12)", color: "#d8cfbd", font: "11px/1.45 'IBM Plex Mono', ui-monospace, monospace" }}
     >
-      <strong style={{ color: "#74ad77" }}>Equipped:</strong> {props.event.itemName} → {props.event.agentName}
-      {bonus && <span style={{ display: "block", marginTop: 3, color: "#a59c8b" }}>{bonus}. Readiness below has recalculated from the new gear state.</span>}
+      <strong style={{ color: "#74ad77" }}>{t("shell.equipped")}</strong> {props.event.itemName} → {props.event.agentName}
+      {bonus && <span style={{ display: "block", marginTop: 3, color: "#a59c8b" }}>{bonus}. {t("shell.readinessRecalculated")}</span>}
     </div>
   );
 }
@@ -100,8 +103,8 @@ function RecordModal(props: { lastReport: NonNullable<ArcWorld["lastReport"]>; o
     >
       <Card style={{ width: "min(440px, 94vw)", padding: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 8 }}>
-          <strong style={{ color: "#c9a14a", font: "800 12px 'IBM Plex Mono', ui-monospace, monospace", textTransform: "uppercase", letterSpacing: "0.08em" }}>Recorded outcome</strong>
-          <button onClick={props.onClose} aria-label="Close recorded outcome" style={{ background: "transparent", border: "1px solid #4a4238", color: "#a59c8b", cursor: "pointer", font: "12px monospace" }}>×</button>
+          <strong style={{ color: "#c9a14a", font: "800 12px 'IBM Plex Mono', ui-monospace, monospace", textTransform: "uppercase", letterSpacing: "0.08em" }}>{t("shell.recordedOutcomeTitle")}</strong>
+          <button onClick={props.onClose} aria-label={t("shell.closeRecordedOutcome")} style={{ background: "transparent", border: "1px solid #4a4238", color: "#a59c8b", cursor: "pointer", font: "12px monospace" }}>×</button>
         </div>
         <div onClick={(e) => e.stopPropagation()}>
           <ReportRegion lastReport={props.lastReport} />
@@ -114,6 +117,7 @@ function RecordModal(props: { lastReport: NonNullable<ArcWorld["lastReport"]>; o
 export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Element {
   const { interceptedRun, overlay: encounterOverlay } = useEncounterDirector(ix, world);
   const isMobile = useIsMobile();
+  const [locale] = useLocale();
   const [costumeId, setCostumeId] = useState<string>(() => loadCostume(world.cartridge.arc));
   const [showCartridge, setShowCartridge] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -123,7 +127,9 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     setCostumeId(id);
     if (isCostumeId(id)) saveCostume(world.cartridge.arc, id);
   };
-  const active = useMemo(() => PRESENTATIONS.find((p) => p.id === costumeId) ?? PRESENTATIONS[0]!, [costumeId]);
+  // Re-derived whenever locale changes so representation labels/blurbs/hints re-translate.
+  const presentations = useMemo(() => getPresentations(), [locale]);
+  const active = useMemo(() => presentations.find((p) => p.id === costumeId) ?? presentations[0]!, [presentations, costumeId]);
   const modalOpen = world.pendingDecision !== null;
   const showPurpose = !dismissedPurpose[active.id] && !modalOpen;
   const dismissPurpose = () => setDismissedPurpose((p) => ({ ...p, [active.id]: true }));
@@ -152,25 +158,35 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     <StatusRegion title={world.arc.meta.name} cycle={world.cycle} resources={world.resources} progress={{ cleared: world.clearedCount, total: world.totalNodes }} />
   );
   const switcher = (
-    <ViewSwitcher costumes={PRESENTATIONS.map((p) => ({ id: p.id, label: p.label, blurb: p.blurb }))} activeId={active.id} onChoose={choose} disabled={modalOpen} />
+    <ViewSwitcher costumes={presentations.map((p) => ({ id: p.id, label: p.label, blurb: p.blurb }))} activeId={active.id} onChoose={choose} disabled={modalOpen} />
   );
+  // Chrome buttons: icon + short catalog label instead of a raw glyph (▤ / ◧) glued to
+  // English text, which crammed illegibly at narrow widths and doubled as an ad-hoc
+  // "icon" the asset-standard glyph allowlist otherwise has to special-case. Height
+  // matches PixelButton's 44px minimum so the top bar stays visually consistent.
   const recordButton = world.lastReport ? (
-    <button
+    <PixelButton
+      type="button"
+      variant="secondary"
       data-testid="record-history-button"
       onClick={() => setShowHistory(true)}
-      style={{ pointerEvents: "auto", font: "600 13px 'IBM Plex Mono', ui-monospace, monospace", background: "rgba(23,21,15,0.8)", color: "#d8cfbd", border: "1px solid #4a4238", borderRadius: 6, padding: "6px 10px", cursor: "pointer", whiteSpace: "nowrap" }}
+      style={{ pointerEvents: "auto", minHeight: 40, padding: "6px 10px", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}
     >
-      {isMobile ? "▤" : "▤ Record"}
-    </button>
+      <PixelIcon name="recorded" /> {!isMobile && <span>{t("shell.recordButton")}</span>}
+    </PixelButton>
   ) : null;
   const cartridgeButton = (
-    <button
+    <PixelButton
+      type="button"
+      variant="secondary"
+      data-testid="cartridge-object-button"
       onClick={() => setShowCartridge(true)}
-      style={{ pointerEvents: "auto", font: "600 13px 'IBM Plex Mono', ui-monospace, monospace", background: "rgba(23,21,15,0.8)", color: "#c9a14a", border: "1px solid #4a4238", borderRadius: 6, padding: "6px 10px", cursor: "pointer", whiteSpace: "nowrap" }}
+      style={{ pointerEvents: "auto", minHeight: 40, padding: "6px 10px", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}
     >
-      {isMobile ? "◧" : "◧ Cartridge"}
-    </button>
+      <PixelIcon name="selected" /> {!isMobile && <span>{t("shell.cartridgeButton")}</span>}
+    </PixelButton>
   );
+  const localeSwitcher = <LocaleSwitcher />;
 
   const selectionActive = ix.selected?.status === "available";
   const recommendedIds = useMemo(
@@ -201,7 +217,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   const loot = (
     <div data-testid="loot-reward-moment" style={{ display: "grid", gap: 8 }}>
       <div style={{ padding: "8px 10px", border: "1px solid rgba(201,161,74,0.6)", background: "rgba(201,161,74,0.1)", color: "#d8cfbd", font: "11px/1.45 'IBM Plex Mono', ui-monospace, monospace" }}>
-        <strong style={{ color: "#c9a14a" }}>Reward moment.</strong> Equip the item before the next decision. This rail belongs only to loot until the claim is resolved.
+        <strong style={{ color: "#c9a14a" }}>{t("shell.rewardMomentTitle")}</strong> {t("shell.rewardMomentBody")}
       </div>
       <LootRegion loot={world.pendingLoot} onClaimLoot={world.claimLoot} />
     </div>
@@ -224,6 +240,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
         <div style={{ flex: isMobile ? "1 1 100%" : "1 1 auto", minWidth: 0, order: isMobile ? 2 : 0 }}>{status}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, order: 1, marginLeft: isMobile ? "auto" : 0 }}>
           {switcher}
+          {localeSwitcher}
           {recordButton}
           {cartridgeButton}
         </div>
@@ -236,7 +253,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
             {stage}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 12px", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}>
-            {world.arcComplete && <CompleteBanner />}
+            {world.arcComplete && <CompleteBanner arcName={world.arc.meta.name} />}
             {world.pendingLoot.length > 0 ? loot : contract}
             {!ix.selected && world.pendingLoot.length === 0 && (
               <>
@@ -259,7 +276,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
               {stage}
               {world.arcComplete && (
                 <div style={{ position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)" }}>
-                  <Card style={{ borderColor: "#74ad77" }}><CompleteBanner /></Card>
+                  <Card style={{ borderColor: "#74ad77" }}><CompleteBanner arcName={world.arc.meta.name} /></Card>
                 </div>
               )}
             </div>

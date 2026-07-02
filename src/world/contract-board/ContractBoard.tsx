@@ -5,6 +5,8 @@ import { PixelContractCard, PixelIcon, type ContractCardState, type PixelIconNam
 import type { ArcInteraction } from "../useArcInteraction.js";
 import type { ArcWorld } from "../useArcWorld.js";
 import type { CheckStatus, PartyReadiness } from "../readiness.js";
+import { attrIcon, roleIcon, itemIcon } from "../theme-icons.js";
+import { t } from "../i18n/index.js";
 import { unlockEdges } from "./adjacency.js";
 import "./contract-board.css";
 
@@ -27,29 +29,6 @@ function nodeState(node: WorldNode, selected: boolean, readiness: PartyReadiness
   if (node.status === "locked") return "locked";
   if (node.status === "cleared") return "recorded";
   return outcomeState(readiness);
-}
-
-function attrIcon(id: string): PixelIconName {
-  if (id === "power" || id === "Power") return "power";
-  if (id === "mettle" || id === "Mettle") return "mettle";
-  if (id === "wits" || id === "Wits") return "wits";
-  if (id === "spirit" || id === "Spirit") return "spirit";
-  return "available";
-}
-
-function roleIcon(name: string): PixelIconName {
-  if (name.toLowerCase().includes("vanguard")) return "vanguard";
-  if (name.toLowerCase().includes("skirmisher")) return "skirmisher";
-  if (name.toLowerCase().includes("mender")) return "mender";
-  return "selected";
-}
-
-function itemIcon(name: string): PixelIconName {
-  const key = name.toLowerCase();
-  if (key.includes("blade") || key.includes("pick")) return "rustyBlade";
-  if (key.includes("charm") || key.includes("favor") || key.includes("seal") || key.includes("trophy")) return "guardCharm";
-  if (key.includes("satchel") || key.includes("cloak") || key.includes("pauldron")) return "fieldSatchel";
-  return "lootAvailable";
 }
 
 function scoreText(value: number | undefined): string {
@@ -79,19 +58,32 @@ function rewardPreview(challenge: Challenge | null, world: ArcWorld): Array<{ na
 
 function strongestWeakness(readiness: PartyReadiness | null): string | null {
   if (!readiness) return null;
-  if (!readiness.countOk) return readiness.reasons[0] ?? "Party count needs work.";
-  if (!readiness.rolesOk) return readiness.reasons[0] ?? "A required role is missing.";
+  if (!readiness.countOk) return readiness.reasons[0] ?? t("contractBoard.countNeedsWork");
+  if (!readiness.rolesOk) return readiness.reasons[0] ?? t("contractBoard.roleMissing");
   const weak = [...readiness.checks].sort((a, b) => {
     const severity = (s: CheckStatus) => (s === "short" ? 2 : s === "thin" ? 1 : 0);
     return severity(b.status) - severity(a.status) || b.shortBy - a.shortBy;
   })[0];
   if (!weak || weak.status === "ready") return null;
-  if (weak.status === "thin") return `${weak.name} needs +${scoreText(weak.shortBy)} buffer.`;
-  return `${weak.name} needs +${scoreText(weak.shortBy)} to recover.`;
+  if (weak.status === "thin") return t("contractBoard.needsBuffer", { name: weak.name, n: scoreText(weak.shortBy) });
+  return t("contractBoard.needsRecover", { name: weak.name, n: scoreText(weak.shortBy) });
 }
 
-function laneTitle(tierIndex: number): string {
-  return tierIndex === 0 ? "Opening Work" : tierIndex === 1 ? "First Pressure" : tierIndex === 2 ? "Escalation" : `Chapter ${tierIndex + 1}`;
+// Lane names come from the loaded arc's own progression tiers — never invented here.
+// A tier index past what the arc defines (or a cartridge with no progressionTiers
+// entries) falls back to a domain-neutral "Chapter N" label.
+function laneTitle(tierIndex: number, world: ArcWorld): string {
+  return world.arc.progressionTiers[tierIndex]?.name ?? t("contractBoard.chapterFallback", { n: tierIndex + 1 });
+}
+
+/** An available contract left unaddressed this many cycles starts signalling. */
+const ESCALATION_AFTER_CYCLES = 2;
+
+// §2 escalation signal. Derived, not invented: availableSinceCycle comes from the
+// same success records that drive node status (see play-pipeline/compile.ts).
+function cyclesWaiting(node: WorldNode, currentCycle: number): number | null {
+  if (node.status !== "available" || node.availableSinceCycle === null) return null;
+  return Math.max(0, currentCycle - node.availableSinceCycle);
 }
 
 function ContractLocationCard(props: {
@@ -132,8 +124,8 @@ function ContractLocationCard(props: {
       unlockRequirements={node.requirements}
       requirements={requirements}
       riskNote={weak ? <><PixelIcon name={state === "failing" ? "failing" : "risky"} /> {weak}</> : undefined}
-      readyNote={readiness?.projectedOutcome === "success" ? <><PixelIcon name="reliable" /> Recommended party is reliable.</> : undefined}
-      footerLeft={req ? `Party ${req.minAgents}${req.maxAgents !== req.minAgents ? `–${req.maxAgents}` : ""}` : "Party"}
+      readyNote={readiness?.projectedOutcome === "success" ? <><PixelIcon name="reliable" /> {t("contractBoard.recommendedReliable")}</> : undefined}
+      footerLeft={req ? t("contractBoard.partyRange", { min: req.minAgents, max: req.maxAgents }) : t("contractBoard.party")}
       footerRight={rewards.length > 0 ? rewards.map((item) => <PixelIcon key={item.name} name={item.icon} label={item.name} />) : undefined}
       onClick={() => onSelect(node.challengeId)}
     />
@@ -250,13 +242,13 @@ export function ContractBoardScene({ world, interaction, modalOpen = false }: Co
   }, [measure]);
 
   return (
-    <section className="contract-board-shell" data-testid="contract-board" aria-label="Contract Board" aria-disabled={modalOpen ? "true" : undefined}>
+    <section className="contract-board-shell" data-testid="contract-board" aria-label={t("contractBoard.title")} aria-disabled={modalOpen ? "true" : undefined}>
       <header className="contract-board-header">
         <div>
-          <span className="pixel-eyebrow">Contract Board</span>
-          <h2>Choose the next place</h2>
+          <span className="pixel-eyebrow">{t("contractBoard.title")}</span>
+          <h2>{t("contractBoard.heading")}</h2>
         </div>
-        <p>Cards show what is available, what is locked, what is risky, and what the cartridge has recorded. Lines show which cleared place opens which locked one.</p>
+        <p>{t("contractBoard.explainer")}</p>
       </header>
       <div className="contract-board" ref={boardRef}>
         <svg className="contract-board-adjacency" data-testid="board-adjacency" aria-hidden="true">
@@ -268,31 +260,44 @@ export function ContractBoardScene({ world, interaction, modalOpen = false }: Co
           ))}
         </svg>
         {lanes.map((lane) => (
-          <section className="contract-lane" key={lane.tierIndex} aria-label={laneTitle(lane.tierIndex)}>
+          <section className="contract-lane" key={lane.tierIndex} aria-label={laneTitle(lane.tierIndex, world)}>
             <div className="contract-lane__title">
-              <span>{laneTitle(lane.tierIndex)}</span>
+              <span>{laneTitle(lane.tierIndex, world)}</span>
               <small>{lane.nodes.length}</small>
             </div>
             <div className="contract-lane__cards">
-              {lane.nodes.map((node) => (
-                <div
-                  key={node.id}
-                  className="contract-board-cardwrap"
-                  data-contract-board-card-id={node.challengeId}
-                  data-testid={`contract-board-cardwrap-${node.challengeId}`}
-                  ref={(el) => {
-                    if (el) cardEls.current.set(node.challengeId, el);
-                    else cardEls.current.delete(node.challengeId);
-                  }}
-                >
-                  <ContractLocationCard
-                    node={node}
-                    world={world}
-                    selected={interaction.selectedId === node.challengeId}
-                    onSelect={(id) => interaction.select(interaction.selectedId === id ? null : id)}
-                  />
-                </div>
-              ))}
+              {lane.nodes.map((node) => {
+                const waiting = cyclesWaiting(node, world.cycle);
+                const escalated = waiting !== null && waiting >= ESCALATION_AFTER_CYCLES;
+                return (
+                  <div
+                    key={node.id}
+                    className={`contract-board-cardwrap${escalated ? " contract-board-cardwrap--escalated" : ""}`}
+                    data-contract-board-card-id={node.challengeId}
+                    data-testid={`contract-board-cardwrap-${node.challengeId}`}
+                    ref={(el) => {
+                      if (el) cardEls.current.set(node.challengeId, el);
+                      else cardEls.current.delete(node.challengeId);
+                    }}
+                  >
+                    {escalated && (
+                      <span
+                        className="contract-board-escalation"
+                        data-testid="escalation-signal"
+                        title={t("contractBoard.waitingTitle", { since: node.availableSinceCycle ?? 0, n: waiting })}
+                      >
+                        {t("contractBoard.waitingCycles", { n: waiting })}
+                      </span>
+                    )}
+                    <ContractLocationCard
+                      node={node}
+                      world={world}
+                      selected={interaction.selectedId === node.challengeId}
+                      onSelect={(id) => interaction.select(interaction.selectedId === id ? null : id)}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </section>
         ))}

@@ -25,9 +25,11 @@ describe("encounter and reward staging (PR B)", () => {
     const css = read("src/world/encounter/encounter.css");
     expect(encounter).toContain("projectedOutcome: ix.readiness?.projectedOutcome");
     expect(encounter).toContain("encounter-resolve-${projection.tone}");
-    expect(encounter).toContain("Reliable projection");
-    expect(encounter).toContain("Risk window");
-    expect(encounter).toContain("Failure pressure");
+    // Projection labels are now catalog ids (i18n/messages.ts) so they read
+    // correctly in both en and zh-Hant.
+    expect(encounter).toContain('t("encounter.reliableProjection")');
+    expect(encounter).toContain('t("encounter.riskWindow")');
+    expect(encounter).toContain('t("encounter.failurePressure")');
     expect(encounter).not.toContain("⚄");
     expect(css).toContain("enc-overlay--projected-reliable");
     expect(css).toContain("enc-overlay--projected-risky");
@@ -38,7 +40,8 @@ describe("encounter and reward staging (PR B)", () => {
     const shell = read("src/world/shell/Shell.tsx");
     const encounter = read("src/world/encounter/EncounterDirector.tsx");
     expect(encounter).toContain('data-testid="outcome-banner"');
-    expect(encounter).toContain("Recorded on board");
+    // Now a catalog id (i18n/messages.ts) so it reads correctly in both en and zh-Hant.
+    expect(encounter).toContain('t("encounter.recordedOnBoard")');
     expect(shell).toContain('data-testid="record-history-button"');
     expect(shell).toContain('data-testid="record-history-modal"');
     expect(shell).not.toContain("world.lastReport && <Card style={{ marginBottom: 10 }}><ReportRegion");
@@ -49,9 +52,10 @@ describe("encounter and reward staging (PR B)", () => {
     const shell = read("src/world/shell/Shell.tsx");
     const world = read("src/world/useArcWorld.ts");
     expect(shell).toContain('data-testid="loot-reward-moment"');
-    expect(shell).toContain("This rail belongs only to loot until the claim is resolved");
+    // Now catalog ids (i18n/messages.ts) so this copy reads correctly in both en and zh-Hant.
+    expect(shell).toContain('t("shell.rewardMomentBody")');
     expect(shell).toContain('data-testid="equip-flash"');
-    expect(shell).toContain("Readiness below has recalculated");
+    expect(shell).toContain('t("shell.readinessRecalculated")');
     expect(world).toContain("lastEquip: LastEquipEvent | null");
     expect(world).toContain("setLastEquip({");
   });

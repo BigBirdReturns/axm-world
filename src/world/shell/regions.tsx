@@ -12,7 +12,9 @@ import type { PlayReportView } from "../../play-pipeline/compile.js";
 import type { PendingLootChoice, RosterMember } from "../useArcWorld.js";
 import type { WorldNode } from "../contract.js";
 import type { ContractRequirements, FixSuggestion, PartyReadiness, ProjectedOutcome } from "../readiness.js";
-import { DOWNTIME_ACTIONS } from "../agent-management.js";
+import { DOWNTIME_ACTIONS, downtimeActionLabel } from "../agent-management.js";
+import { attrIcon, roleIcon, itemIcon } from "../theme-icons.js";
+import { t, useLocale, type Locale } from "../i18n/index.js";
 import "../pixel-ui/pixel-ui.css";
 import {
   PixelBadge,
@@ -40,29 +42,6 @@ export const panel: CSSProperties = {
   pointerEvents: "auto",
   backdropFilter: "blur(4px)",
 };
-
-const ROLE_ICON: Record<string, PixelIconName> = {
-  Vanguard: "vanguard",
-  Skirmisher: "skirmisher",
-  Mender: "mender",
-};
-
-const ATTR_ICON: Record<string, PixelIconName> = {
-  power: "power", mettle: "mettle", wits: "wits", spirit: "spirit",
-  Power: "power", Mettle: "mettle", Wits: "wits", Spirit: "spirit",
-};
-
-function attrIcon(nameOrId: string): PixelIconName {
-  return ATTR_ICON[nameOrId] ?? "available";
-}
-
-function itemIcon(name: string): PixelIconName {
-  const key = name.toLowerCase();
-  if (key.includes("blade") || key.includes("pick")) return "rustyBlade";
-  if (key.includes("charm") || key.includes("favor") || key.includes("seal") || key.includes("trophy")) return "guardCharm";
-  if (key.includes("satchel") || key.includes("cloak") || key.includes("pauldron")) return "fieldSatchel";
-  return "lootAvailable";
-}
 
 function scoreText(value?: number): string {
   return value === undefined ? "" : String(Math.round(value * 10) / 10);
@@ -96,12 +75,45 @@ export function StatusRegion(props: {
         {title}
       </div>
       <div style={{ display: "flex", gap: 5, overflowX: "auto", whiteSpace: "nowrap", scrollbarWidth: "none" }}>
-        <StatusChip label="Cycle" value={String(cycle).padStart(2, "0")} />
+        <StatusChip label={t("shell.cycle")} value={String(cycle).padStart(2, "0")} />
         <StatusChip label={resources.tokenName} value={String(resources.tokens)} />
         <StatusChip label={resources.currencyName} value={String(resources.currency)} />
-        <StatusChip label="Renown" value={String(resources.reputation)} />
-        <StatusChip label="Recorded" value={`${progress.cleared}/${progress.total}`} accent testid="cartridge-mark-count" />
+        <StatusChip label={resources.reputationName} value={String(resources.reputation)} />
+        <StatusChip label={t("shell.recorded")} value={`${progress.cleared}/${progress.total}`} accent testid="cartridge-mark-count" />
       </div>
+    </div>
+  );
+}
+
+// ── Locale switcher ──────────────────────────────────────────────────────
+// A compact EN / zh-Hant toggle, styled to match ViewSwitcher. The option
+// labels themselves come from the catalog (not hardcoded here) so the lone
+// non-ASCII glyph (the zh-Hant option's own label) stays inside
+// i18n/messages.ts per the asset-standard glyph allowlist test, which only
+// exempts pixel-ui/themes/brand/dev/i18n.
+
+export function LocaleSwitcher(): JSX.Element {
+  const [locale, setLocale] = useLocale();
+  const options: Array<{ id: Locale; labelId: "locale.enLabel" | "locale.zhHantLabel" }> = [
+    { id: "en", labelId: "locale.enLabel" },
+    { id: "zh-Hant", labelId: "locale.zhHantLabel" },
+  ];
+  return (
+    <div data-testid="locale-switcher" style={{ display: "flex", gap: 4, padding: 4, background: "rgba(23,21,15,0.82)", border: "1px solid #4a4238", pointerEvents: "auto" }}>
+      {options.map((opt) => {
+        const on = opt.id === locale;
+        return (
+          <button
+            key={opt.id}
+            onClick={() => setLocale(opt.id)}
+            data-testid={`locale-option-${opt.id}`}
+            aria-pressed={on}
+            style={{ cursor: "pointer", padding: "5px 11px", border: "none", background: on ? "var(--gold)" : "transparent", color: on ? "var(--ink)" : "#a59c8b", fontFamily: "var(--px-font)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase" }}
+          >
+            {t(opt.labelId)}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -194,18 +206,31 @@ export function RosterRegion(props: {
   return (
     <div>
       <div className="pixel-panel__title">
-        {selectionActive ? `Roster · party ${party.length}/${max}` : `Roster · ${roster.length} agents · select a contract to assign`}
+        {selectionActive ? t("shell.rosterPartyOf", { count: party.length, max }) : t("shell.rosterSelectContract", { count: roster.length })}
       </div>
       <div style={strip
         ? { display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6, scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", alignItems: "flex-start" }
         : { display: "grid", gap: 6 }
       }>
         {selectionActive && focusMembers.length > 0 && !strip && (
-          <div className="pixel-panel__title" style={{ marginBottom: 0 }}>Recommended party</div>
+          <div className="pixel-panel__title" style={{ marginBottom: 0 }}>{t("shell.recommendedParty")}</div>
         )}
-        {focusMembers.map(expandedCard)}
+        {/* §9: in the strip carousel the recommended party has no section label,
+            so each focus card carries its own visible accent instead. */}
+        {focusMembers.map((m) => strip ? (
+          <div
+            key={m.id}
+            data-testid="strip-recommended-card"
+            style={{ flex: "0 0 auto", scrollSnapAlign: "start", position: "relative", outline: "2px solid rgba(63, 174, 159, 0.75)", outlineOffset: 1 }}
+          >
+            <span style={{ position: "absolute", top: -7, left: 6, zIndex: 2, padding: "1px 5px", fontSize: 9, letterSpacing: "0.05em", textTransform: "uppercase", color: "#9fe0d6", background: "#0d1f1c", border: "1px solid rgba(63, 174, 159, 0.6)" }}>
+              {t("shell.recommendedChip")}
+            </span>
+            {expandedCard(m)}
+          </div>
+        ) : expandedCard(m))}
         {selectionActive && benchMembers.length > 0 && !strip && (
-          <div className="pixel-panel__title" style={{ margin: "6px 0 0" }}>Bench</div>
+          <div className="pixel-panel__title" style={{ margin: "6px 0 0" }}>{t("shell.bench")}</div>
         )}
         {benchMembers.map((m) => (
           <div key={m.id} style={strip ? { flex: "0 0 auto", width: expandedIds[m.id] ? "min(85vw, 290px)" : 180, scrollSnapAlign: "start" } : undefined}>
@@ -250,7 +275,7 @@ function RosterCompactRow(props: {
       type="button"
       data-testid="roster-compact-row"
       onClick={onToggle}
-      title={open ? `Collapse ${m.name}` : `Expand ${m.name}`}
+      title={open ? t("shell.collapseName", { name: m.name }) : t("shell.expandName", { name: m.name })}
       style={{
         display: "flex",
         alignItems: "center",
@@ -267,10 +292,10 @@ function RosterCompactRow(props: {
         opacity: m.downed ? 0.55 : 1,
       }}
     >
-      <PixelIcon name={ROLE_ICON[m.role] ?? "selected"} />
+      <PixelIcon name={roleIcon(m.role)} />
       <strong style={{ fontSize: 11, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</strong>
-      {m.downed && <PixelBadge state="failing" style={{ minHeight: 18, padding: "1px 5px", fontSize: 8 }}>Down</PixelBadge>}
-      {inParty && <PixelIcon name="selected" label="Assigned" />}
+      {m.downed && <PixelBadge state="failing" style={{ minHeight: 18, padding: "1px 5px", fontSize: 8 }}>{t("status.down")}</PixelBadge>}
+      {inParty && <PixelIcon name="selected" label={t("status.assigned")} />}
       <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--ink-muted)", whiteSpace: "nowrap" }}>{topContractStat(m, contract)}</span>
       <span aria-hidden="true" style={{ color: "var(--stone)", fontSize: 10 }}>{open ? "▾" : "▸"}</span>
     </button>
@@ -350,14 +375,27 @@ function RosterCard(props: {
   );
 }
 
+// Downtime actions reuse the closest existing status/attribute icons — the
+// icon set is closed (docs/design's redesign spec), so "rest" borrows the
+// reliable/calm mark, "train" borrows the Power attribute icon, and "rally"
+// borrows the Spirit (morale) attribute icon.
+const DOWNTIME_ICON: Record<DowntimeFix["action"], PixelIconName> = {
+  rest: "reliable",
+  train: "power",
+  rally: "spirit",
+};
+
 /** A downtime action sourced from the live fix plan — shows what the action does to
- *  the failing/thin check, not just its generic stress/morale deltas. */
+ *  the failing/thin check, not just its generic stress/morale deltas. Icon + a short
+ *  catalog label keep this legible in the compact roster row at mobile widths, where
+ *  the old text-only button crammed the label and delta onto one line. */
 function DowntimeFixButton(props: { fix: DowntimeFix; onClick: () => void }): JSX.Element {
   const { fix, onClick } = props;
   const def = DOWNTIME_ACTIONS[fix.action];
+  const label = downtimeActionLabel(fix.action);
   const delta = fix.beforeScore !== undefined && fix.afterScore !== undefined
     ? `${scoreText(fix.beforeScore)} → ${scoreText(fix.afterScore)}`
-    : `Stress ${fmt(def.stressDelta)} · Morale ${fmt(def.moraleDelta)}`;
+    : `${fmt(def.stressDelta)} / ${fmt(def.moraleDelta)}`;
   return (
     <PixelButton
       type="button"
@@ -365,10 +403,12 @@ function DowntimeFixButton(props: { fix: DowntimeFix; onClick: () => void }): JS
       data-testid="roster-downtime-fix"
       onClick={onClick}
       title={fix.reason}
-      style={{ padding: "5px 8px", minHeight: 44, fontSize: 9, lineHeight: 1.25, display: "flex", justifyContent: "space-between", gap: 8, width: "100%" }}
+      style={{ padding: "6px 8px", minHeight: 44, fontSize: 10, lineHeight: 1.3, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%", whiteSpace: "normal", textAlign: "left" }}
     >
-      <span style={{ fontWeight: 800 }}>{def.label}</span>
-      <span style={{ color: "var(--teal-dark)" }}>{delta}</span>
+      <span style={{ fontWeight: 800, display: "flex", alignItems: "center", gap: 5, flex: "0 1 auto", minWidth: 0 }}>
+        <PixelIcon name={DOWNTIME_ICON[fix.action]} /> {label}
+      </span>
+      <span style={{ color: "var(--teal-dark)", flex: "none", whiteSpace: "nowrap" }}>{delta}</span>
     </PixelButton>
   );
 }
@@ -396,27 +436,29 @@ export function ContractRegion(props: {
   if (selected.status === "locked") {
     return (
       <PixelPanel style={{ padding: "12px 14px" }}>
-        <PixelBadge state="locked" style={{ marginBottom: 8, display: "inline-flex" }}>Locked</PixelBadge>
+        <PixelBadge state="locked" style={{ marginBottom: 8, display: "inline-flex" }}>{t("status.locked")}</PixelBadge>
         <div data-testid="selected-contract-title" style={{ fontFamily: "var(--px-font)", fontSize: compact ? 22 : 18, fontWeight: 800, color: "var(--ink)", marginBottom: 4 }}>
           {selected.title}
         </div>
         <div style={{ color: "var(--ink-muted)", fontSize: compact ? 14 : 12, marginBottom: 12, lineHeight: 1.4 }}>{selected.description}</div>
         {selected.requirements.length > 0 && (
           <div data-testid="unlock-requirements">
-            <div className="pixel-panel__title">Unlock requirement</div>
+            <div className="pixel-panel__title">{t("shell.unlockRequirement")}</div>
             <ul style={{ margin: 0, padding: "0 0 0 14px", fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.6, fontFamily: "var(--px-font)" }}>
               {selected.requirements.map((req, i) => <li key={i}>{req}</li>)}
             </ul>
           </div>
         )}
-        <PixelButton disabled variant="disabled" style={{ width: "100%", marginTop: 14, fontSize: 13 }}>Locked</PixelButton>
+        <PixelButton disabled variant="disabled" style={{ width: "100%", marginTop: 14, minHeight: 44, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+          <PixelIcon name="locked" /> <span>{t("status.locked")}</span>
+        </PixelButton>
       </PixelPanel>
     );
   }
 
   const showReadiness = selected.status === "available" && contract;
   const contractStateBadge: "available" | "recorded" = selected.status === "cleared" ? "recorded" : "available";
-  const contractStateLabel = selected.status === "cleared" ? "Cleared" : "Available";
+  const contractStateLabel = selected.status === "cleared" ? t("status.cleared") : t("status.available");
 
   return (
     <PixelPanel style={{ padding: "12px 14px" }}>
@@ -430,12 +472,12 @@ export function ContractRegion(props: {
 
       {selected.status === "cleared" && (
         <div style={{ marginBottom: 8, fontSize: 11, color: "var(--teal-dark)", fontFamily: "var(--px-font)" }}>
-          This run has recorded a successful outcome here.
+          {t("shell.recordedOutcomeNote")}
         </div>
       )}
 
       <div data-testid="party-count" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: party.length >= min && party.length <= max ? "var(--teal-dark)" : "var(--gold-dark)", marginBottom: 8, fontFamily: "var(--px-font)" }}>
-        Party {party.length} · need {min}{max !== min ? `–${max}` : ""}
+        {t("shell.partyCount", { count: party.length, min, max })}
       </div>
 
       {showReadiness && <ReadinessPanel contract={contract} readiness={readiness} />}
@@ -452,6 +494,19 @@ export function ContractRegion(props: {
   );
 }
 
+// One icon per run-button state, so the label can stay short without losing
+// meaning — the icon carries reliable/risky/failing/locked/recorded state,
+// the label carries the verb. Fixes the "jammed text" complaint: a single
+// long uppercase phrase (e.g. "RUN WITH RISK") no longer has to fit alone.
+function runButtonIcon(selected: WorldNode, countOk: boolean, riskRun: boolean, thinRun: boolean): PixelIconName {
+  if (selected.status === "locked") return "locked";
+  if (selected.status === "cleared") return "recorded";
+  if (!countOk) return "available";
+  if (riskRun) return "failing";
+  if (thinRun) return "risky";
+  return "reliable";
+}
+
 function RunButton(props: { selected: WorldNode; min: number; max: number; canRun: boolean; readiness: PartyReadiness | null; onRun: () => void }): JSX.Element {
   const { selected, min, max, canRun, readiness, onRun } = props;
   const outcome = readiness?.projectedOutcome ?? "none";
@@ -460,17 +515,18 @@ function RunButton(props: { selected: WorldNode; min: number; max: number; canRu
   const thinRun = canRun && outcome === "partial";
   const disabled = !canRun;
   const label = selected.status === "locked"
-    ? "Locked"
+    ? t("status.locked")
     : selected.status === "cleared"
-    ? "Cleared ✓"
+    ? t("status.cleared")
     : !countOk
-    ? `Assign ${min}${max !== min ? `–${max}` : ""}`
+    ? t("shell.assignRange", { min, max })
     : riskRun
-    ? "Risk Contract"
+    ? t("shell.riskRun")
     : thinRun
-    ? "Run With Risk"
-    : "Run Contract";
+    ? t("shell.runWithRisk")
+    : t("shell.runContract");
   const variant = disabled ? "disabled" : riskRun ? "danger" : thinRun ? "primary" : "confirm";
+  const icon = runButtonIcon(selected, countOk, riskRun, thinRun);
   return (
     <div style={{ marginTop: 12, display: "grid", gap: 6 }}>
       <PixelButton
@@ -478,12 +534,12 @@ function RunButton(props: { selected: WorldNode; min: number; max: number; canRu
         disabled={disabled}
         data-testid="run-contract-button"
         variant={variant}
-        style={{ minWidth: "100%", fontSize: 14 }}
+        style={{ minWidth: "100%", minHeight: 46, fontSize: 13, lineHeight: 1.25, padding: "8px 14px", whiteSpace: "normal", wordBreak: "keep-all", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, textAlign: "center" }}
       >
-        {label}
+        <PixelIcon name={icon} /> <span>{label}</span>
       </PixelButton>
-      {riskRun && <div style={{ color: "var(--danger)", fontSize: 11, fontFamily: "var(--px-font)" }}>Projected failure. Fix the party or knowingly accept the risk.</div>}
-      {thinRun && <div style={{ color: "var(--gold-dark)", fontSize: 11, fontFamily: "var(--px-font)" }}>Risk remains. The run can work, but the buffer is thin.</div>}
+      {riskRun && <div style={{ color: "var(--danger)", fontSize: 11, fontFamily: "var(--px-font)" }}>{t("shell.riskWarning")}</div>}
+      {thinRun && <div style={{ color: "var(--gold-dark)", fontSize: 11, fontFamily: "var(--px-font)" }}>{t("shell.thinWarning")}</div>}
     </div>
   );
 }
@@ -494,11 +550,10 @@ function FixPlanPanel(props: { fixes: FixSuggestion[]; onApplyFix: (fix: FixSugg
   const extra = compact ? fixes.slice(2) : [];
 
   function renderFix(fix: FixSuggestion, i: number): JSX.Element {
-    if (fix.kind === "add-agent") return <FixButton key={i} label={`Add ${fix.agentName}`} fix={fix} onClick={() => onApplyFix(fix)} />;
-    if (fix.kind === "swap-agent") return <FixButton key={i} label={`Swap in ${fix.addAgentName}`} fix={fix} onClick={() => onApplyFix(fix)} />;
+    if (fix.kind === "add-agent") return <FixButton key={i} label={`${t("shell.addAgent", { name: fix.agentName })}`} fix={fix} onClick={() => onApplyFix(fix)} />;
+    if (fix.kind === "swap-agent") return <FixButton key={i} label={`${t("shell.swapInAgent", { name: fix.addAgentName })}`} fix={fix} onClick={() => onApplyFix(fix)} />;
     if (fix.kind === "downtime") {
-      const def = DOWNTIME_ACTIONS[fix.action];
-      return <FixButton key={i} label={`${def.label} ${fix.agentName}`} fix={fix} onClick={() => onApplyFix(fix)} />;
+      return <FixButton key={i} label={`${downtimeActionLabel(fix.action)} ${fix.agentName}`} fix={fix} onClick={() => onApplyFix(fix)} />;
     }
     return (
       <div key={i} style={{ padding: "8px 10px", border: "1px solid var(--cream-border)", fontFamily: "var(--px-font)", color: "var(--ink-muted)", fontSize: 11 }}>
@@ -510,7 +565,7 @@ function FixPlanPanel(props: { fixes: FixSuggestion[]; onApplyFix: (fix: FixSugg
   return (
     <div data-testid="fix-plan" style={{ marginTop: 10, borderTop: "1px solid var(--cream-border)", paddingTop: 10 }}>
       <div className="pixel-panel__title" style={{ display: "flex", alignItems: "center", gap: 5 }}>
-        <PixelIcon name="risky" /> Fix this contract
+        <PixelIcon name="risky" /> {t("shell.fixThisContract")}
       </div>
       <div style={{ display: "grid", gap: 6 }}>
         {primary.map((fix, i) => renderFix(fix, i))}
@@ -518,7 +573,7 @@ function FixPlanPanel(props: { fixes: FixSuggestion[]; onApplyFix: (fix: FixSugg
       {extra.length > 0 && (
         <details style={{ marginTop: 6 }}>
           <summary style={{ cursor: "pointer", fontSize: 10, color: "var(--stone)", fontFamily: "var(--px-font)", padding: "4px 0", userSelect: "none" }}>
-            +{extra.length} more option{extra.length > 1 ? "s" : ""}
+            {t("shell.moreOptions", { count: extra.length })}
           </summary>
           <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
             {extra.map((fix, i) => renderFix(fix, primary.length + i))}
@@ -533,7 +588,7 @@ function FixButton(props: { label: string; fix: FixSuggestion; onClick: () => vo
   const { fix } = props;
   const afterStatus = fix.kind !== "risk" ? fix.afterStatus : undefined;
   const delta = fix.kind !== "risk" && fix.beforeScore !== undefined && fix.afterScore !== undefined
-    ? `${scoreText(fix.beforeScore)} → ${scoreText(fix.afterScore)}${afterStatus === "ready" ? " reliable" : afterStatus === "thin" ? " risky" : afterStatus === "short" ? " failing" : ""}`
+    ? `${scoreText(fix.beforeScore)} → ${scoreText(fix.afterScore)}${afterStatus === "ready" ? ` ${t("status.reliable")}` : afterStatus === "thin" ? ` ${t("status.risky")}` : afterStatus === "short" ? ` ${t("status.failing")}` : ""}`
     : "";
   return (
     <PixelButton
@@ -556,7 +611,12 @@ function FixButton(props: { label: string; fix: FixSuggestion; onClick: () => vo
 }
 
 const OUTCOME_STATE: Record<ProjectedOutcome, "reliable" | "risky" | "failing" | "recorded"> = { success: "reliable", partial: "risky", failure: "failing", none: "recorded" };
-const OUTCOME_LABEL: Record<ProjectedOutcome, string> = { success: "Projected Reliable", partial: "Projected Risky", failure: "Projected to Fail", none: "Assign a party" };
+const OUTCOME_LABEL_ID: Record<ProjectedOutcome, "shell.projectedReliable" | "shell.projectedRisky" | "shell.projectedFail" | "shell.assignParty"> = {
+  success: "shell.projectedReliable",
+  partial: "shell.projectedRisky",
+  failure: "shell.projectedFail",
+  none: "shell.assignParty",
+};
 
 function ReadinessPanel(props: { contract: ContractRequirements; readiness: PartyReadiness | null }): JSX.Element {
   const { contract, readiness } = props;
@@ -565,7 +625,7 @@ function ReadinessPanel(props: { contract: ContractRequirements; readiness: Part
     <div style={{ borderTop: "1px solid var(--cream-border)", margin: "0 0 10px", paddingTop: 10 }}>
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
         <PixelBadge data-testid="readiness-status" state={OUTCOME_STATE[outcome]} icon={<PixelIcon name={OUTCOME_STATE[outcome]} />}>
-          {OUTCOME_LABEL[outcome]}
+          {t(OUTCOME_LABEL_ID[outcome])}
         </PixelBadge>
       </div>
 
@@ -573,13 +633,13 @@ function ReadinessPanel(props: { contract: ContractRequirements; readiness: Part
         <div style={{ display: "grid", gap: 4, marginBottom: 10, fontSize: 11, color: "var(--ink-muted)", fontFamily: "var(--px-font)" }}>
           {contract.roles.length > 0 && (
             <div>
-              <strong style={{ color: "var(--coffee)" }}>Roles:</strong>{" "}
+              <strong style={{ color: "var(--coffee)" }}>{t("shell.roles")}</strong>{" "}
               {contract.roles.map((r) => `${r.count} ${r.roleName}`).join(", ")}
             </div>
           )}
           {contract.timePressure && (
             <div>
-              <strong style={{ color: "var(--coffee)" }}>Time:</strong>{" "}
+              <strong style={{ color: "var(--coffee)" }}>{t("shell.time")}</strong>{" "}
               {contract.timePressure.attributeName} ≥ {contract.timePressure.aggregateThreshold} over {contract.timePressure.rounds} rounds
             </div>
           )}
@@ -590,7 +650,7 @@ function ReadinessPanel(props: { contract: ContractRequirements; readiness: Part
         {(readiness?.checks ?? []).map((c) => {
           const req = contract.checks.find((cc) => cc.id === c.id);
           const attrs = req?.attributes ?? [];
-          const scope = c.scope === "team_aggregate" ? "team" : c.scope === "role_specific" ? (c.roleNames.join("+") || "role") : "per-agent";
+          const scope = c.scope === "team_aggregate" ? t("shell.scopeTeam") : c.scope === "role_specific" ? (c.roleNames.join("+") || t("shell.scopeRole")) : t("shell.scopePerAgent");
           const topContrib = [...c.contributors]
             .filter((x) => x.inScope)
             .sort((a, b) => b.total - a.total)
@@ -641,7 +701,7 @@ export function LootRegion(props: { loot: PendingLootChoice[]; onClaimLoot: (cho
   return (
     <div data-testid="loot-region" style={{ display: "grid", gap: 8 }}>
       <div className="pixel-panel__title" style={{ display: "flex", alignItems: "center", gap: 5 }}>
-        <PixelIcon name="lootAvailable" /> Loot / Equip
+        <PixelIcon name="lootAvailable" /> {t("shell.lootEquip")}
       </div>
       {props.loot.map((choice) => {
         const bonus = Object.entries(choice.bonuses).map(([attr, value]) => `${attrNameLabel(attr)} +${value}`).join(" · ");
@@ -656,8 +716,8 @@ export function LootRegion(props: { loot: PendingLootChoice[]; onClaimLoot: (cho
             flavorText={choice.flavorText}
           >
             {choice.eligibleAgents.slice(0, 3).map((agent) => (
-              <PixelButton key={agent.id} variant={agent.id === preferred?.id ? "confirm" : "secondary"} onClick={() => props.onClaimLoot(choice.id, agent.id)} style={{ minHeight: 36, fontSize: 10, padding: "5px 10px" }}>
-                Equip → {agent.name}
+              <PixelButton key={agent.id} variant={agent.id === preferred?.id ? "confirm" : "secondary"} onClick={() => props.onClaimLoot(choice.id, agent.id)} style={{ minHeight: 36, fontSize: 10, padding: "5px 10px", display: "flex", alignItems: "center", gap: 4 }}>
+                <PixelIcon name="lootAvailable" /> {t("shell.equipArrow", { name: agent.name })}
               </PixelButton>
             ))}
           </PixelLootCard>
@@ -674,15 +734,16 @@ export function ReportRegion(props: { lastReport: PlayReportView }): JSX.Element
   const outcomeState: Record<string, "reliable" | "risky" | "failing"> = {
     success: "reliable", partial: "risky", failure: "failing",
   };
-  const outcomeLabel: Record<string, string> = {
-    success: "Outcome: Success", partial: "Outcome: Partial", failure: "Outcome: Failed",
+  const outcomeLabelId: Record<string, "shell.outcomeSuccess" | "shell.outcomePartial" | "shell.outcomeFailed"> = {
+    success: "shell.outcomeSuccess", partial: "shell.outcomePartial", failure: "shell.outcomeFailed",
   };
+  const labelId = outcomeLabelId[lastReport.outcome];
   return (
     <PixelPanel data-testid="outcome-region" style={{ padding: "12px 14px" }}>
-      <div className="pixel-panel__title">Contract Outcome</div>
+      <div className="pixel-panel__title">{t("shell.contractOutcome")}</div>
       <div style={{ marginBottom: 8 }}>
         <PixelBadge state={outcomeState[lastReport.outcome] ?? "recorded"}>
-          {outcomeLabel[lastReport.outcome] ?? lastReport.outcome}
+          {labelId ? t(labelId) : lastReport.outcome}
         </PixelBadge>
       </div>
       <div style={{ fontFamily: "var(--px-font)", fontSize: 14, fontWeight: 800, color: "var(--ink)", marginBottom: 4 }}>{lastReport.challengeName}</div>
@@ -694,7 +755,7 @@ export function ReportRegion(props: { lastReport: PlayReportView }): JSX.Element
 export function CoachRegion(props: { message: string }): JSX.Element {
   return (
     <div>
-      <div className="pixel-panel__title">Engine loop</div>
+      <div className="pixel-panel__title">{t("shell.engineLoop")}</div>
       <div style={{ color: "var(--ink-soft)", fontSize: 12, fontFamily: "var(--px-font)" }}>{props.message}</div>
     </div>
   );
@@ -703,7 +764,7 @@ export function CoachRegion(props: { message: string }): JSX.Element {
 export function DispatchRegion(props: { dispatches: DramaCard[]; limit: number }): JSX.Element {
   return (
     <div>
-      <div className="pixel-panel__title">Dispatches</div>
+      <div className="pixel-panel__title">{t("shell.dispatches")}</div>
       {props.dispatches.slice(0, props.limit).map((d) => (
         <div key={d.id} style={{ marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid var(--cream-border)" }}>
           <div style={{ fontFamily: "var(--px-font)", fontSize: 12, lineHeight: 1.45, color: "var(--ink-soft)" }}>{d.narrativeText}</div>
@@ -713,12 +774,12 @@ export function DispatchRegion(props: { dispatches: DramaCard[]; limit: number }
   );
 }
 
-export function CompleteBanner(): JSX.Element {
+export function CompleteBanner(props: { arcName: string }): JSX.Element {
   return (
     <PixelPanel style={{ padding: "16px 20px", textAlign: "center" }}>
-      <PixelBadge state="reliable" style={{ marginBottom: 8, display: "inline-flex" }}>Charter Complete</PixelBadge>
+      <PixelBadge state="reliable" style={{ marginBottom: 8, display: "inline-flex" }}>{t("shell.complete", { name: props.arcName })}</PixelBadge>
       <div style={{ fontFamily: "var(--px-font)", fontSize: 16, fontWeight: 800, color: "var(--teal-dark)" }}>
-        Every contract cleared
+        {t("shell.everyContractCleared")}
       </div>
     </PixelPanel>
   );

@@ -5,11 +5,18 @@
 // skippable: click or press Escape at any pre-result phase to skip to result.
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import type { Challenge } from "../../engine/types.js";
 import type { ArcInteraction } from "../useArcInteraction.js";
 import type { ArcWorld } from "../useArcWorld.js";
 import type { WorldNode } from "../contract.js";
 import type { ProjectedOutcome } from "../readiness.js";
-import { MotifIcon, locationMotif } from "../themes/first-charter/motif-icons.js";
+import { PixelIcon } from "../pixel-ui/index.js";
+// Theme seam (docs/design/rodoh-visual-contract.md): First Charter motif icons are only
+// used when the loaded arc IS First Charter (checked against FIRST_CHARTER_THEME.id
+// below). Any other cartridge gets the generic PixelIcon placeholder instead.
+import { MotifIcon, locationMotif, type FirstCharterMotifName } from "../themes/first-charter/motif-icons.js";
+import { FIRST_CHARTER_THEME } from "../themes/first-charter/theme.js";
+import { t } from "../i18n/index.js";
 import "./encounter.css";
 
 export type EncounterPhase =
@@ -21,46 +28,39 @@ export type EncounterPhase =
   | "result"
   | "record";
 
-const LOCATION_FLAVOR: Record<string, string> = {
-  cellar: "Something stirs below…",
-  "the-cellar": "Something stirs below…",
-  "bridge-troll": "The troll doesn't look like it's in a mood to negotiate.",
-  "merchant-escort": "The convoy loads up. The road is long.",
-  "mine-collapse": "The tunnels groan overhead.",
-  "bandit-camp": "Smoke rises through the trees.",
-  "wardens-keep": "The gates are sealed. For now.",
-};
-
-function locationFlavor(id: string): string {
-  for (const [key, flavor] of Object.entries(LOCATION_FLAVOR)) {
-    if (id.toLowerCase().includes(key)) return flavor;
-  }
-  return "The party moves out.";
+// The pre-resolve "flavor" line is the challenge's own authored description (first
+// sentence), not invented fiction keyed off a location id — any arc's challenges get
+// this for free.
+function locationFlavor(challenge: Challenge | null): string {
+  if (!challenge) return t("encounter.partyMovesOut");
+  const sentence = challenge.description.split(/[.!?]/)[0]?.trim();
+  return sentence && sentence.length > 0 ? sentence : t("encounter.partyMovesOut");
 }
 
-function outcomeLabel(outcome: string | undefined): { label: string; color: string; glyph: string } {
-  switch (outcome) {
-    case "success":
-      return { label: "Contract fulfilled.", color: "#74ad77", glyph: "✓" };
-    case "partial":
-      return { label: "Partial success. Barely.", color: "#c9a14a", glyph: "◈" };
-    case "failure":
-      return { label: "They came back empty-handed.", color: "#b01c18", glyph: "✗" };
-    default:
-      return { label: "Outcome recorded.", color: "#8b7d6a", glyph: "◆" };
-  }
+// The result headline is the challenge's own authored outcome narrative
+// (challenge.outcomes[outcome].narrative). The literals below are ONLY a fallback for
+// an outcome with no authored narrative — never the primary source of the label.
+function outcomeLabel(outcome: string | undefined, narrative: string | undefined): { label: string; color: string; glyph: string } {
+  const fallback: Record<string, { label: string; color: string; glyph: string }> = {
+    success: { label: t("encounter.outcomeFulfilled"), color: "#74ad77", glyph: "✓" },
+    partial: { label: t("encounter.outcomePartial"), color: "#c9a14a", glyph: "◈" },
+    failure: { label: t("encounter.outcomeFailure"), color: "#b01c18", glyph: "✗" },
+  };
+  const base = (outcome && fallback[outcome]) || { label: t("encounter.outcomeRecordedFallback"), color: "#8b7d6a", glyph: "◆" };
+  const label = narrative && narrative.trim().length > 0 ? narrative : base.label;
+  return { ...base, label };
 }
 
 function resolveProjection(outcome: ProjectedOutcome): { label: string; detail: string; glyph: string; tone: "reliable" | "risky" | "failing" | "empty" } {
   switch (outcome) {
     case "success":
-      return { label: "Reliable projection", detail: "Every authored check has buffer.", glyph: "✓", tone: "reliable" };
+      return { label: t("encounter.reliableProjection"), detail: t("encounter.reliableProjectionDetail"), glyph: "✓", tone: "reliable" };
     case "partial":
-      return { label: "Risk window", detail: "The party can pass, but the buffer is thin.", glyph: "◈", tone: "risky" };
+      return { label: t("encounter.riskWindow"), detail: t("encounter.riskWindowDetail"), glyph: "◈", tone: "risky" };
     case "failure":
-      return { label: "Failure pressure", detail: "At least one check is projected short.", glyph: "!", tone: "failing" };
+      return { label: t("encounter.failurePressure"), detail: t("encounter.failurePressureDetail"), glyph: "!", tone: "failing" };
     default:
-      return { label: "No projection", detail: "Assign a party before trusting the run.", glyph: "?", tone: "empty" };
+      return { label: t("encounter.noProjection"), detail: t("encounter.noProjectionDetail"), glyph: "?", tone: "empty" };
   }
 }
 
@@ -114,6 +114,10 @@ interface UseEncounterDirectorResult {
   interceptedRun: () => void;
   /** Null when phase is idle. Render this over the shell when non-null. */
   overlay: JSX.Element | null;
+}
+
+function challengeFor(world: ArcWorld, challengeId: string): Challenge | null {
+  return world.arc.challenges.find((c) => c.id === challengeId) ?? null;
 }
 
 const PHASE_DURATIONS: Partial<Record<EncounterPhase, number>> = {
@@ -217,6 +221,8 @@ export function useEncounterDirector(ix: ArcInteraction, world: ArcWorld): UseEn
             lastReport={world.lastReport}
             projectedOutcome={snapshot.projectedOutcome}
             target={snapshot.target}
+            challenge={challengeFor(world, snapshot.challengeId)}
+            motif={world.arc.meta.id === FIRST_CHARTER_THEME.id ? locationMotif(snapshot.challengeId) : null}
             onSkip={skip}
             onDismiss={handleResultDismiss}
           />
@@ -233,13 +239,18 @@ interface OverlayProps {
   lastReport: ArcWorld["lastReport"];
   projectedOutcome: ProjectedOutcome;
   target: BoardTarget;
+  /** The current challenge's own data (description, authored outcome narratives).
+   *  Null only if the node's challengeId can't be resolved against the loaded arc. */
+  challenge: Challenge | null;
+  /** First Charter motif icon, or null when the loaded arc isn't First Charter —
+   *  in which case the overlay falls back to a generic PixelIcon. */
+  motif: FirstCharterMotifName | null;
   onSkip: () => void;
   onDismiss: () => void;
 }
 
-function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOutcome, target, onSkip, onDismiss }: OverlayProps): JSX.Element {
-  const motif = locationMotif(node.challengeId);
-  const flavor = locationFlavor(node.challengeId);
+function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOutcome, target, challenge, motif, onSkip, onDismiss }: OverlayProps): JSX.Element {
+  const flavor = locationFlavor(challenge);
   const partyNames = party.map((id) => roster.find((m) => m.id === id)?.name ?? id);
   const projection = resolveProjection(projectedOutcome);
   const targetStyle = {
@@ -264,7 +275,7 @@ function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOut
 
   const isPreResult = phase === "dispatch" || phase === "travel" || phase === "encounter" || phase === "resolve-checks";
   const isResult = phase === "result" || phase === "record";
-  const result = lastReport ? outcomeLabel(lastReport.outcome) : null;
+  const result = lastReport ? outcomeLabel(lastReport.outcome, challenge?.outcomes[lastReport.outcome]?.narrative) : null;
   const showBoardAnchor = phase === "travel" || isResult;
 
   return (
@@ -286,7 +297,7 @@ function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOut
           {target.found && <div className="enc-target-ping" data-testid="encounter-board-target" />}
           {phase === "travel" && (
             <div className="enc-travel-token" data-testid="encounter-travel-token">
-              <MotifIcon name={motif} size={34} className="enc-motif-frame" />
+              {motif ? <MotifIcon name={motif} size={34} className="enc-motif-frame" /> : <PixelIcon name="available" className="enc-motif-frame" />}
             </div>
           )}
         </div>
@@ -294,12 +305,12 @@ function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOut
 
       <div className="enc-vignette" onClick={(e) => e.stopPropagation()}>
         <div className={`enc-icon enc-icon--${phase} enc-motif-stage`} aria-hidden="true">
-          <MotifIcon name={motif} size={56} className="enc-motif-frame" />
+          {motif ? <MotifIcon name={motif} size={56} className="enc-motif-frame" /> : <PixelIcon name="available" className="enc-motif-frame" />}
         </div>
 
         {phase === "dispatch" && (
           <div className="enc-content">
-            <div className="enc-phase-label">Dispatching…</div>
+            <div className="enc-phase-label">{t("encounter.dispatching")}</div>
             <div className="enc-title">{node.title}</div>
             <div className="enc-party">
               {partyNames.map((name, i) => (
@@ -311,9 +322,9 @@ function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOut
 
         {phase === "travel" && (
           <div className="enc-content" data-testid="encounter-travel-phase">
-            <div className="enc-phase-label">Traveling to board position</div>
+            <div className="enc-phase-label">{t("encounter.travelingToBoard")}</div>
             <div className="enc-title">{node.title}</div>
-            <div className="enc-travel-note">The committed party is moving toward the selected contract card.</div>
+            <div className="enc-travel-note">{t("encounter.travelNote")}</div>
           </div>
         )}
 
@@ -326,7 +337,7 @@ function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOut
 
         {phase === "resolve-checks" && (
           <div className="enc-content" data-testid={`encounter-resolve-${projection.tone}`}>
-            <div className="enc-phase-label">Resolving…</div>
+            <div className="enc-phase-label">{t("encounter.resolving")}</div>
             <div className={`enc-projection enc-projection--${projection.tone}`}>
               <span className="enc-projection-glyph">{projection.glyph}</span>
               <span>
@@ -348,7 +359,7 @@ function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOut
         {isResult && result && (
           <div className="enc-content enc-content--result" data-testid="outcome-banner">
             <div className="enc-result-glyph" style={{ color: result.color }}>{result.glyph}</div>
-            <div className="enc-phase-label">Recorded on board</div>
+            <div className="enc-phase-label">{t("encounter.recordedOnBoard")}</div>
             <div className="enc-title">{node.title}</div>
             <div className="enc-result-label" style={{ color: result.color }}>{result.label}</div>
             {lastReport?.rewardSummary && <div className="enc-reward-summary">{lastReport.rewardSummary}</div>}
@@ -359,12 +370,12 @@ function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOut
                 ))}
               </div>
             )}
-            <button className="enc-dismiss-btn" onClick={onDismiss}>Continue →</button>
+            <button className="enc-dismiss-btn" onClick={onDismiss}>{t("encounter.continue")}</button>
           </div>
         )}
 
         {isPreResult && (
-          <div className="enc-skip-hint">click anywhere to skip</div>
+          <div className="enc-skip-hint">{t("encounter.clickToSkip")}</div>
         )}
       </div>
     </div>
