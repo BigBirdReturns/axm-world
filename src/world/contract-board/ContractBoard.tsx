@@ -94,6 +94,16 @@ function laneTitle(tierIndex: number): string {
   return tierIndex === 0 ? "Opening Work" : tierIndex === 1 ? "First Pressure" : tierIndex === 2 ? "Escalation" : `Chapter ${tierIndex + 1}`;
 }
 
+/** An available contract left unaddressed this many cycles starts signalling. */
+const ESCALATION_AFTER_CYCLES = 2;
+
+// §2 escalation signal. Derived, not invented: availableSinceCycle comes from the
+// same success records that drive node status (see play-pipeline/compile.ts).
+function cyclesWaiting(node: WorldNode, currentCycle: number): number | null {
+  if (node.status !== "available" || node.availableSinceCycle === null) return null;
+  return Math.max(0, currentCycle - node.availableSinceCycle);
+}
+
 function ContractLocationCard(props: {
   node: WorldNode;
   world: ArcWorld;
@@ -274,25 +284,38 @@ export function ContractBoardScene({ world, interaction, modalOpen = false }: Co
               <small>{lane.nodes.length}</small>
             </div>
             <div className="contract-lane__cards">
-              {lane.nodes.map((node) => (
-                <div
-                  key={node.id}
-                  className="contract-board-cardwrap"
-                  data-contract-board-card-id={node.challengeId}
-                  data-testid={`contract-board-cardwrap-${node.challengeId}`}
-                  ref={(el) => {
-                    if (el) cardEls.current.set(node.challengeId, el);
-                    else cardEls.current.delete(node.challengeId);
-                  }}
-                >
-                  <ContractLocationCard
-                    node={node}
-                    world={world}
-                    selected={interaction.selectedId === node.challengeId}
-                    onSelect={(id) => interaction.select(interaction.selectedId === id ? null : id)}
-                  />
-                </div>
-              ))}
+              {lane.nodes.map((node) => {
+                const waiting = cyclesWaiting(node, world.cycle);
+                const escalated = waiting !== null && waiting >= ESCALATION_AFTER_CYCLES;
+                return (
+                  <div
+                    key={node.id}
+                    className={`contract-board-cardwrap${escalated ? " contract-board-cardwrap--escalated" : ""}`}
+                    data-contract-board-card-id={node.challengeId}
+                    data-testid={`contract-board-cardwrap-${node.challengeId}`}
+                    ref={(el) => {
+                      if (el) cardEls.current.set(node.challengeId, el);
+                      else cardEls.current.delete(node.challengeId);
+                    }}
+                  >
+                    {escalated && (
+                      <span
+                        className="contract-board-escalation"
+                        data-testid="escalation-signal"
+                        title={`Available since cycle ${node.availableSinceCycle}, unaddressed for ${waiting} cycles.`}
+                      >
+                        Waiting {waiting} cycles
+                      </span>
+                    )}
+                    <ContractLocationCard
+                      node={node}
+                      world={world}
+                      selected={interaction.selectedId === node.challengeId}
+                      onSelect={(id) => interaction.select(interaction.selectedId === id ? null : id)}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </section>
         ))}

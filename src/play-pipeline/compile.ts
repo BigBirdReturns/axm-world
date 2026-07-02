@@ -14,6 +14,9 @@ export interface PlayNode {
   difficulty: number;
   status: PlayNodeStatus;
   requirements: string[];
+  /** First cycle this challenge was choosable (0 = arc start), derived from the
+   *  same success records that drive `status`. null when locked or cleared. */
+  availableSinceCycle: number | null;
 }
 
 export interface PlayAgentToken {
@@ -83,6 +86,34 @@ function statusForChallenge(challenge: Challenge, org: Organization, cleared: Se
   return gated ? "locked" : "available";
 }
 
+/** challengeId -> earliest cycle any agent recorded a success on it. */
+function earliestSuccessCycles(org: Organization): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const agent of Object.values(org.agents)) {
+    for (const record of agent.assignmentHistory) {
+      if (record.outcome !== "success") continue;
+      const prev = out.get(record.challengeId);
+      if (prev === undefined || record.cycle < prev) out.set(record.challengeId, record.cycle);
+    }
+  }
+  return out;
+}
+
+// First cycle the challenge's milestone gates were all satisfied. Success records
+// are stamped with the pre-advance cycle, so a gate cleared at cycle N opens the
+// challenge at N+1. Ungated challenges are open from the arc start (cycle 0).
+// Milestone-id normalization must match statusForChallenge exactly so this can
+// never disagree with the status it annotates.
+function availableSince(challenge: Challenge, successCycles: Map<string, number>): number | null {
+  let since = 0;
+  for (const m of challenge.accessRequirements.orgMilestones) {
+    const clearedAt = successCycles.get(m.replace(/-cleared$/, "")) ?? successCycles.get(m);
+    if (clearedAt === undefined) return null;
+    since = Math.max(since, clearedAt + 1);
+  }
+  return since;
+}
+
 function tierIndexForChallenge(arc: Arc, challengeId: string): number {
   const idx = arc.progressionTiers.findIndex((tier) => tier.challenges.includes(challengeId));
   return idx >= 0 ? idx : 0;
@@ -105,6 +136,7 @@ export function compileArcToPlayScene(arc: Arc, org: Organization): PlayScene {
   const width = 960;
   const height = 560;
   const cleared = clearedChallengeIds(org);
+  const successCycles = earliestSuccessCycles(org);
   const byTier = new Map<number, Challenge[]>();
 
   for (const challenge of arc.challenges) {
@@ -121,6 +153,7 @@ export function compileArcToPlayScene(arc: Arc, org: Organization): PlayScene {
       const spread = 130;
       const centerY = height / 2;
       const offset = (challengeIndex - (challenges.length - 1) / 2) * spread;
+      const status = statusForChallenge(challenge, org, cleared);
       nodes.push({
         id: `node:${challenge.id}`,
         challengeId: challenge.id,
@@ -130,8 +163,9 @@ export function compileArcToPlayScene(arc: Arc, org: Organization): PlayScene {
         y: centerY + offset,
         tierIndex,
         difficulty: challenge.difficultyRating,
-        status: statusForChallenge(challenge, org, cleared),
+        status,
         requirements: requirementLabels(challenge, arc),
+        availableSinceCycle: status === "available" ? availableSince(challenge, successCycles) : null,
       });
     });
   }

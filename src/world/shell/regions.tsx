@@ -203,7 +203,20 @@ export function RosterRegion(props: {
         {selectionActive && focusMembers.length > 0 && !strip && (
           <div className="pixel-panel__title" style={{ marginBottom: 0 }}>Recommended party</div>
         )}
-        {focusMembers.map(expandedCard)}
+        {/* §9: in the strip carousel the recommended party has no section label,
+            so each focus card carries its own visible accent instead. */}
+        {focusMembers.map((m) => strip ? (
+          <div
+            key={m.id}
+            data-testid="strip-recommended-card"
+            style={{ flex: "0 0 auto", scrollSnapAlign: "start", position: "relative", outline: "2px solid rgba(63, 174, 159, 0.75)", outlineOffset: 1 }}
+          >
+            <span style={{ position: "absolute", top: -7, left: 6, zIndex: 2, padding: "1px 5px", fontSize: 9, letterSpacing: "0.05em", textTransform: "uppercase", color: "#9fe0d6", background: "#0d1f1c", border: "1px solid rgba(63, 174, 159, 0.6)" }}>
+              Recommended
+            </span>
+            {expandedCard(m)}
+          </div>
+        ) : expandedCard(m))}
         {selectionActive && benchMembers.length > 0 && !strip && (
           <div className="pixel-panel__title" style={{ margin: "6px 0 0" }}>Bench</div>
         )}
