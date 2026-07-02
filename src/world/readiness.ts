@@ -5,7 +5,8 @@
 
 import type { Agent, Arc, Challenge, MechanicCheck, ThresholdMode } from "../engine/types.js";
 import { AFFLICTION_PENALTIES } from "../engine/constants.js";
-import { DOWNTIME_ACTIONS, type DowntimeAction } from "./agent-management.js";
+import { DOWNTIME_ACTIONS, downtimeActionLabel, type DowntimeAction } from "./agent-management.js";
+import { t } from "./i18n/index.js";
 
 /** The resolver adds variance/volatility at run time. A check only becomes
  *  reliable when it clears the authored threshold by this safety buffer. */
@@ -316,18 +317,18 @@ export function evaluateParty(challenge: Challenge, party: Agent[], arc: Arc): P
   if (!countOk) {
     reasons.push(
       party.length < rr.minAgents
-        ? `Assign at least ${rr.minAgents} ${rr.minAgents === 1 ? "agent" : "agents"} (have ${party.length}).`
-        : `Too many assigned — max ${rr.maxAgents} (have ${party.length}).`,
+        ? t("readiness.assignAtLeast", { min: rr.minAgents, have: party.length })
+        : t("readiness.tooMany", { max: rr.maxAgents, have: party.length }),
     );
   }
   for (const m of missingRoles) {
-    reasons.push(`Missing ${m.need - m.have} ${m.roleName}${m.need - m.have > 1 ? "s" : ""} — add that role before trusting the projection.`);
+    reasons.push(t("readiness.missingRole", { need: m.need - m.have, roleName: m.roleName }));
   }
   for (const c of checks) {
-    if (c.status === "short") reasons.push(`${c.name}: failing by ${Math.round(Math.abs(c.margin))} — needs +${Math.round(c.shortBy)} to become reliable.`);
+    if (c.status === "short") reasons.push(t("readiness.checkFailingBy", { name: c.name, margin: Math.round(Math.abs(c.margin)), shortBy: Math.round(c.shortBy) }));
   }
   for (const c of checks) {
-    if (c.status === "thin") reasons.push(`${c.name}: passing by +${Math.round(c.margin)} — needs +${Math.round(c.shortBy)} more buffer to be reliable.`);
+    if (c.status === "thin") reasons.push(t("readiness.checkPassingBy", { name: c.name, margin: Math.round(c.margin), shortBy: Math.round(c.shortBy) }));
   }
 
   let projectedOutcome: ProjectedOutcome = "none";
@@ -420,7 +421,7 @@ function addOrSwapFix(input: {
       addAgentName: candidate.name,
       removeAgentId: remove.id,
       removeAgentName: remove.name,
-      reason: `${reason} Swap out ${remove.name}.`,
+      reason: `${reason} ${t("readiness.swapOut", { name: remove.name })}`,
     };
   }
 
@@ -474,7 +475,7 @@ export function buildFixPlan(input: {
       .filter((a) => a.role === role.id)
       .sort((a, b) => scoreAgentForContract(b, challenge, arc) - scoreAgentForContract(a, challenge, arc))
       .slice(0, 2)) {
-      addOrSwapFix({ out, candidate: agent, party, challenge, arc, before: readiness, roleLabel: missing.roleName, reason: `Adds required ${missing.roleName}.` });
+      addOrSwapFix({ out, candidate: agent, party, challenge, arc, before: readiness, roleLabel: missing.roleName, reason: t("readiness.addsRequired", { roleName: missing.roleName }) });
     }
   }
 
@@ -497,7 +498,7 @@ export function buildFixPlan(input: {
         arc,
         before: readiness,
         checkId: weak.id,
-        reason: `Improves ${weak.name}${attrNames ? ` with ${attrNames}` : ""}.`,
+        reason: t("readiness.improves", { checkName: weak.name, attrNames }),
       });
     }
 
@@ -507,7 +508,11 @@ export function buildFixPlan(input: {
         const afterParty = party.map((a) => (a.id === agent.id ? mutated : a));
         const after = evaluateParty(challenge, afterParty, arc);
         const def = DOWNTIME_ACTIONS[action];
-        const reason = `${def.label} changes Stress ${def.stressDelta >= 0 ? "+" : ""}${def.stressDelta} and Morale ${def.moraleDelta >= 0 ? "+" : ""}${def.moraleDelta}.`;
+        const reason = t("readiness.downtimeChangesReason", {
+          label: downtimeActionLabel(action),
+          stressDelta: def.stressDelta,
+          moraleDelta: def.moraleDelta,
+        });
         const fix: FixSuggestion = { kind: "downtime", agentId: agent.id, agentName: agent.name, action, reason };
         const projectedFix = withProjection(fix, readiness, after, weak.id);
         if (improves(projectedFix)) out.push(projectedFix);
@@ -517,7 +522,7 @@ export function buildFixPlan(input: {
 
   const fixes = dedupeFixes(out).sort((a, b) => fixRank(b) - fixRank(a)).slice(0, 5);
   if (fixes.length === 0 && readiness.projectedOutcome !== "success") {
-    return [{ kind: "risk", reason: "No clean fix is available from the current roster. Run another contract, earn gear, or accept the risk." }];
+    return [{ kind: "risk", reason: t("readiness.noCleanFix") }];
   }
   return fixes;
 }
@@ -525,9 +530,11 @@ export function buildFixPlan(input: {
 /** Why the engine recommends who it recommends — surfaced so the pick isn't magic. */
 export function recommendationRationale(contract: ContractRequirements): string {
   const attrs = contract.checkedAttributes.map((a) => a.name);
-  const attrPart = attrs.length ? attrs.join(" + ") : "the checked attributes";
-  const rolePart = contract.roles.length
-    ? `fills the required ${contract.roles.map((r) => `${r.count} ${r.roleName}`).join(", ")} first, then `
-    : "";
-  return `Recommended party ${rolePart}picks the highest ${attrPart}, and deprioritizes stressed agents.`;
+  const attrPart = attrs.length ? attrs.join(" + ") : t("readiness.checkedAttributesFallback");
+  const roleList = contract.roles.map((r) => `${r.count} ${r.roleName}`).join(", ");
+  return t("readiness.recommendationRationale", {
+    hasRoles: contract.roles.length > 0 ? 1 : 0,
+    roleList,
+    attrPart,
+  });
 }

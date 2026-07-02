@@ -3,6 +3,7 @@ import { PixelIcon, type PixelIconName } from "./PixelIcon.js";
 import { PixelPanel } from "./PixelPanel.js";
 import { PixelStateBadge } from "./PixelStateBadge.js";
 import type { PixelBadgeState } from "./PixelBadge.js";
+import { t, type MessageId } from "../i18n/index.js";
 import "./pixel-ui.css";
 
 export type ContractCardState = "selected" | "available" | "reliable" | "risky" | "failing" | "locked" | "recorded";
@@ -17,14 +18,16 @@ const STATE_TO_BADGE: Record<ContractCardState, PixelBadgeState> = {
   recorded: "recorded",
 };
 
-const STATUS_LABEL: Record<ContractCardState, string> = {
-  selected: "Selected",
-  available: "Available",
-  reliable: "Reliable",
-  risky: "Risky",
-  failing: "Failing",
-  locked: "Locked",
-  recorded: "Recorded",
+// Shared status vocabulary — resolved live (not a module-level const) so it
+// re-translates on locale switch.
+const STATUS_LABEL_ID: Record<ContractCardState, MessageId> = {
+  selected: "status.selected",
+  available: "status.available",
+  reliable: "status.reliable",
+  risky: "status.risky",
+  failing: "status.failing",
+  locked: "status.locked",
+  recorded: "status.recorded",
 };
 
 type PixelContractCardProps = Omit<HTMLAttributes<HTMLButtonElement>, "onClick"> & {
@@ -60,7 +63,7 @@ export function PixelContractCard(props: PixelContractCardProps): JSX.Element {
     >
       <PixelPanel className="pixel-contract-card__panel">
         <div className="pixel-contract-card__top">
-          <PixelStateBadge state={STATE_TO_BADGE[state]}>{STATUS_LABEL[state]}</PixelStateBadge>
+          <PixelStateBadge state={STATE_TO_BADGE[state]}>{t(STATUS_LABEL_ID[state])}</PixelStateBadge>
           <span className="pixel-contract-card__difficulty">{difficulty}</span>
         </div>
         <h3 className="pixel-contract-card__title">{title}</h3>
@@ -68,8 +71,8 @@ export function PixelContractCard(props: PixelContractCardProps): JSX.Element {
 
         {state === "locked" ? (
           <div className="pixel-contract-card__gate" data-testid="unlock-requirements">
-            <strong>Needs</strong>
-            {(unlockRequirements?.length ? unlockRequirements : ["Clear earlier contracts"]).slice(0, 2).map((reqText, i) => (
+            <strong>{t("contractCard.needs")}</strong>
+            {(unlockRequirements?.length ? unlockRequirements : [t("contractCard.clearEarlier")]).slice(0, 2).map((reqText, i) => (
               <span key={i}><PixelIcon name="locked" /> {reqText}</span>
             ))}
           </div>

@@ -1,5 +1,6 @@
 import type { HTMLAttributes } from "react";
 import { PixelIcon, type PixelIconName } from "./PixelIcon.js";
+import { t } from "../i18n/index.js";
 import "./pixel-ui.css";
 
 type PixelGearSlotProps = HTMLAttributes<HTMLDivElement> & {
@@ -21,7 +22,7 @@ export function PixelGearSlot({ name, icon, bonusText, className = "", ...props 
       </span>
       <div className="pixel-gear-slot__body">
         {empty ? (
-          <div className="pixel-gear-slot__name">No gear equipped</div>
+          <div className="pixel-gear-slot__name">{t("gearSlot.noGear")}</div>
         ) : (
           <>
             <div className="pixel-gear-slot__name">{name}</div>

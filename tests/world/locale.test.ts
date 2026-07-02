@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isLocale } from "../../src/world/i18n/locale.js";
-import { formatMessage } from "../../src/world/i18n/messages.js";
+import { EN_ONLY_IDS, formatMessage, MESSAGES, type MessageId } from "../../src/world/i18n/messages.js";
 
 describe("locale identifier", () => {
   it("accepts known locales", () => {
@@ -59,5 +59,41 @@ describe("formatMessage", () => {
 
   it("returns the id itself when missing from every catalog", () => {
     expect(formatMessage("en", "does.not.exist" as never)).toBe("does.not.exist");
+  });
+});
+
+describe("catalog coverage guard", () => {
+  it("every en message id is present in zh-Hant, or explicitly documented as EN_ONLY", () => {
+    const enIds = Object.keys(MESSAGES.en) as MessageId[];
+    const zhIds = new Set(Object.keys(MESSAGES["zh-Hant"]));
+    const enOnly = new Set(EN_ONLY_IDS);
+    const uncovered = enIds.filter((id) => !zhIds.has(id) && !enOnly.has(id));
+    expect(uncovered, `ids missing from zh-Hant and not listed in EN_ONLY_IDS:\n${uncovered.join("\n")}`).toEqual([]);
+  });
+
+  it("EN_ONLY_IDS are actually missing from zh-Hant (the array stays honest)", () => {
+    const zhIds = new Set(Object.keys(MESSAGES["zh-Hant"]));
+    for (const id of EN_ONLY_IDS) {
+      expect(zhIds.has(id), `"${id}" is listed as EN_ONLY but zh-Hant defines it`).toBe(false);
+    }
+  });
+});
+
+describe("spot checks on converted chrome ids", () => {
+  it("shell run/status vocabulary resolves in both locales", () => {
+    expect(formatMessage("en", "shell.runContract")).toBe("Run Contract");
+    expect(formatMessage("zh-Hant", "shell.runContract")).toBe("執行契約");
+    expect(formatMessage("en", "status.locked")).toBe("Locked");
+    expect(formatMessage("zh-Hant", "status.locked")).toBe("鎖定");
+  });
+
+  it("readiness templates interpolate named params in both locales", () => {
+    expect(formatMessage("en", "readiness.assignAtLeast", { min: 1, have: 0 })).toBe("Assign at least 1 agent (have 0).");
+    expect(formatMessage("zh-Hant", "readiness.assignAtLeast", { min: 1, have: 0 })).toBe("請至少指派 1 名人員（目前 0 名）。");
+  });
+
+  it("contract board escalation copy interpolates cycle counts in both locales", () => {
+    expect(formatMessage("en", "contractBoard.waitingCycles", { n: 3 })).toBe("Waiting 3 cycles");
+    expect(formatMessage("zh-Hant", "contractBoard.waitingCycles", { n: 3 })).toBe("已等待 3 個週期");
   });
 });

@@ -148,7 +148,9 @@ describe("mobile roster distinction (PR C §9)", () => {
   it("strip-mode recommended cards carry their own visible accent", () => {
     const regions = read("src/world/shell/regions.tsx");
     expect(regions).toContain('data-testid="strip-recommended-card"');
-    expect(regions).toContain("Recommended");
+    // "Recommended" chip text is now a catalog id (i18n/messages.ts) so it
+    // reads correctly in both en and zh-Hant.
+    expect(regions).toContain('t("shell.recommendedChip")');
   });
 
   it("recommended party still orders ahead of the bench in every variant", () => {

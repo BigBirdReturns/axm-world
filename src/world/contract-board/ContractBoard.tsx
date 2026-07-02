@@ -6,6 +6,7 @@ import type { ArcInteraction } from "../useArcInteraction.js";
 import type { ArcWorld } from "../useArcWorld.js";
 import type { CheckStatus, PartyReadiness } from "../readiness.js";
 import { attrIcon, roleIcon, itemIcon } from "../theme-icons.js";
+import { t } from "../i18n/index.js";
 import { unlockEdges } from "./adjacency.js";
 import "./contract-board.css";
 
@@ -57,22 +58,22 @@ function rewardPreview(challenge: Challenge | null, world: ArcWorld): Array<{ na
 
 function strongestWeakness(readiness: PartyReadiness | null): string | null {
   if (!readiness) return null;
-  if (!readiness.countOk) return readiness.reasons[0] ?? "Party count needs work.";
-  if (!readiness.rolesOk) return readiness.reasons[0] ?? "A required role is missing.";
+  if (!readiness.countOk) return readiness.reasons[0] ?? t("contractBoard.countNeedsWork");
+  if (!readiness.rolesOk) return readiness.reasons[0] ?? t("contractBoard.roleMissing");
   const weak = [...readiness.checks].sort((a, b) => {
     const severity = (s: CheckStatus) => (s === "short" ? 2 : s === "thin" ? 1 : 0);
     return severity(b.status) - severity(a.status) || b.shortBy - a.shortBy;
   })[0];
   if (!weak || weak.status === "ready") return null;
-  if (weak.status === "thin") return `${weak.name} needs +${scoreText(weak.shortBy)} buffer.`;
-  return `${weak.name} needs +${scoreText(weak.shortBy)} to recover.`;
+  if (weak.status === "thin") return t("contractBoard.needsBuffer", { name: weak.name, n: scoreText(weak.shortBy) });
+  return t("contractBoard.needsRecover", { name: weak.name, n: scoreText(weak.shortBy) });
 }
 
 // Lane names come from the loaded arc's own progression tiers — never invented here.
 // A tier index past what the arc defines (or a cartridge with no progressionTiers
 // entries) falls back to a domain-neutral "Chapter N" label.
 function laneTitle(tierIndex: number, world: ArcWorld): string {
-  return world.arc.progressionTiers[tierIndex]?.name ?? `Chapter ${tierIndex + 1}`;
+  return world.arc.progressionTiers[tierIndex]?.name ?? t("contractBoard.chapterFallback", { n: tierIndex + 1 });
 }
 
 /** An available contract left unaddressed this many cycles starts signalling. */
@@ -123,8 +124,8 @@ function ContractLocationCard(props: {
       unlockRequirements={node.requirements}
       requirements={requirements}
       riskNote={weak ? <><PixelIcon name={state === "failing" ? "failing" : "risky"} /> {weak}</> : undefined}
-      readyNote={readiness?.projectedOutcome === "success" ? <><PixelIcon name="reliable" /> Recommended party is reliable.</> : undefined}
-      footerLeft={req ? `Party ${req.minAgents}${req.maxAgents !== req.minAgents ? `–${req.maxAgents}` : ""}` : "Party"}
+      readyNote={readiness?.projectedOutcome === "success" ? <><PixelIcon name="reliable" /> {t("contractBoard.recommendedReliable")}</> : undefined}
+      footerLeft={req ? t("contractBoard.partyRange", { min: req.minAgents, max: req.maxAgents }) : t("contractBoard.party")}
       footerRight={rewards.length > 0 ? rewards.map((item) => <PixelIcon key={item.name} name={item.icon} label={item.name} />) : undefined}
       onClick={() => onSelect(node.challengeId)}
     />
@@ -241,13 +242,13 @@ export function ContractBoardScene({ world, interaction, modalOpen = false }: Co
   }, [measure]);
 
   return (
-    <section className="contract-board-shell" data-testid="contract-board" aria-label="Contract Board" aria-disabled={modalOpen ? "true" : undefined}>
+    <section className="contract-board-shell" data-testid="contract-board" aria-label={t("contractBoard.title")} aria-disabled={modalOpen ? "true" : undefined}>
       <header className="contract-board-header">
         <div>
-          <span className="pixel-eyebrow">Contract Board</span>
-          <h2>Choose the next place</h2>
+          <span className="pixel-eyebrow">{t("contractBoard.title")}</span>
+          <h2>{t("contractBoard.heading")}</h2>
         </div>
-        <p>Cards show what is available, what is locked, what is risky, and what the cartridge has recorded. Lines show which cleared place opens which locked one.</p>
+        <p>{t("contractBoard.explainer")}</p>
       </header>
       <div className="contract-board" ref={boardRef}>
         <svg className="contract-board-adjacency" data-testid="board-adjacency" aria-hidden="true">
@@ -283,9 +284,9 @@ export function ContractBoardScene({ world, interaction, modalOpen = false }: Co
                       <span
                         className="contract-board-escalation"
                         data-testid="escalation-signal"
-                        title={`Available since cycle ${node.availableSinceCycle}, unaddressed for ${waiting} cycles.`}
+                        title={t("contractBoard.waitingTitle", { since: node.availableSinceCycle ?? 0, n: waiting })}
                       >
-                        Waiting {waiting} cycles
+                        {t("contractBoard.waitingCycles", { n: waiting })}
                       </span>
                     )}
                     <ContractLocationCard

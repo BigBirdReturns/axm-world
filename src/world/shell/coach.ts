@@ -5,6 +5,7 @@
 
 import type { PlayReportView } from "../../play-pipeline/compile.js";
 import type { WorldNode } from "../contract.js";
+import { t } from "../i18n/index.js";
 
 export interface EngineCoachState {
   pendingDecision: boolean;
@@ -17,11 +18,11 @@ export interface EngineCoachState {
 }
 
 export function getEngineCoachMessage(props: EngineCoachState): string | null {
-  if (props.arcComplete) return "Cartridge marked complete. Inspect or export the run state before leaving.";
-  if (props.pendingDecision) return "Resolve the active decision. The engine applies its consequences to this cartridge run.";
+  if (props.arcComplete) return t("coach.arcComplete");
+  if (props.pendingDecision) return t("coach.pendingDecision");
   // Once a node is selected, the contract region owns the primary action and its
   // readiness panel owns the "why". Do not narrate the same state twice.
   if (props.selected) return null;
-  if (!props.selected && props.lastReport) return "Outcome recorded. Inspect the changed cartridge state or choose another available node.";
+  if (!props.selected && props.lastReport) return t("coach.outcomeRecorded");
   return null;
 }

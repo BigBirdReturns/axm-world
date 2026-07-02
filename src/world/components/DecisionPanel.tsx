@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import type { DramaCard, DramaCardEffect } from "../../engine/types.js";
 import { RodohRuntimeMark } from "../brand/RodohRuntimeMark.js";
+import { t } from "../i18n/index.js";
 
 interface Props {
   card: DramaCard;
@@ -48,8 +49,8 @@ function effectLabel(effect: DramaCardEffect, targetName: (targetId: string) => 
 
 function optionPreview(option: DramaCard["options"][number], targetName: (targetId: string) => string): string {
   if (option.effects.length > 0) return option.effects.slice(0, 3).map((effect) => effectLabel(effect, targetName)).join(" · ");
-  if (option.hiddenEffects.length > 0) return "Hidden consequence";
-  return "No immediate visible effect";
+  if (option.hiddenEffects.length > 0) return t("decision.hiddenConsequence");
+  return t("decision.noVisibleEffect");
 }
 
 export function DecisionPanel({ card: drama, onResolve, targetName = (id) => id }: Props): JSX.Element {
@@ -75,14 +76,14 @@ export function DecisionPanel({ card: drama, onResolve, targetName = (id) => id 
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "#c9a14a" }}>
           <RodohRuntimeMark variant="micro" showText={false} />
-          {chosen ? "The world responds" : isOpening ? "Founding the hall" : "A decision"}
+          {chosen ? t("decision.worldResponds") : isOpening ? t("decision.foundingHall") : t("decision.aDecision")}
         </div>
 
         {!chosen ? (
           <>
             {isOpening && (
               <div style={{ margin: "10px 0 12px", padding: "10px 12px", border: "1px solid #4a4238", borderRadius: 8, background: "rgba(201,161,74,0.07)", color: "#d8cfbd", font: "12px/1.45 'IBM Plex Mono', monospace" }}>
-                You run a contract hall. Choices mark the cartridge. Morale improves projections. Stress makes outcomes less reliable. Contracts can earn gear that changes the next run.
+                {t("decision.openingBlurb")}
               </div>
             )}
             <p
@@ -114,7 +115,7 @@ export function DecisionPanel({ card: drama, onResolve, targetName = (id) => id 
                 >
                   <div>{o.label}</div>
                   <div style={{ marginTop: 4, font: "11px/1.35 'IBM Plex Mono', monospace", color: "#a59c8b" }}>{o.description}</div>
-                  <div style={{ marginTop: 4, font: "10px/1.35 'IBM Plex Mono', monospace", color: "#c9a14a" }}><strong style={{ color: "#d8cfbd" }}>Effect:</strong> {optionPreview(o, targetName)}{isOpening ? " · Mark: cartridge doctrine" : ""}</div>
+                  <div style={{ marginTop: 4, font: "10px/1.35 'IBM Plex Mono', monospace", color: "#c9a14a" }}><strong style={{ color: "#d8cfbd" }}>{t("decision.effect")}</strong> {optionPreview(o, targetName)}{isOpening ? t("decision.markDoctrine") : ""}</div>
                 </button>
               ))}
             </div>
@@ -142,7 +143,7 @@ export function DecisionPanel({ card: drama, onResolve, targetName = (id) => id 
                   cursor: "pointer",
                 }}
               >
-                Continue
+                {t("decision.continue")}
               </button>
             </div>
           </>

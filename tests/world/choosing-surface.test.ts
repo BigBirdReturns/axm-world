@@ -49,8 +49,10 @@ describe("choosing surface (PR A)", () => {
     expect(regions).toContain('data-testid="roster-compact-row"');
     expect(regions).toContain("recommendedIds");
     expect(regions).toContain("selectionActive");
-    expect(regions).toContain("Recommended party");
-    expect(regions).toContain("Bench");
+    // "Recommended party" / "Bench" are now catalog ids (i18n/messages.ts) so
+    // this surface reads correctly in both en and zh-Hant.
+    expect(regions).toContain('t("shell.recommendedParty")');
+    expect(regions).toContain('t("shell.bench")');
   });
 
   it("downtime buttons come only from the live fix plan, never unconditionally", () => {

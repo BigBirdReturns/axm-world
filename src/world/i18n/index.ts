@@ -10,7 +10,7 @@ import { formatMessage, type MessageId, type MessageParams } from "./messages.js
 export type { Locale } from "./locale.js";
 export { isLocale, detectDefaultLocale, loadLocale, saveLocale } from "./locale.js";
 export type { MessageId, MessageParams } from "./messages.js";
-export { MESSAGES, formatMessage } from "./messages.js";
+export { MESSAGES, EN_ONLY_IDS, formatMessage } from "./messages.js";
 
 let currentLocale: Locale = loadLocale();
 const subscribers = new Set<() => void>();

@@ -6,6 +6,7 @@ import { PixelRoleBadge } from "./PixelRoleBadge.js";
 import { PixelAttribute } from "./PixelAttribute.js";
 import { PixelGearSlot } from "./PixelGearSlot.js";
 import { PixelBadge } from "./PixelBadge.js";
+import { t } from "../i18n/index.js";
 import "./pixel-ui.css";
 
 export interface RosterCardAttribute {
@@ -70,7 +71,7 @@ export function PixelRosterCard(props: PixelRosterCardProps): JSX.Element {
         className="pixel-roster-card__toggle"
         disabled={downed || !selectable}
         onClick={onToggle}
-        title={selectable ? "Assign to the selected contract" : "Select a contract first"}
+        title={selectable ? t("rosterCard.assignTooltip") : t("rosterCard.selectFirstTooltip")}
         style={{ cursor: downed || !selectable ? "default" : "pointer" }}
       >
         <div className="pixel-roster-card__header">
@@ -80,7 +81,7 @@ export function PixelRosterCard(props: PixelRosterCardProps): JSX.Element {
               <PixelRoleBadge role={role} />
               {inParty && (
                 <span className="role-badge" style={{ color: "var(--teal)", borderColor: "var(--teal)" }}>
-                  Assigned
+                  {t("status.assigned")}
                 </span>
               )}
               {affliction && (
@@ -90,7 +91,7 @@ export function PixelRosterCard(props: PixelRosterCardProps): JSX.Element {
               )}
             </div>
           </div>
-          {inParty && <PixelIcon name="selected" label="Assigned" />}
+          {inParty && <PixelIcon name="selected" label={t("status.assigned")} />}
         </div>
 
         {attributes.length > 0 && (
@@ -118,12 +119,12 @@ export function PixelRosterCard(props: PixelRosterCardProps): JSX.Element {
 
         <div className="pixel-roster-card__meters">
           <div>
-            <div className="pixel-roster-card__meter-label">Stress {Math.round(stress)}</div>
-            <PixelMeter value={stress} max={100} segments={5} color={meterColor(stress, "low")} label="Stress" />
+            <div className="pixel-roster-card__meter-label">{t("rosterCard.stress", { value: Math.round(stress) })}</div>
+            <PixelMeter value={stress} max={100} segments={5} color={meterColor(stress, "low")} label={t("rosterCard.stress", { value: Math.round(stress) })} />
           </div>
           <div>
-            <div className="pixel-roster-card__meter-label">Morale {Math.round(morale)}</div>
-            <PixelMeter value={morale} max={100} segments={5} color={meterColor(morale, "high")} label="Morale" />
+            <div className="pixel-roster-card__meter-label">{t("rosterCard.morale", { value: Math.round(morale) })}</div>
+            <PixelMeter value={morale} max={100} segments={5} color={meterColor(morale, "high")} label={t("rosterCard.morale", { value: Math.round(morale) })} />
           </div>
         </div>
       </button>
