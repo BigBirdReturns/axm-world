@@ -7,15 +7,23 @@
 //   Cartridge = { manifest, arc }
 //     arc      — the axm-arc scenario (unchanged, portable, deterministic)
 //     manifest — axm-arc vocabulary: id/name/domain/engineVersion + trust taxonomy
-//                (bundled|verified|imported|quarantined) + a Genesis signature slot.
+//                (bundled|imported-unsigned|verified|quarantined) + a Genesis
+//                signature slot.
 
-import type { Arc } from "../engine/types.js";
+import type { Arc, TrustLabel } from "../engine/types.js";
 import { validateArc } from "../engine/schema.js";
 import { FIRST_CHARTER } from "../arcs/index.js";
 import type { CostumeId } from "./presentation-prefs.js";
 
-/** axm-arc's trust taxonomy (mirror — shared union when axm-arc is updated). */
-export type TrustLevel = "bundled" | "verified" | "imported" | "quarantined";
+/**
+ * axm-arc's trust taxonomy. This is a re-export, not a parallel union — the
+ * hub's `ArcLibraryEntry.trust` (src/game/lib/arc-library.ts) and the vendored
+ * engine's `TrustLabel` (src/engine/types.ts) are the same four values. World
+ * used to spell its "imported" state differently from the hub; that drift is
+ * exactly the kind of divergence the vendoring rule exists to prevent, so this
+ * type is now just an alias of the vendored one.
+ */
+export type TrustLevel = TrustLabel;
 
 export interface CartridgeManifest {
   /** Envelope version, so the cartridge format can evolve independently of the arc. */
@@ -131,7 +139,7 @@ export const BUNDLED_CARTRIDGES: Cartridge[] = [FIRST_CHARTER_CARTRIDGE];
  * envelope OR a bare axm-arc `Arc` (what axm-arc exports today) — both validated by
  * `validateArc`. This is the forward/back-compatibility seam with the hub.
  */
-export function parseCartridge(input: unknown, trust: TrustLevel = "imported"): Cartridge {
+export function parseCartridge(input: unknown, trust: TrustLevel = "imported-unsigned"): Cartridge {
   if (input && typeof input === "object" && "arc" in input && "manifest" in input) {
     const env = input as { manifest: Partial<CartridgeManifest>; arc: unknown };
     const arc = validateArc(env.arc);

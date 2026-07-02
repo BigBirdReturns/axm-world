@@ -9,6 +9,7 @@ import type { CartridgeManifest } from "../cartridge.js";
 import { RodohRuntimeMark } from "../brand/RodohRuntimeMark.js";
 import { PixelButton, PixelIcon } from "../pixel-ui/index.js";
 import { t } from "../i18n/index.js";
+import type { MessageId } from "../i18n/messages.js";
 import type { CustodyObject } from "../useArcWorld.js";
 
 interface Props {
@@ -36,8 +37,15 @@ const wrap: CSSProperties = {
 const TRUST_COLOR: Record<string, string> = {
   bundled: "#c9a14a",
   verified: "#74ad77",
-  imported: "#a59c8b",
+  "imported-unsigned": "#a59c8b",
   quarantined: "#b01c18",
+};
+
+const TRUST_LABEL_ID: Record<CartridgeManifest["trust"], MessageId> = {
+  bundled: "boot.trustBundled",
+  "imported-unsigned": "boot.trustImportedUnsigned",
+  verified: "boot.trustVerified",
+  quarantined: "boot.trustQuarantined",
 };
 
 function row(label: string, value: string): JSX.Element {
@@ -91,6 +99,7 @@ export function CartridgeObjectPanel({ manifest, openingChoice, cycle, clearedCo
 
         {row(t("cartridgePanel.domain"), manifest.domain)}
         {row(t("cartridgePanel.engine"), manifest.engineVersion)}
+        {row(t("cartridgePanel.trust"), t(TRUST_LABEL_ID[manifest.trust]))}
         <div style={{ height: 1, background: "#2a2620", margin: "8px 0" }} />
         {row(t("cartridgePanel.cycle"), String(cycle).padStart(2, "0"))}
         {row(t("cartridgePanel.recordedNodes"), `${clearedCount} / ${totalNodes}`)}
