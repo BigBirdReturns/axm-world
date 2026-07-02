@@ -265,6 +265,10 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
             </div>
           </div>
 
+          {/* right rail — one occupant at a time: claiming (loot) beats choosing
+              (contract detail) beats idle (coach/dispatches). The choosing phase never
+              shares its scroll column with outcome or loot; outcome lives in the
+              record-history modal, not this rail. */}
           <aside style={{ width: 360, flex: "none", overflowY: "auto", padding: 12, borderLeft: "1px solid #2a2620", background: "rgba(15,13,9,0.6)" }}>
             {world.pendingLoot.length > 0 ? (
               <Card>{loot}</Card>
