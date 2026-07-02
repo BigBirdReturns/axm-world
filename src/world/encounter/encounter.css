@@ -1,4 +1,4 @@
-/* Encounter Director overlay — dark vignette over the shell during an encounter. */
+/* Encounter Director overlay. The board remains visible enough that travel and result can anchor to the selected card. */
 
 .enc-overlay {
   position: fixed;
@@ -7,9 +7,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(11, 10, 8, 0.88);
+  background: rgba(11, 10, 8, 0.72);
   animation: enc-fade-in 0.25s ease forwards;
   cursor: pointer;
+  --enc-target-x: 50vw;
+  --enc-target-y: 50vh;
+  --enc-target-w: 0px;
+  --enc-target-h: 0px;
+  --enc-path-length: 0px;
+  --enc-path-angle: 0rad;
+}
+
+.enc-overlay--travel,
+.enc-overlay--result,
+.enc-overlay--record {
+  background: rgba(11, 10, 8, 0.58);
 }
 
 @keyframes enc-fade-in {
@@ -17,9 +29,74 @@
   to   { opacity: 1; }
 }
 
-/* ── Vignette card (doesn't swallow click — parent overlay does) ─── */
+/* ── Board anchor layer ───────────────────────────────────────── */
+.enc-flight-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.enc-flight-path {
+  position: fixed;
+  left: 50vw;
+  top: 50vh;
+  width: var(--enc-path-length);
+  height: 2px;
+  transform-origin: left center;
+  transform: rotate(var(--enc-path-angle));
+  background: repeating-linear-gradient(90deg, rgba(201, 161, 74, 0.85) 0 8px, transparent 8px 13px);
+  box-shadow: 0 0 14px rgba(201, 161, 74, 0.25);
+  animation: enc-path-reveal 0.75s ease forwards;
+}
+
+.enc-target-ping {
+  position: fixed;
+  left: var(--enc-target-x);
+  top: var(--enc-target-y);
+  width: max(var(--enc-target-w), 120px);
+  height: max(var(--enc-target-h), 72px);
+  border: 2px solid rgba(116, 173, 119, 0.95);
+  box-shadow: 0 0 0 9999px rgba(11, 10, 8, 0.12), 0 0 22px rgba(116, 173, 119, 0.45);
+  transform: translate(-50%, -50%);
+  animation: enc-target-pulse 1s ease-in-out infinite;
+}
+
+.enc-travel-token {
+  position: fixed;
+  left: 50vw;
+  top: 50vh;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(201, 161, 74, 0.9);
+  background: rgba(26, 23, 18, 0.96);
+  box-shadow: 0 0 26px rgba(201, 161, 74, 0.35);
+  transform: translate(-50%, -50%);
+  animation: enc-token-to-target 0.85s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes enc-path-reveal {
+  from { clip-path: inset(0 100% 0 0); opacity: 0.2; }
+  to   { clip-path: inset(0 0 0 0); opacity: 1; }
+}
+
+@keyframes enc-target-pulse {
+  0%, 100% { outline: 1px solid rgba(116, 173, 119, 0.25); }
+  50%      { outline: 8px solid rgba(116, 173, 119, 0.04); }
+}
+
+@keyframes enc-token-to-target {
+  0%   { left: 50vw; top: 50vh; transform: translate(-50%, -50%) scale(1); }
+  72%  { left: var(--enc-target-x); top: var(--enc-target-y); transform: translate(-50%, -50%) scale(0.82); }
+  100% { left: var(--enc-target-x); top: var(--enc-target-y); transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
+}
+
+/* ── Vignette card ────────────────────────────────────────────── */
 .enc-vignette {
   position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -32,9 +109,15 @@
   max-width: min(480px, 90vw);
   text-align: center;
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
-  cursor: default; /* clicks on the card don't propagate to overlay */
+  cursor: default;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
   animation: enc-slide-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.enc-overlay--travel .enc-vignette,
+.enc-overlay--result .enc-vignette,
+.enc-overlay--record .enc-vignette {
+  transform: translateY(-18vh);
 }
 
 @keyframes enc-slide-up {
@@ -57,10 +140,17 @@
 .enc-icon--record {
   animation: enc-icon-land 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
+.enc-overlay--projected-reliable .enc-icon--resolve-checks { animation: enc-icon-calm 1.1s ease-in-out infinite; }
+.enc-overlay--projected-risky .enc-icon--resolve-checks { animation: enc-icon-pulse 0.75s ease-in-out infinite; }
+.enc-overlay--projected-failing .enc-icon--resolve-checks { animation: enc-icon-shake 0.22s ease-in-out infinite; }
 
 @keyframes enc-icon-pulse {
   0%, 100% { transform: scale(1); }
   50%       { transform: scale(1.08); }
+}
+@keyframes enc-icon-calm {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(116, 173, 119, 0)); }
+  50%      { transform: scale(1.04); filter: drop-shadow(0 0 8px rgba(116, 173, 119, 0.45)); }
 }
 @keyframes enc-icon-shake {
   0%, 100% { transform: translateX(0); }
@@ -95,12 +185,16 @@
   line-height: 1.2;
 }
 
-.enc-flavor {
+.enc-flavor,
+.enc-travel-note {
   font-size: 12px;
   color: #a59c8b;
-  font-style: italic;
-  max-width: 280px;
+  max-width: 300px;
   line-height: 1.5;
+}
+
+.enc-flavor {
+  font-style: italic;
 }
 
 /* ── Party tokens ─────────────────────────────────────────── */
@@ -132,30 +226,52 @@
   to   { transform: translateY(0); opacity: 1; }
 }
 
-/* ── Travel bar ──────────────────────────────────────────── */
-.enc-travel-bar {
-  width: 200px;
-  height: 4px;
-  background: #2a2620;
-  border-radius: 2px;
-  overflow: hidden;
+/* ── Projection and checks ──────────────────────────────────────── */
+.enc-projection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 230px;
+  padding: 9px 11px;
+  border: 1px solid #3a352c;
+  background: rgba(23, 21, 15, 0.92);
+  text-align: left;
 }
 
-.enc-travel-fill {
-  height: 100%;
-  background: #c9a14a;
-  border-radius: 2px;
-  animation: enc-travel-fill 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  animation-delay: 0.1s;
-  width: 0;
+.enc-projection-glyph {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  font-size: 20px;
+  font-weight: 900;
 }
 
-@keyframes enc-travel-fill {
-  from { width: 0; }
-  to   { width: 100%; }
+.enc-projection strong,
+.enc-projection small {
+  display: block;
 }
 
-/* ── Checks ──────────────────────────────────────────────────────── */
+.enc-projection strong {
+  font-size: 12px;
+  color: #f0e8d8;
+}
+
+.enc-projection small {
+  margin-top: 2px;
+  font-size: 10px;
+  line-height: 1.35;
+  color: #a59c8b;
+}
+
+.enc-projection--reliable { border-color: rgba(116, 173, 119, 0.8); }
+.enc-projection--reliable .enc-projection-glyph { color: #74ad77; }
+.enc-projection--risky { border-color: rgba(201, 161, 74, 0.9); }
+.enc-projection--risky .enc-projection-glyph { color: #c9a14a; }
+.enc-projection--failing { border-color: rgba(176, 28, 24, 0.9); }
+.enc-projection--failing .enc-projection-glyph { color: #b01c18; }
+
 .enc-checks {
   display: flex;
   flex-direction: column;
@@ -181,8 +297,20 @@
 
 .enc-check-dice {
   font-size: 20px;
-  animation: enc-dice-spin 0.3s linear infinite;
   display: inline-block;
+}
+.enc-overlay--projected-reliable .enc-check-dice { color: #74ad77; animation: enc-check-settle 0.8s ease-in-out infinite; }
+.enc-overlay--projected-risky .enc-check-dice { color: #c9a14a; animation: enc-check-flicker 0.5s ease-in-out infinite; }
+.enc-overlay--projected-failing .enc-check-dice { color: #b01c18; animation: enc-dice-spin 0.3s linear infinite; }
+
+@keyframes enc-check-settle {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-1px); }
+}
+
+@keyframes enc-check-flicker {
+  0%, 100% { transform: rotate(0deg); }
+  50%      { transform: rotate(7deg); }
 }
 
 @keyframes enc-dice-spin {
@@ -207,6 +335,16 @@
 .enc-result-label {
   font-size: 14px;
   font-weight: 700;
+}
+
+.enc-reward-summary {
+  max-width: 320px;
+  padding: 6px 9px;
+  border: 1px solid rgba(201, 161, 74, 0.28);
+  background: rgba(201, 161, 74, 0.08);
+  color: #d8cfbd;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .enc-result-lines {
@@ -256,6 +394,12 @@
     padding: 24px 20px 20px;
     min-width: 0;
     width: 90vw;
+  }
+
+  .enc-overlay--travel .enc-vignette,
+  .enc-overlay--result .enc-vignette,
+  .enc-overlay--record .enc-vignette {
+    transform: translateY(-10vh);
   }
 
   .enc-title {

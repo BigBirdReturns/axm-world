@@ -1,13 +1,12 @@
 // The player shell: ONE runtime shell across breakpoints. It owns every engine region
 // (status, view switcher, active representation, roster/assignment, selected contract +
 // readiness, outcome/report, coach) and the chrome (cartridge object, decisions). The
-// active representation — Run Graph or Planet — mounts inside the one representation
-// region; switching it never disturbs run state, selection, party, readiness, or marks
-// (those live in useArcWorld/useArcInteraction, above the costume).
+// active representation mounts inside the one representation region; switching it never
+// disturbs run state, selection, party, readiness, or marks.
 //
 // Desktop and mobile use the SAME region components; only the arrangement differs:
-//   desktop → status/switcher top bar + roster left rail + contract/report/coach right
-//             rail, all in document flow (columns can't overlap), representation center.
+//   desktop → status/switcher top bar + roster left rail + contract/coach right rail,
+//             all in document flow, representation center.
 //   mobile  → same top bar + a bottom flex dock that stacks the same regions by flow.
 
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
@@ -44,35 +43,70 @@ function Card(props: { children: ReactNode; style?: CSSProperties }): JSX.Elemen
   return <div style={{ ...panel, ...props.style }}>{props.children}</div>;
 }
 
-/** Inside the active-representation region: a dismissible "what is this view for"
- *  caption and a marker-state legend, so a representation explains itself and its node
- *  states read at a glance — not only from tiny labels. Never covers the controls. */
-function RepresentationOverlay(props: { rep: Representation; showPurpose: boolean; onDismiss: () => void }): JSX.Element {
+/** The view-context strip: a fixed, normal-flow shell slot for the view purpose,
+ *  marker legend, and controls hint. Nothing in it is positioned over the play surface. */
+function ViewContextStrip(props: { rep: Representation; showPurpose: boolean; onDismiss: () => void }): JSX.Element {
   const { rep, showPurpose, onDismiss } = props;
   return (
-    <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-      {showPurpose && (
-        <div
-          data-testid="view-purpose"
-          style={{ position: "absolute", top: 10, left: 10, maxWidth: 300, pointerEvents: "auto", display: "flex", gap: 8, alignItems: "flex-start", background: "rgba(15,13,9,0.92)", border: "1px solid #4a4238", borderRadius: 8, padding: "8px 10px", font: "11px/1.45 'IBM Plex Mono', ui-monospace, monospace", color: "#d8cfbd" }}
-        >
-          <div><strong style={{ color: "#c9a14a" }}>{rep.label}.</strong> {rep.purpose}</div>
+    <div
+      data-testid="onboarding-strip"
+      style={{ flex: "none", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px 14px", padding: "7px 12px", borderBottom: "1px solid #2a2620", background: "rgba(18,15,11,0.95)", font: "11px/1.5 'IBM Plex Mono', ui-monospace, monospace", color: "#c9bfae" }}
+    >
+      {showPurpose ? (
+        <span data-testid="view-purpose" style={{ display: "flex", gap: 8, alignItems: "baseline", minWidth: 0 }}>
+          <strong style={{ color: "#c9a14a", whiteSpace: "nowrap" }}>{rep.label}.</strong>
+          <span>{rep.purpose}</span>
           <button onClick={onDismiss} aria-label="Dismiss view note" style={{ flex: "none", background: "transparent", border: "none", color: "#a59c8b", cursor: "pointer", font: "14px monospace", lineHeight: 1 }}>×</button>
-        </div>
+        </span>
+      ) : (
+        <strong style={{ color: "#8b7d6a" }}>{rep.label}</strong>
       )}
-      {rep.legend.length > 0 && (
-        <div
-          data-testid="view-legend"
-          style={{ position: "absolute", top: 10, right: 10, pointerEvents: "none", background: "rgba(15,13,9,0.82)", border: "1px solid #3a352c", borderRadius: 8, padding: "6px 9px", font: "10px/1.6 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b" }}
-        >
-          {rep.legend.map((e) => (
-            <div key={e.label} style={{ display: "flex", gap: 6, alignItems: "center", whiteSpace: "nowrap" }}>
-              <span style={{ color: e.color, width: 12, textAlign: "center" }}>{e.glyph}</span>
-              <span>{e.label}</span>
-            </div>
-          ))}
+      <span style={{ marginLeft: "auto", display: "flex", flexWrap: "wrap", gap: "2px 12px", alignItems: "center", color: "#6b6050", whiteSpace: "nowrap" }}>
+        {rep.legend.map((e) => (
+          <span key={e.label} data-testid="view-legend" style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+            <span style={{ color: e.color }}>{e.glyph}</span>
+            {e.label}
+          </span>
+        ))}
+        <span>{rep.controlsHint}</span>
+      </span>
+    </div>
+  );
+}
+
+function attrNameLabel(id: string): string {
+  return id.slice(0, 1).toUpperCase() + id.slice(1);
+}
+
+function EquipFlash(props: { event: NonNullable<ArcWorld["lastEquip"]> }): JSX.Element {
+  const bonus = Object.entries(props.event.bonuses).map(([attr, value]) => `${attrNameLabel(attr)} +${value}`).join(" · ");
+  return (
+    <div
+      data-testid="equip-flash"
+      style={{ marginBottom: 10, padding: "8px 10px", border: "1px solid rgba(116,173,119,0.65)", background: "rgba(116,173,119,0.12)", color: "#d8cfbd", font: "11px/1.45 'IBM Plex Mono', ui-monospace, monospace" }}
+    >
+      <strong style={{ color: "#74ad77" }}>Equipped:</strong> {props.event.itemName} → {props.event.agentName}
+      {bonus && <span style={{ display: "block", marginTop: 3, color: "#a59c8b" }}>{bonus}. Readiness below has recalculated from the new gear state.</span>}
+    </div>
+  );
+}
+
+function RecordModal(props: { lastReport: NonNullable<ArcWorld["lastReport"]>; onClose: () => void }): JSX.Element {
+  return (
+    <div
+      data-testid="record-history-modal"
+      onClick={props.onClose}
+      style={{ position: "fixed", inset: 0, zIndex: 850, display: "grid", placeItems: "center", padding: 20, background: "rgba(11,10,8,0.62)" }}
+    >
+      <Card style={{ width: "min(440px, 94vw)", padding: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 8 }}>
+          <strong style={{ color: "#c9a14a", font: "800 12px 'IBM Plex Mono', ui-monospace, monospace", textTransform: "uppercase", letterSpacing: "0.08em" }}>Recorded outcome</strong>
+          <button onClick={props.onClose} aria-label="Close recorded outcome" style={{ background: "transparent", border: "1px solid #4a4238", color: "#a59c8b", cursor: "pointer", font: "12px monospace" }}>×</button>
         </div>
-      )}
+        <div onClick={(e) => e.stopPropagation()}>
+          <ReportRegion lastReport={props.lastReport} />
+        </div>
+      </Card>
     </div>
   );
 }
@@ -82,6 +116,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   const isMobile = useIsMobile();
   const [costumeId, setCostumeId] = useState<string>(() => loadCostume(world.cartridge.arc));
   const [showCartridge, setShowCartridge] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [dismissedPurpose, setDismissedPurpose] = useState<Record<string, boolean>>({});
 
   const choose = (id: string) => {
@@ -93,18 +128,13 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   const showPurpose = !dismissedPurpose[active.id] && !modalOpen;
   const dismissPurpose = () => setDismissedPurpose((p) => ({ ...p, [active.id]: true }));
 
-  // Only the active renderer is mounted. 3D renderers are lazy-loaded, so keeping them
-  // alive with visibility:hidden would force their WebGL context into memory even when
-  // not in use. The 2D board (default) pays no 3D cost; switching to 3D loads it once.
   const PresentationScene = active.Scene;
   const stage = (
-    <>
-      <div data-testid="representation-region" style={{ position: "absolute", inset: 0 }}>
-        <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} active />
-      </div>
-      <RepresentationOverlay rep={active} showPurpose={showPurpose} onDismiss={dismissPurpose} />
-    </>
+    <div data-testid="representation-region" style={{ position: "absolute", inset: 0 }}>
+      <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} active />
+    </div>
   );
+  const contextStrip = <ViewContextStrip rep={active} showPurpose={showPurpose} onDismiss={dismissPurpose} />;
 
   const min = ix.req?.minAgents ?? 0;
   const max = ix.req?.maxAgents ?? 0;
@@ -118,13 +148,21 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     arcComplete: world.arcComplete,
   });
 
-  // ── region nodes (identical components in both arrangements) ──
   const status = (
     <StatusRegion title={world.arc.meta.name} cycle={world.cycle} resources={world.resources} progress={{ cleared: world.clearedCount, total: world.totalNodes }} />
   );
   const switcher = (
     <ViewSwitcher costumes={PRESENTATIONS.map((p) => ({ id: p.id, label: p.label, blurb: p.blurb }))} activeId={active.id} onChoose={choose} disabled={modalOpen} />
   );
+  const recordButton = world.lastReport ? (
+    <button
+      data-testid="record-history-button"
+      onClick={() => setShowHistory(true)}
+      style={{ pointerEvents: "auto", font: "600 13px 'IBM Plex Mono', ui-monospace, monospace", background: "rgba(23,21,15,0.8)", color: "#d8cfbd", border: "1px solid #4a4238", borderRadius: 6, padding: "6px 10px", cursor: "pointer", whiteSpace: "nowrap" }}
+    >
+      {isMobile ? "▤" : "▤ Record"}
+    </button>
+  ) : null;
   const cartridgeButton = (
     <button
       onClick={() => setShowCartridge(true)}
@@ -133,28 +171,44 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
       {isMobile ? "◧" : "◧ Cartridge"}
     </button>
   );
+
+  const selectionActive = ix.selected?.status === "available";
+  const recommendedIds = useMemo(
+    () => (selectionActive && ix.selectedId ? world.recommendedParty(ix.selectedId) : []),
+    [selectionActive, ix.selectedId, world],
+  );
   const roster = (
     <RosterRegion
       roster={world.roster}
       party={ix.party}
-      selectable={!!ix.selected}
+      selectable={selectionActive}
+      selectionActive={selectionActive}
+      recommendedIds={recommendedIds}
+      fixPlan={ix.fixPlan}
       max={max}
       contract={ix.contract}
       variant={isMobile ? "strip" : "list"}
       onToggleAgent={ix.toggleAgent}
-      onApplyDowntime={world.applyDowntime}
+      onApplyFix={ix.applyFix}
     />
   );
   const contract = ix.selected ? (
-    <ContractRegion selected={ix.selected} party={ix.party} min={min} max={max} canRun={ix.canRun} onRun={interceptedRun} contract={ix.contract} readiness={ix.readiness} recommendation={ix.recommendation} fixPlan={ix.fixPlan} onApplyFix={ix.applyFix} compact={isMobile} />
+    <div data-testid="contract-detail-stack">
+      {world.lastEquip && <EquipFlash event={world.lastEquip} />}
+      <ContractRegion selected={ix.selected} party={ix.party} min={min} max={max} canRun={ix.canRun} onRun={interceptedRun} contract={ix.contract} readiness={ix.readiness} recommendation={ix.recommendation} fixPlan={ix.fixPlan} onApplyFix={ix.applyFix} compact={isMobile} />
+    </div>
   ) : null;
-  const loot = <LootRegion loot={world.pendingLoot} onClaimLoot={world.claimLoot} />;
+  const loot = (
+    <div data-testid="loot-reward-moment" style={{ display: "grid", gap: 8 }}>
+      <div style={{ padding: "8px 10px", border: "1px solid rgba(201,161,74,0.6)", background: "rgba(201,161,74,0.1)", color: "#d8cfbd", font: "11px/1.45 'IBM Plex Mono', ui-monospace, monospace" }}>
+        <strong style={{ color: "#c9a14a" }}>Reward moment.</strong> Equip the item before the next decision. This rail belongs only to loot until the claim is resolved.
+      </div>
+      <LootRegion loot={world.pendingLoot} onClaimLoot={world.claimLoot} />
+    </div>
+  );
 
   return (
     <div data-testid="engine-shell" data-modal-open={modalOpen ? "true" : "false"} style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: "#0b0a08", overflow: "hidden", isolation: "isolate", fontFamily: "'IBM Plex Mono', ui-monospace, monospace" }}>
-      {/* top bar — status / view switcher / cartridge, in flow so it never overlaps.
-          On mobile it wraps to two rows (controls above, full-width status below) so the
-          status chips get a full-width scroll row instead of stacking. */}
       <div
         style={{
           flex: "none",
@@ -170,62 +224,62 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
         <div style={{ flex: isMobile ? "1 1 100%" : "1 1 auto", minWidth: 0, order: isMobile ? 2 : 0 }}>{status}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, order: 1, marginLeft: isMobile ? "auto" : 0 }}>
           {switcher}
+          {recordButton}
           {cartridgeButton}
         </div>
       </div>
 
-      {/* stage */}
       {isMobile ? (
-        // Mobile: map takes a fixed slice at top; content stacks and scrolls below.
-        // No absolute overlays — every region is in normal flow.
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflowY: "auto" }}>
-          {/* map — capped so content below is reachable without scrolling past it */}
+          {contextStrip}
           <div style={{ height: "clamp(150px, 24dvh, 230px)", flex: "none", position: "relative" }}>
             {stage}
           </div>
-          {/* content stack */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 12px", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}>
             {world.arcComplete && <CompleteBanner />}
-            {world.lastReport && <ReportRegion lastReport={world.lastReport} />}
-            {world.pendingLoot.length > 0 && loot}
-            {!ix.selected && coach && <Card style={{ borderColor: "#6b5935", background: "rgba(32,28,20,0.92)" }}><CoachRegion message={coach} /></Card>}
-            {!ix.selected && world.dispatches.length > 0 && <Card style={{ padding: "8px 12px" }}><DispatchRegion dispatches={world.dispatches} limit={1} /></Card>}
-            {contract}
+            {world.pendingLoot.length > 0 ? loot : contract}
+            {!ix.selected && world.pendingLoot.length === 0 && (
+              <>
+                {coach && <Card style={{ borderColor: "#6b5935", background: "rgba(32,28,20,0.92)" }}><CoachRegion message={coach} /></Card>}
+                {world.dispatches.length > 0 && <Card style={{ padding: "8px 12px" }}><DispatchRegion dispatches={world.dispatches} limit={1} /></Card>}
+              </>
+            )}
             {roster}
           </div>
         </div>
       ) : (
         <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
-          {/* left rail — roster / assignment / training */}
           <aside style={{ width: 320, flex: "none", overflowY: "auto", padding: 12, borderRight: "1px solid #2a2620", background: "rgba(15,13,9,0.6)" }}>
             <Card>{roster}</Card>
           </aside>
 
-          {/* center — the one active-representation region */}
-          <div style={{ flex: 1, position: "relative", minWidth: 0 }}>
-            {stage}
-            {world.arcComplete && (
-              <div style={{ position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)" }}>
-                <Card style={{ borderColor: "#74ad77" }}><CompleteBanner /></Card>
-              </div>
-            )}
-            <div style={{ position: "absolute", bottom: 14, left: 14, font: "11px/1.4 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b", pointerEvents: "none" }}>
-              {active.controlsHint}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+            {contextStrip}
+            <div style={{ flex: 1, position: "relative", minWidth: 0 }}>
+              {stage}
+              {world.arcComplete && (
+                <div style={{ position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)" }}>
+                  <Card style={{ borderColor: "#74ad77" }}><CompleteBanner /></Card>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* right rail — selected contract / readiness / outcome / coach */}
           <aside style={{ width: 360, flex: "none", overflowY: "auto", padding: 12, borderLeft: "1px solid #2a2620", background: "rgba(15,13,9,0.6)" }}>
-            {contract && <Card style={{ marginBottom: 10 }}>{contract}</Card>}
-            {world.lastReport && <Card style={{ marginBottom: 10 }}><ReportRegion lastReport={world.lastReport} /></Card>}
-            {world.pendingLoot.length > 0 && <Card style={{ marginBottom: 10 }}>{loot}</Card>}
-            {!ix.selected && coach && <Card style={{ marginBottom: 10, borderColor: "#6b5935", background: "rgba(32,28,20,0.9)" }}><CoachRegion message={coach} /></Card>}
-            {world.dispatches.length > 0 && <Card><DispatchRegion dispatches={world.dispatches} limit={4} /></Card>}
+            {world.pendingLoot.length > 0 ? (
+              <Card>{loot}</Card>
+            ) : contract ? (
+              <Card>{contract}</Card>
+            ) : (
+              <>
+                {coach && <Card style={{ marginBottom: 10, borderColor: "#6b5935", background: "rgba(32,28,20,0.9)" }}><CoachRegion message={coach} /></Card>}
+                {world.dispatches.length > 0 && <Card><DispatchRegion dispatches={world.dispatches} limit={4} /></Card>}
+              </>
+            )}
           </aside>
         </div>
       )}
 
-      {/* chrome: authored/pending decision, then the cartridge-as-object + exit */}
       {world.pendingDecision && (
         <DecisionPanel key={world.pendingDecision.id} card={world.pendingDecision} onResolve={world.resolveDecision} targetName={world.effectTargetName} />
       )}
@@ -241,6 +295,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
           onLeave={onExit}
         />
       )}
+      {showHistory && world.lastReport && <RecordModal lastReport={world.lastReport} onClose={() => setShowHistory(false)} />}
       {encounterOverlay}
     </div>
   );
