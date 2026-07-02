@@ -195,7 +195,17 @@ export type MessageId =
   | "cartridgePanel.body"
   | "cartridgePanel.exportRun"
   | "cartridgePanel.resume"
-  | "cartridgePanel.leave";
+  | "cartridgePanel.leave"
+  | "cartridgePanel.trust"
+  // ── boot screen (cartridge bay) ──────────────────────────────────────────
+  | "boot.openCartridge"
+  | "boot.remove"
+  | "boot.importedNamed"
+  | "boot.importFailedHeading"
+  | "boot.trustBundled"
+  | "boot.trustImportedUnsigned"
+  | "boot.trustVerified"
+  | "boot.trustQuarantined";
 
 /**
  * Ids intentionally left out of the zh-Hant catalog. Documented, not
@@ -438,6 +448,16 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "cartridgePanel.exportRun": "Export run",
     "cartridgePanel.resume": "Resume",
     "cartridgePanel.leave": "Leave",
+    "cartridgePanel.trust": "Trust",
+
+    "boot.openCartridge": "Open cartridge…",
+    "boot.remove": "Remove",
+    "boot.importedNamed": (params) => `Imported "${str(params, "name")}".`,
+    "boot.importFailedHeading": "Import failed:",
+    "boot.trustBundled": "Bundled",
+    "boot.trustImportedUnsigned": "Imported (unsigned)",
+    "boot.trustVerified": "Verified",
+    "boot.trustQuarantined": "Quarantined",
   },
   "zh-Hant": {
     "coach.arcComplete": "卡匣已標記為完成。離開前請檢視或匯出本次執行狀態。",
@@ -645,6 +665,16 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "cartridgePanel.exportRun": "匯出執行",
     "cartridgePanel.resume": "繼續",
     "cartridgePanel.leave": "離開卡匣",
+    "cartridgePanel.trust": "信任等級",
+
+    "boot.openCartridge": "開啟卡匣…",
+    "boot.remove": "移除",
+    "boot.importedNamed": (params) => `已匯入「${str(params, "name")}」。`,
+    "boot.importFailedHeading": "匯入失敗：",
+    "boot.trustBundled": "內建",
+    "boot.trustImportedUnsigned": "已匯入（未簽署）",
+    "boot.trustVerified": "已驗證",
+    "boot.trustQuarantined": "已隔離",
   },
 };
 
