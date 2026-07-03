@@ -1,0 +1,50 @@
+// Golden-digest guard for the bundled playable cartridges.
+//
+// Proves the bundled artifact is derived from its expected content identity:
+// recomputes each bundled cartridge's `cartridgeIdentity` and asserts it equals
+// the checked-in golden manifest. `cartridgeDigest` and the reserved-key list
+// are imported from the vendored digest module — never re-declared here — so the
+// single source of truth for custody-key exclusion cannot silently diverge.
+
+import { describe, it, expect } from "vitest";
+import { cartridgeDigest, RESERVED_ENVELOPE_KEYS } from "../../src/engine/cartridge-digest";
+import type { Arc } from "../../src/engine/types";
+import { BUNDLED_CARTRIDGES } from "../../src/world/cartridge";
+import { cartridgeIdentity } from "../../src/world/cartridge-identity";
+import { EXPECTED_BUNDLED_DIGESTS } from "../../src/world/bundled-digests";
+
+describe("bundled cartridge golden digests", () => {
+  const actual: Record<string, string> = {};
+  for (const c of BUNDLED_CARTRIDGES) actual[c.manifest.id] = cartridgeIdentity(c);
+
+  it("records the actual bundled digests (visible in CI to seed the manifest)", () => {
+    console.log("BUNDLED_DIGESTS_JSON=" + JSON.stringify(actual));
+    expect(Object.keys(actual).length).toBe(BUNDLED_CARTRIDGES.length);
+  });
+
+  it("each bundled cartridge matches its expected golden digest", () => {
+    expect(actual).toEqual(EXPECTED_BUNDLED_DIGESTS);
+  });
+
+  it("cartridge identity is the digest of the authored arc (custody-independent)", () => {
+    for (const c of BUNDLED_CARTRIDGES) {
+      expect(cartridgeIdentity(c)).toBe(cartridgeDigest(c.arc));
+    }
+  });
+
+  it("reserved custody keys cannot change a bundled cartridge's identity", () => {
+    for (const c of BUNDLED_CARTRIDGES) {
+      const base = cartridgeDigest(c.arc);
+      for (const key of RESERVED_ENVELOPE_KEYS) {
+        const withKey = { ...(c.arc as unknown as Record<string, unknown>), [key]: "x" } as unknown as Arc;
+        expect(cartridgeDigest(withKey)).toBe(base);
+      }
+    }
+  });
+
+  it("every bundled cartridge digest has the cart1_ shape", () => {
+    for (const c of BUNDLED_CARTRIDGES) {
+      expect(cartridgeIdentity(c)).toMatch(/^cart1_[0-9a-f]{64}$/);
+    }
+  });
+});
