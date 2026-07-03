@@ -54,9 +54,10 @@
 }
 :root[data-cartridge="first-charter"] .contract-lane__title small { color: #0f7a63; }
 
-/* Warmer parchment field. */
+/* Warmer parchment field, ruled like a bound guild ledger. */
 :root[data-cartridge="first-charter"] .contract-board-shell {
   background:
+    repeating-linear-gradient(180deg, transparent 0 27px, rgba(216, 178, 118, 0.055) 27px 28px),
     radial-gradient(circle at 50% 0%, rgba(216, 178, 118, 0.12), transparent 44%),
     linear-gradient(180deg, #16130c, #0a0806 72%);
 }
@@ -71,3 +72,38 @@
 
 /* The charter seal (header emblem) tints parchment-gold. */
 .fc-cartridge-emblem { display: inline-flex; color: #d8b276; }
+
+/* ── Silhouette polish ── civic-guild certification detailing (CSS only) ──────
+   Pushes the ledger identity harder at screenshot scale: an embossed parchment
+   lane tab carrying a wax-seal proof mark, and a double-ruled certified card
+   frame. All scoped; no layout or legibility change. */
+
+/* Lane tab reads as an embossed ledger heading with a stitched inner rule. */
+:root[data-cartridge="first-charter"] .contract-lane__title {
+  position: relative;
+  box-shadow: 3px 3px 0 #b89460, inset 0 0 0 1px rgba(255, 250, 236, 0.55);
+  padding-right: 26px;
+}
+/* A small teal wax seal stamped on the right of every lane heading. */
+:root[data-cartridge="first-charter"] .contract-lane__title::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 12px;
+  height: 12px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #2fbfa2, #0f7a63 70%);
+  box-shadow: 0 0 0 1px rgba(15, 122, 99, 0.5), inset -1px -1px 0 rgba(0, 0, 0, 0.25);
+}
+
+/* Certified record: a fine teal proof-line inside the gold card frame. */
+:root[data-cartridge="first-charter"] .pixel-contract-card__panel {
+  box-shadow: inset 0 0 0 1px rgba(23, 165, 137, 0.28);
+}
+
+/* The masthead gains a stamped parchment rule under its certification edge. */
+:root[data-cartridge="first-charter"] .contract-board-header {
+  box-shadow: inset 0 -3px 0 -2px rgba(216, 178, 118, 0.4);
+}
