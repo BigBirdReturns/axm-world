@@ -1,12 +1,17 @@
 # Strategy Board Runtime — Proposal
 
-**Status:** proposal only. Docs-first. No code, no axm-arc change, no axm-world
-runtime implementation, no Program of Record import, no cartridge authoring.
-This document defines the **generic** Strategy Board Runtime family *before* any
-code exists, so that when it is built it lands under the same discipline that
-made resource-spend safe:
+**Status:** the **schema scaffold has landed** (axm-arc, vendored into
+axm-world) — types, validation, and a tiny reference fixture. **No runtime
+behavior exists yet:** no turn machine, no movement, no auction/interference
+resolution, no opponent AI, no world projection, no Program of Record port. This
+document remains the governing design; see **§0b** for exactly what is now real
+vs. still proposal-only. The family is being built under the same discipline
+that made resource-spend safe:
 
 > proposal → engine law → property tests → world projection → cartridge authoring
+>
+> ✅ proposal (this doc) · ✅ **schema scaffold** (types + validation + fixture) ·
+> ⬜ turn-machine law + property tests · ⬜ world projection · ⬜ cartridge port
 
 The intake spec (`docs/cartridges/PROGRAM_OF_RECORD_INTAKE.md`) established that
 Program of Record ("PoR") is a standalone strategy ecosystem that must be
@@ -39,6 +44,55 @@ an extension of it. It inherits, without exception, the platform contract:
   it and the runtime can honor it. No authored mechanic → no UI.
 
 These are not aspirations for this family; they are the acceptance floor.
+
+---
+
+## 0b. Status: what is real as of the schema scaffold
+
+The first buildable step from this proposal has landed. This section is the
+honest ledger of what exists so nobody mistakes a scaffold for a runtime.
+
+### What is now real (canonical)
+
+- **Authored-data schema + types**, in axm-arc at `src/engine/strategy-board/`
+  (vendored byte-identically into axm-world, drift-guarded): the object model of
+  §2 as TypeScript types plus zod validation (`validateStrategyBoard`), and the
+  `StrategyPhase` / `StrategyLedgerEventKind` vocabularies of §3.
+- **Two schema-level invariants enforced now** (§6 in miniature): every resource
+  change is a declared ledger mutation carrying an event kind (no hidden cost),
+  and every player-facing choice object (program action, auction, interference)
+  names — and must name the *correct* — phase that will honor it (no UI without a
+  resolver).
+- **A tiny reference fixture**, `program-of-record-mini` (6 spaces, 3 doctrines,
+  2 resources, 2 assets incl. 1 auction-only, 2 actions, 1 interference, 1
+  obligation, 1 milestone, 1 ending). It is a schema exercise and a seed for
+  future property tests — **not a shipped cartridge; nothing executes it.**
+- **Schema tests** proving acceptance of the fixture, structural completeness,
+  the two invariants, deterministic load, and six rejection cases.
+
+### What is NOT implemented (still proposal-only)
+
+- **No runtime behavior of any kind.** No turn/phase machine, no movement or
+  space resolution, no buy/auction/pass, no program-action execution, no
+  reaction/interference resolution, no milestone/ending evaluation, no
+  income/toll/obligation settlement.
+- **No opponent driver / CPU personality.**
+- **No world projection** — no board, turn, auction, interference, or receipt
+  surfaces; the schema is data only, with zero UI.
+- **No property tests for behavior** (§5) — those gate the *runtime*, which does
+  not exist yet.
+
+### What remains blocked (by design, until authorized)
+
+- **The Program of Record port.** Still intake-accepted only; not imported, not
+  ported, no bundle surgery. It waits for the runtime, then authors as data.
+- **Any shipped strategy-board content** and any player-facing strategy surface.
+
+### Next step (unchanged)
+
+Per §7: the axm-arc **turn-machine law + property tests** (§5), proposal-first
+and proven before any world surface. Until that lands, the scaffold changes no
+runtime and no player-facing behavior anywhere.
 
 ---
 
@@ -247,23 +301,28 @@ structurally impossible, not merely discouraged.
 
 ## 7. Recommended path (unchanged discipline)
 
-1. **This proposal** — establish the generic family and the arc/world split. *(here)*
+1. ✅ **This proposal** — establish the generic family and the arc/world split. *(done)*
 2. **Strategy-board schema + engine law in axm-arc** — the objects (§2), the turn
    machine (§3), the resolution algorithms (§4a), authored-data validation.
+   - ✅ **schema + authored-data validation** landed (`src/engine/strategy-board/`,
+     vendored into world; see §0b).
+   - ⬜ **engine law** (turn machine, resolution algorithms) — not started.
 3. **Property tests in axm-arc** (§5) — prove determinism, ledger conservation,
    legal-action soundness, auction/toll/interference integrity, no-fake-agency —
-   *before* any world surface.
+   *before* any world surface. *(⬜ gates the runtime; not started)*
 4. **World projection in axm-world** — board/turn/auction/interference/receipt
-   surfaces (§4b), sovereignty-gated, mirroring the law for display only.
+   surfaces (§4b), sovereignty-gated, mirroring the law for display only. *(⬜)*
 5. **Controlled Program of Record cartridge port** — author PoR's board, doctrines,
    assets, actions, personalities, milestones, and endings as validated data over
-   the proven runtime. Never a bundle import.
+   the proven runtime. Never a bundle import. *(⬜ blocked until 2–4)*
 
-Steps 2–5 are each their own bounded, arc-first-disciplined change. This document
-authorizes none of them; it defines the family they will build against.
+The remaining steps are each their own bounded, arc-first-disciplined change.
+This document authorizes none of the *behavioral* ones; it defines the family
+they build against.
 
 ---
 
-*Proposal only. No code, no engine change, no cartridge import is authorized here.
-The next artifact, when authorized, is the axm-arc strategy-board schema + engine
-law (step 2), proposal-first and property-tested before any world surface.*
+*The schema scaffold (step 2, schema portion) is real and vendored; everything
+behavioral remains proposal-only. The next artifact, when authorized, is the
+axm-arc turn-machine law + property tests (steps 2–3), proposal-first and proven
+before any world surface.*
