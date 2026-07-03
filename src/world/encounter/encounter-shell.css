@@ -108,7 +108,7 @@
   color: var(--stone, #6a6459);
 }
 
-.encs-tokens { display: flex; flex-wrap: wrap; gap: 6px; }
+.encs-tokens { display: flex; flex-wrap: wrap; gap: 6px; min-height: 34px; }
 .encs-token {
   display: inline-flex;
   flex-direction: column;
@@ -117,9 +117,43 @@
   background: var(--cream, #efe7d6);
   padding: 4px 8px;
   box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
 }
 .encs-token-name { font: 700 12px system-ui, sans-serif; color: #2a251e; }
 .encs-token-role { font: 600 9px 'IBM Plex Mono', ui-monospace, monospace; color: var(--stone, #6a6459); text-transform: uppercase; letter-spacing: 0.04em; }
+.encs-token--in { border-color: var(--teal-dark, #3c6480); box-shadow: 1px 1px 0 rgba(60, 100, 128, 0.4); }
+.encs-token--in:hover { background: #e6efe0; }
+.encs-token--out { opacity: 0.72; }
+.encs-token--out:hover { opacity: 1; }
+
+/* Deploy step: two columns (in the room / reserve) + a live projection banner. */
+.encs-deploy-range { font: 600 10px 'IBM Plex Mono', ui-monospace, monospace; color: var(--stone, #6a6459); text-transform: none; letter-spacing: 0; }
+.encs-muster { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.encs-muster-head { font: 700 9px 'IBM Plex Mono', ui-monospace, monospace; text-transform: uppercase; letter-spacing: 0.06em; color: var(--stone, #6a6459); margin-bottom: 4px; }
+.encs-muster-empty { font: italic 11px system-ui, sans-serif; color: var(--stone, #8a8276); }
+
+.encs-projection {
+  display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+  padding: 5px 8px;
+  border-left: 3px solid var(--stone, #8a8276);
+  font: 12px system-ui, sans-serif;
+  color: #2a251e;
+}
+.encs-projection-label { font: 700 10px 'IBM Plex Mono', ui-monospace, monospace; text-transform: uppercase; letter-spacing: 0.05em; color: var(--stone, #6a6459); }
+.encs-projection-why { color: var(--stone, #6a6459); font-size: 11px; }
+.encs-projection--reliable { border-left-color: #4f8a52; background: rgba(79, 138, 82, 0.1); }
+.encs-projection--risky { border-left-color: #c9a14a; background: rgba(201, 161, 74, 0.12); }
+.encs-projection--failing { border-left-color: #b01c18; background: rgba(176, 28, 24, 0.1); }
+.encs-projection--none { border-left-color: #8a8276; background: rgba(138, 130, 118, 0.1); }
+
+/* Per-objective projected-status pip on the objective card. */
+.encs-obj-status { width: 9px; height: 9px; border-radius: 50%; flex: none; background: #8a8276; }
+.encs-obj-status--reliable { background: #4f8a52; }
+.encs-obj-status--risky { background: #c9a14a; }
+.encs-obj-status--failing { background: #b01c18; }
+.encs-obj-status--none { background: #8a8276; }
 
 .encs-hazards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .encs-hazard { display: flex; align-items: center; gap: 8px; font: 12px system-ui, sans-serif; color: #4a443a; }
