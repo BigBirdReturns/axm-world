@@ -448,7 +448,7 @@ function DowntimeFixButton(props: { fix: DowntimeFix; onClick: () => void }): JS
 
 // ── Contract + Readiness ───────────────────────────────────────────────────────────
 
-export function ContractRegion(props: {
+export interface ContractRegionProps {
   selected: WorldNode;
   party: string[];
   min: number;
@@ -465,8 +465,56 @@ export function ContractRegion(props: {
   difficultyModes?: Array<{ id: string; name: string }>;
   difficultyModeId?: string | null;
   onSelectDifficultyMode?: (id: string | null) => void;
-}): JSX.Element {
-  const { selected, party, min, max, canRun, onRun, contract, readiness, recommendation, fixPlan, onApplyFix, compact, difficultyModes, difficultyModeId, onSelectDifficultyMode } = props;
+  /** Mobile staging: "detail" renders the scrollable evidence only (no fix
+   *  plan / difficulty / CTA); those move into a sticky ContractActions
+   *  footer. Default renders everything inline (desktop). */
+  render?: "full" | "detail";
+}
+
+/** The decision surface: difficulty picker, fix actions, and the RUN CONTRACT
+ *  CTA. Split out from ContractRegion so mobile can pin it to a sticky footer
+ *  (fix actions stacked immediately above the CTA) while the detail scrolls. */
+export function ContractActions(props: ContractRegionProps): JSX.Element {
+  const { selected, min, max, canRun, onRun, contract, readiness, fixPlan, onApplyFix, recommendation, compact, difficultyModes, difficultyModeId, onSelectDifficultyMode } = props;
+  if (selected.status === "locked") {
+    return (
+      <PixelButton disabled variant="disabled" style={{ width: "100%", minHeight: 44, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+        <PixelIcon name="locked" /> <span>{t("status.locked")}</span>
+      </PixelButton>
+    );
+  }
+  const showReadiness = selected.status === "available" && contract;
+  return (
+    <>
+      {showReadiness && readiness && readiness.projectedOutcome !== "success" && fixPlan && fixPlan.length > 0 && (
+        <FixPlanPanel fixes={fixPlan} onApplyFix={onApplyFix} compact={compact} />
+      )}
+      {difficultyModes && difficultyModes.length > 0 && onSelectDifficultyMode && (
+        <div data-testid="difficulty-mode-picker" style={{ marginTop: 10, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+          <span style={{ fontFamily: "var(--px-font)", fontSize: 10, color: "var(--stone)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+            {t("shell.difficultyMode")}
+          </span>
+          <PixelButton variant={difficultyModeId == null ? "confirm" : "secondary"} data-testid="difficulty-mode-base" onClick={() => onSelectDifficultyMode(null)} style={{ fontSize: 10, padding: "4px 8px" }}>
+            {t("shell.difficultyBase")}
+          </PixelButton>
+          {difficultyModes.map((mode) => (
+            <PixelButton key={mode.id} variant={difficultyModeId === mode.id ? "confirm" : "secondary"} data-testid={`difficulty-mode-${mode.id}`} onClick={() => onSelectDifficultyMode(mode.id)} style={{ fontSize: 10, padding: "4px 8px" }}>
+              {mode.name}
+            </PixelButton>
+          ))}
+        </div>
+      )}
+      <RunButton selected={selected} min={min} max={max} canRun={canRun} readiness={readiness} onRun={onRun} />
+      {showReadiness && recommendation && (
+        <div style={{ marginTop: 8, fontSize: 10, lineHeight: 1.4, color: "var(--stone)", fontStyle: "italic", fontFamily: "var(--px-font)" }}>{recommendation}</div>
+      )}
+    </>
+  );
+}
+
+export function ContractRegion(props: ContractRegionProps): JSX.Element {
+  const { selected, party, min, max, canRun, onRun, contract, readiness, recommendation, fixPlan, onApplyFix, compact, difficultyModes, difficultyModeId, onSelectDifficultyMode, render = "full" } = props;
+  const detailOnly = render === "detail";
 
   // Locked contracts show only unlock requirements — no party count, no readiness math,
   // no fix plan. Party assignment is irrelevant until the node unlocks.
@@ -486,9 +534,11 @@ export function ContractRegion(props: {
             </ul>
           </div>
         )}
-        <PixelButton disabled variant="disabled" style={{ width: "100%", marginTop: 14, minHeight: 44, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-          <PixelIcon name="locked" /> <span>{t("status.locked")}</span>
-        </PixelButton>
+        {!detailOnly && (
+          <PixelButton disabled variant="disabled" style={{ width: "100%", marginTop: 14, minHeight: 44, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+            <PixelIcon name="locked" /> <span>{t("status.locked")}</span>
+          </PixelButton>
+        )}
       </PixelPanel>
     );
   }
@@ -518,42 +568,10 @@ export function ContractRegion(props: {
       </div>
 
       {showReadiness && <ReadinessPanel contract={contract} readiness={readiness} />}
-      {showReadiness && readiness && readiness.projectedOutcome !== "success" && fixPlan && fixPlan.length > 0 && (
-        <FixPlanPanel fixes={fixPlan} onApplyFix={onApplyFix} compact={compact} />
-      )}
 
-      {difficultyModes && difficultyModes.length > 0 && onSelectDifficultyMode && (
-        <div data-testid="difficulty-mode-picker" style={{ marginTop: 10, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
-          <span style={{ fontFamily: "var(--px-font)", fontSize: 10, color: "var(--stone)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-            {t("shell.difficultyMode")}
-          </span>
-          <PixelButton
-            variant={difficultyModeId == null ? "confirm" : "secondary"}
-            data-testid="difficulty-mode-base"
-            onClick={() => onSelectDifficultyMode(null)}
-            style={{ fontSize: 10, padding: "4px 8px" }}
-          >
-            {t("shell.difficultyBase")}
-          </PixelButton>
-          {difficultyModes.map((mode) => (
-            <PixelButton
-              key={mode.id}
-              variant={difficultyModeId === mode.id ? "confirm" : "secondary"}
-              data-testid={`difficulty-mode-${mode.id}`}
-              onClick={() => onSelectDifficultyMode(mode.id)}
-              style={{ fontSize: 10, padding: "4px 8px" }}
-            >
-              {mode.name}
-            </PixelButton>
-          ))}
-        </div>
-      )}
-
-      <RunButton selected={selected} min={min} max={max} canRun={canRun} readiness={readiness} onRun={onRun} />
-
-      {showReadiness && recommendation && (
-        <div style={{ marginTop: 8, fontSize: 10, lineHeight: 1.4, color: "var(--stone)", fontStyle: "italic", fontFamily: "var(--px-font)" }}>{recommendation}</div>
-      )}
+      {/* Desktop renders the decision surface inline; mobile detaches it into a
+          sticky footer (render="detail" omits it here). */}
+      {!detailOnly && <ContractActions {...props} />}
     </PixelPanel>
   );
 }
