@@ -23,6 +23,7 @@ import {
   LocaleSwitcher,
   RosterRegion,
   ContractRegion,
+  ContractActions,
   ReportRegion,
   LootRegion,
   CoachRegion,
@@ -124,6 +125,10 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   const [showCartridge, setShowCartridge] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [dismissedPurpose, setDismissedPurpose] = useState<Record<string, boolean>>({});
+  // Mobile staged turn flow: one panel at a time. Selecting a contract advances
+  // Board -> Contract; Party is entered explicitly from the contract sheet;
+  // clearing the selection returns to Board. Desktop ignores this entirely.
+  const [mobileStep, setMobileStep] = useState<"board" | "contract" | "party">("board");
 
   // Scope the active cartridge's palette skin to <html> while this cartridge is
   // mounted. Cleared on unmount / cartridge switch so no arc keeps another's
@@ -135,6 +140,14 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     else root.removeAttribute("data-cartridge");
     return () => root.removeAttribute("data-cartridge");
   }, [world.cartridge.arc]);
+
+  // Mobile step follows selection: pick a contract on the board -> its detail
+  // sheet; deselect -> back to the board. Party is a manual push from contract.
+  useEffect(() => {
+    if (!isMobile) return;
+    if (ix.selectedId) setMobileStep((s) => (s === "board" ? "contract" : s));
+    else setMobileStep("board");
+  }, [isMobile, ix.selectedId]);
 
   const choose = (id: string) => {
     setCostumeId(id);
@@ -223,12 +236,46 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
       onApplyFix={ix.applyFix}
     />
   );
-  const contract = ix.selected ? (
+  const contractProps = ix.selected
+    ? {
+        selected: ix.selected, party: ix.party, min, max, canRun: ix.canRun, onRun: interceptedRun,
+        contract: ix.contract, readiness: ix.readiness, recommendation: ix.recommendation,
+        fixPlan: ix.fixPlan, onApplyFix: ix.applyFix, compact: isMobile,
+        difficultyModes: world.difficultyModes, difficultyModeId: world.difficultyModeId,
+        onSelectDifficultyMode: world.setDifficultyModeId,
+      }
+    : null;
+  const contract = contractProps ? (
     <div data-testid="contract-detail-stack">
       {world.lastEquip && <EquipFlash event={world.lastEquip} />}
-      <ContractRegion selected={ix.selected} party={ix.party} min={min} max={max} canRun={ix.canRun} onRun={interceptedRun} contract={ix.contract} readiness={ix.readiness} recommendation={ix.recommendation} fixPlan={ix.fixPlan} onApplyFix={ix.applyFix} compact={isMobile} difficultyModes={world.difficultyModes} difficultyModeId={world.difficultyModeId} onSelectDifficultyMode={world.setDifficultyModeId} />
+      <ContractRegion {...contractProps} />
     </div>
   ) : null;
+  const mobileStickyFooter: CSSProperties = {
+    flex: "none",
+    display: "grid",
+    gap: 6,
+    padding: "8px 12px",
+    paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+    borderTop: "1px solid #2a2620",
+    background: "rgba(246,239,227,0.97)",
+  };
+  // Mobile Party step uses full one-column cards (list), not the desktop-mobile strip.
+  const mobileRosterList = (
+    <RosterRegion
+      roster={world.roster}
+      party={ix.party}
+      selectable={selectionActive}
+      selectionActive={selectionActive}
+      recommendedIds={recommendedIds}
+      fixPlan={ix.fixPlan}
+      max={max}
+      contract={ix.contract}
+      variant="list"
+      onToggleAgent={ix.toggleAgent}
+      onApplyFix={ix.applyFix}
+    />
+  );
   const loot = (
     <div data-testid="loot-reward-moment" style={{ display: "grid", gap: 8 }}>
       <div style={{ padding: "8px 10px", border: "1px solid rgba(201,161,74,0.6)", background: "rgba(201,161,74,0.1)", color: "#d8cfbd", font: "11px/1.45 'IBM Plex Mono', ui-monospace, monospace" }}>
@@ -262,22 +309,73 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
       </div>
 
       {isMobile ? (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflowY: "auto" }}>
-          {contextStrip}
-          <div style={{ height: "clamp(150px, 24dvh, 230px)", flex: "none", position: "relative" }}>
-            {stage}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 12px", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}>
-            {world.arcComplete && <CompleteBanner arcName={world.arc.meta.name} />}
-            {world.pendingLoot.length > 0 ? loot : contract}
-            {!ix.selected && world.pendingLoot.length === 0 && (
-              <>
-                {coach && <Card style={{ borderColor: "#6b5935", background: "rgba(32,28,20,0.92)" }}><CoachRegion message={coach} /></Card>}
-                {world.dispatches.length > 0 && <Card style={{ padding: "8px 12px" }}><DispatchRegion dispatches={world.dispatches} limit={1} /></Card>}
-              </>
-            )}
-            {roster}
-          </div>
+        // Staged turn flow — ONE panel at a time (Board -> Contract -> Party),
+        // with a sticky RUN CONTRACT footer so the loop stays completable at
+        // phone width without horizontal scroll, zoom, or multi-panel reading.
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+          {mobileStep !== "board" && (
+            <button
+              type="button"
+              data-testid="mobile-step-back"
+              onClick={() => {
+                if (mobileStep === "party") setMobileStep("contract");
+                else { ix.select(null); setMobileStep("board"); }
+              }}
+              style={{ flex: "none", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "rgba(15,13,9,0.92)", borderBottom: "1px solid #2a2620", color: "#d8cfbd", fontFamily: "var(--px-font)", fontSize: 12, fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+            >
+              ‹ {mobileStep === "party" ? t("shell.mobileBackContract") : t("shell.mobileBackBoard")}
+            </button>
+          )}
+
+          {mobileStep === "board" && (
+            <div data-testid="mobile-step-board" style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflowY: "auto" }}>
+              {contextStrip}
+              <div style={{ flex: 1, position: "relative", minHeight: "60dvh" }}>{stage}</div>
+              {(world.arcComplete || coach || world.dispatches.length > 0) && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 12px" }}>
+                  {world.arcComplete && <CompleteBanner arcName={world.arc.meta.name} />}
+                  {coach && <Card style={{ borderColor: "#6b5935", background: "rgba(32,28,20,0.92)" }}><CoachRegion message={coach} /></Card>}
+                  {world.dispatches.length > 0 && <Card style={{ padding: "8px 12px" }}><DispatchRegion dispatches={world.dispatches} limit={1} /></Card>}
+                </div>
+              )}
+            </div>
+          )}
+
+          {mobileStep === "contract" && contractProps && (
+            <>
+              <div data-testid="mobile-step-contract" style={{ flex: 1, overflowY: "auto", padding: "8px 12px", display: "grid", gap: 8, alignContent: "start" }}>
+                {world.pendingLoot.length > 0 ? loot : (
+                  <>
+                    {world.lastEquip && <EquipFlash event={world.lastEquip} />}
+                    <ContractRegion {...contractProps} render="detail" />
+                    {selectionActive && (
+                      <PixelButton type="button" variant="secondary" data-testid="mobile-adjust-party" onClick={() => setMobileStep("party")} style={{ width: "100%", minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+                        <PixelIcon name="selected" /> <span>{t("shell.mobileAdjustParty", { count: ix.party.length, max })}</span>
+                      </PixelButton>
+                    )}
+                  </>
+                )}
+              </div>
+              {world.pendingLoot.length === 0 && (
+                <div style={mobileStickyFooter}>
+                  <ContractActions {...contractProps} />
+                </div>
+              )}
+            </>
+          )}
+
+          {mobileStep === "party" && (
+            <>
+              <div data-testid="mobile-step-party" style={{ flex: 1, overflowY: "auto", padding: "8px 12px" }}>
+                {mobileRosterList}
+              </div>
+              {contractProps && (
+                <div style={mobileStickyFooter}>
+                  <ContractActions {...contractProps} />
+                </div>
+              )}
+            </>
+          )}
         </div>
       ) : (
         <div style={{ flex: 1, display: "flex", minHeight: 0 }}>

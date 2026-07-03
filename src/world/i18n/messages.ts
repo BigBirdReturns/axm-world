@@ -36,6 +36,10 @@ export type MessageId =
   | "shell.recommendedParty"
   | "shell.recommendedChip"
   | "shell.topPick"
+  | "shell.mobileBackBoard"
+  | "shell.mobileBackContract"
+  | "shell.mobileAdjustParty"
+  | "shell.mobileReviewContract"
   | "shell.contractOutcome"
   | "shell.rosterPartyOf"
   | "shell.rosterSelectContract"
@@ -253,6 +257,10 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.recommendedParty": "Recommended party",
     "shell.recommendedChip": "Recommended",
     "shell.topPick": "Top",
+    "shell.mobileBackBoard": "Board",
+    "shell.mobileBackContract": "Contract",
+    "shell.mobileAdjustParty": (params) => `Party ${num(params, "count")}/${num(params, "max")} — adjust`,
+    "shell.mobileReviewContract": "Review contract",
     "shell.contractOutcome": "Contract Outcome",
     "shell.rosterPartyOf": (params) => `Roster · party ${num(params, "count")}/${num(params, "max")}`,
     "shell.rosterSelectContract": (params) => `Roster · ${num(params, "count")} agents · select a contract to assign`,
@@ -483,6 +491,10 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.recommendedParty": "推薦隊伍",
     "shell.recommendedChip": "推薦",
     "shell.topPick": "最佳",
+    "shell.mobileBackBoard": "契約板",
+    "shell.mobileBackContract": "契約",
+    "shell.mobileAdjustParty": (params) => `隊伍 ${num(params, "count")}/${num(params, "max")} — 調整`,
+    "shell.mobileReviewContract": "檢視契約",
     // Intentionally left untranslated (see EN_ONLY_IDS) to exercise the
     // zh-Hant → en fallback path honestly.
     // "shell.contractOutcome": "契約結果",

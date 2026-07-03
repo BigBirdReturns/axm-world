@@ -284,6 +284,8 @@ const TYPOGRAPHY_EXEMPT = new Set<string>([
   "€", "£", "¥", "¢",
   // Arrows
   "→", "←", "↑", "↓", "↔", "⇒", "⇐", "⤓",
+  // Guillemets (single/double angle quotes — back-nav affordances, punctuation)
+  "‹", "›", "«", "»",
   // Box drawing (ASCII-art dividers/frames)
   "─", "│", "┌", "┐", "└", "┘", "├", "┤", "┬", "┴", "┼",
   // Geometric / bullet-style markers (disclosure carets, status dots)
