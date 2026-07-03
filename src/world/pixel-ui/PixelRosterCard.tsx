@@ -16,6 +16,8 @@ export interface RosterCardAttribute {
   icon: PixelIconName;
   gearBonus?: number;
   highlighted?: boolean;
+  /** Set on the driving stat of a top-pick agent (e.g. "TOP"). */
+  leadLabel?: string;
 }
 
 export interface RosterCardGear {
@@ -104,6 +106,7 @@ export function PixelRosterCard(props: PixelRosterCardProps): JSX.Element {
                 icon={a.icon}
                 gearBonus={a.gearBonus}
                 highlighted={a.highlighted}
+                leadLabel={a.leadLabel}
               />
             ))}
           </div>

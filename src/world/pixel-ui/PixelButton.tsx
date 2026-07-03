@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from "react";
 import "./pixel-ui.css";
 
-export type PixelButtonVariant = "primary" | "secondary" | "confirm" | "danger" | "disabled";
+export type PixelButtonVariant = "primary" | "secondary" | "action" | "confirm" | "danger" | "ghost" | "disabled";
 
 type PixelButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: PixelButtonVariant;

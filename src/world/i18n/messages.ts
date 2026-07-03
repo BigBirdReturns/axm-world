@@ -35,6 +35,7 @@ export type MessageId =
   | "shell.bench"
   | "shell.recommendedParty"
   | "shell.recommendedChip"
+  | "shell.topPick"
   | "shell.contractOutcome"
   | "shell.rosterPartyOf"
   | "shell.rosterSelectContract"
@@ -251,6 +252,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.bench": "Bench",
     "shell.recommendedParty": "Recommended party",
     "shell.recommendedChip": "Recommended",
+    "shell.topPick": "Top",
     "shell.contractOutcome": "Contract Outcome",
     "shell.rosterPartyOf": (params) => `Roster · party ${num(params, "count")}/${num(params, "max")}`,
     "shell.rosterSelectContract": (params) => `Roster · ${num(params, "count")} agents · select a contract to assign`,
@@ -480,6 +482,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.bench": "候補",
     "shell.recommendedParty": "推薦隊伍",
     "shell.recommendedChip": "推薦",
+    "shell.topPick": "最佳",
     // Intentionally left untranslated (see EN_ONLY_IDS) to exercise the
     // zh-Hant → en fallback path honestly.
     // "shell.contractOutcome": "契約結果",
