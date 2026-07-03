@@ -5,8 +5,8 @@
 // every other surface resolves to.
 
 import { describe, it, expect } from "vitest";
-import { PROGRAM_001, defineProgram } from "../../src/world/program-of-record";
-import { FIRST_CHARTER_CARTRIDGE } from "../../src/world/cartridge";
+import { PROGRAM_001, PROGRAMS_OF_RECORD, defineProgram, programForCartridge } from "../../src/world/program-of-record";
+import { FIRST_CHARTER_CARTRIDGE, KARAZHAN_CARTRIDGE } from "../../src/world/cartridge";
 import { cartridgeIdentity } from "../../src/world/cartridge-identity";
 import { EXPECTED_BUNDLED_DIGESTS } from "../../src/world/bundled-digests";
 
@@ -38,5 +38,32 @@ describe("Program 001 — controlled object", () => {
     });
     expect(p.authoredArcDigest).toBe(cartridgeIdentity(FIRST_CHARTER_CARTRIDGE));
     expect(p.cartridgeName).toBe(FIRST_CHARTER_CARTRIDGE.manifest.name);
+  });
+});
+
+describe("programForCartridge — registry lookup by computed identity", () => {
+  it("resolves The First Charter to Program 001", () => {
+    expect(programForCartridge(FIRST_CHARTER_CARTRIDGE)).toBe(PROGRAM_001);
+  });
+
+  it("returns null for a cartridge that is not a program of record", () => {
+    // Karazhan is a bundled, fully-playable cartridge but not a program of
+    // record, so it gets the ordinary bay row, not the plaque.
+    expect(programForCartridge(KARAZHAN_CARTRIDGE)).toBeNull();
+  });
+
+  it("matches on the COMPUTED authored digest, not the manifest id", () => {
+    // A cartridge whose manifest CLAIMS to be first-charter but whose arc is
+    // actually karazhan must not resolve to Program 001 — identity is the
+    // digest of the arc, never the manifest.
+    const spoofed = { ...KARAZHAN_CARTRIDGE, manifest: { ...KARAZHAN_CARTRIDGE.manifest, id: FIRST_CHARTER_CARTRIDGE.manifest.id } };
+    expect(programForCartridge(spoofed)).toBeNull();
+  });
+
+  it("every registered program is discoverable via its own cartridge digest", () => {
+    for (const program of PROGRAMS_OF_RECORD) {
+      expect(program.authoredArcDigest).toBe(EXPECTED_BUNDLED_DIGESTS[program.cartridgeId] ?? program.authoredArcDigest);
+    }
+    expect(PROGRAMS_OF_RECORD).toContain(PROGRAM_001);
   });
 });

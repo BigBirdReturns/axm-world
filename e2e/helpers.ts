@@ -3,8 +3,10 @@ import { expect, type Page } from "@playwright/test";
 /** Boot the player into a running cartridge with the opening decision resolved. */
 export async function enterCartridge(page: Page): Promise<void> {
   await page.goto("/axm-world/game/");
-  // The cartridge-bay "Enter →" button boots the first bundled cartridge.
-  await page.getByRole("button", { name: /enter/i }).first().click();
+  // Boot the first bundled cartridge via its primary action. The label is Enter
+  // for a fresh program and Resume for a resumable one, so target the stable
+  // testid rather than the (state-dependent) button text.
+  await page.locator('[data-testid^="play-cartridge-"]').first().click();
   await resolveOpeningDecision(page);
 }
 

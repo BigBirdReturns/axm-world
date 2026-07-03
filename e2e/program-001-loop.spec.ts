@@ -55,8 +55,10 @@ test("one resolved contract writes one ledger entry under the same digest, and s
 
   // Reload the whole runtime. Re-enter the cartridge; the run is remembered via
   // the digest-guarded restore, and the resolved opening decision does not replay.
+  // After a saved run the bay's primary action reads "Resume", so target the
+  // stable testid rather than the button text.
   await page.reload();
-  await page.getByRole("button", { name: /enter/i }).first().click();
+  await page.locator('[data-testid^="play-cartridge-"]').first().click();
   await expect(page.getByTestId("pending-decision-card")).toHaveCount(0);
 
   await openCartridgeObject(page);

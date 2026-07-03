@@ -69,3 +69,20 @@ export const PROGRAM_001: ProgramOfRecord = defineProgram("program-001", FIRST_C
   saveSchemaVersion: 1,
   ledgerSchemaVersion: 1,
 });
+
+/** Every cartridge RODOH treats as a controlled program of record. Keyed by
+ *  authored-arc digest at lookup, never by manifest claim. Today: just Program
+ *  001 (The First Charter). A cartridge NOT in this registry is still fully
+ *  playable — it simply boots as an ordinary cartridge, not a program of
+ *  record. */
+export const PROGRAMS_OF_RECORD: readonly ProgramOfRecord[] = [PROGRAM_001];
+
+/** The program of record a cartridge IS, matched by its COMPUTED authored
+ *  identity (cartridgeIdentity) — never a claimed manifest value — or null if
+ *  this cartridge is not a program of record. This is the digest-law-respecting
+ *  binding the boot plaque uses to decide whether to present a cartridge as a
+ *  program of record. */
+export function programForCartridge(cartridge: Cartridge): ProgramOfRecord | null {
+  const digest = cartridgeIdentity(cartridge);
+  return PROGRAMS_OF_RECORD.find((p) => p.authoredArcDigest === digest) ?? null;
+}

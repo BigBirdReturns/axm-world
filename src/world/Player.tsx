@@ -12,12 +12,13 @@ import {
   removeCartridge,
   type CartridgeBayEntry,
 } from "./cartridge-bay.js";
+import { programForCartridge } from "./program-of-record.js";
+import { readProgramSaveSummary } from "./save.js";
+import { CartridgeBayCard } from "./components/CartridgeBayCard.js";
 import { RodohRuntimeMark } from "./brand/RodohRuntimeMark.js";
-import { CartridgeEmblem } from "./themes/CartridgeMotif.js";
 import "./themes/karazhan/karazhan.css";
 import { PixelButton, PixelIcon } from "./pixel-ui/index.js";
 import { t } from "./i18n/index.js";
-import type { MessageId } from "./i18n/messages.js";
 
 // Lazy: the world pulls in three.js / R3F (~1MB). Keep it out of the entry bundle so
 // the cartridge-select screen is instant; three only loads when a cartridge is played.
@@ -35,20 +36,6 @@ const screen: CSSProperties = {
   display: "grid",
   placeItems: "center",
   fontFamily: "'Lora', Georgia, serif",
-};
-
-const TRUST_COLOR: Record<string, string> = {
-  bundled: "#c9a14a",
-  verified: "#74ad77",
-  "imported-unsigned": "#a59c8b",
-  quarantined: "#b01c18",
-};
-
-const TRUST_LABEL_ID: Record<string, MessageId> = {
-  bundled: "boot.trustBundled",
-  "imported-unsigned": "boot.trustImportedUnsigned",
-  verified: "boot.trustVerified",
-  quarantined: "boot.trustQuarantined",
 };
 
 // Visually-hidden-but-present input: Playwright's setInputFiles (and screen readers,
@@ -139,72 +126,21 @@ export function Player(): JSX.Element {
         <div style={{ display: "grid", gap: 10 }}>
           {entries.map((entry) => {
             const c = cartridgeForEntry(entry);
+            // A program of record is matched by the cartridge's COMPUTED authored
+            // identity (never a manifest claim); only then do we read its save
+            // slot so the plaque can show fresh-vs-resumable and what it remembers.
+            const program = programForCartridge(c);
+            const save = program ? readProgramSaveSummary(localStorage, { arc: c.arc, authoredArcDigest: program.authoredArcDigest }) : null;
             return (
-              <div
+              <CartridgeBayCard
                 key={`${entry.arc.meta.id}:${entry.source}`}
-                data-testid={`cartridge-entry-${entry.arc.meta.id}`}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 16,
-                  textAlign: "left",
-                  padding: "16px 18px",
-                  borderRadius: 8,
-                  border: entry.arc.meta.id === "karazhan" ? "1px solid #574a7a" : "1px solid #4a4238",
-                  borderLeft: entry.arc.meta.id === "karazhan" ? "3px solid #8a79b8" : "1px solid #4a4238",
-                  background: entry.arc.meta.id === "karazhan" ? "rgba(48,36,64,0.5)" : "rgba(42,38,32,0.5)",
-                  color: "#ece4d4",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <CartridgeEmblem arcId={entry.arc.meta.id} size={30} />
-                  <div>
-                    <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 22 }}>{c.manifest.name}</div>
-                    <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: "#a59c8b", marginTop: 2 }}>
-                      {c.manifest.domain} · engine {c.manifest.engineVersion} · {c.arc.challenges.length} contracts
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <RodohRuntimeMark variant="micro" showText={false} />
-                  <span
-                    data-testid={`trust-chip-${entry.trust}`}
-                    data-trust={entry.trust}
-                    style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: TRUST_COLOR[entry.trust] ?? "#a59c8b" }}
-                  >
-                    {t(TRUST_LABEL_ID[entry.trust] ?? "boot.trustImportedUnsigned")}
-                  </span>
-                  {entry.source === "file" && (
-                    <PixelButton
-                      type="button"
-                      variant="secondary"
-                      data-testid={`remove-cartridge-${entry.arc.meta.id}`}
-                      onClick={() => handleRemove(entry)}
-                      style={{ minHeight: 32, fontSize: 10, display: "flex", alignItems: "center", gap: 4, padding: "4px 8px" }}
-                      aria-label={t("boot.remove")}
-                    >
-                      <PixelIcon name="failing" /> <span>{t("boot.remove")}</span>
-                    </PixelButton>
-                  )}
-                  <button
-                    data-testid={`play-cartridge-${entry.arc.meta.id}`}
-                    onClick={() => setCartridge(c)}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      fontFamily: "'Barlow Condensed', sans-serif",
-                      fontWeight: 700,
-                      fontSize: 16,
-                      color: "#b01c18",
-                      padding: 0,
-                    }}
-                  >
-                    Enter →
-                  </button>
-                </div>
-              </div>
+                entry={entry}
+                cartridge={c}
+                program={program}
+                save={save}
+                onEnter={() => setCartridge(c)}
+                onRemove={() => handleRemove(entry)}
+              />
             );
           })}
         </div>

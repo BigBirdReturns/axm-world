@@ -196,15 +196,22 @@ describe("cartridge bay: behavioral — an imported cartridge with a wholly diff
 });
 
 describe("boot screen: cartridge loader affordances exist", () => {
-  it("Player.tsx exposes the open-cartridge file picker and trust chips", () => {
+  it("Player.tsx exposes the open-cartridge file picker and wires the loader", () => {
     const player = read("src/world/Player.tsx");
     expect(player).toContain('data-testid="open-cartridge"');
     expect(player).toContain("importCartridgeFromJson");
     expect(player).toContain("cartridgeForEntry");
-    expect(player).toContain("data-testid={`trust-chip-${entry.trust}`}");
-    expect(player).toContain('"boot.trustBundled"');
-    expect(player).toContain('"boot.trustImportedUnsigned"');
     expect(player).toContain("removeCartridge");
+  });
+
+  it("CartridgeBayCard renders the per-entry trust chip", () => {
+    // The bay row (trust chip + Enter/Resume) moved into CartridgeBayCard when
+    // the program-of-record plaque was added; the affordance still exists, just
+    // in the component the boot screen renders per entry.
+    const card = read("src/world/components/CartridgeBayCard.tsx");
+    expect(card).toContain("data-testid={`trust-chip-${entry.trust}`}");
+    expect(card).toContain('"boot.trustBundled"');
+    expect(card).toContain('"boot.trustImportedUnsigned"');
   });
 
   it("CartridgeObjectPanel surfaces a Trust row", () => {
