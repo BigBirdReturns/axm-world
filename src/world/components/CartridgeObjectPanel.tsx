@@ -11,9 +11,15 @@ import { PixelButton, PixelIcon } from "../pixel-ui/index.js";
 import { t } from "../i18n/index.js";
 import type { MessageId } from "../i18n/messages.js";
 import type { CustodyObject } from "../useArcWorld.js";
+import type { Ledger } from "../ledger.js";
 
 interface Props {
   manifest: CartridgeManifest;
+  /** The cartridge's authored content identity (cartridgeIdentity of its arc),
+   *  shown verbatim — never a claimed manifest value. */
+  digest: string;
+  /** The run ledger: every resolved contract, stamped with this digest. */
+  ledger: Ledger;
   openingChoice: string | null;
   cycle: number;
   clearedCount: number;
@@ -48,6 +54,18 @@ const TRUST_LABEL_ID: Record<CartridgeManifest["trust"], MessageId> = {
   quarantined: "boot.trustQuarantined",
 };
 
+const OUTCOME_COLOR: Record<string, string> = {
+  success: "#74ad77",
+  partial: "#c9a14a",
+  failure: "#b01c18",
+};
+
+const OUTCOME_LABEL_ID: Record<"success" | "partial" | "failure", MessageId> = {
+  success: "cartridgePanel.outcomeSuccess",
+  partial: "cartridgePanel.outcomePartial",
+  failure: "cartridgePanel.outcomeFailure",
+};
+
 function row(label: string, value: string): JSX.Element {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", gap: 18, padding: "4px 0" }}>
@@ -57,7 +75,7 @@ function row(label: string, value: string): JSX.Element {
   );
 }
 
-export function CartridgeObjectPanel({ manifest, openingChoice, cycle, clearedCount, totalNodes, onExport, onClose, onLeave }: Props): JSX.Element {
+export function CartridgeObjectPanel({ manifest, digest, ledger, openingChoice, cycle, clearedCount, totalNodes, onExport, onClose, onLeave }: Props): JSX.Element {
   const progressPct = totalNodes > 0 ? Math.round((clearedCount / totalNodes) * 100) : 0;
   const handleExport = () => {
     const data = onExport();
@@ -100,6 +118,16 @@ export function CartridgeObjectPanel({ manifest, openingChoice, cycle, clearedCo
         {row(t("cartridgePanel.domain"), manifest.domain)}
         {row(t("cartridgePanel.engine"), manifest.engineVersion)}
         {row(t("cartridgePanel.trust"), t(TRUST_LABEL_ID[manifest.trust]))}
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 18, padding: "4px 0", alignItems: "baseline" }}>
+          <span style={{ color: "#a59c8b", flex: "none" }}>{t("cartridgePanel.identity")}</span>
+          <strong
+            data-testid="cartridge-digest"
+            title={digest}
+            style={{ textAlign: "right", fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontSize: 10, lineHeight: 1.4, wordBreak: "break-all" }}
+          >
+            {digest}
+          </strong>
+        </div>
         <div style={{ height: 1, background: "#2a2620", margin: "8px 0" }} />
         {row(t("cartridgePanel.cycle"), String(cycle).padStart(2, "0"))}
         {row(t("cartridgePanel.recordedNodes"), `${clearedCount} / ${totalNodes}`)}
@@ -107,6 +135,25 @@ export function CartridgeObjectPanel({ manifest, openingChoice, cycle, clearedCo
           <div style={{ width: `${progressPct}%`, height: "100%", background: "#74ad77" }} />
         </div>
         {row(t("cartridgePanel.decisionMark"), openingChoice ?? "—")}
+
+        <div style={{ height: 1, background: "#2a2620", margin: "10px 0 8px" }} />
+        <div style={{ color: "#a59c8b", marginBottom: 6 }}>{t("cartridgePanel.ledger")}</div>
+        {ledger.entries.length === 0 ? (
+          <div data-testid="ledger-empty" style={{ color: "#6b6050", fontSize: 12 }}>{t("cartridgePanel.ledgerEmpty")}</div>
+        ) : (
+          <div data-testid="cartridge-ledger" style={{ display: "grid", gap: 3 }}>
+            {ledger.entries.map((entry) => (
+              <div
+                key={entry.seq}
+                data-testid="ledger-entry"
+                style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12 }}
+              >
+                <span style={{ color: "#d8cfbd", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.challengeName}</span>
+                <span style={{ color: OUTCOME_COLOR[entry.outcome] ?? "#a59c8b", flex: "none" }}>{t(OUTCOME_LABEL_ID[entry.outcome])}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <p style={{ color: "#a59c8b", fontFamily: "'Lora', Georgia, serif", fontSize: 13, lineHeight: 1.5, margin: "14px 0 16px" }}>
           {t("cartridgePanel.body")}

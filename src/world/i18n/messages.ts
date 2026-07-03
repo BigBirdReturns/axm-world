@@ -254,6 +254,12 @@ export type MessageId =
   | "cartridgePanel.resume"
   | "cartridgePanel.leave"
   | "cartridgePanel.trust"
+  | "cartridgePanel.identity"
+  | "cartridgePanel.ledger"
+  | "cartridgePanel.ledgerEmpty"
+  | "cartridgePanel.outcomeSuccess"
+  | "cartridgePanel.outcomePartial"
+  | "cartridgePanel.outcomeFailure"
   // ── boot screen (cartridge bay) ──────────────────────────────────────────
   | "boot.openCartridge"
   | "boot.remove"
@@ -272,7 +278,15 @@ export type MessageId =
  * "shell.contractOutcome" is the seeded demo id that exercises the
  * zh-Hant → en fallback path honestly; keep it missing on purpose.
  */
-export const EN_ONLY_IDS: MessageId[] = ["shell.contractOutcome"];
+export const EN_ONLY_IDS: MessageId[] = [
+  "shell.contractOutcome",
+  "cartridgePanel.identity",
+  "cartridgePanel.ledger",
+  "cartridgePanel.ledgerEmpty",
+  "cartridgePanel.outcomeSuccess",
+  "cartridgePanel.outcomePartial",
+  "cartridgePanel.outcomeFailure",
+];
 
 function num(params: MessageParams, key: string): number {
   return Number(params[key] ?? 0);
@@ -563,6 +577,12 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "cartridgePanel.resume": "Resume",
     "cartridgePanel.leave": "Leave",
     "cartridgePanel.trust": "Trust",
+    "cartridgePanel.identity": "Authored identity",
+    "cartridgePanel.ledger": "Contract ledger",
+    "cartridgePanel.ledgerEmpty": "No contracts recorded yet.",
+    "cartridgePanel.outcomeSuccess": "Cleared",
+    "cartridgePanel.outcomePartial": "Partial",
+    "cartridgePanel.outcomeFailure": "Failed",
 
     "boot.openCartridge": "Open cartridge…",
     "boot.remove": "Remove",

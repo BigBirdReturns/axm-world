@@ -5,7 +5,7 @@
 // the cartridge holds and shows what the engine returns. It also builds the custody
 // object (manifest + arc + run state) so the cartridge can leave intact.
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Arc, DramaCard, DramaCardEffect, Organization, RunReport } from "../engine/types.js";
 import type { ChallengeAssignment, PendingRewardChoice } from "../engine/cycle.js";
 import { runCycle } from "../engine/cycle.js";
@@ -23,6 +23,9 @@ import {
 import { buildWorldLayout, DEFAULT_WORLD_CONFIG, type WorldLayout, type WorldNode } from "./contract.js";
 import { applyAgentDowntime, type DowntimeAction } from "./agent-management.js";
 import { FIRST_CHARTER_CARTRIDGE, type AuthoredEffect, type AuthoredOpening, type Cartridge } from "./cartridge.js";
+import { cartridgeIdentity } from "./cartridge-identity.js";
+import { appendResult, emptyLedger, type Ledger } from "./ledger.js";
+import { loadRun, saveRun } from "./save.js";
 import {
   describeContract as describeContractReq,
   evaluateParty as evaluatePartyReq,
@@ -100,6 +103,12 @@ export interface CustodyObject {
 export interface ArcWorld {
   cartridge: Cartridge;
   arc: Arc;
+  /** The cartridge's authored content identity (cart1_...): cartridgeDigest of
+   *  its arc. Surfaces show THIS, never a claimed manifest value. */
+  cartridgeDigest: string;
+  /** Append-only run ledger for this program, every entry stamped with
+   *  cartridgeDigest. */
+  ledger: Ledger;
   scene: PlayScene;
   layout: WorldLayout;
   nodes: WorldNode[];
@@ -188,11 +197,21 @@ function buildOpeningCard(opening: AuthoredOpening, org: Organization): DramaCar
 
 export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): ArcWorld {
   const arc = cartridge.arc;
+  const cartridgeDigest = useMemo(() => cartridgeIdentity(cartridge), [cartridge]);
+  // Digest-guarded restore: a saved run is reloaded ONLY when it belongs to this
+  // exact authored program (cartridgeDigest). Otherwise boot fresh — custody
+  // state can never resurrect into a different authored cartridge.
+  const restored = useMemo(
+    () => loadRun(localStorage, { arc, authoredArcDigest: cartridgeDigest }),
+    [arc, cartridgeDigest],
+  );
   const [org, setOrg] = useState<Organization>(() => {
+    if (restored) return restored.org;
     const base = bootstrapOrg(arc);
     if (!cartridge.opening) return base;
     return { ...base, dramaQueue: [buildOpeningCard(cartridge.opening, base), ...base.dramaQueue] };
   });
+  const [ledger, setLedger] = useState<Ledger>(() => restored?.ledger ?? emptyLedger(cartridgeDigest));
   const [lastReport, setLastReport] = useState<PlayReportView | null>(null);
   const [difficultyModeId, setDifficultyModeId] = useState<string | null>(null);
   const [pendingRewardChoices, setPendingRewardChoices] = useState<PendingRewardChoice[]>([]);
@@ -337,6 +356,16 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
       const report: RunReport | undefined = result.reports[0];
       const agentName = (id: string): string => result.org.agents[id]?.name ?? org.agents[id]?.name ?? id;
       setLastReport(report ? summarizeReport(report, arc, agentName) : null);
+      if (report) {
+        setLedger((cur) =>
+          appendResult(cur, {
+            challengeId: report.challengeId,
+            challengeName: challenge.name,
+            outcome: report.outcome,
+            cycle: report.cycle,
+          }),
+        );
+      }
     },
     [arc, org, scene, difficultyModeId],
   );
@@ -400,6 +429,13 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   const clearedCount = layout.nodes.filter((n) => n.status === "cleared").length;
   const totalNodes = layout.nodes.length;
 
+  // Persist the run whenever org or ledger changes, keyed by the authored-arc
+  // digest so reload restores exactly this program's state (see the guarded
+  // restore above). Costume prefs persist elsewhere; this is the run itself.
+  useEffect(() => {
+    saveRun(localStorage, { arc, authoredArcDigest: cartridgeDigest, state: { org, ledger } });
+  }, [arc, cartridgeDigest, org, ledger]);
+
   const buildExport = useCallback(
     (): CustodyObject => ({
       format: "axm-cartridge-run/v1",
@@ -423,6 +459,8 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   return {
     cartridge,
     arc,
+    cartridgeDigest,
+    ledger,
     scene,
     layout,
     nodes: layout.nodes,
