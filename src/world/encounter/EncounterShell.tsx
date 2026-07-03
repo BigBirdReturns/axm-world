@@ -14,13 +14,24 @@
 // Primitives only: markers are squares, the room is a box, party are tokens. The
 // proof is the compilation, not the fidelity.
 
-import { useState, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import type { ArcWorld } from "../useArcWorld.js";
+import type { ProjectedOutcome } from "../readiness.js";
 import type { EncounterObjective, MarkerKind } from "./compile-encounter.js";
 import { PixelButton } from "../pixel-ui/index.js";
 import { t } from "../i18n/index.js";
 import "./encounter-shell.css";
+
+// Projected outcome → a compact deploy-time badge. The player reads the stakes of
+// their current squad before committing, from the same readiness projection the
+// board uses (evaluateParty) — not a new judgement.
+const PROJECTION: Record<ProjectedOutcome, { key: "encounterShell.projReliable" | "encounterShell.projRisky" | "encounterShell.projFailing" | "encounterShell.projNone"; tone: string }> = {
+  success: { key: "encounterShell.projReliable", tone: "reliable" },
+  partial: { key: "encounterShell.projRisky", tone: "risky" },
+  failure: { key: "encounterShell.projFailing", tone: "failing" },
+  none: { key: "encounterShell.projNone", tone: "none" },
+};
 
 const MARKER_COLOR: Record<MarkerKind, string> = {
   threat: "#b06a3d",
@@ -66,23 +77,47 @@ function MarkerField({ objective }: { objective: EncounterObjective }): JSX.Elem
 export function EncounterShell({ world, challengeId, party, onClose }: Props): JSX.Element | null {
   const [resolved, setResolved] = useState(false);
   const spec = world.encounterFor(challengeId);
+
+  // The encounter turn: which agents the player commits to the room. Seeded from
+  // the derived/recommended party so it opens ready-to-go, but the player can pull
+  // agents to the reserve or send others in before resolving. The engine resolves
+  // exactly this committed squad — the choice is real, not cosmetic.
+  const initialParty = party.length
+    ? party
+    : (spec?.slots ?? []).map((s) => s.agentId).filter((x): x is string => !!x);
+  const [committed, setCommitted] = useState<string[]>(initialParty);
+
+  // Live projection of the CURRENT squad, from the same resolver-faithful
+  // readiness the board uses. Recomputed as the player deploys.
+  const readiness = useMemo(
+    () => (spec ? world.evaluateParty(challengeId, committed) : null),
+    [world, challengeId, committed, spec],
+  );
+
   if (!spec) return null;
 
   const report = resolved && world.lastReport?.challengeId === challengeId ? world.lastReport : null;
   const resolution = report ? spec.resolutions.find((r) => r.outcome === report.outcome) ?? null : null;
   const outcomeColor = report ? OUTCOME_COLOR[report.outcome] ?? "#8b7d6a" : "#8b7d6a";
 
-  // Party tokens: the slots pre-filled by the spec, overridden by the actual
-  // assigned party so the encounter shows who is really going in.
-  const tokens = party.length
-    ? party.map((id) => {
-        const m = world.roster.find((r) => r.id === id);
-        return { id, name: m?.name ?? id, role: m?.role ?? null };
-      })
-    : spec.slots.filter((s) => s.agentId).map((s) => ({ id: s.agentId!, name: s.agentName!, role: s.role }));
+  const committedSet = new Set(committed);
+  const countOk = committed.length >= spec.minAgents && committed.length <= spec.maxAgents;
+  const projection = PROJECTION[readiness?.projectedOutcome ?? "none"];
+  // The single most useful "why" line for the current squad (missing role, thin
+  // check), so the projection is explained, not just colored.
+  const projectionReason = readiness?.reasons[0] ?? null;
+
+  const toggle = (id: string) => {
+    setCommitted((cur) => {
+      if (cur.includes(id)) return cur.filter((x) => x !== id);
+      if (cur.length >= spec.maxAgents) return cur; // squad full — swap by removing first
+      return [...cur, id];
+    });
+  };
 
   const resolve = () => {
-    world.runChallenge(challengeId, party.length ? party : spec.slots.map((s) => s.agentId).filter((x): x is string => !!x));
+    if (!countOk) return;
+    world.runChallenge(challengeId, committed);
     setResolved(true);
   };
 
@@ -125,6 +160,11 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
                     <div className="encs-objective-head">
                       <span className="encs-verb">{o.verb}</span>
                       <span className="encs-obj-label">{o.label}</span>
+                      {(() => {
+                        const check = readiness?.checks.find((c) => c.id === o.id);
+                        const tone = check?.status === "ready" ? "reliable" : check?.status === "thin" ? "risky" : check ? "failing" : "none";
+                        return <span className={`encs-obj-status encs-obj-status--${tone}`} data-testid={`encs-obj-status-${o.id}`} />;
+                      })()}
                       <span className="encs-reach">{t("encounterShell.reach", { n: o.targetThreshold })}</span>
                     </div>
                     <div className="encs-obj-brief">{o.brief}</div>
@@ -138,16 +178,45 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
               </div>
             </div>
 
-            {/* Party tokens filling the derived slots. */}
-            <div className="encs-section">
-              <div className="encs-section-label">{t("encounterShell.party")} · {tokens.length}/{spec.maxAgents}</div>
-              <div className="encs-tokens" data-testid="encs-tokens">
-                {tokens.map((tk) => (
-                  <span key={tk.id} className="encs-token">
-                    <span className="encs-token-name">{tk.name}</span>
-                    {tk.role && <span className="encs-token-role">{tk.role}</span>}
-                  </span>
-                ))}
+            {/* The encounter turn: deploy your squad. Tap a token to send it into
+                the room or pull it to the reserve; the projection responds live. */}
+            <div className="encs-section" data-testid="encs-deploy">
+              <div className="encs-section-label">
+                {t("encounterShell.deploy")} · {committed.length}/{spec.maxAgents}
+                {spec.minAgents !== spec.maxAgents && <span className="encs-deploy-range"> · {t("encounterShell.minNeeded", { n: spec.minAgents })}</span>}
+              </div>
+
+              <div className={`encs-projection encs-projection--${projection.tone}`} data-testid="encs-projection" data-projected={readiness?.projectedOutcome ?? "none"}>
+                <span className="encs-projection-label">{t("encounterShell.projected")}:</span>
+                <strong>{t(projection.key)}</strong>
+                {projectionReason && <span className="encs-projection-why">— {projectionReason}</span>}
+              </div>
+
+              <div className="encs-muster">
+                <div className="encs-muster-col" data-testid="encs-in-room">
+                  <div className="encs-muster-head">{t("encounterShell.committed")}</div>
+                  <div className="encs-tokens">
+                    {world.roster.filter((m) => committedSet.has(m.id)).map((m) => (
+                      <button key={m.id} type="button" className="encs-token encs-token--in" data-testid={`encs-token-${m.id}`} onClick={() => toggle(m.id)}>
+                        <span className="encs-token-name">{m.name}</span>
+                        <span className="encs-token-role">{m.role}</span>
+                      </button>
+                    ))}
+                    {committed.length === 0 && <span className="encs-muster-empty">{t("encounterShell.projNone")}</span>}
+                  </div>
+                </div>
+                <div className="encs-muster-col" data-testid="encs-reserve">
+                  <div className="encs-muster-head">{t("encounterShell.reserve")}</div>
+                  <div className="encs-tokens">
+                    {world.roster.filter((m) => !committedSet.has(m.id)).map((m) => (
+                      <button key={m.id} type="button" className="encs-token encs-token--out" data-testid={`encs-token-${m.id}`} onClick={() => toggle(m.id)}>
+                        <span className="encs-token-name">{m.name}</span>
+                        <span className="encs-token-role">{m.role}</span>
+                      </button>
+                    ))}
+                    {world.roster.every((m) => committedSet.has(m.id)) && <span className="encs-muster-empty">—</span>}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -170,9 +239,10 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
               className="pixel-button--cta"
               data-testid="encs-resolve"
               onClick={resolve}
+              disabled={!countOk}
               style={{ width: "100%" }}
             >
-              {t("encounterShell.resolve")}
+              {countOk ? t("encounterShell.resolve") : t("encounterShell.minNeeded", { n: spec.minAgents })}
             </PixelButton>
           </div>
         )}

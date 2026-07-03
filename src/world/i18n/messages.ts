@@ -188,6 +188,15 @@ export type MessageId =
   | "encounterShell.unlocks"
   | "encounterShell.worldChanges"
   | "encounterShell.leave"
+  | "encounterShell.deploy"
+  | "encounterShell.committed"
+  | "encounterShell.reserve"
+  | "encounterShell.projected"
+  | "encounterShell.minNeeded"
+  | "encounterShell.projReliable"
+  | "encounterShell.projRisky"
+  | "encounterShell.projFailing"
+  | "encounterShell.projNone"
   // ── presentations (representation switcher) ────────────────────────────
   | "presentations.board.label"
   | "presentations.board.blurb"
@@ -482,6 +491,15 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounterShell.unlocks": "Unlocks",
     "encounterShell.worldChanges": "World changes",
     "encounterShell.leave": "Leave",
+    "encounterShell.deploy": "Deploy your squad",
+    "encounterShell.committed": "In the room",
+    "encounterShell.reserve": "Reserve",
+    "encounterShell.projected": "Projected",
+    "encounterShell.minNeeded": (params) => `Commit at least ${num(params, "n")}`,
+    "encounterShell.projReliable": "Reliable",
+    "encounterShell.projRisky": "Risky",
+    "encounterShell.projFailing": "Failing",
+    "encounterShell.projNone": "Assign a squad",
 
     "presentations.board.label": "Board",
     "presentations.board.blurb": "2D contract board — readable cards, gates, risk, rewards, recorded marks",
@@ -741,6 +759,15 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounterShell.unlocks": "解鎖",
     "encounterShell.worldChanges": "世界變化",
     "encounterShell.leave": "離開",
+    "encounterShell.deploy": "部署隊伍",
+    "encounterShell.committed": "已進場",
+    "encounterShell.reserve": "後備",
+    "encounterShell.projected": "預估",
+    "encounterShell.minNeeded": (params) => `至少投入 ${num(params, "n")} 名`,
+    "encounterShell.projReliable": "穩妥",
+    "encounterShell.projRisky": "有風險",
+    "encounterShell.projFailing": "恐將失敗",
+    "encounterShell.projNone": "指派隊伍",
 
     "presentations.board.label": "契約板",
     "presentations.board.blurb": "2D 契約板 — 易讀卡片、關卡、風險、獎勵、已記錄標記",
