@@ -82,3 +82,39 @@
   display: inline-flex;
   color: #8a79b8;
 }
+
+/* ── Silhouette layer ─────────────────────────────────────────────────────────
+   Beyond palette: the structural cues that let Karazhan read as a haunted
+   raid-night tower at a glance — gothic wing headers with a lantern-blue
+   accent, a heavier card frame, and a deeper theatrical board vignette. All
+   scoped, so First Charter and imports are untouched. */
+
+/* Wing headers — dark gothic bar, lantern-blue (arcane) edge, spectral text. */
+:root[data-cartridge="karazhan"] .contract-lane__title {
+  background: linear-gradient(180deg, #251b37, #160f22);
+  border: 2px solid #4a3d63;
+  border-left: 4px solid #4f7d9e;
+  color: #c3b6e4;
+  box-shadow: 3px 3px 0 #0c0813;
+}
+:root[data-cartridge="karazhan"] .contract-lane__title small { color: #6faedb; }
+
+/* Deeper theatrical field — a colder vignette closes the room in. */
+:root[data-cartridge="karazhan"] .contract-board-shell {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(87, 74, 122, 0.38), transparent 46%),
+    radial-gradient(circle at 82% 82%, rgba(79, 125, 158, 0.16), transparent 42%),
+    radial-gradient(120% 90% at 50% 120%, rgba(0,0,0,0.55), transparent 60%),
+    linear-gradient(180deg, #1f1730, #0d0917 74%);
+}
+
+/* Heavier card frame — the cards feel like framed portraits in a dark manor. */
+:root[data-cartridge="karazhan"] .pixel-contract-card__panel {
+  border-color: #5a4b7a;
+  box-shadow: 3px 3px 0 #0c0813;
+}
+
+/* The board masthead ("Choose the next place") gains a lantern-blue rule. */
+:root[data-cartridge="karazhan"] .contract-board-header {
+  border-bottom: 1px solid rgba(79, 125, 158, 0.4);
+}

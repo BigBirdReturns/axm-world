@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from
 import { useEncounterDirector } from "../encounter/EncounterDirector.js";
 import { cartridgePaletteScope } from "../themes/select.js";
 import "../themes/karazhan/karazhan.css";
+import "../themes/first-charter/first-charter.css";
 import { getPresentations, type Representation } from "../presentations.js";
 import { loadCostume, saveCostume, isCostumeId } from "../presentation-prefs.js";
 import { useIsMobile } from "../use-viewport.js";
@@ -181,7 +182,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   });
 
   const status = (
-    <StatusRegion title={world.arc.meta.name} cycle={world.cycle} resources={world.resources} progress={{ cleared: world.clearedCount, total: world.totalNodes }} />
+    <StatusRegion title={world.arc.meta.name} arcId={world.arc.meta.id} cycle={world.cycle} resources={world.resources} progress={{ cleared: world.clearedCount, total: world.totalNodes }} />
   );
   const switcher = (
     <ViewSwitcher costumes={presentations.map((p) => ({ id: p.id, label: p.label, blurb: p.blurb }))} activeId={active.id} onChoose={choose} disabled={modalOpen} />

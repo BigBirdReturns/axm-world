@@ -14,6 +14,7 @@ import type { WorldNode } from "../contract.js";
 import type { ContractRequirements, FixSuggestion, PartyReadiness, ProjectedOutcome } from "../readiness.js";
 import { DOWNTIME_ACTIONS, downtimeActionLabel } from "../agent-management.js";
 import { attrIcon, roleIcon, itemIcon } from "../theme-icons.js";
+import { CartridgeEmblem } from "../themes/CartridgeMotif.js";
 import { t, useLocale, type Locale } from "../i18n/index.js";
 import "../pixel-ui/pixel-ui.css";
 import {
@@ -61,18 +62,20 @@ function fmt(n: number): string {
 
 export function StatusRegion(props: {
   title: string;
+  arcId: string;
   cycle: number;
   resources: { currency: number; tokens: number; reputation: number; currencyName: string; tokenName: string; reputationName: string };
   progress: { cleared: number; total: number };
 }): JSX.Element {
-  const { title, cycle, resources, progress } = props;
+  const { title, arcId, cycle, resources, progress } = props;
   return (
     <div style={{ minWidth: 0 }}>
       <div
         data-testid="cartridge-title"
-        style={{ fontFamily: "var(--px-font)", fontSize: 16, fontWeight: 800, letterSpacing: "0.04em", marginBottom: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "#ece4d4" }}
+        style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--px-font)", fontSize: 16, fontWeight: 800, letterSpacing: "0.04em", marginBottom: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "#ece4d4" }}
       >
-        {title}
+        <CartridgeEmblem arcId={arcId} size={22} />
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{title}</span>
       </div>
       <div style={{ display: "flex", gap: 5, overflowX: "auto", whiteSpace: "nowrap", scrollbarWidth: "none" }}>
         <StatusChip label={t("shell.cycle")} value={String(cycle).padStart(2, "0")} />

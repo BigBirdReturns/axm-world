@@ -43,22 +43,30 @@ describe("theme selection", () => {
 });
 
 describe("palette scope cannot leak", () => {
-  it("only Karazhan opts into a scoped palette; First Charter and imports stay neutral", () => {
+  it("both bundled cartridges carry a distinct scope; imports stay neutral", () => {
     expect(cartridgePaletteScope(KARAZHAN)).toBe("karazhan");
-    expect(cartridgePaletteScope(FIRST_CHARTER)).toBeNull();
+    expect(cartridgePaletteScope(FIRST_CHARTER)).toBe("first-charter");
+    // The unknown/imported arc (Operations Lab) gets NO scope → neutral skin.
     expect(cartridgePaletteScope(importedArc)).toBeNull();
   });
 
   it("all Karazhan theme CSS is scoped under [data-cartridge=\"karazhan\"] or a kz- class", () => {
     const css = read("src/world/themes/karazhan/karazhan.css");
-    // Every top-level rule must be reachable only via the scope attribute or a
-    // kz-prefixed class — never a bare shared selector that could restyle
-    // First Charter / imports.
     const selectors = css.match(/^[.:#a-zA-Z\[][^{]*\{/gm) ?? [];
     expect(selectors.length).toBeGreaterThan(0);
     for (const sel of selectors) {
       const ok = sel.includes('[data-cartridge="karazhan"]') || sel.includes(".kz-");
       expect(ok, `unscoped Karazhan selector could leak: ${sel.trim()}`).toBe(true);
+    }
+  });
+
+  it("all First Charter theme CSS is scoped (data-cartridge, or an fc-/enc- class)", () => {
+    const css = read("src/world/themes/first-charter/first-charter.css");
+    const selectors = css.match(/^[.:#a-zA-Z\[][^{]*\{/gm) ?? [];
+    expect(selectors.length).toBeGreaterThan(0);
+    for (const sel of selectors) {
+      const ok = sel.includes('[data-cartridge="first-charter"]') || sel.includes(".fc-") || sel.includes(".enc-");
+      expect(ok, `unscoped First Charter selector could leak: ${sel.trim()}`).toBe(true);
     }
   });
 });
