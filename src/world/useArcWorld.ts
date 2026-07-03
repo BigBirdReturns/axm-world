@@ -31,6 +31,7 @@ import {
   type FixSuggestion,
   type PartyReadiness,
 } from "./readiness.js";
+import { compileEncounter, type EncounterSpec } from "./encounter/compile-encounter.js";
 
 export interface RosterGear {
   id: string;
@@ -122,6 +123,9 @@ export interface ArcWorld {
   recommendedParty: (challengeId: string) => string[];
   /** Structured requirements (roles, checks, thresholds) for the contract panel. */
   describeContract: (challengeId: string) => ContractRequirements | null;
+  /** The playable-encounter projection of the contract (objectives, hazards,
+   * party slots, resolutions) — same source record as the board card. */
+  encounterFor: (challengeId: string) => EncounterSpec | null;
   /** Faithful projection of the resolver for a candidate party. */
   evaluateParty: (challengeId: string, agentIds: string[]) => PartyReadiness | null;
   /** Plain-language reason the recommended party is the recommended party. */
@@ -237,6 +241,14 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
       return c ? describeContractReq(c, arc) : null;
     },
     [arc],
+  );
+
+  const encounterFor = useCallback(
+    (challengeId: string): EncounterSpec | null => {
+      const c = arc.challenges.find((x) => x.id === challengeId);
+      return c ? compileEncounter(c, org, arc) : null;
+    },
+    [arc, org],
   );
 
   const evaluateParty = useCallback(
@@ -397,6 +409,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     reqFor,
     recommendedParty,
     describeContract,
+    encounterFor,
     evaluateParty,
     recommendationFor,
     fixPlanFor,

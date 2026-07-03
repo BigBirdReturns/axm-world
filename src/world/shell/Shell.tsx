@@ -11,6 +11,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useEncounterDirector } from "../encounter/EncounterDirector.js";
+import { EncounterShell } from "../encounter/EncounterShell.js";
 import { cartridgePaletteScope } from "../themes/select.js";
 import "../themes/karazhan/karazhan.css";
 import "../themes/first-charter/first-charter.css";
@@ -130,6 +131,10 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   // Board -> Contract; Party is entered explicitly from the contract sheet;
   // clearing the selection returns to Board. Desktop ignores this entirely.
   const [mobileStep, setMobileStep] = useState<"board" | "contract" | "party">("board");
+  // The playable-encounter surface: the same selected contract, entered as a
+  // spatial encounter compiled from its record. Distinct from the RUN CONTRACT
+  // auto-resolve (interceptedRun) — this is the "walk into it" path.
+  const [encounterOpen, setEncounterOpen] = useState(false);
 
   // Scope the active cartridge's palette skin to <html> while this cartridge is
   // mounted. Cleared on unmount / cartridge switch so no arc keeps another's
@@ -246,10 +251,26 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
         onSelectDifficultyMode: world.setDifficultyModeId,
       }
     : null;
+  // PLAY ENCOUNTER: enter the compiled encounter for the selected, runnable
+  // contract. Same source record as the board card — the encounter is projected,
+  // not a separate authored level.
+  const playEncounter = selectionActive && ix.selectedId ? (
+    <PixelButton
+      type="button"
+      variant="primary"
+      data-testid="play-encounter-button"
+      disabled={!ix.canRun}
+      onClick={() => setEncounterOpen(true)}
+      style={{ width: "100%", minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}
+    >
+      <PixelIcon name="available" /> <span>{t("encounterShell.playEncounter")}</span>
+    </PixelButton>
+  ) : null;
   const contract = contractProps ? (
     <div data-testid="contract-detail-stack">
       {world.lastEquip && <EquipFlash event={world.lastEquip} />}
       <ContractRegion {...contractProps} />
+      {playEncounter && <div style={{ marginTop: 8 }}>{playEncounter}</div>}
     </div>
   ) : null;
   const mobileStickyFooter: CSSProperties = {
@@ -354,6 +375,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
                         <PixelIcon name="selected" /> <span>{t("shell.mobileAdjustParty", { count: ix.party.length, max })}</span>
                       </PixelButton>
                     )}
+                    {playEncounter}
                   </>
                 )}
               </div>
@@ -432,6 +454,14 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
       )}
       {showHistory && world.lastReport && <RecordModal lastReport={world.lastReport} onClose={() => setShowHistory(false)} />}
       {encounterOverlay}
+      {encounterOpen && ix.selectedId && (
+        <EncounterShell
+          world={world}
+          challengeId={ix.selectedId}
+          party={ix.party}
+          onClose={() => setEncounterOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -1,0 +1,152 @@
+/* EncounterShell — the playable encounter surface. Primitive by design: boxes,
+   squares, tokens. All classes are .encs- prefixed and unscoped-neutral so the
+   shell inherits whatever cartridge palette <html data-cartridge> is carrying. */
+
+.encs-overlay {
+  position: fixed;
+  inset: 0;
+  /* Above the decision panel (z 9000): a run can generate a drama card, but the
+     player should read the encounter receipt first — the queued decision surfaces
+     once they leave the encounter. */
+  z-index: 9500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(11, 10, 8, 0.78);
+  animation: encs-fade 0.22s ease forwards;
+  cursor: pointer;
+  overflow-y: auto;
+}
+
+@keyframes encs-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.encs-panel {
+  cursor: default;
+  width: min(560px, 96vw);
+  max-height: 92vh;
+  overflow-y: auto;
+  background: var(--cream, #efe7d6);
+  border: 2px solid var(--cream-border, #cbbfa6);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.45);
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Header: region › site + difficulty */
+.encs-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid var(--cream-border, #cbbfa6);
+  padding-bottom: 8px;
+}
+.encs-loc { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.encs-region { font: 700 10px 'IBM Plex Mono', ui-monospace, monospace; text-transform: uppercase; letter-spacing: 0.08em; color: var(--stone, #746f7c); }
+.encs-arrow { color: var(--stone, #746f7c); }
+.encs-site { font: 800 15px 'IBM Plex Mono', ui-monospace, monospace; color: var(--kz-ink, #241c14); }
+.encs-difficulty { font: 700 10px 'IBM Plex Mono', ui-monospace, monospace; color: var(--gold-dark, #b07d2a); white-space: nowrap; }
+
+.encs-approach { margin: 0; font: 13px/1.4 system-ui, sans-serif; color: #3a342b; }
+.encs-provenance {
+  margin: 0;
+  font: italic 10px/1.4 'IBM Plex Mono', ui-monospace, monospace;
+  color: var(--stone, #746f7c);
+  border-left: 2px solid var(--gold, #c9a14a);
+  padding-left: 8px;
+}
+
+/* The "room" box holding objectives + markers */
+.encs-room {
+  border: 2px dashed var(--cream-border, #b8ac92);
+  background: rgba(0, 0, 0, 0.04);
+  padding: 10px;
+}
+.encs-room-label {
+  font: 700 10px 'IBM Plex Mono', ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--stone, #6a6459);
+  margin-bottom: 8px;
+}
+.encs-objectives { display: flex; flex-direction: column; gap: 10px; }
+.encs-objective {
+  background: var(--cream-mid, #e4dac7);
+  border: 1px solid var(--cream-border, #cbbfa6);
+  padding: 8px 10px;
+}
+.encs-objective-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.encs-verb {
+  font: 800 10px 'IBM Plex Mono', ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #fff;
+  background: var(--teal-dark, #3c6480);
+  padding: 2px 6px;
+}
+.encs-obj-label { font: 800 13px system-ui, sans-serif; color: #2a251e; }
+.encs-reach { margin-left: auto; font: 700 11px 'IBM Plex Mono', ui-monospace, monospace; color: var(--gold-dark, #b07d2a); }
+.encs-obj-brief { margin: 4px 0 6px; font: 12px/1.35 system-ui, sans-serif; color: #4a443a; }
+
+.encs-markerfield { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.encs-marker { width: 12px; height: 12px; box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.3); }
+.encs-marker--curse { border-radius: 50%; }
+.encs-marker--breach { transform: rotate(45deg); }
+
+.encs-obj-meta { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.encs-attrs { font: 700 10px 'IBM Plex Mono', ui-monospace, monospace; color: var(--stone, #6a6459); text-transform: uppercase; letter-spacing: 0.04em; }
+.encs-obj-roles { font: 700 10px 'IBM Plex Mono', ui-monospace, monospace; color: var(--teal-dark, #3c6480); }
+
+.encs-section { display: flex; flex-direction: column; gap: 6px; }
+.encs-section-label {
+  font: 700 10px 'IBM Plex Mono', ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--stone, #6a6459);
+}
+
+.encs-tokens { display: flex; flex-wrap: wrap; gap: 6px; }
+.encs-token {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  border: 1px solid var(--cream-border, #cbbfa6);
+  background: var(--cream, #efe7d6);
+  padding: 4px 8px;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.2);
+}
+.encs-token-name { font: 700 12px system-ui, sans-serif; color: #2a251e; }
+.encs-token-role { font: 600 9px 'IBM Plex Mono', ui-monospace, monospace; color: var(--stone, #6a6459); text-transform: uppercase; letter-spacing: 0.04em; }
+
+.encs-hazards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.encs-hazard { display: flex; align-items: center; gap: 8px; font: 12px system-ui, sans-serif; color: #4a443a; }
+.encs-hazard-dot { width: 10px; height: 10px; border-radius: 50%; background: #b06a3d; flex: none; }
+.encs-hazard-dot--agent_damage { background: #b01c18; }
+.encs-hazard-dot--team_damage { background: #7a6a3d; }
+.encs-hazard-dot--stress { background: #b06a3d; }
+.encs-hazard-dot--debuff { background: #7a4a9e; }
+.encs-hazard-dot--cascade { background: #3d6a9e; }
+
+/* Receipt */
+.encs-outcome-banner {
+  border: 2px solid;
+  padding: 8px 10px;
+  font: 800 13px 'IBM Plex Mono', ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+.encs-narrative { margin: 0; font: 13px/1.45 system-ui, sans-serif; color: #3a342b; }
+.encs-report-lines, .encs-ledger, .encs-unlocks, .encs-worldchanges { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.encs-report-line { font: 12px 'IBM Plex Mono', ui-monospace, monospace; color: #4a443a; }
+.encs-ledger-line { font: 700 12px 'IBM Plex Mono', ui-monospace, monospace; color: #2a251e; }
+.encs-unlocks li, .encs-worldchanges li {
+  font: 12px system-ui, sans-serif;
+  color: var(--teal-dark, #3c6480);
+  border-left: 2px solid var(--teal, #4f7d9e);
+  padding-left: 8px;
+}
+.encs-worldchanges li { color: var(--gold-dark, #b07d2a); border-left-color: var(--gold, #c9a14a); }
