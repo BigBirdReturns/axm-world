@@ -176,6 +176,13 @@ It should be *proposed and specced on its own* (a Strategy Board Runtime
 proposal doc) before any PoR content is ported. It must not be smuggled in as
 encounter-shell features.
 
+> **Status update.** That proposal now exists —
+> `docs/runtime/STRATEGY_BOARD_RUNTIME_PROPOSAL.md` — and its **schema scaffold**
+> (types + validation + a `program-of-record-mini` reference fixture) has landed
+> in axm-arc and vendored into axm-world. No runtime behavior and no PoR port
+> exist yet; the port remains intake-accepted only. See the proposal's §0b for
+> the exact real-vs-pending ledger.
+
 ## 8. Integrity risks
 
 These are the ways an intake goes wrong. Each is a hard "do not."
