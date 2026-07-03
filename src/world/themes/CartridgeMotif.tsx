@@ -33,5 +33,9 @@ export function CartridgeEmblem({ arcId, size = 24, className = "" }: { arcId: s
   if (arcId === KARAZHAN_THEME.id) {
     return <Karazhan.MotifIcon name="tower" size={size} className={`kz-cartridge-emblem ${className}`.trim()} />;
   }
+  if (arcId === FIRST_CHARTER_THEME.id) {
+    // The charter seal — First Charter's dandelion motif.
+    return <FirstCharter.MotifIcon name="dandelion" size={size} className={`fc-cartridge-emblem ${className}`.trim()} />;
+  }
   return null;
 }

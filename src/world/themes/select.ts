@@ -23,10 +23,13 @@ export function themeForArc(arc: Arc): RodohTheme {
 }
 
 /** The value for the <html data-cartridge> attribute, or null when the arc has
- *  no bundled palette skin (so no scoped CSS applies). Only cartridges that
- *  ship a palette override return non-null here. */
+ *  no bundled skin (so no scoped CSS applies). Both bundled cartridges carry a
+ *  distinct material identity; unknown/imported arcs (Operations Lab) return
+ *  null and render in the neutral runtime skin. */
 export function cartridgePaletteScope(arc: Arc): string | null {
-  return arc.meta.id === KARAZHAN_THEME.id ? "karazhan" : null;
+  if (arc.meta.id === KARAZHAN_THEME.id) return "karazhan";
+  if (arc.meta.id === FIRST_CHARTER_THEME.id) return "first-charter";
+  return null;
 }
 
 /** Whether this arc has a bundled encounter-motif set. */
