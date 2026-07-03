@@ -1,17 +1,22 @@
 # Strategy Board Runtime — Proposal
 
-**Status:** the **schema scaffold has landed** (axm-arc, vendored into
-axm-world) — types, validation, and a tiny reference fixture. **No runtime
-behavior exists yet:** no turn machine, no movement, no auction/interference
-resolution, no opponent AI, no world projection, no Program of Record port. This
-document remains the governing design; see **§0b** for exactly what is now real
-vs. still proposal-only. The family is being built under the same discipline
-that made resource-spend safe:
+**Status:** the **schema scaffold** and the **turn-machine decision + enumeration
+scaffold** have landed (axm-arc, vendored into axm-world) — types, validation, a
+tiny reference fixture, the canonical phase order/legal-action envelope, and a
+pure `listLegalActions` enumerator. **No executor and no runtime behavior exist
+yet:** nothing advances a phase, moves a seat, settles an auction, applies
+interference, evaluates a milestone/ending, or posts income/tolls/obligations; no
+opponent AI, no world projection, no Program of Record port. This document
+remains the governing design; see **§0b** for exactly what is now real vs. still
+proposal-only. The family is being built under the same discipline that made
+resource-spend safe:
 
 > proposal → engine law → property tests → world projection → cartridge authoring
 >
 > ✅ proposal (this doc) · ✅ **schema scaffold** (types + validation + fixture) ·
-> ⬜ turn-machine law + property tests · ⬜ world projection · ⬜ cartridge port
+> ✅ **turn-machine decision + enumeration scaffold** (phase order, legal-action
+> envelope, `listLegalActions` — no executor) · ⬜ executor + behavioral property
+> tests · ⬜ world projection · ⬜ cartridge port
 
 The intake spec (`docs/cartridges/PROGRAM_OF_RECORD_INTAKE.md`) established that
 Program of Record ("PoR") is a standalone strategy ecosystem that must be
@@ -47,9 +52,9 @@ These are not aspirations for this family; they are the acceptance floor.
 
 ---
 
-## 0b. Status: what is real as of the schema scaffold
+## 0b. Status: what is real as of the turn-machine scaffold
 
-The first buildable step from this proposal has landed. This section is the
+The first two buildable steps from this proposal have landed. This section is the
 honest ledger of what exists so nobody mistakes a scaffold for a runtime.
 
 ### What is now real (canonical)
@@ -58,41 +63,52 @@ honest ledger of what exists so nobody mistakes a scaffold for a runtime.
   (vendored byte-identically into axm-world, drift-guarded): the object model of
   §2 as TypeScript types plus zod validation (`validateStrategyBoard`), and the
   `StrategyPhase` / `StrategyLedgerEventKind` vocabularies of §3.
-- **Two schema-level invariants enforced now** (§6 in miniature): every resource
-  change is a declared ledger mutation carrying an event kind (no hidden cost),
-  and every player-facing choice object (program action, auction, interference)
-  names — and must name the *correct* — phase that will honor it (no UI without a
-  resolver).
+- **Turn-machine decision + enumeration scaffold** (`strategy-board/turn.ts`,
+  vendored; see axm-arc `docs/design/STRATEGY_BOARD_TURN_MACHINE_DECISION.md`):
+  the canonical **phase order** (§3), the **legal-action envelope** (choices live
+  only in `buyAuctionPass` / `programAction` / `reactionInterference`), a
+  deterministic seed-free `initialStrategyState`, and a **pure `listLegalActions`
+  enumerator** with `isActionLegal`. It enumerates choices; it **resolves nothing**.
+- **Two invariants enforced now** (§6 in miniature): every resource change is a
+  declared ledger mutation carrying an event kind (no hidden cost), and every
+  player-facing choice object names — and must name the *correct* — phase that
+  will honor it (no choice the runtime cannot honor; enumeration mutates nothing).
 - **A tiny reference fixture**, `program-of-record-mini` (6 spaces, 3 doctrines,
   2 resources, 2 assets incl. 1 auction-only, 2 actions, 1 interference, 1
-  obligation, 1 milestone, 1 ending). It is a schema exercise and a seed for
+  obligation, 1 milestone, 1 ending). A schema/enumeration exercise and a seed for
   future property tests — **not a shipped cartridge; nothing executes it.**
-- **Schema tests** proving acceptance of the fixture, structural completeness,
-  the two invariants, deterministic load, and six rejection cases.
+- **Tests** for the schema (acceptance, structural completeness, the invariants,
+  deterministic load, six rejection cases) and for the enumeration scaffold
+  (deterministic initial state, phase-valid legal actions, illegal actions
+  rejected, enumeration mutates nothing, every action names a resolver).
 
 ### What is NOT implemented (still proposal-only)
 
-- **No runtime behavior of any kind.** No turn/phase machine, no movement or
-  space resolution, no buy/auction/pass, no program-action execution, no
-  reaction/interference resolution, no milestone/ending evaluation, no
-  income/toll/obligation settlement.
+- **No executor / no resolution behavior.** Nothing advances a phase, moves a
+  seat, resolves a buy/auction/pass, executes a program action, resolves
+  reaction/interference, evaluates a milestone/ending, or posts
+  income/tolls/obligations. The scaffold lists legal choices; it never applies one.
 - **No opponent driver / CPU personality.**
 - **No world projection** — no board, turn, auction, interference, or receipt
-  surfaces; the schema is data only, with zero UI.
-- **No property tests for behavior** (§5) — those gate the *runtime*, which does
+  surfaces; the vendored code is data + enumeration only, with zero UI.
+- **No behavioral property tests** (§5) — those gate the *executor*, which does
   not exist yet.
 
 ### What remains blocked (by design, until authorized)
 
+- **The turn-machine executor** — the next real boundary (`advancePhase`,
+  `applyStrategyAction`, `resolveAuction`, `resolveInterference`, `settleTolls`,
+  `settleObligations`, `evaluateMilestone`, `emitStrategyLedgerEvents`). Held for
+  explicit review; not started.
 - **The Program of Record port.** Still intake-accepted only; not imported, not
   ported, no bundle surgery. It waits for the runtime, then authors as data.
 - **Any shipped strategy-board content** and any player-facing strategy surface.
 
-### Next step (unchanged)
+### Next step
 
-Per §7: the axm-arc **turn-machine law + property tests** (§5), proposal-first
-and proven before any world surface. Until that lands, the scaffold changes no
-runtime and no player-facing behavior anywhere.
+Per §7: the axm-arc **turn-machine executor** — its own memo + behavioral
+property tests (§5), proposal-first and proven before any world surface. Until
+that lands, the scaffolds change no runtime and no player-facing behavior anywhere.
 
 ---
 
@@ -306,10 +322,16 @@ structurally impossible, not merely discouraged.
    machine (§3), the resolution algorithms (§4a), authored-data validation.
    - ✅ **schema + authored-data validation** landed (`src/engine/strategy-board/`,
      vendored into world; see §0b).
-   - ⬜ **engine law** (turn machine, resolution algorithms) — not started.
-3. **Property tests in axm-arc** (§5) — prove determinism, ledger conservation,
-   legal-action soundness, auction/toll/interference integrity, no-fake-agency —
-   *before* any world surface. *(⬜ gates the runtime; not started)*
+   - ✅ **turn-machine decision + enumeration scaffold** landed (`turn.ts`: phase
+     order, legal-action envelope, `listLegalActions` — no executor; see §0b).
+   - ⬜ **executor** (`advancePhase`, `applyStrategyAction`, `resolveAuction`,
+     `resolveInterference`, `settleTolls`, `settleObligations`,
+     `evaluateMilestone`, `emitStrategyLedgerEvents`) — held for review; not started.
+3. **Behavioral property tests in axm-arc** (§5) — prove determinism, ledger
+   conservation, legal-action soundness, auction/toll/interference integrity,
+   no-fake-agency — *before* any world surface. *(⬜ gates the executor; not
+   started. The enumeration-side invariants of soundness + no-fake-agency are
+   already tested by the scaffold.)*
 4. **World projection in axm-world** — board/turn/auction/interference/receipt
    surfaces (§4b), sovereignty-gated, mirroring the law for display only. *(⬜)*
 5. **Controlled Program of Record cartridge port** — author PoR's board, doctrines,
@@ -322,7 +344,8 @@ they build against.
 
 ---
 
-*The schema scaffold (step 2, schema portion) is real and vendored; everything
+*The schema scaffold and the turn-machine decision + enumeration scaffold are
+real and vendored; the executor and everything
 behavioral remains proposal-only. The next artifact, when authorized, is the
 axm-arc turn-machine law + property tests (steps 2–3), proposal-first and proven
 before any world surface.*
