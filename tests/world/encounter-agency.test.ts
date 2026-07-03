@@ -6,7 +6,8 @@
 import { describe, expect, it } from "vitest";
 import { FIRST_CHARTER } from "../../src/arcs/index.js";
 import { bootstrapOrg } from "../../src/spoke/bootstrap.js";
-import { recommendAgentsForChallenge } from "../../src/play-pipeline/compile.js";
+import { runCycle } from "../../src/engine/cycle.js";
+import { recommendAgentsForChallenge, summarizeReport } from "../../src/play-pipeline/compile.js";
 import { evaluateParty } from "../../src/world/readiness.js";
 
 const org = bootstrapOrg(FIRST_CHARTER);
@@ -42,6 +43,34 @@ describe("encounter agency — the deploy choice is real where the contract affo
     const c4 = r4.checks.find((c) => c.id === "troll-assault")!;
     const c6 = r6.checks.find((c) => c.id === "troll-assault")!;
     expect(c4.projected).not.toBe(c6.projected);
+  });
+
+  it("the COMMITTED squad — not the recommended one — is what runCycle resolves and the receipt reports", () => {
+    // This is the load-bearing guarantee: the player's deploy choice must reach the
+    // engine, not be quietly replaced by the recommendation. Build a legal squad
+    // that deliberately SWAPS a recommended Vanguard for a benched Mender.
+    const byName = (n: string) => roster.find((a) => a.name === n)!;
+    const recommended = recommendAgentsForChallenge(bridge, org, FIRST_CHARTER);
+    const committed = [byName("Caelum Ironcroft").id, byName("Fylan Dunmark").id, byName("Eiran Jarndace").id, byName("Nyara Forhaven").id];
+
+    // It really is a different, legal squad (has a Vanguard, count in range).
+    expect([...committed].sort()).not.toEqual([...recommended].sort());
+    const r = evaluateParty(bridge, committed.map(agent), FIRST_CHARTER);
+    expect(r.countOk && r.rolesOk).toBe(true);
+
+    // Resolve the COMMITTED squad through the real engine.
+    const result = runCycle({ org, arc: FIRST_CHARTER, assignments: [{ challengeId: "bridge-troll", agentIds: committed, tokensSpent: 0 }] });
+    const report = result.reports[0]!;
+
+    // The engine resolved exactly the committed squad — no substitution.
+    expect(report.assignedAgents.map((a) => a.agentId).sort()).toEqual([...committed].sort());
+
+    // The receipt reports the committed squad: the swapped-in Mender appears, the
+    // benched-out Vanguard does not.
+    const view = summarizeReport(report, FIRST_CHARTER, (id) => result.org.agents[id]?.name ?? id);
+    const rows = view.lines.join(" | ");
+    expect(rows).toContain("Nyara Forhaven"); // committed (was in reserve)
+    expect(rows).not.toContain("Gwenna Emberveil"); // recommended, but benched by the player
   });
 
   it("The Cellar is choice-locked: only a full party of 6 is legal (min == max == roster)", () => {
