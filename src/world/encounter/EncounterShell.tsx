@@ -19,6 +19,7 @@ import { createPortal } from "react-dom";
 import type { ArcWorld } from "../useArcWorld.js";
 import type { ProjectedOutcome } from "../readiness.js";
 import type { EncounterObjective, MarkerKind } from "./compile-encounter.js";
+import { spendOffer, spendWasUsed } from "./spend.js";
 import { PixelButton } from "../pixel-ui/index.js";
 import { t } from "../i18n/index.js";
 import "./encounter-shell.css";
@@ -91,12 +92,27 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
     ? party
     : (spec?.slots ?? []).map((s) => s.agentId).filter((x): x is string => !!x);
   const [committed, setCommitted] = useState<string[]>(initialParty);
+  // Resource-spend: tokens committed toward steadying this run. Offered ONLY when
+  // the contract authors a lever, the party clears the gates, and tokens are held.
+  const [spend, setSpend] = useState(0);
+  // The spend actually committed at resolve, kept so the receipt reports it.
+  const [resolvedSpend, setResolvedSpend] = useState(0);
 
-  // Live projection of the CURRENT squad, from the same resolver-faithful
-  // readiness the board uses. Recomputed as the player deploys.
-  const readiness = useMemo(
-    () => (spec ? world.evaluateParty(challengeId, committed, modeId) : null),
+  // Gate readiness (no spend) decides whether a spend control may be offered —
+  // count/roles are spend-independent, so this is the honest gate.
+  const baseReadiness = useMemo(
+    () => (spec ? world.evaluateParty(challengeId, committed, modeId, 0) : null),
     [world, challengeId, committed, modeId, spec],
+  );
+  const tokenBalance = world.resources.tokens;
+  const offer = spendOffer(spec?.spendLever ?? null, baseReadiness, tokenBalance);
+  const spendValue = offer.available ? Math.min(spend, offer.maxSpend) : 0;
+
+  // Live projection of the CURRENT squad AND spend, from the same resolver-faithful
+  // readiness the board uses. Spend narrows the band around an unchanged mean.
+  const readiness = useMemo(
+    () => (spec ? world.evaluateParty(challengeId, committed, modeId, spendValue) : null),
+    [world, challengeId, committed, modeId, spendValue, spec],
   );
 
   if (!spec) return null;
@@ -122,7 +138,8 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
 
   const resolve = () => {
     if (!countOk) return;
-    world.runChallenge(challengeId, committed, modeId);
+    world.runChallenge(challengeId, committed, modeId, spendValue);
+    setResolvedSpend(spendValue);
     setResolved(true);
   };
 
@@ -257,6 +274,44 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
               </div>
             </div>
 
+            {/* Resource-spend control — the fourth agency type. Rendered ONLY when
+                the contract authors a lever, the party clears the gates, and tokens
+                are held. Spending narrows the projected risk band above (readiness
+                is spend-aware) without changing the expected strength. */}
+            {offer.available && (
+              <div className="encs-section" data-testid="encs-spend">
+                <div className="encs-section-label">
+                  {t("encounterShell.steady")} · {spendValue}/{offer.maxSpend} {world.resources.tokenName}
+                </div>
+                <div className="encs-spend-row">
+                  <button
+                    type="button"
+                    className="encs-spend-btn"
+                    data-testid="encs-spend-dec"
+                    aria-label="less"
+                    disabled={spendValue <= 0}
+                    onClick={() => setSpend((s) => Math.max(0, Math.min(s, offer.maxSpend) - 1))}
+                  >
+                    -
+                  </button>
+                  <span className="encs-spend-count" data-testid="encs-spend-count">{spendValue}</span>
+                  <button
+                    type="button"
+                    className="encs-spend-btn"
+                    data-testid="encs-spend-inc"
+                    aria-label="more"
+                    disabled={spendValue >= offer.maxSpend}
+                    onClick={() => setSpend((s) => Math.min(offer.maxSpend, s + 1))}
+                  >
+                    +
+                  </button>
+                  <span className="encs-spend-note">
+                    {spendValue > 0 ? t("encounterShell.steadyOn") : t("encounterShell.steadyOff")}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Hazards derived from each check's failureConsequence. */}
             <div className="encs-section">
               <div className="encs-section-label">{t("encounterShell.hazards")}</div>
@@ -292,6 +347,11 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
             {modes.length > 0 && (
               <div className="encs-posture-record" data-testid="encs-posture-record">
                 {t("encounterShell.posture")}: <strong>{modeName}</strong>
+              </div>
+            )}
+            {spendWasUsed(resolvedSpend) && (
+              <div className="encs-spend-record" data-testid="encs-spend-record">
+                {t("encounterShell.spentSteadied", { n: resolvedSpend, token: world.resources.tokenName })}
               </div>
             )}
             {resolution && <p className="encs-narrative">{resolution.narrative}</p>}

@@ -6,6 +6,7 @@
 import type { Agent, Arc, Challenge, MechanicCheck, ThresholdMode } from "../engine/types.js";
 import { AFFLICTION_PENALTIES } from "../engine/constants.js";
 import { DOWNTIME_ACTIONS, downtimeActionLabel, type DowntimeAction } from "./agent-management.js";
+import { steadinessForLever } from "./encounter/spend.js";
 import { t } from "./i18n/index.js";
 
 /** The resolver adds variance/volatility at run time. A check only becomes
@@ -231,11 +232,15 @@ export function describeContract(challenge: Challenge, arc: Arc): ContractRequir
   };
 }
 
-function classify(projected: number, threshold: number): Pick<CheckEval, "margin" | "reliableTarget" | "shortBy" | "status"> {
+// `swing` is the reliability buffer. Resource-spend narrows it (swing = SWING·k)
+// WITHOUT moving `projected` (the mean): the band tightens around the same
+// expected score, so a thin check can read ready while its projected strength is
+// unchanged. swing === SWING (k=1) is the ordinary, no-spend projection.
+function classify(projected: number, threshold: number, swing: number = SWING): Pick<CheckEval, "margin" | "reliableTarget" | "shortBy" | "status"> {
   const margin = projected - threshold;
-  const reliableTarget = threshold + SWING;
+  const reliableTarget = threshold + swing;
   const shortBy = Math.max(0, reliableTarget - projected);
-  const status: CheckStatus = margin >= SWING ? "ready" : margin >= -SWING ? "thin" : "short";
+  const status: CheckStatus = margin >= swing ? "ready" : margin >= -swing ? "thin" : "short";
   return { margin, reliableTarget, shortBy, status };
 }
 
@@ -257,7 +262,7 @@ function effectiveThreshold(check: MechanicCheck, partySize: number): number {
   return check.difficultyThreshold;
 }
 
-function evaluateCheck(check: MechanicCheck, challenge: Challenge, party: Agent[], arc: Arc): CheckEval {
+function evaluateCheck(check: MechanicCheck, challenge: Challenge, party: Agent[], arc: Arc, swing: number = SWING): CheckEval {
   let projected = 0;
   const baseThreshold = check.difficultyThreshold;
   const thresholdMode: import("../engine/types.js").ThresholdMode = check.thresholdMode ?? "fixed";
@@ -280,7 +285,7 @@ function evaluateCheck(check: MechanicCheck, challenge: Challenge, party: Agent[
   } else if (check.scope === "role_specific") {
     // Missing role is represented by role coverage. The check is neutral so the UI
     // does not double-count one absence as both a missing role and a failed check.
-    projected = threshold + SWING;
+    projected = threshold + swing;
   } else {
     projected = 0;
   }
@@ -293,14 +298,14 @@ function evaluateCheck(check: MechanicCheck, challenge: Challenge, party: Agent[
     baseThreshold,
     threshold,
     projected,
-    ...classify(projected, threshold),
+    ...classify(projected, threshold, swing),
     roleIds,
     roleNames: roleIds.map((id) => roleName(arc, id)),
     contributors,
   };
 }
 
-export function evaluateParty(challenge: Challenge, party: Agent[], arc: Arc): PartyReadiness {
+export function evaluateParty(challenge: Challenge, party: Agent[], arc: Arc, tokensSpent: number = 0): PartyReadiness {
   const rr = challenge.rosterRequirements;
   const countOk = party.length >= rr.minAgents && party.length <= rr.maxAgents;
 
@@ -311,7 +316,14 @@ export function evaluateParty(challenge: Challenge, party: Agent[], arc: Arc): P
   }
   const rolesOk = missingRoles.length === 0;
 
-  const checks = challenge.mechanicChecks.map((check) => evaluateCheck(check, challenge, party, arc));
+  // Resource-spend steadiness narrows each check's reliability buffer, honored
+  // only for a gate-clearing party (mirrors the resolver's steadinessFor). No
+  // authored lever / no spend / gates fail → k = 1 (ordinary projection).
+  const gatesOk = countOk && rolesOk;
+  const checks = challenge.mechanicChecks.map((check) => {
+    const k = steadinessForLever(check.resourceSpend ?? challenge.resourceSpend, gatesOk, tokensSpent);
+    return evaluateCheck(check, challenge, party, arc, SWING * k);
+  });
 
   const reasons: string[] = [];
   if (!countOk) {

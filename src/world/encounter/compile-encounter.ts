@@ -24,7 +24,7 @@
 // PURE: no React, no three, no engine mutation. Given (challenge, org, arc) it
 // returns a plain data structure any surface can render.
 
-import type { Arc, Challenge, FailureConsequence, MechanicCheck, Organization } from "../../engine/types.js";
+import type { Arc, Challenge, FailureConsequence, MechanicCheck, Organization, ResourceSpendLever } from "../../engine/types.js";
 import { challengeAccess } from "../../engine/access.js";
 import { recommendAgentsForChallenge } from "../../play-pipeline/compile.js";
 import type { PlayNodeStatus } from "../../play-pipeline/compile.js";
@@ -115,6 +115,10 @@ export interface EncounterSpec {
   minAgents: number;
   maxAgents: number;
   resolutions: EncounterResolution[];
+  /** The authored resource-spend lever for this encounter, or null. Derived from
+   *  the challenge-level lever, else the first check that authors one. The shell
+   *  offers a spend control only when this is present (and gates/tokens allow). */
+  spendLever: ResourceSpendLever | null;
   /** What a clear opens up: gated challenges, attunement grants, narrative events.
    *  This is the "world-state change" half of the ledger writeback. */
   onClear: { unlocks: string[]; worldChanges: string[] };
@@ -357,6 +361,13 @@ export function compileEncounter(challenge: Challenge, org: Organization, arc: A
       narrative: challenge.outcomes[outcome].narrative,
       ledger: ledgerLines(challenge.outcomes[outcome], arc),
     })),
+    spendLever: spendLeverFor(challenge),
     onClear: onClearFor(challenge, arc),
   };
+}
+
+/** The encounter's effective spend lever: the challenge-level one, else the first
+ *  check that authors its own. Null when the contract authors no spend at all. */
+function spendLeverFor(challenge: Challenge): ResourceSpendLever | null {
+  return challenge.resourceSpend ?? challenge.mechanicChecks.find((c) => c.resourceSpend)?.resourceSpend ?? null;
 }

@@ -199,6 +199,10 @@ export type MessageId =
   | "encounterShell.projNone"
   | "encounterShell.posture"
   | "encounterShell.postureStandard"
+  | "encounterShell.steady"
+  | "encounterShell.steadyOn"
+  | "encounterShell.steadyOff"
+  | "encounterShell.spentSteadied"
   // ── presentations (representation switcher) ────────────────────────────
   | "presentations.board.label"
   | "presentations.board.blurb"
@@ -504,6 +508,10 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounterShell.projNone": "Assign a squad",
     "encounterShell.posture": "Posture",
     "encounterShell.postureStandard": "Standard",
+    "encounterShell.steady": "Steady the roll",
+    "encounterShell.steadyOn": "narrower risk, same strength",
+    "encounterShell.steadyOff": "spend to narrow the risk band",
+    "encounterShell.spentSteadied": (params) => `Spent ${num(params, "n")} ${str(params, "token")}: steadied the roll`,
 
     "presentations.board.label": "Board",
     "presentations.board.blurb": "2D contract board — readable cards, gates, risk, rewards, recorded marks",
@@ -774,6 +782,10 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounterShell.projNone": "指派隊伍",
     "encounterShell.posture": "姿態",
     "encounterShell.postureStandard": "標準",
+    "encounterShell.steady": "穩定擲值",
+    "encounterShell.steadyOn": "風險更窄，實力不變",
+    "encounterShell.steadyOff": "花費以收窄風險區間",
+    "encounterShell.spentSteadied": (params) => `花費 ${num(params, "n")} ${str(params, "token")}：穩定了擲值`,
 
     "presentations.board.label": "契約板",
     "presentations.board.blurb": "2D 契約板 — 易讀卡片、關卡、風險、獎勵、已記錄標記",
