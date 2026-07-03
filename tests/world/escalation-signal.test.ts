@@ -46,9 +46,16 @@ function demoOrg(cycle: number): Organization {
   };
 }
 
-/** A (granter, gated) challenge pair linked by a milestone flag, from arc data. */
+/** A (granter, gated) challenge pair linked by a milestone flag, from arc data.
+ * Attunement-gated challenges are skipped: since the engine:sync that made
+ * attunement gates live, a single granter success no longer opens them —
+ * that behavior is covered in gate-parity.test.ts. */
 function gatedPair(): { granterId: string; gatedId: string } {
+  const attunementGated = new Set(
+    FIRST_CHARTER.attunementChains.flatMap((c) => c.grantsAccessTo),
+  );
   for (const gated of FIRST_CHARTER.challenges) {
+    if (attunementGated.has(gated.id) || gated.accessRequirements.agentAttunements.length > 0) continue;
     for (const milestone of gated.accessRequirements.orgMilestones) {
       const wanted = milestone.replace(/-cleared$/, "");
       const granter = FIRST_CHARTER.challenges.find((c) =>
@@ -132,9 +139,14 @@ describe("escalation signal rendering guards (PR C §2)", () => {
     const compile = read("src/play-pipeline/compile.ts");
     expect(compile).toContain("availableSinceCycle");
     expect(compile).toContain("earliestSuccessCycles");
-    // Same -cleared normalization as statusForChallenge, so the two can't disagree:
+    // Status now delegates to the vendored engine's gate derivation (the same
+    // one runCycle enforces); availableSince keeps the matching -cleared
+    // normalization, so the two still share one milestone contract:
+    expect(compile).toContain("challengeAccess");
     const normalizations = compile.match(/-cleared\$/g) ?? [];
-    expect(normalizations.length).toBeGreaterThanOrEqual(2);
+    expect(normalizations.length).toBeGreaterThanOrEqual(1);
+    const access = read("src/engine/access.ts");
+    expect(access).toContain("-cleared$");
   });
 
   it("escalated cards stay legible under reduced motion", () => {

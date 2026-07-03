@@ -428,8 +428,12 @@ export function ContractRegion(props: {
   fixPlan: FixSuggestion[] | null;
   onApplyFix: (fix: FixSuggestion) => void;
   compact?: boolean;
+  /** Authored difficulty modes; the picker renders only when non-empty. */
+  difficultyModes?: Array<{ id: string; name: string }>;
+  difficultyModeId?: string | null;
+  onSelectDifficultyMode?: (id: string | null) => void;
 }): JSX.Element {
-  const { selected, party, min, max, canRun, onRun, contract, readiness, recommendation, fixPlan, onApplyFix, compact } = props;
+  const { selected, party, min, max, canRun, onRun, contract, readiness, recommendation, fixPlan, onApplyFix, compact, difficultyModes, difficultyModeId, onSelectDifficultyMode } = props;
 
   // Locked contracts show only unlock requirements — no party count, no readiness math,
   // no fix plan. Party assignment is irrelevant until the node unlocks.
@@ -483,6 +487,33 @@ export function ContractRegion(props: {
       {showReadiness && <ReadinessPanel contract={contract} readiness={readiness} />}
       {showReadiness && readiness && readiness.projectedOutcome !== "success" && fixPlan && fixPlan.length > 0 && (
         <FixPlanPanel fixes={fixPlan} onApplyFix={onApplyFix} compact={compact} />
+      )}
+
+      {difficultyModes && difficultyModes.length > 0 && onSelectDifficultyMode && (
+        <div data-testid="difficulty-mode-picker" style={{ marginTop: 10, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+          <span style={{ fontFamily: "var(--px-font)", fontSize: 10, color: "var(--stone)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+            {t("shell.difficultyMode")}
+          </span>
+          <PixelButton
+            variant={difficultyModeId == null ? "confirm" : "secondary"}
+            data-testid="difficulty-mode-base"
+            onClick={() => onSelectDifficultyMode(null)}
+            style={{ fontSize: 10, padding: "4px 8px" }}
+          >
+            {t("shell.difficultyBase")}
+          </PixelButton>
+          {difficultyModes.map((mode) => (
+            <PixelButton
+              key={mode.id}
+              variant={difficultyModeId === mode.id ? "confirm" : "secondary"}
+              data-testid={`difficulty-mode-${mode.id}`}
+              onClick={() => onSelectDifficultyMode(mode.id)}
+              style={{ fontSize: 10, padding: "4px 8px" }}
+            >
+              {mode.name}
+            </PixelButton>
+          ))}
+        </div>
       )}
 
       <RunButton selected={selected} min={min} max={max} canRun={canRun} readiness={readiness} onRun={onRun} />

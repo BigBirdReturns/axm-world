@@ -56,6 +56,8 @@ export type MessageId =
   | "shell.riskRun"
   | "shell.runWithRisk"
   | "shell.runContract"
+  | "shell.difficultyMode"
+  | "shell.difficultyBase"
   | "shell.riskWarning"
   | "shell.thinWarning"
   | "shell.projectedReliable"
@@ -282,6 +284,8 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.riskRun": "Risk Run",
     "shell.runWithRisk": "Run With Risk",
     "shell.runContract": "Run Contract",
+    "shell.difficultyMode": "Mode",
+    "shell.difficultyBase": "Standard",
     "shell.riskWarning": "Projected failure. Fix the party or knowingly accept the risk.",
     "shell.thinWarning": "Risk remains. The run can work, but the buffer is thin.",
     "shell.projectedReliable": "Projected Reliable",
@@ -508,6 +512,8 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.riskRun": "冒險執行",
     "shell.runWithRisk": "冒險執行契約",
     "shell.runContract": "執行契約",
+    "shell.difficultyMode": "模式",
+    "shell.difficultyBase": "標準",
     "shell.riskWarning": "預測將會失敗。請調整隊伍，或明知風險仍執行。",
     "shell.thinWarning": "仍有風險。此次執行可能成功，但緩衝很薄弱。",
     "shell.projectedReliable": "預測：可靠",

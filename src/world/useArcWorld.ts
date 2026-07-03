@@ -135,6 +135,12 @@ export interface ArcWorld {
   /** Last reward equip, kept only to stage the immediate after-equip rail transition. */
   lastEquip: LastEquipEvent | null;
   lastReport: PlayReportView | null;
+  /** Difficulty modes the cartridge authors (empty for most arcs). The shell
+   * only renders a mode picker when this is non-empty. */
+  difficultyModes: Arc["difficultyModes"];
+  /** Selected mode id, or null for base difficulty. Applied on the next run. */
+  difficultyModeId: string | null;
+  setDifficultyModeId: (id: string | null) => void;
   runChallenge: (challengeId: string, agentIds: string[]) => void;
   resolveDecision: (optionId: string) => void;
   applyDowntime: (agentId: string, action: DowntimeAction) => void;
@@ -179,6 +185,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     return { ...base, dramaQueue: [buildOpeningCard(cartridge.opening, base), ...base.dramaQueue] };
   });
   const [lastReport, setLastReport] = useState<PlayReportView | null>(null);
+  const [difficultyModeId, setDifficultyModeId] = useState<string | null>(null);
   const [pendingRewardChoices, setPendingRewardChoices] = useState<PendingRewardChoice[]>([]);
   const [lastEquip, setLastEquip] = useState<LastEquipEvent | null>(null);
   const [openingChoice, setOpeningChoice] = useState<string | null>(null);
@@ -279,6 +286,9 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
         challengeId,
         agentIds: agentIds.slice(0, challenge.rosterRequirements.maxAgents),
         tokensSpent: org.resources.tokens > 0 ? 1 : 0,
+        // Base difficulty unless the player picked an authored mode; the
+        // vendored runCycle applies the transform (engine/difficulty.ts).
+        ...(difficultyModeId !== null ? { difficultyModeId } : {}),
       };
       setLastEquip(null);
       const result = runCycle({ org, arc, assignments: [assignment] });
@@ -287,7 +297,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
       const report: RunReport | undefined = result.reports[0];
       setLastReport(report ? summarizeReport(report, arc) : null);
     },
-    [arc, org, scene],
+    [arc, org, scene, difficultyModeId],
   );
 
   const resolveDecision = useCallback(
@@ -395,6 +405,9 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     claimLoot,
     lastEquip,
     lastReport,
+    difficultyModes: arc.difficultyModes,
+    difficultyModeId,
+    setDifficultyModeId,
     runChallenge,
     resolveDecision,
     applyDowntime,
