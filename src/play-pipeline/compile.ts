@@ -51,19 +51,39 @@ export interface PlayScene {
   };
 }
 
-/** One row of the readable result summary: a mechanic check and whether the
- *  party cleared it, derived from the engine's own per-agent passed flags. */
-export interface ObjectiveResult {
-  name: string;
+/** One agent's contribution to a check, in player terms (score vs target, margin),
+ *  never the engine's "score / threshold" fraction. */
+export interface AgentContribution {
+  agentId: string;
+  agentName: string;
+  score: number;
+  target: number;
+  /** score - target: positive when cleared, negative when short. */
+  margin: number;
   passed: boolean;
-  detail: string;
+}
+
+/** One mechanic check, read for a player: what it tested, whether the party
+ *  cleared it, by how much, and who led. All derived from the engine's report. */
+export interface ObjectiveResult {
+  id: string;
+  name: string;
+  /** Primary attribute the check reads (e.g. "Power"), or null if none. */
+  attribute: string | null;
+  target: number;
+  passed: boolean;
+  passedCount: number;
+  totalCount: number;
+  /** Highest-scoring contributor, or null if the check produced no results. */
+  best: AgentContribution | null;
+  contributions: AgentContribution[];
 }
 
 export interface PlayReportView {
   challengeId: string;
   challengeName: string;
   outcome: RunReport["outcome"];
-  /** Per-objective summary (one per mechanic check), name-agnostic and readable. */
+  /** Per-objective summary (one per mechanic check), in player language. */
   objectives: ObjectiveResult[];
   /** Per-agent detail rows, resolved to agent names (not raw ids). */
   lines: string[];
@@ -280,26 +300,47 @@ export function summarizeReport(
   const itemNames = report.lootDrops
     .map((drop) => arc.items.find((item) => item.id === drop.itemId)?.name ?? drop.itemId);
 
-  const lines = report.assignedAgents.map((agentReport) => {
-    const best = [...agentReport.mechanicResults].sort((a, b) => (b.score - b.threshold) - (a.score - a.threshold))[0];
-    const agentName = resolveAgentName(agentReport.agentId);
-    if (!best) return `${agentName}: no mechanic result`;
-    const mechanic = challenge?.mechanicChecks.find((check) => check.id === best.mechanicId);
-    return `${agentName}: ${mechanic?.name ?? best.mechanicId} ${Math.round(best.score)} / ${best.threshold}`;
-  });
-
-  // Per-objective summary: one row per mechanic check, cleared iff every agent
-  // result the engine produced for it passed. This reads the resolver's own
-  // passed flags — it does not re-derive completion semantics.
+  // Per-objective summary in PLAYER language: score vs target and margin, never
+  // the engine's "score / threshold" fraction (which reads like "77 out of 5").
+  // Reads the resolver's own per-agent results; does not re-derive completion.
   const objectives: ObjectiveResult[] = (challenge?.mechanicChecks ?? []).map((check) => {
-    const results = report.assignedAgents.flatMap((ar) => ar.mechanicResults.filter((m) => m.mechanicId === check.id));
-    const passedCount = results.filter((r) => r.passed).length;
+    const primaryAttr = [...check.attributeWeights].sort((a, b) => b.weight - a.weight)[0];
+    const attribute = primaryAttr ? arc.attributes.find((a) => a.id === primaryAttr.attributeId)?.name ?? null : null;
+
+    const contributions: AgentContribution[] = report.assignedAgents
+      .flatMap((ar) => ar.mechanicResults.filter((m) => m.mechanicId === check.id).map((m) => ({ ar, m })))
+      .map(({ ar, m }) => {
+        const score = Math.round(m.score);
+        return {
+          agentId: ar.agentId,
+          agentName: resolveAgentName(ar.agentId),
+          score,
+          target: m.threshold,
+          margin: score - m.threshold,
+          passed: m.passed,
+        };
+      });
+
+    const passedCount = contributions.filter((c) => c.passed).length;
+    const best = contributions.length > 0 ? [...contributions].sort((a, b) => b.score - a.score)[0]! : null;
+
     return {
+      id: check.id,
       name: check.name,
-      passed: results.length > 0 && passedCount === results.length,
-      detail: results.length > 0 ? `${passedCount}/${results.length} cleared` : "—",
+      attribute,
+      target: check.difficultyThreshold,
+      passed: contributions.length > 0 && passedCount === contributions.length,
+      passedCount,
+      totalCount: contributions.length,
+      best,
+      contributions,
     };
   });
+
+  // Compact per-agent lines (used by the cinematic director), also in player
+  // language: "Name: 77 vs target 5".
+  const lines = objectives
+    .flatMap((o) => o.contributions.map((c) => `${c.agentName}: ${c.score} vs target ${c.target}`));
 
   return {
     challengeId: report.challengeId,

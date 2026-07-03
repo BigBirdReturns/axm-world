@@ -55,7 +55,7 @@ describe("arc to play pipeline", () => {
     expect(result.org.cycle).toBe(1);
   });
 
-  it("summarizes a report with agent names and a per-objective result summary", () => {
+  it("summarizes a report in player language: names, score-vs-target, margin", () => {
     const org = demoOrg();
     const challenge = FIRST_CHARTER.challenges.find((c) => c.id === "cellar")!;
     const assignment = buildPlayAssignment(challenge, org, FIRST_CHARTER);
@@ -63,19 +63,26 @@ describe("arc to play pipeline", () => {
     const report = result.reports[0]!;
     const view = summarizeReport(report, FIRST_CHARTER, (id) => result.org.agents[id]?.name ?? id);
 
-    // Per-agent rows are player-readable: they carry a real name, not the raw id.
+    // Per-agent rows are player-readable: real name, and NEVER the "n / m" fraction
+    // (which reads like "77 out of 5").
     expect(view.lines.length).toBeGreaterThan(0);
     const firstAssigned = report.assignedAgents[0]!.agentId;
     const name = result.org.agents[firstAssigned]!.name;
     expect(view.lines.some((l) => l.includes(name))).toBe(true);
-    expect(view.lines.some((l) => l.includes(firstAssigned))).toBe(false); // no raw ids leak
+    expect(view.lines.some((l) => l.includes(firstAssigned))).toBe(false);
+    expect(view.lines.every((l) => !/\d\s*\/\s*\d/.test(l))).toBe(true); // no score/threshold fractions
+    expect(view.lines.some((l) => l.includes("vs target"))).toBe(true);
 
-    // Objective summary: one row per mechanic check, derived from the report.
+    // Objective summary carries structured player-facing numbers, not raw math.
     expect(view.objectives).toHaveLength(challenge.mechanicChecks.length);
     const sweep = view.objectives.find((o) => o.name === "Cellar Sweep")!;
-    expect(sweep).toBeTruthy();
-    expect(typeof sweep.passed).toBe("boolean");
-    expect(sweep.detail).toMatch(/cleared/);
+    expect(sweep.attribute).toBe("Power"); // the check's primary attribute, named
+    expect(sweep.target).toBe(5); // the objective threshold, not the difficulty (10)
+    expect(sweep.totalCount).toBeGreaterThan(0);
+    expect(sweep.best).toBeTruthy();
+    expect(sweep.best!.margin).toBe(sweep.best!.score - sweep.best!.target); // margin is derived, coherent
+    // A cleared check: best contributor cleared it and margin reads positive.
+    if (sweep.passed) expect(sweep.best!.margin).toBeGreaterThanOrEqual(0);
   });
 
   it("falls back to the raw id when no name resolver is supplied", () => {

@@ -174,6 +174,17 @@ export type MessageId =
   | "encounterShell.resolve"
   | "encounterShell.ledger"
   | "encounterShell.detail"
+  | "encounterShell.objectiveCleared"
+  | "encounterShell.objectiveNotCleared"
+  | "encounterShell.reqCheckPassed"
+  | "encounterShell.reqCheckFailed"
+  | "encounterShell.reqCheckPassedNoAttr"
+  | "encounterShell.reqCheckFailedNoAttr"
+  | "encounterShell.best"
+  | "encounterShell.coverageAll"
+  | "encounterShell.coveragePartial"
+  | "encounterShell.agentPassedBy"
+  | "encounterShell.agentShortBy"
   | "encounterShell.unlocks"
   | "encounterShell.worldChanges"
   | "encounterShell.leave"
@@ -457,6 +468,17 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounterShell.resolve": "Resolve Encounter",
     "encounterShell.ledger": "Ledger writeback",
     "encounterShell.detail": "Per-agent detail",
+    "encounterShell.objectiveCleared": (params) => `${str(params, "name")} cleared.`,
+    "encounterShell.objectiveNotCleared": (params) => `${str(params, "name")} not cleared.`,
+    "encounterShell.reqCheckPassed": (params) => `The party beat the required ${str(params, "attr")} check.`,
+    "encounterShell.reqCheckFailed": (params) => `The party fell short of the required ${str(params, "attr")} check.`,
+    "encounterShell.reqCheckPassedNoAttr": "The party cleared the check.",
+    "encounterShell.reqCheckFailedNoAttr": "The party fell short of the check.",
+    "encounterShell.best": (params) => `Best: ${str(params, "name")} — ${num(params, "score")} vs target ${num(params, "target")}.`,
+    "encounterShell.coverageAll": (params) => `All ${num(params, "count")} assigned agents contributed.`,
+    "encounterShell.coveragePartial": (params) => `${num(params, "passed")} of ${num(params, "total")} cleared it.`,
+    "encounterShell.agentPassedBy": (params) => `${str(params, "name")}: ${num(params, "score")} vs target ${num(params, "target")}, passed by +${num(params, "margin")}`,
+    "encounterShell.agentShortBy": (params) => `${str(params, "name")}: ${num(params, "score")} vs target ${num(params, "target")}, short by ${num(params, "margin")}`,
     "encounterShell.unlocks": "Unlocks",
     "encounterShell.worldChanges": "World changes",
     "encounterShell.leave": "Leave",
@@ -705,6 +727,17 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounterShell.resolve": "解決遭遇",
     "encounterShell.ledger": "帳本更新",
     "encounterShell.detail": "各人員細節",
+    "encounterShell.objectiveCleared": (params) => `${str(params, "name")} 已完成。`,
+    "encounterShell.objectiveNotCleared": (params) => `${str(params, "name")} 未完成。`,
+    "encounterShell.reqCheckPassed": (params) => `隊伍以充足優勢通過了所需的${str(params, "attr")}檢定。`,
+    "encounterShell.reqCheckFailed": (params) => `隊伍未達到所需的${str(params, "attr")}檢定。`,
+    "encounterShell.reqCheckPassedNoAttr": "隊伍通過了檢定。",
+    "encounterShell.reqCheckFailedNoAttr": "隊伍未通過檢定。",
+    "encounterShell.best": (params) => `最佳：${str(params, "name")} — ${num(params, "score")}，目標 ${num(params, "target")}。`,
+    "encounterShell.coverageAll": (params) => `全部 ${num(params, "count")} 名指派人員皆有貢獻。`,
+    "encounterShell.coveragePartial": (params) => `${num(params, "total")} 名中有 ${num(params, "passed")} 名通過。`,
+    "encounterShell.agentPassedBy": (params) => `${str(params, "name")}：${num(params, "score")}，目標 ${num(params, "target")}，超出 +${num(params, "margin")}`,
+    "encounterShell.agentShortBy": (params) => `${str(params, "name")}：${num(params, "score")}，目標 ${num(params, "target")}，不足 ${num(params, "margin")}`,
     "encounterShell.unlocks": "解鎖",
     "encounterShell.worldChanges": "世界變化",
     "encounterShell.leave": "離開",
