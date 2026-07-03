@@ -175,9 +175,9 @@
   gap: 4px;
   padding: 2px 6px;
   font-family: var(--px-font);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   border: 1px solid currentColor;
   border-radius: 0;
@@ -291,17 +291,27 @@
   min-height: 30px;
   font-family: var(--px-font);
 }
+/* The contract's DRIVING attribute is highlighted on every roster card — the
+   same stat, so the eye can scan the column and rank agents at a glance. It
+   must visibly RISE: stronger fill, accent border, and a larger value than the
+   receding secondary stats below it. */
 .pixel-attribute--highlighted {
-  background: rgba(201,161,74,0.08);
+  background: rgba(201,161,74,0.16);
   border-color: var(--gold-border);
+  border-width: 2px;
 }
-.pixel-attribute__body { min-width: 0; }
+/* Non-driver checked stats recede so the driver is unambiguously dominant. */
+.pixel-attribute:not(.pixel-attribute--highlighted) {
+  opacity: 0.7;
+  min-height: 26px;
+}
+.pixel-attribute__body { min-width: 0; flex: 1; }
 .pixel-attribute__label {
   font-size: 9px;
   color: var(--stone);
   line-height: 1;
 }
-.pixel-attribute--highlighted .pixel-attribute__label { color: var(--gold-dark); }
+.pixel-attribute--highlighted .pixel-attribute__label { color: var(--gold-dark); font-weight: 700; }
 .pixel-attribute__value {
   display: flex;
   align-items: baseline;
@@ -312,7 +322,23 @@
   color: var(--ink-soft);
   line-height: 1.1;
 }
-.pixel-attribute--highlighted .pixel-attribute__value strong { color: var(--gold-dark); }
+.pixel-attribute:not(.pixel-attribute--highlighted) .pixel-attribute__value strong { font-size: 12px; }
+.pixel-attribute--highlighted .pixel-attribute__value strong { color: var(--gold-dark); font-size: 20px; }
+/* Lead marker: the top agents for the driving stat carry a "TOP" flag so the
+   two best jump out of the roster in under two seconds. */
+.pixel-attribute__lead {
+  margin-left: auto;
+  align-self: center;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--ink);
+  font-family: var(--px-font);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 .pixel-attribute__gear {
   font-size: 10px;
   color: var(--teal-dark);

@@ -189,9 +189,11 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     </PixelButton>
   ) : null;
   const cartridgeButton = (
+    // Global mode object — deliberately quiet chrome (ghost), so it never
+    // competes with the in-loop game actions (RUN CONTRACT, fix actions).
     <PixelButton
       type="button"
-      variant="secondary"
+      variant="ghost"
       data-testid="cartridge-object-button"
       onClick={() => setShowCartridge(true)}
       style={{ pointerEvents: "auto", minHeight: 40, padding: "6px 10px", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}

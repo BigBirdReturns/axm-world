@@ -176,6 +176,24 @@ export function RosterRegion(props: {
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const strip = variant === "strip";
 
+  // Relevance-weighting: the contract's driving stat (highest-weight checked
+  // attribute) is the same on every card, so the eye can rank the roster by it.
+  // The top two available agents for that stat get a "TOP" marker — the answer
+  // to "who are the two best <driver> agents?" in one scan.
+  const driverId = contract?.checkedAttributes[0]?.id ?? null;
+  const driverValue = (m: RosterMember): number =>
+    (m.attributes[driverId ?? ""] ?? 0) + (m.gear.reduce((s, g) => s + (g.bonuses[driverId ?? ""] ?? 0), 0));
+  const leadIds = new Set<string>(
+    driverId
+      ? roster
+          .filter((m) => !m.downed)
+          .sort((a, b) => driverValue(b) - driverValue(a))
+          .slice(0, 2)
+          .filter((m) => driverValue(m) > 0)
+          .map((m) => m.id)
+      : [],
+  );
+
   const byId = new Map(roster.map((m) => [m.id, m] as const));
   const focusSet = new Set<string>(selectionActive ? [...recommendedIds, ...party] : []);
   const focusMembers: RosterMember[] = selectionActive
@@ -196,6 +214,7 @@ export function RosterRegion(props: {
       inParty={party.includes(m.id)}
       selectable={selectable}
       contract={contract}
+      driverLead={leadIds.has(m.id)}
       variant={variant}
       onToggleAgent={onToggleAgent}
       downtimeFixes={downtimeFixesFor(m.id)}
@@ -238,6 +257,7 @@ export function RosterRegion(props: {
               m={m}
               contract={contract}
               inParty={party.includes(m.id)}
+              lead={leadIds.has(m.id)}
               open={!!expandedIds[m.id]}
               onToggle={() => setExpandedIds((prev) => ({ ...prev, [m.id]: !prev[m.id] }))}
             />
@@ -247,6 +267,7 @@ export function RosterRegion(props: {
                 inParty={party.includes(m.id)}
                 selectable={selectable}
                 contract={contract}
+                driverLead={leadIds.has(m.id)}
                 variant={variant}
                 onToggleAgent={onToggleAgent}
                 downtimeFixes={downtimeFixesFor(m.id)}
@@ -266,10 +287,11 @@ function RosterCompactRow(props: {
   m: RosterMember;
   contract: ContractRequirements | null;
   inParty: boolean;
+  lead: boolean;
   open: boolean;
   onToggle: () => void;
 }): JSX.Element {
-  const { m, contract, inParty, open, onToggle } = props;
+  const { m, contract, inParty, lead, open, onToggle } = props;
   return (
     <button
       type="button"
@@ -296,33 +318,42 @@ function RosterCompactRow(props: {
       <strong style={{ fontSize: 11, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</strong>
       {m.downed && <PixelBadge state="failing" style={{ minHeight: 18, padding: "1px 5px", fontSize: 8 }}>{t("status.down")}</PixelBadge>}
       {inParty && <PixelIcon name="selected" label={t("status.assigned")} />}
-      <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--ink-muted)", whiteSpace: "nowrap" }}>{topContractStat(m, contract)}</span>
+      {lead && (
+        <span className="pixel-attribute__lead" style={{ marginLeft: "auto" }}>{t("shell.topPick")}</span>
+      )}
+      <span style={{ marginLeft: lead ? 6 : "auto", fontSize: 11, fontWeight: lead ? 800 : 400, color: lead ? "var(--gold-dark)" : "var(--ink-muted)", whiteSpace: "nowrap" }}>{topContractStat(m, contract)}</span>
       <span aria-hidden="true" style={{ color: "var(--stone)", fontSize: 10 }}>{open ? "▾" : "▸"}</span>
     </button>
   );
 }
 
 function topContractStat(m: RosterMember, contract: ContractRequirements | null): string {
-  const attrs = contract?.checkedAttributes ?? [];
-  const first = attrs[0];
-  if (!first) return m.role;
-  let best = first;
-  for (const a of attrs) if ((m.attributes[a.id] ?? 0) > (m.attributes[best.id] ?? 0)) best = a;
-  return `${best.name} ${m.attributes[best.id] ?? 0}`;
+  // The contract's driving stat (checkedAttributes[0]), shown for EVERY row, so
+  // the collapsed column ranks by the same number rather than each agent's own
+  // best. Includes gear so the shown value matches the resolver's input.
+  const driver = contract?.checkedAttributes[0];
+  if (!driver) return m.role;
+  const gear = m.gear.reduce((s, g) => s + (g.bonuses[driver.id] ?? 0), 0);
+  const total = (m.attributes[driver.id] ?? 0) + gear;
+  return `${driver.name} ${total}`;
 }
 
-function buildAttributes(m: RosterMember, contract: ContractRequirements | null): RosterCardAttribute[] {
+function buildAttributes(m: RosterMember, contract: ContractRequirements | null, driverLead: boolean): RosterCardAttribute[] {
   if (!contract || contract.checkedAttributes.length === 0) return [];
   const attrs = contract.checkedAttributes.slice(0, 4);
-  let bestId = attrs[0]?.id ?? "";
-  for (const a of attrs) if ((m.attributes[a.id] ?? 0) > (m.attributes[bestId] ?? 0)) bestId = a.id;
+  // The DRIVING stat (highest-weight checked attribute) is highlighted on every
+  // card — the same stat, so the column is scannable and the best agents for it
+  // stand out. This is deliberately NOT each agent's personal-best stat, which
+  // would highlight a different attribute per card and defeat the scan.
+  const driverId = attrs[0]?.id ?? "";
   return attrs.map((a) => ({
     id: a.id,
     name: a.name,
     value: m.attributes[a.id] ?? 0,
     icon: attrIcon(a.id),
     gearBonus: m.gear.reduce((sum, g) => sum + (g.bonuses[a.id] ?? 0), 0),
-    highlighted: a.id === bestId,
+    highlighted: a.id === driverId,
+    leadLabel: driverLead && a.id === driverId ? t("shell.topPick") : undefined,
   }));
 }
 
@@ -340,6 +371,8 @@ function RosterCard(props: {
   inParty: boolean;
   selectable: boolean;
   contract: ContractRequirements | null;
+  /** This agent is a top-2 pick for the contract's driving stat. */
+  driverLead: boolean;
   variant: RosterVariant;
   onToggleAgent: (id: string) => void;
   /** Downtime actions the selected contract's fix plan names for THIS agent.
@@ -347,7 +380,7 @@ function RosterCard(props: {
   downtimeFixes: DowntimeFix[];
   onApplyFix: (fix: FixSuggestion) => void;
 }): JSX.Element {
-  const { m, inParty, selectable, contract, variant, onToggleAgent, downtimeFixes, onApplyFix } = props;
+  const { m, inParty, selectable, contract, driverLead, variant, onToggleAgent, downtimeFixes, onApplyFix } = props;
   const strip = variant === "strip";
   return (
     <PixelRosterCard
@@ -356,7 +389,7 @@ function RosterCard(props: {
       inParty={inParty}
       downed={m.downed}
       affliction={m.affliction}
-      attributes={buildAttributes(m, contract)}
+      attributes={buildAttributes(m, contract, driverLead)}
       gear={buildGear(m)}
       stress={m.stress}
       morale={m.morale}
