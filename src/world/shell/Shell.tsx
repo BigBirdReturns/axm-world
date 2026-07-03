@@ -451,6 +451,8 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
       {showCartridge && (
         <CartridgeObjectPanel
           manifest={world.cartridge.manifest}
+          digest={world.cartridgeDigest}
+          ledger={world.ledger}
           openingChoice={world.openingChoice}
           cycle={world.cycle}
           clearedCount={world.clearedCount}

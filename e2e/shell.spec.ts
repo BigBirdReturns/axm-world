@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { enterCartridge, resolvePendingDecisions } from "./helpers";
+import { enterCartridge, resolvePendingDecisions, runSelectedContract } from "./helpers";
 
 // Proves the shell contract the branch claims: one cartridge state, switched between
 // representations without reset; a true modal that representation labels can't bleed
@@ -7,7 +7,7 @@ import { enterCartridge, resolvePendingDecisions } from "./helpers";
 
 test("decision modal is a true layer — no representation labels render through it", async ({ page }) => {
   await page.goto("/axm-world/game/");
-  await page.getByRole("button", { name: /play/i }).first().click();
+  await page.getByRole("button", { name: /enter/i }).first().click();
 
   await expect(page.getByTestId("pending-decision-card")).toBeVisible();
   // Representation labels are unmounted while a modal is open.
@@ -33,24 +33,29 @@ test("Run Graph and Planet are pure representations of the same cartridge state"
 });
 
 test("post-run outcome and cartridge marks persist across a representation switch", async ({ page }) => {
+  test.slow();
   await enterCartridge(page);
 
-  await page.getByTestId("run-contract-button").click();
-  await expect(page.getByTestId("outcome-region")).toBeVisible();
+  // Run on "The Cellar" (first available node). Running hands off to the encounter
+  // overlay; runSelectedContract drives it to its result and back to the shell.
+  await runSelectedContract(page);
   // A run may enqueue a post-run decision, which gates the view switcher by design;
   // resolve it before switching representations.
   await resolvePendingDecisions(page);
-  // The run was on "The Cellar" (first available node); its report is what must persist.
-  await expect(page.getByTestId("outcome-region")).toContainText(/Cellar/i);
+
+  // The board recorded the run as a persistent cartridge mark; that count is what must
+  // survive switching between representations of the same cartridge state.
   const marksBefore = await page.getByTestId("cartridge-mark-count").innerText();
 
   await page.getByTestId("view-planet").click();
-  await expect(page.getByTestId("outcome-region")).toContainText(/Cellar/i);
   await expect(page.getByTestId("cartridge-mark-count")).toHaveText(marksBefore);
 
   await page.getByTestId("view-run-graph").click();
-  await expect(page.getByTestId("outcome-region")).toContainText(/Cellar/i);
   await expect(page.getByTestId("cartridge-mark-count")).toHaveText(marksBefore);
+
+  // The recorded outcome itself remains inspectable via the record-history modal.
+  await page.getByTestId("record-history-button").click();
+  await expect(page.getByTestId("outcome-region")).toContainText(/Cellar/i);
 });
 
 test("the cartridge title is legible (not near-black on black)", async ({ page }) => {

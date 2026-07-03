@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { bootstrapOrg } from "../../src/spoke/bootstrap";
 import { FIRST_CHARTER_CARTRIDGE } from "../../src/world/cartridge";
 import { emptyLedger, appendResult } from "../../src/world/ledger";
-import { saveRun, loadRun, clearRun, SAVE_SCHEMA_VERSION, SAVE_KEY, type KVStorage } from "../../src/world/save";
+import { saveRun, loadRun, clearRun, SAVE_SCHEMA_VERSION, saveKeyFor, type KVStorage } from "../../src/world/save";
 
 function fakeStorage(): KVStorage {
   const map = new Map<string, string>();
@@ -17,16 +17,24 @@ const arc = FIRST_CHARTER_CARTRIDGE.arc;
 const DIGEST = "cart1_first";
 
 describe("program run persistence", () => {
-  it("round-trips org + ledger for the same authored program", () => {
+  it("round-trips org + ledger + opening choice for the same authored program", () => {
     const org = bootstrapOrg(arc);
     const ledger = appendResult(emptyLedger(DIGEST), { challengeId: "c1", challengeName: "One", outcome: "success", cycle: org.cycle });
     const s = fakeStorage();
-    saveRun(s, { arc, authoredArcDigest: DIGEST, state: { org, ledger } });
+    saveRun(s, { arc, authoredArcDigest: DIGEST, state: { org, ledger, openingChoice: "Hold the line" } });
     const loaded = loadRun(s, { arc, authoredArcDigest: DIGEST });
     expect(loaded).not.toBeNull();
     expect(loaded!.org.cycle).toBe(org.cycle);
     expect(loaded!.ledger.entries).toHaveLength(1);
     expect(loaded!.ledger.entries[0]!.authoredArcDigest).toBe(DIGEST);
+    // The opening decision label survives reload, so the decision mark is not lost.
+    expect(loaded!.openingChoice).toBe("Hold the line");
+  });
+
+  it("defaults opening choice to null when none was persisted", () => {
+    const s = fakeStorage();
+    saveRun(s, { arc, authoredArcDigest: DIGEST, state: { org: bootstrapOrg(arc), ledger: emptyLedger(DIGEST) } });
+    expect(loadRun(s, { arc, authoredArcDigest: DIGEST })!.openingChoice).toBeNull();
   });
 
   it("ignores a save from a different authored program (digest guard)", () => {
@@ -36,17 +44,33 @@ describe("program run persistence", () => {
     expect(loadRun(s, { arc, authoredArcDigest: "cart1_other" })).toBeNull();
   });
 
+  it("keeps a per-program slot: a second program's save never clobbers the first", () => {
+    const s = fakeStorage();
+    const other = "cart1_second";
+    const firstLedger = appendResult(emptyLedger(DIGEST), { challengeId: "c1", challengeName: "One", outcome: "success", cycle: 0 });
+    // Play the first program, then a second one saves its own fresh run.
+    saveRun(s, { arc, authoredArcDigest: DIGEST, state: { org: bootstrapOrg(arc), ledger: firstLedger, openingChoice: "First choice" } });
+    saveRun(s, { arc, authoredArcDigest: other, state: { org: bootstrapOrg(arc), ledger: emptyLedger(other) } });
+    // Returning to the first program still restores its own state, not fresh.
+    const first = loadRun(s, { arc, authoredArcDigest: DIGEST });
+    expect(first).not.toBeNull();
+    expect(first!.ledger.entries).toHaveLength(1);
+    expect(first!.openingChoice).toBe("First choice");
+    // The two programs occupy distinct storage keys.
+    expect(saveKeyFor(DIGEST)).not.toBe(saveKeyFor(other));
+  });
+
   it("returns null when there is no save, and after clear", () => {
     const s = fakeStorage();
     expect(loadRun(s, { arc, authoredArcDigest: DIGEST })).toBeNull();
     saveRun(s, { arc, authoredArcDigest: DIGEST, state: { org: bootstrapOrg(arc), ledger: emptyLedger(DIGEST) } });
-    clearRun(s);
+    clearRun(s, DIGEST);
     expect(loadRun(s, { arc, authoredArcDigest: DIGEST })).toBeNull();
   });
 
   it("returns null for corrupt data", () => {
     const s = fakeStorage();
-    s.setItem(SAVE_KEY, "{not json");
+    s.setItem(saveKeyFor(DIGEST), "{not json");
     expect(loadRun(s, { arc, authoredArcDigest: DIGEST })).toBeNull();
   });
 
