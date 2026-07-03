@@ -53,10 +53,15 @@ export function spendWasUsed(tokensSpent: number): boolean {
   return tokensSpent > 0;
 }
 
-/** The tokens a run actually commits: the encounter's explicit choice when given
- *  (clamped to what the org holds, never negative), else the legacy default of 1
- *  when any are held. Pure so the world→engine wiring is testable without a hook. */
+/** The tokens a run actually commits: the encounter's explicit choice, clamped to
+ *  what the org holds and never negative. Spend is EXPLICIT — an absent override
+ *  means 0, never an implicit debit. This is deliberate: tokensSpent is now an
+ *  engine-semantic lever (it narrows the resolver's variance on a lever-authored
+ *  challenge), so any implicit default would be hidden agency — a caller that
+ *  forgot to pass a value could silently spend a token and steady the roll. A run
+ *  path that genuinely wants a token cost must name it explicitly at its call site,
+ *  not inherit one here. Pure so the world→engine wiring is testable without a hook. */
 export function resolveTokensSpent(override: number | undefined, tokenBalance: number): number {
-  if (override !== undefined) return Math.max(0, Math.min(override, tokenBalance));
-  return tokenBalance > 0 ? 1 : 0;
+  if (override === undefined) return 0;
+  return Math.max(0, Math.min(override, tokenBalance));
 }

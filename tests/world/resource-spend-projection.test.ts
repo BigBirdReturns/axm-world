@@ -18,6 +18,7 @@ import { bootstrapOrg } from "../../src/spoke/bootstrap.js";
 import { runCycle } from "../../src/engine/cycle.js";
 import { evaluateParty } from "../../src/world/readiness.js";
 import { spendOffer, spendWasUsed, steadinessForLever, resolveTokensSpent } from "../../src/world/encounter/spend.js";
+import { compileEncounter } from "../../src/world/encounter/compile-encounter.js";
 import { formatMessage } from "../../src/world/i18n/messages.js";
 
 const LEVER: ResourceSpendLever = { maxTokens: 3, steadinessPerToken: 0.2, minSteadiness: 0.4 };
@@ -124,13 +125,67 @@ describe("projection is faithful to the resolver (world steadiness ↔ engine va
   });
 });
 
+// The shell renders ONE encounter-wide spend control, so compileEncounter may only
+// surface a lever that governs the whole challenge coherently: a challenge-level
+// lever, or per-check levers that are all identical. Divergent per-check levers
+// must NOT collapse into a single misleading control.
+describe("spendLever surfaces only a coherent challenge-wide lever", () => {
+  const org = bootstrapOrg(FIRST_CHARTER);
+  const LEVER_B: ResourceSpendLever = { maxTokens: 2, steadinessPerToken: 0.5, minSteadiness: 0.5 };
+
+  function check(id: string, lever?: ResourceSpendLever) {
+    return {
+      id, name: id, description: "d",
+      attributeWeights: [{ attributeId: "power", weight: 1.0 }],
+      difficultyThreshold: 10, scope: "per_agent" as const,
+      failureConsequence: { type: "stress" as const, severity: 0.3 },
+      ...(lever ? { resourceSpend: lever } : {}),
+    };
+  }
+  function challengeWith(challengeLever: ResourceSpendLever | null, checks: ReturnType<typeof check>[]): Challenge {
+    return {
+      id: "cellar", name: "RS", description: "d",
+      rosterRequirements: { minAgents: 1, maxAgents: 6, roleRequirements: [] },
+      accessRequirements: { orgMilestones: [], agentAttunements: [], attunementThreshold: null },
+      difficultyRating: 20,
+      mechanicChecks: checks,
+      completionCriteria: { type: "all_mechanics_passed", parameters: {} },
+      timePressure: null,
+      outcomes: { success: { rewardTable: [], narrative: "s" }, partial: { rewardTable: [], narrative: "p" }, failure: { rewardTable: [], narrative: "f" } },
+      ...(challengeLever ? { resourceSpend: challengeLever } : {}),
+    };
+  }
+  const lever = (ch: Challenge) => compileEncounter(ch, org, FIRST_CHARTER).spendLever;
+
+  it("no lever authored anywhere → null", () => {
+    expect(lever(challengeWith(null, [check("a"), check("b")]))).toBeNull();
+  });
+  it("challenge-level lever → surfaced (global by definition)", () => {
+    expect(lever(challengeWith(LEVER, [check("a"), check("b")]))).toEqual(LEVER);
+  });
+  it("a single per-check lever → surfaced", () => {
+    expect(lever(challengeWith(null, [check("a", LEVER), check("b")]))).toEqual(LEVER);
+  });
+  it("identical per-check levers → surfaced", () => {
+    expect(lever(challengeWith(null, [check("a", LEVER), check("b", { ...LEVER })]))).toEqual(LEVER);
+  });
+  it("divergent per-check levers → null (would misrepresent; awaits per-objective UI)", () => {
+    expect(lever(challengeWith(null, [check("a", LEVER), check("b", LEVER_B)]))).toBeNull();
+  });
+  it("challenge-level lever wins even when per-check levers diverge", () => {
+    expect(lever(challengeWith(LEVER, [check("a", LEVER), check("b", LEVER_B)]))).toEqual(LEVER);
+  });
+});
+
 describe("run path tokensSpent + receipt wording", () => {
-  it("resolveTokensSpent honors an explicit choice (clamped) and the legacy default", () => {
+  it("resolveTokensSpent honors an explicit choice (clamped) and treats undefined as no spend", () => {
     expect(resolveTokensSpent(2, 5)).toBe(2); // explicit
-    expect(resolveTokensSpent(0, 5)).toBe(0); // explicit zero — not the default 1
+    expect(resolveTokensSpent(0, 5)).toBe(0); // explicit zero
     expect(resolveTokensSpent(9, 3)).toBe(3); // clamped to balance
     expect(resolveTokensSpent(-4, 5)).toBe(0); // never negative
-    expect(resolveTokensSpent(undefined, 5)).toBe(1); // legacy default
+    // Spend is explicit: an absent override is 0, NEVER an implicit debit — even
+    // when tokens are held. Guards against hidden agency from a forgetful caller.
+    expect(resolveTokensSpent(undefined, 5)).toBe(0);
     expect(resolveTokensSpent(undefined, 0)).toBe(0);
   });
   it("the receipt spend line is player-worded and gated on actual use", () => {

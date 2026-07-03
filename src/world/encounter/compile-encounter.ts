@@ -366,8 +366,29 @@ export function compileEncounter(challenge: Challenge, org: Organization, arc: A
   };
 }
 
-/** The encounter's effective spend lever: the challenge-level one, else the first
- *  check that authors its own. Null when the contract authors no spend at all. */
+/** The encounter's effective GLOBAL spend lever. The shell renders a single
+ *  encounter-wide spend control, so it may only surface a lever that governs the
+ *  whole challenge coherently:
+ *   - a challenge-level `resourceSpend` is global by definition; else
+ *   - per-check levers ONLY when every check that authors one is identical, so the
+ *     one global control faithfully represents what the resolver applies to each
+ *     check (tokensSpent is a single challenge-wide count).
+ *  Divergent per-check levers return null — a single control would misrepresent
+ *  them; they await a per-objective spend UI. Null also when no lever is authored. */
 function spendLeverFor(challenge: Challenge): ResourceSpendLever | null {
-  return challenge.resourceSpend ?? challenge.mechanicChecks.find((c) => c.resourceSpend)?.resourceSpend ?? null;
+  if (challenge.resourceSpend) return challenge.resourceSpend;
+  const checkLevers = challenge.mechanicChecks
+    .map((c) => c.resourceSpend)
+    .filter((l): l is ResourceSpendLever => !!l);
+  const first = checkLevers[0];
+  if (!first) return null;
+  return checkLevers.every((l) => leversEqual(l, first)) ? first : null;
+}
+
+function leversEqual(a: ResourceSpendLever, b: ResourceSpendLever): boolean {
+  return (
+    a.maxTokens === b.maxTokens &&
+    a.steadinessPerToken === b.steadinessPerToken &&
+    a.minSteadiness === b.minSteadiness
+  );
 }

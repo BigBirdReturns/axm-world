@@ -317,9 +317,10 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
       // The encounter's posture choice wins when supplied (including an explicit
       // null = base); otherwise fall back to the board-level mode selection.
       const effectiveMode = modeOverride !== undefined ? modeOverride : difficultyModeId;
-      // The encounter's spend choice wins when supplied (an explicit count,
-      // including 0); otherwise the legacy default spends 1 if any are held. The
-      // vendored resolver honors tokensSpent only for a lever-authored challenge.
+      // Spend is explicit: the encounter passes an exact count (including 0);
+      // callers that pass nothing (auto-resolve, board quick-run) spend 0 — no
+      // implicit debit. The vendored resolver honors tokensSpent only for a
+      // lever-authored challenge, so an implicit default would be hidden agency.
       const effectiveTokens = resolveTokensSpent(tokensSpentOverride, org.resources.tokens);
       const assignment: ChallengeAssignment = {
         challengeId,
