@@ -14,8 +14,7 @@ import { PixelIcon } from "../pixel-ui/index.js";
 // Theme seam (docs/design/rodoh-visual-contract.md): First Charter motif icons are only
 // used when the loaded arc IS First Charter (checked against FIRST_CHARTER_THEME.id
 // below). Any other cartridge gets the generic PixelIcon placeholder instead.
-import { MotifIcon, locationMotif, type FirstCharterMotifName } from "../themes/first-charter/motif-icons.js";
-import { FIRST_CHARTER_THEME } from "../themes/first-charter/theme.js";
+import { CartridgeMotif } from "../themes/CartridgeMotif.js";
 import { t } from "../i18n/index.js";
 import "./encounter.css";
 
@@ -222,7 +221,8 @@ export function useEncounterDirector(ix: ArcInteraction, world: ArcWorld): UseEn
             projectedOutcome={snapshot.projectedOutcome}
             target={snapshot.target}
             challenge={challengeFor(world, snapshot.challengeId)}
-            motif={world.arc.meta.id === FIRST_CHARTER_THEME.id ? locationMotif(snapshot.challengeId) : null}
+            arcId={world.arc.meta.id}
+            challengeId={snapshot.challengeId}
             onSkip={skip}
             onDismiss={handleResultDismiss}
           />
@@ -242,15 +242,19 @@ interface OverlayProps {
   /** The current challenge's own data (description, authored outcome narratives).
    *  Null only if the node's challengeId can't be resolved against the loaded arc. */
   challenge: Challenge | null;
-  /** First Charter motif icon, or null when the loaded arc isn't First Charter —
-   *  in which case the overlay falls back to a generic PixelIcon. */
-  motif: FirstCharterMotifName | null;
+  /** The active arc + encounter, resolved to a themed motif by CartridgeMotif;
+   *  arcs with no bundled motif set fall back to a generic PixelIcon. */
+  arcId: string;
+  challengeId: string;
   onSkip: () => void;
   onDismiss: () => void;
 }
 
-function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOutcome, target, challenge, motif, onSkip, onDismiss }: OverlayProps): JSX.Element {
+function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOutcome, target, challenge, arcId, challengeId, onSkip, onDismiss }: OverlayProps): JSX.Element {
   const flavor = locationFlavor(challenge);
+  const renderMotif = (size: number): JSX.Element =>
+    CartridgeMotif({ arcId, challengeId, size, className: "enc-motif-frame" })
+      ?? <PixelIcon name="available" className="enc-motif-frame" />;
   const partyNames = party.map((id) => roster.find((m) => m.id === id)?.name ?? id);
   const projection = resolveProjection(projectedOutcome);
   const targetStyle = {
@@ -297,7 +301,7 @@ function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOut
           {target.found && <div className="enc-target-ping" data-testid="encounter-board-target" />}
           {phase === "travel" && (
             <div className="enc-travel-token" data-testid="encounter-travel-token">
-              {motif ? <MotifIcon name={motif} size={34} className="enc-motif-frame" /> : <PixelIcon name="available" className="enc-motif-frame" />}
+              {renderMotif(34)}
             </div>
           )}
         </div>
@@ -305,7 +309,7 @@ function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOut
 
       <div className="enc-vignette" onClick={(e) => e.stopPropagation()}>
         <div className={`enc-icon enc-icon--${phase} enc-motif-stage`} aria-hidden="true">
-          {motif ? <MotifIcon name={motif} size={56} className="enc-motif-frame" /> : <PixelIcon name="available" className="enc-motif-frame" />}
+          {renderMotif(56)}
         </div>
 
         {phase === "dispatch" && (

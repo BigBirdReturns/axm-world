@@ -35,6 +35,9 @@ type PixelContractCardProps = Omit<HTMLAttributes<HTMLButtonElement>, "onClick">
   selected?: boolean;
   difficulty: number;
   title: string;
+  /** Optional themed motif rendered beside the title (cartridge skin). Absent
+   *  for cartridges with no motif set — the title renders exactly as before. */
+  titleMotif?: ReactNode;
   description: string;
   unlockRequirements?: string[];
   requirements?: ReactNode;
@@ -47,7 +50,7 @@ type PixelContractCardProps = Omit<HTMLAttributes<HTMLButtonElement>, "onClick">
 
 export function PixelContractCard(props: PixelContractCardProps): JSX.Element {
   const {
-    state, selected = false, difficulty, title, description,
+    state, selected = false, difficulty, title, titleMotif, description,
     unlockRequirements, requirements, riskNote, readyNote,
     footerLeft, footerRight, onClick, className = "", ...rest
   } = props;
@@ -66,7 +69,10 @@ export function PixelContractCard(props: PixelContractCardProps): JSX.Element {
           <PixelStateBadge state={STATE_TO_BADGE[state]}>{t(STATUS_LABEL_ID[state])}</PixelStateBadge>
           <span className="pixel-contract-card__difficulty">{difficulty}</span>
         </div>
-        <h3 className="pixel-contract-card__title">{title}</h3>
+        <h3 className="pixel-contract-card__title">
+          {titleMotif ? <span className="pixel-contract-card__title-motif" aria-hidden="true">{titleMotif}</span> : null}
+          {title}
+        </h3>
         <p className="pixel-contract-card__desc">{description}</p>
 
         {state === "locked" ? (

@@ -132,6 +132,21 @@ also redrawn derivatives, not slices.
 | notebook | `...overview.png` §1 — spiral-bound notebook | close — cover + spine + lines |
 | starSpark | `...overview.png` §1 — 4-point sparkle | close — 4-point star |
 
+### Karazhan theme motifs
+
+`src/world/themes/karazhan/motif-icons.tsx` — 16x16 viewBox SVG paths, one per
+encounter id (attumen…magtheridon + the tower default). Provenance level:
+**redrawn derivative**. Source: the Karazhan theme asset sheet §1 "Location
+Motifs" (design review). Unlike the First Charter sheet, the Karazhan sheet is
+**not yet committed** to `docs/design/references/`, so these motifs are
+hand-authored from its per-encounter descriptions (spectral horseshoe, pocket
+watch, chained sigil, twin masks, orrery core, summoning circle, rune ring,
+three beams, knight, tilted crown, dragon skull, ogre fist, shattered
+mountain, broken manacle) rather than sliced from a committed asset. When the
+sheet lands in `references/`, add its filename here and upgrade the citations.
+The violet-night palette (§6) is applied as scoped CSS
+(`karazhan.css`, under `:root[data-cartridge="karazhan"]`), not new pixel grids.
+
 ## Acceptance rule
 
 A component only counts as "integrated" when it appears in this table with

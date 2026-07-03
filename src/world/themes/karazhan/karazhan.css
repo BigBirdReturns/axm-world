@@ -1,0 +1,84 @@
+/* Karazhan theme — the violet-night skin. Everything here is scoped under
+   :root[data-cartridge="karazhan"], which the shell sets on <html> only while
+   the Karazhan cartridge is active. First Charter, Operations Lab, and every
+   imported/unknown arc keep the base :root tokens untouched.
+
+   Approach: remap the shared accent tokens (gold->ember, teal->arcane) and the
+   board background to the sheet's violet-night palette (§6), plus per-encounter
+   motif colors. Panel structure and text legibility are inherited from the base
+   theme unchanged — the cartridge reads distinct through background, accent,
+   emblem, and boss motifs, not through a risky full inversion. */
+
+:root[data-cartridge="karazhan"] {
+  /* §6 palette */
+  --kz-violet: #574a7a;
+  --kz-arcane: #4f7d9e;
+  --kz-ember: #d19a3d;
+  --kz-fel: #6f8f3f;
+  --kz-stone: #746f7c;
+  --kz-parchment: #e9ddc4;
+  --kz-ink: #1a1420;
+
+  /* Accent remaps — the tokens the gameplay surfaces actually read. */
+  --gold: #e0ad51;
+  --gold-dark: #d19a3d;
+  --gold-border: #a9772a;
+  --parchment-gold: #c9a86a;
+  --teal: #4f7d9e;
+  --teal-dark: #3c6480;
+  --olive: #6f8f3f;
+  --olive-dark: #55702f;
+
+  --state-ready: #4f7d9e;
+  --state-risky: #e0ad51;
+  --state-loot: #d19a3d;
+  --state-recorded: #574a7a;
+  --state-locked: #746f7c;
+
+  /* Cooler cream so panels sit in the violet world instead of the warm one. */
+  --cream: #efe7d6;
+  --cream-mid: #e4dac7;
+  --cream-border: #cbbfa6;
+  --stone: #746f7c;
+  --stone-light: #b3adbe;
+}
+
+/* Board background: violet night instead of the base warm near-black. Scoped
+   to the board shell only when Karazhan is active. */
+:root[data-cartridge="karazhan"] .contract-board-shell {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(87, 74, 122, 0.35), transparent 45%),
+    radial-gradient(circle at 82% 78%, rgba(79, 125, 158, 0.14), transparent 40%),
+    linear-gradient(180deg, #201830, #100b18 72%);
+}
+
+/* Encounter motif coloring — violet body, ember/arcane accents pulled from the
+   sheet. Each motif tints toward its encounter's mood. */
+.kz-motif-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--kz-parchment, #e9ddc4);
+  line-height: 1;
+}
+.kz-motif-icon--tower             { color: #8a79b8; }
+.kz-motif-icon--horseshoe         { color: #b9add9; }
+.kz-motif-icon--pocketWatch       { color: #d1a24a; }
+.kz-motif-icon--chainedSigil      { color: #cbb98a; }
+.kz-motif-icon--twinMasks         { color: #9a8dc4; }
+.kz-motif-icon--orrery            { color: #5f97ba; }
+.kz-motif-icon--summoningCircle   { color: #7fa04a; }
+.kz-motif-icon--runeRing          { color: #5f97ba; }
+.kz-motif-icon--threeBeams        { color: #6faedb; }
+.kz-motif-icon--knight            { color: #b3adbe; }
+.kz-motif-icon--tiltedCrown       { color: #d19a3d; }
+.kz-motif-icon--dragonSkull       { color: #b9add9; }
+.kz-motif-icon--ogreFist          { color: #c98a4a; }
+.kz-motif-icon--shatteredMountain { color: #8a79b8; }
+.kz-motif-icon--brokenManacle     { color: #7fa04a; }
+
+/* The tower cartridge emblem (boot/library/status). */
+.kz-cartridge-emblem {
+  display: inline-flex;
+  color: #8a79b8;
+}

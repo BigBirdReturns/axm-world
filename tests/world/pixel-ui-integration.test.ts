@@ -71,10 +71,12 @@ describe("Rodoh pixel-ui integration", () => {
     expect(contractBoard).not.toContain("function StateBadge");
   });
 
-  it("EncounterDirector uses First Charter MotifIcon instead of emoji glyphs", () => {
+  it("EncounterDirector renders themed motifs (via the cartridge seam) instead of emoji glyphs", () => {
     const director = read("src/world/encounter/EncounterDirector.tsx");
-    expect(director).toContain("MotifIcon");
-    expect(director).toContain("locationMotif");
+    // Motifs now dispatch through the generic CartridgeMotif seam (which picks
+    // the active cartridge's MotifIcon/locationMotif) rather than hardcoding
+    // First Charter's — so any bundled cartridge, Karazhan included, themes.
+    expect(director).toContain("CartridgeMotif");
     expect(director).not.toContain("🐀");
     expect(director).not.toContain("🌉");
     expect(director).not.toContain("🛒");

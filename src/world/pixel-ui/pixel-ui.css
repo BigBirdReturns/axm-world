@@ -585,3 +585,10 @@
   background: #0b0a08;
   font: 13px/1.4 var(--px-font);
 }
+
+/* Themed contract-card title motif (cartridge skins; absent → no effect). */
+.pixel-contract-card__title-motif {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-right: 5px;
+}
