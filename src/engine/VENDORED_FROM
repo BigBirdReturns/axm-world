@@ -21,5 +21,5 @@
 
 repo: BigBirdReturns/axm-arc
 paths: src/engine src/arcs tests/engine tests/fixtures
-commit: 6ba9323026076f5e7ac97699fd6d42ab6e4980da
+commit: 35266f44efc9d61adde89aabd661196aa69a5885
 synced: 2026-07-03
