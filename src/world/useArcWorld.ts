@@ -307,7 +307,8 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
       setOrg(result.org);
       setPendingRewardChoices(result.pendingRewardChoices);
       const report: RunReport | undefined = result.reports[0];
-      setLastReport(report ? summarizeReport(report, arc) : null);
+      const agentName = (id: string): string => result.org.agents[id]?.name ?? org.agents[id]?.name ?? id;
+      setLastReport(report ? summarizeReport(report, arc, agentName) : null);
     },
     [arc, org, scene, difficultyModeId],
   );

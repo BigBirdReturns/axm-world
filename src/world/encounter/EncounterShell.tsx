@@ -184,14 +184,53 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
             </div>
             {resolution && <p className="encs-narrative">{resolution.narrative}</p>}
 
+            {/* Summary first, in player language: what happened, then why. No raw
+                "score / threshold" fractions — score vs target, and the margin. */}
             <div className="encs-section">
               <div className="encs-section-label">{t("encounterShell.objectives")}</div>
-              <ul className="encs-report-lines">
-                {report.lines.map((line, i) => (
-                  <li key={i} className="encs-report-line">{line}</li>
-                ))}
-              </ul>
+              {report.objectives.map((o, i) => (
+                <div key={i} className={`encs-obj-summary encs-obj-summary--${o.passed ? "pass" : "fail"}`} data-testid={`encs-obj-summary-${o.id}`}>
+                  <div className="encs-obj-heading">
+                    <span className="encs-obj-mark">{o.passed ? "✓" : "✗"}</span>
+                    {o.passed ? t("encounterShell.objectiveCleared", { name: o.name }) : t("encounterShell.objectiveNotCleared", { name: o.name })}
+                  </div>
+                  <div className="encs-obj-plain">
+                    {o.attribute
+                      ? (o.passed ? t("encounterShell.reqCheckPassed", { attr: o.attribute }) : t("encounterShell.reqCheckFailed", { attr: o.attribute }))
+                      : (o.passed ? t("encounterShell.reqCheckPassedNoAttr") : t("encounterShell.reqCheckFailedNoAttr"))}
+                  </div>
+                  {o.best && (
+                    <div className="encs-obj-best">
+                      {t("encounterShell.best", { name: o.best.agentName, score: o.best.score, target: o.best.target })}
+                    </div>
+                  )}
+                  <div className="encs-obj-coverage">
+                    {o.passedCount === o.totalCount
+                      ? t("encounterShell.coverageAll", { count: o.totalCount })
+                      : t("encounterShell.coveragePartial", { passed: o.passedCount, total: o.totalCount })}
+                  </div>
+                </div>
+              ))}
             </div>
+
+            {/* Raw per-agent numbers behind an expandable row — still player-worded. */}
+            <details className="encs-detail" data-testid="encs-agent-detail">
+              <summary className="encs-section-label">{t("encounterShell.detail")}</summary>
+              {report.objectives.map((o) => (
+                <div key={o.id} className="encs-detail-group">
+                  {report.objectives.length > 1 && <div className="encs-detail-obj">{o.name}</div>}
+                  <ul className="encs-report-lines">
+                    {o.contributions.map((c, i) => (
+                      <li key={i} className="encs-report-line">
+                        {c.passed
+                          ? t("encounterShell.agentPassedBy", { name: c.agentName, score: c.score, target: c.target, margin: c.margin })
+                          : t("encounterShell.agentShortBy", { name: c.agentName, score: c.score, target: c.target, margin: Math.abs(c.margin) })}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </details>
 
             {resolution && (
               <div className="encs-section">

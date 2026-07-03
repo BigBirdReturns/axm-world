@@ -173,6 +173,18 @@ export type MessageId =
   | "encounterShell.reach"
   | "encounterShell.resolve"
   | "encounterShell.ledger"
+  | "encounterShell.detail"
+  | "encounterShell.objectiveCleared"
+  | "encounterShell.objectiveNotCleared"
+  | "encounterShell.reqCheckPassed"
+  | "encounterShell.reqCheckFailed"
+  | "encounterShell.reqCheckPassedNoAttr"
+  | "encounterShell.reqCheckFailedNoAttr"
+  | "encounterShell.best"
+  | "encounterShell.coverageAll"
+  | "encounterShell.coveragePartial"
+  | "encounterShell.agentPassedBy"
+  | "encounterShell.agentShortBy"
   | "encounterShell.unlocks"
   | "encounterShell.worldChanges"
   | "encounterShell.leave"
@@ -181,6 +193,16 @@ export type MessageId =
   | "presentations.board.blurb"
   | "presentations.board.controlsHint"
   | "presentations.board.purpose"
+  | "presentations.map.label"
+  | "presentations.map.blurb"
+  | "presentations.map.controlsHint"
+  | "presentations.map.purpose"
+  | "worldMap.difficulty"
+  | "worldMap.enterEncounter"
+  | "worldMap.stateLocked"
+  | "worldMap.stateAvailable"
+  | "worldMap.stateActive"
+  | "worldMap.stateRecorded"
   | "presentations.globe.label"
   | "presentations.globe.blurb"
   | "presentations.globe.controlsHint"
@@ -445,6 +467,18 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounterShell.reach": (params) => `Reach ${num(params, "n")}`,
     "encounterShell.resolve": "Resolve Encounter",
     "encounterShell.ledger": "Ledger writeback",
+    "encounterShell.detail": "Per-agent detail",
+    "encounterShell.objectiveCleared": (params) => `${str(params, "name")} cleared.`,
+    "encounterShell.objectiveNotCleared": (params) => `${str(params, "name")} not cleared.`,
+    "encounterShell.reqCheckPassed": (params) => `The party beat the required ${str(params, "attr")} check.`,
+    "encounterShell.reqCheckFailed": (params) => `The party fell short of the required ${str(params, "attr")} check.`,
+    "encounterShell.reqCheckPassedNoAttr": "The party cleared the check.",
+    "encounterShell.reqCheckFailedNoAttr": "The party fell short of the check.",
+    "encounterShell.best": (params) => `Best: ${str(params, "name")} — ${num(params, "score")} vs target ${num(params, "target")}.`,
+    "encounterShell.coverageAll": (params) => `All ${num(params, "count")} assigned agents contributed.`,
+    "encounterShell.coveragePartial": (params) => `${num(params, "passed")} of ${num(params, "total")} cleared it.`,
+    "encounterShell.agentPassedBy": (params) => `${str(params, "name")}: ${num(params, "score")} vs target ${num(params, "target")}, passed by +${num(params, "margin")}`,
+    "encounterShell.agentShortBy": (params) => `${str(params, "name")}: ${num(params, "score")} vs target ${num(params, "target")}, short by ${num(params, "margin")}`,
     "encounterShell.unlocks": "Unlocks",
     "encounterShell.worldChanges": "World changes",
     "encounterShell.leave": "Leave",
@@ -453,6 +487,16 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.board.blurb": "2D contract board — readable cards, gates, risk, rewards, recorded marks",
     "presentations.board.controlsHint": "select a contract card",
     "presentations.board.purpose": "The cartridge's work as board-game cards: choose a place, inspect gates and risk, then manage the roster.",
+    "presentations.map.label": "Map",
+    "presentations.map.blurb": "2D world map — the same contracts as locations, by region, with state and an enter-encounter action",
+    "presentations.map.controlsHint": "pick a location, or enter its encounter",
+    "presentations.map.purpose": "The cartridge's contracts as world locations, grouped by region: see what's available, active, or recorded, and walk into an encounter.",
+    "worldMap.difficulty": "Difficulty",
+    "worldMap.enterEncounter": "Enter Encounter",
+    "worldMap.stateLocked": "Locked",
+    "worldMap.stateAvailable": "Available",
+    "worldMap.stateActive": "Active",
+    "worldMap.stateRecorded": "Recorded",
     "presentations.globe.label": "Planet",
     "presentations.globe.blurb": "3D world — optional spatial renderer",
     "presentations.globe.controlsHint": "drag to orbit · scroll to zoom · right-drag to pan · click a ◆ contract",
@@ -682,6 +726,18 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounterShell.reach": (params) => `達到 ${num(params, "n")}`,
     "encounterShell.resolve": "解決遭遇",
     "encounterShell.ledger": "帳本更新",
+    "encounterShell.detail": "各人員細節",
+    "encounterShell.objectiveCleared": (params) => `${str(params, "name")} 已完成。`,
+    "encounterShell.objectiveNotCleared": (params) => `${str(params, "name")} 未完成。`,
+    "encounterShell.reqCheckPassed": (params) => `隊伍以充足優勢通過了所需的${str(params, "attr")}檢定。`,
+    "encounterShell.reqCheckFailed": (params) => `隊伍未達到所需的${str(params, "attr")}檢定。`,
+    "encounterShell.reqCheckPassedNoAttr": "隊伍通過了檢定。",
+    "encounterShell.reqCheckFailedNoAttr": "隊伍未通過檢定。",
+    "encounterShell.best": (params) => `最佳：${str(params, "name")} — ${num(params, "score")}，目標 ${num(params, "target")}。`,
+    "encounterShell.coverageAll": (params) => `全部 ${num(params, "count")} 名指派人員皆有貢獻。`,
+    "encounterShell.coveragePartial": (params) => `${num(params, "total")} 名中有 ${num(params, "passed")} 名通過。`,
+    "encounterShell.agentPassedBy": (params) => `${str(params, "name")}：${num(params, "score")}，目標 ${num(params, "target")}，超出 +${num(params, "margin")}`,
+    "encounterShell.agentShortBy": (params) => `${str(params, "name")}：${num(params, "score")}，目標 ${num(params, "target")}，不足 ${num(params, "margin")}`,
     "encounterShell.unlocks": "解鎖",
     "encounterShell.worldChanges": "世界變化",
     "encounterShell.leave": "離開",
@@ -690,6 +746,16 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.board.blurb": "2D 契約板 — 易讀卡片、關卡、風險、獎勵、已記錄標記",
     "presentations.board.controlsHint": "點選契約卡片",
     "presentations.board.purpose": "以桌遊卡片呈現卡匣的工作：選擇地點、檢視關卡與風險，再管理名冊。",
+    "presentations.map.label": "地圖",
+    "presentations.map.blurb": "2D 世界地圖 — 相同契約化為地點，依地區分組，顯示狀態並可進入遭遇",
+    "presentations.map.controlsHint": "選擇地點，或進入其遭遇",
+    "presentations.map.purpose": "將卡匣的契約呈現為世界地點，依地區分組：查看可用、進行中或已記錄的狀態，並走入遭遇。",
+    "worldMap.difficulty": "難度",
+    "worldMap.enterEncounter": "進入遭遇",
+    "worldMap.stateLocked": "鎖定",
+    "worldMap.stateAvailable": "可用",
+    "worldMap.stateActive": "進行中",
+    "worldMap.stateRecorded": "已記錄",
     "presentations.globe.label": "星球",
     "presentations.globe.blurb": "3D 世界 — 選用的空間化渲染器",
     "presentations.globe.controlsHint": "拖曳以環繞 · 滾動以縮放 · 按右鍵拖曳以平移 · 點選 ◆ 契約",

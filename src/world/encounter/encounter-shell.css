@@ -140,6 +140,28 @@
   text-align: center;
 }
 .encs-narrative { margin: 0; font: 13px/1.45 system-ui, sans-serif; color: #3a342b; }
+/* Per-objective summary — player language: what happened, then why, then who led. */
+.encs-obj-summary {
+  border-left: 3px solid #4f8a52;
+  padding: 2px 0 6px 10px;
+  margin-bottom: 8px;
+}
+.encs-obj-summary--fail { border-left-color: #b01c18; }
+.encs-obj-heading { display: flex; align-items: baseline; gap: 6px; font: 800 14px system-ui, sans-serif; color: #2a251e; }
+.encs-obj-mark { font: 800 13px 'IBM Plex Mono', ui-monospace, monospace; flex: none; }
+.encs-obj-summary--pass .encs-obj-mark { color: #4f8a52; }
+.encs-obj-summary--fail .encs-obj-mark { color: #b01c18; }
+.encs-obj-plain { margin-top: 3px; font: 13px/1.4 system-ui, sans-serif; color: #3a342b; }
+.encs-obj-best { margin-top: 3px; font: 700 12px 'IBM Plex Mono', ui-monospace, monospace; color: var(--teal-dark, #3c6480); }
+.encs-obj-coverage { margin-top: 2px; font: 11px 'IBM Plex Mono', ui-monospace, monospace; color: var(--stone, #6a6459); }
+
+/* Per-agent rows demoted to a collapsible detail block. */
+.encs-detail { border-top: 1px solid var(--cream-border, #cbbfa6); padding-top: 8px; }
+.encs-detail > summary { cursor: pointer; list-style: revert; }
+.encs-detail[open] > summary { margin-bottom: 6px; }
+.encs-detail-group { margin-bottom: 6px; }
+.encs-detail-obj { font: 700 10px 'IBM Plex Mono', ui-monospace, monospace; text-transform: uppercase; letter-spacing: 0.05em; color: var(--teal-dark, #3c6480); margin-bottom: 2px; }
+
 .encs-report-lines, .encs-ledger, .encs-unlocks, .encs-worldchanges { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
 .encs-report-line { font: 12px 'IBM Plex Mono', ui-monospace, monospace; color: #4a443a; }
 .encs-ledger-line { font: 700 12px 'IBM Plex Mono', ui-monospace, monospace; color: #2a251e; }

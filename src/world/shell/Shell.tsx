@@ -166,10 +166,18 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   const showPurpose = !dismissedPurpose[active.id] && !modalOpen;
   const dismissPurpose = () => setDismissedPurpose((p) => ({ ...p, [active.id]: true }));
 
+  // Enter the compiled encounter directly from a surface (the world map's ENTER
+  // ENCOUNTER pin). Selecting first keeps the encounter's challengeId in sync with
+  // the rest of the shell, exactly like the board's PLAY ENCOUNTER path.
+  const enterEncounter = (challengeId: string) => {
+    ix.select(challengeId);
+    setEncounterOpen(true);
+  };
+
   const PresentationScene = active.Scene;
   const stage = (
     <div data-testid="representation-region" style={{ position: "absolute", inset: 0 }}>
-      <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} active />
+      <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} active onEnterEncounter={enterEncounter} />
     </div>
   );
   const contextStrip = <ViewContextStrip rep={active} showPurpose={showPurpose} onDismiss={dismissPurpose} />;

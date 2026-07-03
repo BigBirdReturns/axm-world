@@ -65,7 +65,7 @@ describe("engine-level onboarding grammar", () => {
       partyCount: 0,
       min: 0,
       canRun: false,
-      lastReport: { challengeId: "dummy-node-1", challengeName: "Audit Intake", outcome: "success", lines: [], rewardSummary: "Recorded" },
+      lastReport: { challengeId: "dummy-node-1", challengeName: "Audit Intake", outcome: "success", objectives: [], lines: [], rewardSummary: "Recorded" },
       arcComplete: false,
     })).toContain("Outcome recorded");
   });
