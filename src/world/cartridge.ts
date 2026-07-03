@@ -12,7 +12,7 @@
 
 import type { Arc, TrustLabel } from "../engine/types.js";
 import { validateArc } from "../engine/schema.js";
-import { FIRST_CHARTER } from "../arcs/index.js";
+import { FIRST_CHARTER, KARAZHAN } from "../arcs/index.js";
 import type { CostumeId } from "./presentation-prefs.js";
 
 /**
@@ -132,7 +132,16 @@ export const FIRST_CHARTER_CARTRIDGE: Cartridge = {
   opening: FIRST_CHARTER_OPENING,
 };
 
-export const BUNDLED_CARTRIDGES: Cartridge[] = [FIRST_CHARTER_CARTRIDGE];
+/** The second bundled game: Karazhan. Structurally distinct from First Charter —
+ *  raid roles, attunement gates, and (unlike First Charter) an authored Heroic
+ *  difficulty mode. That authored lever is what lets its encounters offer a
+ *  posture choice while First Charter's cannot. No opening beat authored. */
+export const KARAZHAN_CARTRIDGE: Cartridge = {
+  manifest: manifestForArc(KARAZHAN, "bundled", "board"),
+  arc: KARAZHAN,
+};
+
+export const BUNDLED_CARTRIDGES: Cartridge[] = [FIRST_CHARTER_CARTRIDGE, KARAZHAN_CARTRIDGE];
 
 /**
  * Load a cartridge from arbitrary input. Accepts EITHER a full `{ manifest, arc }`

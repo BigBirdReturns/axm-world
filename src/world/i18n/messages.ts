@@ -197,6 +197,8 @@ export type MessageId =
   | "encounterShell.projRisky"
   | "encounterShell.projFailing"
   | "encounterShell.projNone"
+  | "encounterShell.posture"
+  | "encounterShell.postureStandard"
   // ── presentations (representation switcher) ────────────────────────────
   | "presentations.board.label"
   | "presentations.board.blurb"
@@ -500,6 +502,8 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounterShell.projRisky": "Risky",
     "encounterShell.projFailing": "Failing",
     "encounterShell.projNone": "Assign a squad",
+    "encounterShell.posture": "Posture",
+    "encounterShell.postureStandard": "Standard",
 
     "presentations.board.label": "Board",
     "presentations.board.blurb": "2D contract board — readable cards, gates, risk, rewards, recorded marks",
@@ -768,6 +772,8 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounterShell.projRisky": "有風險",
     "encounterShell.projFailing": "恐將失敗",
     "encounterShell.projNone": "指派隊伍",
+    "encounterShell.posture": "姿態",
+    "encounterShell.postureStandard": "標準",
 
     "presentations.board.label": "契約板",
     "presentations.board.blurb": "2D 契約板 — 易讀卡片、關卡、風險、獎勵、已記錄標記",

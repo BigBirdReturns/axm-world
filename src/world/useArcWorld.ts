@@ -9,6 +9,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { Arc, DramaCard, DramaCardEffect, Organization, RunReport } from "../engine/types.js";
 import type { ChallengeAssignment, PendingRewardChoice } from "../engine/cycle.js";
 import { runCycle } from "../engine/cycle.js";
+import { applyDifficultyMode } from "../engine/difficulty.js";
 import { awardItem } from "../engine/rewards.js";
 import { resolveDramaCard } from "../engine/drama.js";
 import { bootstrapOrg } from "../spoke/bootstrap.js";
@@ -124,10 +125,12 @@ export interface ArcWorld {
   /** Structured requirements (roles, checks, thresholds) for the contract panel. */
   describeContract: (challengeId: string) => ContractRequirements | null;
   /** The playable-encounter projection of the contract (objectives, hazards,
-   * party slots, resolutions) — same source record as the board card. */
-  encounterFor: (challengeId: string) => EncounterSpec | null;
-  /** Faithful projection of the resolver for a candidate party. */
-  evaluateParty: (challengeId: string, agentIds: string[]) => PartyReadiness | null;
+   * party slots, resolutions) — same source record as the board card. Pass a
+   * difficultyModeId to preview the contract under an authored posture. */
+  encounterFor: (challengeId: string, difficultyModeId?: string | null) => EncounterSpec | null;
+  /** Faithful projection of the resolver for a candidate party, optionally under
+   * an authored difficulty posture. */
+  evaluateParty: (challengeId: string, agentIds: string[], difficultyModeId?: string | null) => PartyReadiness | null;
   /** Plain-language reason the recommended party is the recommended party. */
   recommendationFor: (challengeId: string) => string | null;
   /** Actionable fixes for a weak party: add/swap/downtime/risk. */
@@ -145,7 +148,7 @@ export interface ArcWorld {
   /** Selected mode id, or null for base difficulty. Applied on the next run. */
   difficultyModeId: string | null;
   setDifficultyModeId: (id: string | null) => void;
-  runChallenge: (challengeId: string, agentIds: string[]) => void;
+  runChallenge: (challengeId: string, agentIds: string[], difficultyModeId?: string | null) => void;
   resolveDecision: (optionId: string) => void;
   applyDowntime: (agentId: string, action: DowntimeAction) => void;
   /** The portable custody object: manifest + arc + run state. */
@@ -243,22 +246,37 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     [arc],
   );
 
-  const encounterFor = useCallback(
-    (challengeId: string): EncounterSpec | null => {
+  // Resolve a challenge, applying an authored difficulty mode when one is chosen.
+  // Ungated presentation of the same transform runCycle uses (engine/difficulty.ts),
+  // so the encounter's objectives and projection preview the posture the resolver
+  // will actually apply. A null/unknown mode returns the base challenge unchanged.
+  const challengeWithMode = useCallback(
+    (challengeId: string, modeId: string | null | undefined) => {
       const c = arc.challenges.find((x) => x.id === challengeId);
+      if (!c) return null;
+      if (!modeId) return c;
+      const mode = arc.difficultyModes.find((m) => m.id === modeId);
+      return mode ? applyDifficultyMode(c, mode) : c;
+    },
+    [arc],
+  );
+
+  const encounterFor = useCallback(
+    (challengeId: string, difficultyModeId?: string | null): EncounterSpec | null => {
+      const c = challengeWithMode(challengeId, difficultyModeId);
       return c ? compileEncounter(c, org, arc) : null;
     },
-    [arc, org],
+    [arc, org, challengeWithMode],
   );
 
   const evaluateParty = useCallback(
-    (challengeId: string, agentIds: string[]): PartyReadiness | null => {
-      const c = arc.challenges.find((x) => x.id === challengeId);
+    (challengeId: string, agentIds: string[], difficultyModeId?: string | null): PartyReadiness | null => {
+      const c = challengeWithMode(challengeId, difficultyModeId);
       if (!c) return null;
       const party = agentIds.map((id) => org.agents[id]).filter((a): a is NonNullable<typeof a> => !!a);
       return evaluatePartyReq(c, party, arc);
     },
-    [arc, org],
+    [arc, org, challengeWithMode],
   );
 
   const recommendationFor = useCallback(
@@ -289,18 +307,21 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   );
 
   const runChallenge = useCallback(
-    (challengeId: string, agentIds: string[]) => {
+    (challengeId: string, agentIds: string[], modeOverride?: string | null) => {
       const challenge = arc.challenges.find((c) => c.id === challengeId);
       if (!challenge) return;
       const node = scene.nodes.find((n) => n.challengeId === challengeId);
       if (node && node.status !== "available") return;
+      // The encounter's posture choice wins when supplied (including an explicit
+      // null = base); otherwise fall back to the board-level mode selection.
+      const effectiveMode = modeOverride !== undefined ? modeOverride : difficultyModeId;
       const assignment: ChallengeAssignment = {
         challengeId,
         agentIds: agentIds.slice(0, challenge.rosterRequirements.maxAgents),
         tokensSpent: org.resources.tokens > 0 ? 1 : 0,
-        // Base difficulty unless the player picked an authored mode; the
-        // vendored runCycle applies the transform (engine/difficulty.ts).
-        ...(difficultyModeId !== null ? { difficultyModeId } : {}),
+        // Base difficulty unless a mode is chosen; the vendored runCycle applies
+        // the transform (engine/difficulty.ts).
+        ...(effectiveMode !== null ? { difficultyModeId: effectiveMode } : {}),
       };
       setLastEquip(null);
       const result = runCycle({ org, arc, assignments: [assignment] });

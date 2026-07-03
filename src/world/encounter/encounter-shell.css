@@ -130,6 +130,34 @@
 
 /* Deploy step: two columns (in the room / reserve) + a live projection banner. */
 .encs-deploy-range { font: 600 10px 'IBM Plex Mono', ui-monospace, monospace; color: var(--stone, #6a6459); text-transform: none; letter-spacing: 0; }
+
+/* Posture chooser — the second agency type (only rendered when authored). */
+.encs-posture-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.encs-posture-btn {
+  border: 1px solid var(--cream-border, #cbbfa6);
+  background: var(--cream, #efe7d6);
+  color: #3a342b;
+  font: 700 11px 'IBM Plex Mono', ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+.encs-posture-btn:hover { background: var(--cream-mid, #e4dac7); }
+.encs-posture-btn--on {
+  background: var(--gold, #c9a14a);
+  border-color: var(--gold-border, #a9772a);
+  color: var(--ink, #241c14);
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.25);
+}
+.encs-posture-record {
+  font: 12px system-ui, sans-serif;
+  color: #3a342b;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--cream-border, #cbbfa6);
+  margin-bottom: 4px;
+}
+.encs-posture-record strong { color: var(--gold-dark, #b07d2a); }
 .encs-muster { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .encs-muster-head { font: 700 9px 'IBM Plex Mono', ui-monospace, monospace; text-transform: uppercase; letter-spacing: 0.06em; color: var(--stone, #6a6459); margin-bottom: 4px; }
 .encs-muster-empty { font: italic 11px system-ui, sans-serif; color: var(--stone, #8a8276); }
