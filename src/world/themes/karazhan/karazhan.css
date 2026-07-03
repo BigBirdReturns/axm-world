@@ -118,3 +118,49 @@
 :root[data-cartridge="karazhan"] .contract-board-header {
   border-bottom: 1px solid rgba(79, 125, 158, 0.4);
 }
+
+/* ── Silhouette polish ── haunted-tower detailing (CSS only) ──────────────────
+   Pushes the raid-night identity harder at screenshot scale: a lantern-blue
+   sconce flanking each gothic wing header, a spectral inner glow on the manor
+   card frames, and a colder flicker over the theatrical field. All scoped; no
+   layout or legibility change. */
+
+/* Wing header carries a lantern sconce on its lantern-blue edge + a gothic
+   double-rule beneath. */
+:root[data-cartridge="karazhan"] .contract-lane__title {
+  position: relative;
+  box-shadow: 3px 3px 0 #0c0813, inset 0 -2px 0 -1px rgba(79, 125, 158, 0.5);
+  padding-right: 26px;
+}
+:root[data-cartridge="karazhan"] .contract-lane__title::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 11px;
+  height: 11px;
+  transform: translateY(-50%);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: radial-gradient(circle at 50% 35%, #9fd0f2, #4f7d9e 70%);
+  box-shadow: 0 0 7px 1px rgba(111, 174, 219, 0.65);
+}
+
+/* Manor portraits: a faint arcane light bleeds from within the heavy frame. */
+:root[data-cartridge="karazhan"] .pixel-contract-card__panel {
+  box-shadow: 3px 3px 0 #0c0813, inset 0 0 14px rgba(87, 74, 122, 0.35);
+}
+
+/* A colder spectral flicker deepens the theatrical field. */
+:root[data-cartridge="karazhan"] .contract-board-shell {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(111, 174, 219, 0.08), transparent 30%),
+    radial-gradient(circle at 50% 0%, rgba(87, 74, 122, 0.38), transparent 46%),
+    radial-gradient(circle at 82% 82%, rgba(79, 125, 158, 0.16), transparent 42%),
+    radial-gradient(120% 90% at 50% 120%, rgba(0, 0, 0, 0.6), transparent 60%),
+    linear-gradient(180deg, #1f1730, #0d0917 74%);
+}
+
+/* Lantern-blue affordance: interactive chrome warms to arcane on hover. */
+:root[data-cartridge="karazhan"] .pixel-button--cta:hover {
+  box-shadow: 0 0 10px 1px rgba(111, 174, 219, 0.4);
+}
