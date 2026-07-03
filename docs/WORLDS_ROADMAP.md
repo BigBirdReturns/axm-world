@@ -54,7 +54,9 @@ renders the matching interaction. It never invents a lever the resolver ignores.
 
 This is the sovereignty rule made mechanical: **the cartridge record stays
 authoritative; the UI does not fabricate choice to entertain the player.** "There
-is no meaningful choice here" is as valid a render as offering one.
+is no meaningful choice here" is as valid a render as offering one. This section is
+the *enforcement*; `docs/POSITIONING.md` ("The anti-extractive contract") is *why
+the rule exists*.
 
 ### The taxonomy (render selected from authored levers)
 
