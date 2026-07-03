@@ -163,6 +163,19 @@ export type MessageId =
   | "encounter.outcomePartial"
   | "encounter.outcomeFailure"
   | "encounter.outcomeRecordedFallback"
+  // ── encounter shell (playable encounter surface) ────────────────────────
+  | "encounterShell.playEncounter"
+  | "encounterShell.difficulty"
+  | "encounterShell.derivedNote"
+  | "encounterShell.objectives"
+  | "encounterShell.party"
+  | "encounterShell.hazards"
+  | "encounterShell.reach"
+  | "encounterShell.resolve"
+  | "encounterShell.ledger"
+  | "encounterShell.unlocks"
+  | "encounterShell.worldChanges"
+  | "encounterShell.leave"
   // ── presentations (representation switcher) ────────────────────────────
   | "presentations.board.label"
   | "presentations.board.blurb"
@@ -423,6 +436,19 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounter.outcomeFailure": "They came back empty-handed.",
     "encounter.outcomeRecordedFallback": "Outcome recorded.",
 
+    "encounterShell.playEncounter": "Play Encounter",
+    "encounterShell.difficulty": "Difficulty",
+    "encounterShell.derivedNote": "Compiled from the contract — objectives, hazards, party, and rewards are derived, not hand-authored.",
+    "encounterShell.objectives": "Objectives",
+    "encounterShell.party": "Party",
+    "encounterShell.hazards": "Hazards",
+    "encounterShell.reach": (params) => `Reach ${num(params, "n")}`,
+    "encounterShell.resolve": "Resolve Encounter",
+    "encounterShell.ledger": "Ledger writeback",
+    "encounterShell.unlocks": "Unlocks",
+    "encounterShell.worldChanges": "World changes",
+    "encounterShell.leave": "Leave",
+
     "presentations.board.label": "Board",
     "presentations.board.blurb": "2D contract board — readable cards, gates, risk, rewards, recorded marks",
     "presentations.board.controlsHint": "select a contract card",
@@ -646,6 +672,19 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounter.outcomePartial": "勉強算是部分成功。",
     "encounter.outcomeFailure": "隊伍空手而歸。",
     "encounter.outcomeRecordedFallback": "結果已記錄。",
+
+    "encounterShell.playEncounter": "進行遭遇",
+    "encounterShell.difficulty": "難度",
+    "encounterShell.derivedNote": "由契約編譯而成 — 目標、危害、隊伍與獎勵皆為衍生，並非手動撰寫。",
+    "encounterShell.objectives": "目標",
+    "encounterShell.party": "隊伍",
+    "encounterShell.hazards": "危害",
+    "encounterShell.reach": (params) => `達到 ${num(params, "n")}`,
+    "encounterShell.resolve": "解決遭遇",
+    "encounterShell.ledger": "帳本更新",
+    "encounterShell.unlocks": "解鎖",
+    "encounterShell.worldChanges": "世界變化",
+    "encounterShell.leave": "離開",
 
     "presentations.board.label": "契約板",
     "presentations.board.blurb": "2D 契約板 — 易讀卡片、關卡、風險、獎勵、已記錄標記",

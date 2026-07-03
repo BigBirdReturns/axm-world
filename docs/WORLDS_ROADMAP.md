@@ -1,131 +1,130 @@
-# Worlds Roadmap — sequencing "Cartridges → Playable Worlds"
+# Worlds Roadmap — "One contract, four surfaces"
 
-**Purpose.** The `AXM-ARC CARTRIDGES → PLAYABLE WORLDS` vision board spans both
-repos and reaches well past what's built. This doc maps the whole pipeline to
-what actually exists today, sizes what's left, and sequences it honestly — so
-the next build starts from a shared, non-inflated picture.
+**Purpose.** The `AXM-ARC CARTRIDGES → PLAYABLE WORLDS` vision spans both repos.
+This doc maps the pipeline to what exists today and sequences what's left —
+honestly, and reordered around the one claim that actually matters: **a single
+authored contract compiles into every play surface, derived, not hand-authored.**
 
 Read alongside: `docs/POSITIONING.md` (the public claim), axm-arc `ROADMAP.md`
 (engine + authoring), axm-arc `STATUS.md` (current checkpoint).
 
-The pipeline the board asserts: **CART → SIM → WORLD → PLAY**
-(author a cartridge → run it through the deterministic engine → render it as a
-world → play it across surfaces). The honest status of each stage:
+---
+
+## 0. The thesis, and the test that governs it
+
+AXM-ARC is not a board game with a 3D planet bolted on. The cartridge is the
+source of truth, and the engine **projects** it into two equal runtime surfaces —
+a management **Board** and a playable **Planet/encounter** — plus the ledger that
+persists between them. The control question:
+
+> Can one AXM-ARC contract become a board card, a map location, an encounter, and
+> a ledger update **without hand-authoring four separate systems?**
+
+The answer must be *yes by construction*: each surface is a pure projection of the
+same `Challenge` record. If any surface needs bespoke per-contract authoring, the
+thesis is a lie and we're building four games that happen to share art.
+
+### The projection chain (the data contract)
+
+```
+ContractDefinition            engine/types.ts : Challenge   (the source record)
+  → BoardProjection           play-pipeline/compile.ts      compileArcToPlayScene + describeContract
+  → WorldNodeProjection       world/contract.ts             buildWorldLayout → WorldNode
+  → EncounterProjection       world/encounter/compile-encounter.ts   compileEncounter → EncounterSpec
+  → ResultProjection          play-pipeline/compile.ts      summarizeReport → PlayReportView
+  → LedgerPatch               engine/cycle.ts               runCycle → next Organization
+```
+
+Objectives ← `mechanicChecks`. Hazards ← each check's `failureConsequence`. Party
+slots ← `rosterRequirements`. Resolutions + ledger ← `outcomes`. Location ←
+progression tier + the challenge's own description. Unlocks / world-changes ←
+milestone flag, attunement chains, narrative events. **Zero id-specific
+branching** — feed the compiler The Cellar and you get a rat-cellar sweep; feed it
+Attumen and you get a two-objective stable fight with a tank slot.
 
 ---
 
 ## 1. Where each stage actually is
 
 ### CART — authoring (axm-arc hub) · **mostly real**
-- ✅ Author contracts, agents, roles, attributes, rules, rewards as portable
-  Arc JSON; validate; designer with writable editor fields.
-- ✅ Package/publish: `exportArcToJson` → downloadable `.arc.json`; world
-  imports it through the shipped cartridge bay. The loop is closed and
-  demoed.
+- ✅ Author contracts/agents/roles/rules/rewards as portable Arc JSON; validate;
+  designer with writable editor fields.
+- ✅ Package/publish: `exportArcToJson` → downloadable `.arc.json`; world imports
+  it through the shipped cartridge bay. The loop is closed and demoed.
 - 🔶 Gaps: lore authoring surface, deeper designer ergonomics. Small.
 
 ### SIM — deterministic engine · **real and proven**
 - ✅ 11-step cycle, content-free, deterministic (enforced), schema-validated.
-- ✅ Gates/attunements/difficulty modes live; balance provable (Karazhan sim
-  harness). This is the strongest, most-verified layer.
+- ✅ Gates/attunements/difficulty modes live; balance provable (Karazhan harness).
 
-### WORLD — render the run · **2D real, 3D stubbed**
-- ✅ The contract-board world (the "board" costume): staged desktop command
-  table + mobile turn flow, relevance-weighted roster, per-cartridge
-  identity. This is a real, playable world view.
-- 🔶 The **Planet** view exists as a costume with a three.js globe
-  (`src/world/planet/`), but it is a stub — no guild holdings, resources,
-  fleet, intel, or active-contract overlay from the mockup.
-- ❌ The mockup's full "3D Planet Overview (sim layer)" is a feature track,
-  not a styling pass.
+### WORLD — project the contract into surfaces · **compiler landed; Planet still 2D-first**
+- ✅ **Board** surface (the "board" costume): staged desktop table + mobile turn
+  flow, relevance-weighted roster, per-cartridge identity. A real play surface.
+- ✅ **Encounter** surface (NEW): `compileEncounter` derives a playable encounter
+  shell — location, objectives, threat markers, party tokens, hazards,
+  resolutions — from the contract, and resolves through the *real* engine
+  (`runChallenge` → `runCycle`) with a receipt showing the ledger writeback.
+  Proven live on The Cellar; proven to generalize (unit tests: Attumen derives a
+  distinct two-objective, tank-slotted encounter) with no hand-authoring.
+- 🔶 The **Planet** costume exists (three.js globe, `world/planet/`) but the node
+  is still a marker, not the holdings/resources/overlay world overview. The
+  compiler already emits `WorldNode` positions it can consume.
 
 ### PLAY — play across surfaces · **not started**
-- ❌ Nintendo-style co-op adventure, Roblox-style social/UGC play: entirely
-  new client render modes + real-time netcode. Large, separate initiatives.
-- ❌ Cross-play & progression (one account, one profile, cloud sync across
-  Switch/Mobile/Roblox/Web): a backend + identity track, not a repo-local
-  code pass.
-
-### Presentation polish (cross-cutting)
-- ✅ Silhouette identity, control tokens, relevance-weighting shipped.
-- 🔶 Ornate decorative layer (gold-filigree frames, wax seal + signature +
-  ledger note, lantern-flanked CTA, spectral/skull dividers): **achievable in
-  CSS/SVG**, extends the merged theme system.
-- ❌ Painted card backgrounds (spectral rider, opera hall, rat-warren art):
-  **needs real illustration assets.** Cannot be fabricated in code, and the
-  asset-provenance guard correctly rejects invented art claimed as sourced.
+- ❌ Co-op adventure / social UGC play: new client render modes + real-time
+  netcode. Large, separate initiatives.
+- ❌ Cross-play & progression (one account/profile, cloud sync): a backend +
+  identity track, not a repo-local code pass.
 
 ---
 
-## 2. Honest tiering of what's left
+## 2. Recommended sequence — proof before polish
 
-| Track | Nature | Rough size | Blocked by |
-|---|---|---|---|
-| IP-safe rename | decision | tiny (owner call) | — |
-| Karazhan completability proof (wing-5 by hand) | verification | small | — |
-| Decorative polish (frames/seals/lanterns/dividers) | CSS/SVG | 1 session | — |
-| Result / reward-moment screen (mobile step 5) | UI | small | — |
-| Planet 3D world overview (holdings/resources/contract) | feature | medium–large | Karazhan proof (content to show) |
-| Painted card / scene art | **art production** | external | illustration assets |
-| Cross-play & progression (accounts, cloud save) | backend/identity | large | product + infra decisions |
-| PLAY modes (Nintendo co-op, Roblox social) | new clients + netcode | very large | Planet + accounts, new render + net stack |
+Reordered so the CSS/decorative work can't become the place we hide from the hard
+proof. The compiler bridge is the spine; everything else hangs off it.
 
-Two of these are **not a code pass in this repo**: painted art (needs an
-illustrator or licensed assets) and cross-play/multiplayer (needs a backend,
-identity, and netcode — a product initiative, not a styling ticket). Naming
-that plainly now avoids promising screenshots the code can't produce.
+**0. IP-safe rename (decision, owner's call).** "Karazhan"/"Violet Eye"/boss names
+are Warcraft IP — fine for a private proof, a blocker for anything public. Every
+downstream track hardens the naming, so decide before, not after.
 
----
+**1. Prove Karazhan is completable by hand (wing-5).** The sim clears it in
+autoplay, but no human has played Spire → Beyond-the-Tower. Do this before
+rendering that content into worlds.
 
-## 3. Recommended sequence — and why
+**2. The one-contract vertical slice — Board → Planet-node → Encounter → Result →
+Ledger.** ✅ **Landed for the Board+Encounter+Result+Ledger legs; Planet-node leg
+is the WorldNode projection, still rendered as a marker.** The contract compiles
+into a playable encounter and writes the sim ledger. This is the thesis made
+mechanical — the rest of the roadmap is now *expansion*, not *proof*.
 
-Ordered by *reversibility first, proof before polish, unlock-the-pitch* — the
-same discipline that's governed the project (STATUS.md lesson 6).
+**3. Result / reward-moment screen (mobile step 5).** The encounter receipt closes
+the loop on desktop and in the shell; the dedicated mobile result step is the one
+staged panel still to build. Small.
 
-**0. IP-safe rename (decision, do first).** "Karazhan", "Violet Eye", and the
-boss names are Warcraft IP. Fine for a private proof; a blocker for anything
-public. Every downstream track (Planet, PLAY, marketing) hardens the naming
-further, so decide before, not after. Cheapest possible lever; only the owner
-can pull it.
+**4. Decorative polish (frames/seals/lanterns/dividers).** CSS/SVG, low risk,
+extends the shipped silhouette so the live build matches the mockups (minus
+painted art). Valuable — but explicitly *after* the proof, not instead of it.
 
-**1. Prove Karazhan is completable (wing-5 by hand).** The balance sim clears
-it in autoplay, but no human has played the Spire → Beyond-the-Tower. Do this
-before investing in worlds that *render* that content — a world overview of a
-game that dead-ends is worse than no overview.
+**5. Planet → world overview.** Grow the three.js Planet stub into the sim-layer
+overview (holdings, resources, active contract, time state) that consumes the
+`WorldNode` projection. Ship 2D/isometric first; don't gate the concept on 3D.
 
-**2. Decorative polish (the achievable mockup layer).** Frames, seals,
-lanterns, dividers — CSS/SVG, low risk, extends the shipped silhouette. This
-is the single highest pitch-value-per-effort item: it makes the live build
-match the desktop/mobile mockups (minus painted art). One session.
-
-**3. Result / reward-moment screen.** The mobile flow's step 5 ("SUCCESS +
-rewards") is the one staged step not yet built. Small, and it visibly closes
-the turn loop the last pass opened.
-
-**4. Planet → world overview.** Grow the existing three.js Planet stub into
-the sim-layer overview: guild holdings, resources, active contract, time
-state. This is the real "WORLD" stage and the bridge from "a board" to
-"a world." Can ship a 2D/isometric map first and upgrade to full 3D — don't
-gate the concept on the 3D.
-
-**5+. Cross-play/progression, then PLAY modes.** Accounts + cloud save is the
-prerequisite for "play anywhere" and any multiplayer; the Nintendo/Roblox
-surfaces depend on it plus new render/net stacks. These are multi-quarter
-product initiatives, scoped separately when the earlier tiers land. Not code
-passes.
+**6. Cross-play/progression, then PLAY modes.** Accounts + cloud save precede any
+"play anywhere" / multiplayer; the co-op/social surfaces depend on it plus new
+render/net stacks. Multi-quarter product initiatives, scoped separately.
 
 ---
 
-## 4. What I can build vs. what I can't
+## 3. What I can build vs. what I can't
 
-- **Can, in-repo, now:** everything in tiers 1–4 (verification, CSS/SVG
-  polish, the result screen, and a first Planet overview using the three.js
-  layer already present).
-- **Can't, from code alone:** painted illustrations (need an artist/assets)
-  and cross-play/multiplayer (need backend, identity, netcode). I can scope
-  and prototype the *shells* for those, but the substance is external.
+- **Can, in-repo, now:** tiers 1–5 (verification, the result screen, CSS/SVG
+  polish, and a first Planet overview using the three.js layer + the WorldNode
+  projection already present).
+- **Can't, from code alone:** painted illustrations (need an artist/assets) and
+  cross-play/multiplayer (need backend, identity, netcode). I can scope and
+  prototype the *shells*; the substance is external.
 
-**Recommended immediate next step:** the rename decision is yours; assuming
-that's parked, tiers 1→2→3 are the fastest path to a build that looks and
-plays like the mockups on the surfaces that already exist — proof, then
-polish, then the world overview. Say which tier to start and I'll take it.
+The compiler bridge (tier 2) is the load-bearing proof and it is now in the build.
+The honest next lever is the owner's rename call (0) and the Karazhan
+completability pass (1); after that, the result screen (3) and Planet overview (5)
+are the highest-value expansions of a thesis that no longer has to be argued.
