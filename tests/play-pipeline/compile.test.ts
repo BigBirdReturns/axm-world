@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Agent, Facility, InfrastructureFacility, Organization } from "../../src/engine/types.js";
 import { runCycle } from "../../src/engine/cycle.js";
 import { FIRST_CHARTER, FIRST_CHARTER_STARTING_RELATIONSHIPS, FIRST_CHARTER_STARTING_ROSTER } from "../../src/arcs/index.js";
-import { buildPlayAssignment, compileArcToPlayScene, recommendAgentsForChallenge } from "../../src/play-pipeline/compile.js";
+import { buildPlayAssignment, compileArcToPlayScene, recommendAgentsForChallenge, summarizeReport } from "../../src/play-pipeline/compile.js";
 
 function defaultFacilities(): Record<InfrastructureFacility, Facility> {
   const names: InfrastructureFacility[] = [
@@ -53,5 +53,37 @@ describe("arc to play pipeline", () => {
     expect(result.reports).toHaveLength(1);
     expect(result.reports[0]!.challengeId).toBe("cellar");
     expect(result.org.cycle).toBe(1);
+  });
+
+  it("summarizes a report with agent names and a per-objective result summary", () => {
+    const org = demoOrg();
+    const challenge = FIRST_CHARTER.challenges.find((c) => c.id === "cellar")!;
+    const assignment = buildPlayAssignment(challenge, org, FIRST_CHARTER);
+    const result = runCycle({ org, arc: FIRST_CHARTER, assignments: [assignment] });
+    const report = result.reports[0]!;
+    const view = summarizeReport(report, FIRST_CHARTER, (id) => result.org.agents[id]?.name ?? id);
+
+    // Per-agent rows are player-readable: they carry a real name, not the raw id.
+    expect(view.lines.length).toBeGreaterThan(0);
+    const firstAssigned = report.assignedAgents[0]!.agentId;
+    const name = result.org.agents[firstAssigned]!.name;
+    expect(view.lines.some((l) => l.includes(name))).toBe(true);
+    expect(view.lines.some((l) => l.includes(firstAssigned))).toBe(false); // no raw ids leak
+
+    // Objective summary: one row per mechanic check, derived from the report.
+    expect(view.objectives).toHaveLength(challenge.mechanicChecks.length);
+    const sweep = view.objectives.find((o) => o.name === "Cellar Sweep")!;
+    expect(sweep).toBeTruthy();
+    expect(typeof sweep.passed).toBe("boolean");
+    expect(sweep.detail).toMatch(/cleared/);
+  });
+
+  it("falls back to the raw id when no name resolver is supplied", () => {
+    const org = demoOrg();
+    const challenge = FIRST_CHARTER.challenges.find((c) => c.id === "cellar")!;
+    const result = runCycle({ org, arc: FIRST_CHARTER, assignments: [buildPlayAssignment(challenge, org, FIRST_CHARTER)] });
+    const view = summarizeReport(result.reports[0]!, FIRST_CHARTER);
+    // No resolver → rows still render, keyed by id (backward-compatible default).
+    expect(view.lines.length).toBeGreaterThan(0);
   });
 });

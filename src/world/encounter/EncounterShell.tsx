@@ -184,14 +184,29 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
             </div>
             {resolution && <p className="encs-narrative">{resolution.narrative}</p>}
 
+            {/* Summary first: per-objective cleared/failed, readable at a glance. */}
             <div className="encs-section">
               <div className="encs-section-label">{t("encounterShell.objectives")}</div>
+              <ul className="encs-obj-results" data-testid="encs-obj-results">
+                {report.objectives.map((o, i) => (
+                  <li key={i} className={`encs-obj-result encs-obj-result--${o.passed ? "pass" : "fail"}`}>
+                    <span className="encs-obj-mark">{o.passed ? "✓" : "✗"}</span>
+                    <span className="encs-obj-name">{o.name}</span>
+                    <span className="encs-obj-detail">{o.detail}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Detail below: per-agent rows, resolved to names (kept, not primary). */}
+            <details className="encs-detail" data-testid="encs-agent-detail">
+              <summary className="encs-section-label">{t("encounterShell.detail")}</summary>
               <ul className="encs-report-lines">
                 {report.lines.map((line, i) => (
                   <li key={i} className="encs-report-line">{line}</li>
                 ))}
               </ul>
-            </div>
+            </details>
 
             {resolution && (
               <div className="encs-section">

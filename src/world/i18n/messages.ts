@@ -173,6 +173,7 @@ export type MessageId =
   | "encounterShell.reach"
   | "encounterShell.resolve"
   | "encounterShell.ledger"
+  | "encounterShell.detail"
   | "encounterShell.unlocks"
   | "encounterShell.worldChanges"
   | "encounterShell.leave"
@@ -445,6 +446,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounterShell.reach": (params) => `Reach ${num(params, "n")}`,
     "encounterShell.resolve": "Resolve Encounter",
     "encounterShell.ledger": "Ledger writeback",
+    "encounterShell.detail": "Per-agent detail",
     "encounterShell.unlocks": "Unlocks",
     "encounterShell.worldChanges": "World changes",
     "encounterShell.leave": "Leave",
@@ -682,6 +684,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounterShell.reach": (params) => `達到 ${num(params, "n")}`,
     "encounterShell.resolve": "解決遭遇",
     "encounterShell.ledger": "帳本更新",
+    "encounterShell.detail": "各人員細節",
     "encounterShell.unlocks": "解鎖",
     "encounterShell.worldChanges": "世界變化",
     "encounterShell.leave": "離開",

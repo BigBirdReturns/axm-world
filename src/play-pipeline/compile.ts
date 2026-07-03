@@ -51,10 +51,21 @@ export interface PlayScene {
   };
 }
 
+/** One row of the readable result summary: a mechanic check and whether the
+ *  party cleared it, derived from the engine's own per-agent passed flags. */
+export interface ObjectiveResult {
+  name: string;
+  passed: boolean;
+  detail: string;
+}
+
 export interface PlayReportView {
   challengeId: string;
   challengeName: string;
   outcome: RunReport["outcome"];
+  /** Per-objective summary (one per mechanic check), name-agnostic and readable. */
+  objectives: ObjectiveResult[];
+  /** Per-agent detail rows, resolved to agent names (not raw ids). */
   lines: string[];
   rewardSummary: string;
 }
@@ -259,7 +270,11 @@ export function buildPlayAssignment(challenge: Challenge, org: Organization, arc
   };
 }
 
-export function summarizeReport(report: RunReport, arc: Arc): PlayReportView {
+export function summarizeReport(
+  report: RunReport,
+  arc: Arc,
+  resolveAgentName: (agentId: string) => string = (agentId) => agentId,
+): PlayReportView {
   const challenge = arc.challenges.find((c) => c.id === report.challengeId);
   const outcome = challenge?.outcomes[report.outcome];
   const itemNames = report.lootDrops
@@ -267,16 +282,30 @@ export function summarizeReport(report: RunReport, arc: Arc): PlayReportView {
 
   const lines = report.assignedAgents.map((agentReport) => {
     const best = [...agentReport.mechanicResults].sort((a, b) => (b.score - b.threshold) - (a.score - a.threshold))[0];
-    const agentName = Object.values(arc.roles).length ? agentReport.agentId : agentReport.agentId;
+    const agentName = resolveAgentName(agentReport.agentId);
     if (!best) return `${agentName}: no mechanic result`;
     const mechanic = challenge?.mechanicChecks.find((check) => check.id === best.mechanicId);
-    return `${agentReport.agentId}: ${mechanic?.name ?? best.mechanicId} ${Math.round(best.score)} / ${best.threshold}`;
+    return `${agentName}: ${mechanic?.name ?? best.mechanicId} ${Math.round(best.score)} / ${best.threshold}`;
+  });
+
+  // Per-objective summary: one row per mechanic check, cleared iff every agent
+  // result the engine produced for it passed. This reads the resolver's own
+  // passed flags — it does not re-derive completion semantics.
+  const objectives: ObjectiveResult[] = (challenge?.mechanicChecks ?? []).map((check) => {
+    const results = report.assignedAgents.flatMap((ar) => ar.mechanicResults.filter((m) => m.mechanicId === check.id));
+    const passedCount = results.filter((r) => r.passed).length;
+    return {
+      name: check.name,
+      passed: results.length > 0 && passedCount === results.length,
+      detail: results.length > 0 ? `${passedCount}/${results.length} cleared` : "—",
+    };
   });
 
   return {
     challengeId: report.challengeId,
     challengeName: challenge?.name ?? report.challengeId,
     outcome: report.outcome,
+    objectives,
     lines,
     rewardSummary: [
       outcome?.narrative,

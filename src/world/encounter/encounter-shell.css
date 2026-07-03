@@ -140,6 +140,20 @@
   text-align: center;
 }
 .encs-narrative { margin: 0; font: 13px/1.45 system-ui, sans-serif; color: #3a342b; }
+/* Per-objective result summary — cleared/failed at a glance, above the detail. */
+.encs-obj-results { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.encs-obj-result { display: flex; align-items: baseline; gap: 8px; font: 13px system-ui, sans-serif; color: #2a251e; }
+.encs-obj-mark { font: 800 13px 'IBM Plex Mono', ui-monospace, monospace; flex: none; }
+.encs-obj-result--pass .encs-obj-mark { color: #4f8a52; }
+.encs-obj-result--fail .encs-obj-mark { color: #b01c18; }
+.encs-obj-name { font-weight: 700; }
+.encs-obj-detail { margin-left: auto; font: 700 11px 'IBM Plex Mono', ui-monospace, monospace; color: var(--stone, #6a6459); }
+
+/* Per-agent rows demoted to a collapsible detail block. */
+.encs-detail { border-top: 1px solid var(--cream-border, #cbbfa6); padding-top: 8px; }
+.encs-detail > summary { cursor: pointer; list-style: revert; }
+.encs-detail[open] > summary { margin-bottom: 6px; }
+
 .encs-report-lines, .encs-ledger, .encs-unlocks, .encs-worldchanges { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
 .encs-report-line { font: 12px 'IBM Plex Mono', ui-monospace, monospace; color: #4a443a; }
 .encs-ledger-line { font: 700 12px 'IBM Plex Mono', ui-monospace, monospace; color: #2a251e; }
