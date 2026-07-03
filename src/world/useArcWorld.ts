@@ -216,7 +216,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   const [difficultyModeId, setDifficultyModeId] = useState<string | null>(null);
   const [pendingRewardChoices, setPendingRewardChoices] = useState<PendingRewardChoice[]>([]);
   const [lastEquip, setLastEquip] = useState<LastEquipEvent | null>(null);
-  const [openingChoice, setOpeningChoice] = useState<string | null>(null);
+  const [openingChoice, setOpeningChoice] = useState<string | null>(() => restored?.openingChoice ?? null);
 
   const scene = useMemo(() => compileArcToPlayScene(arc, org), [arc, org]);
   const layout = useMemo(() => buildWorldLayout(scene, DEFAULT_WORLD_CONFIG), [scene]);
@@ -433,8 +433,8 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   // digest so reload restores exactly this program's state (see the guarded
   // restore above). Costume prefs persist elsewhere; this is the run itself.
   useEffect(() => {
-    saveRun(localStorage, { arc, authoredArcDigest: cartridgeDigest, state: { org, ledger } });
-  }, [arc, cartridgeDigest, org, ledger]);
+    saveRun(localStorage, { arc, authoredArcDigest: cartridgeDigest, state: { org, ledger, openingChoice } });
+  }, [arc, cartridgeDigest, org, ledger, openingChoice]);
 
   const buildExport = useCallback(
     (): CustodyObject => ({
