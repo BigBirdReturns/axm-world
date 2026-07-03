@@ -6,6 +6,8 @@ import type { ArcInteraction } from "../useArcInteraction.js";
 import type { ArcWorld } from "../useArcWorld.js";
 import type { CheckStatus, PartyReadiness } from "../readiness.js";
 import { attrIcon, roleIcon, itemIcon } from "../theme-icons.js";
+import { CartridgeMotif } from "../themes/CartridgeMotif.js";
+import { cartridgePaletteScope } from "../themes/select.js";
 import { t } from "../i18n/index.js";
 import { unlockEdges } from "./adjacency.js";
 import "./contract-board.css";
@@ -120,6 +122,15 @@ function ContractLocationCard(props: {
       selected={selected}
       difficulty={node.difficulty}
       title={node.title}
+      titleMotif={
+        // Board-card motifs are part of a cartridge's full skin. Only
+        // palette-scoped cartridges (Karazhan) opt in, so First Charter's
+        // motif-free board stays byte-identical. CartridgeMotif is generic —
+        // no First Charter motif is hardcoded into this runtime component.
+        cartridgePaletteScope(world.arc)
+          ? <CartridgeMotif arcId={world.arc.meta.id} challengeId={node.challengeId} size={18} />
+          : undefined
+      }
       description={shortDescription(node.description)}
       unlockRequirements={node.requirements}
       requirements={requirements}

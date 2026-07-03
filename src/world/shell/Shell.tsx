@@ -9,8 +9,10 @@
 //             all in document flow, representation center.
 //   mobile  → same top bar + a bottom flex dock that stacks the same regions by flow.
 
-import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useEncounterDirector } from "../encounter/EncounterDirector.js";
+import { cartridgePaletteScope } from "../themes/select.js";
+import "../themes/karazhan/karazhan.css";
 import { getPresentations, type Representation } from "../presentations.js";
 import { loadCostume, saveCostume, isCostumeId } from "../presentation-prefs.js";
 import { useIsMobile } from "../use-viewport.js";
@@ -122,6 +124,17 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   const [showCartridge, setShowCartridge] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [dismissedPurpose, setDismissedPurpose] = useState<Record<string, boolean>>({});
+
+  // Scope the active cartridge's palette skin to <html> while this cartridge is
+  // mounted. Cleared on unmount / cartridge switch so no arc keeps another's
+  // clothes. Unknown/imported arcs resolve to null → no scope → neutral skin.
+  useEffect(() => {
+    const scope = cartridgePaletteScope(world.cartridge.arc);
+    const root = document.documentElement;
+    if (scope) root.setAttribute("data-cartridge", scope);
+    else root.removeAttribute("data-cartridge");
+    return () => root.removeAttribute("data-cartridge");
+  }, [world.cartridge.arc]);
 
   const choose = (id: string) => {
     setCostumeId(id);

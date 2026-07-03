@@ -11,8 +11,13 @@
 import type { PixelIconName } from "./pixel-ui/index.js";
 
 const ATTR_ICON: Record<string, PixelIconName> = {
+  // First Charter vocabulary.
   power: "power", mettle: "mettle", wits: "wits", spirit: "spirit",
   Power: "power", Mettle: "mettle", Wits: "wits", Spirit: "spirit",
+  // Karazhan vocabulary — mapped to the closest-reading shared glyph (the seam
+  // degrades to a real icon, never a mislabel): resilience→mettle (endurance),
+  // precision/adaptability→wits (acuity), focus→spirit (will/channel).
+  resilience: "mettle", precision: "wits", adaptability: "wits", focus: "spirit",
 };
 
 /** Known attribute id/name -> icon. Anything unrecognized (another cartridge's
@@ -25,9 +30,15 @@ export function attrIcon(idOrName: string): PixelIconName {
  *  "selected" icon. */
 export function roleIcon(name: string): PixelIconName {
   const key = name.toLowerCase();
+  // First Charter roles.
   if (key.includes("vanguard")) return "vanguard";
   if (key.includes("skirmisher")) return "skirmisher";
   if (key.includes("mender")) return "mender";
+  // Karazhan roles — closest-reading shared glyph: tank→vanguard (front line),
+  // healer/support→mender (keep them standing), melee/ranged→skirmisher (strike).
+  if (key.includes("tank")) return "vanguard";
+  if (key.includes("healer") || key.includes("support")) return "mender";
+  if (key.includes("melee") || key.includes("ranged")) return "skirmisher";
   return "selected";
 }
 

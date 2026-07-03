@@ -13,6 +13,8 @@ import {
   type CartridgeBayEntry,
 } from "./cartridge-bay.js";
 import { RodohRuntimeMark } from "./brand/RodohRuntimeMark.js";
+import { CartridgeEmblem } from "./themes/CartridgeMotif.js";
+import "./themes/karazhan/karazhan.css";
 import { PixelButton, PixelIcon } from "./pixel-ui/index.js";
 import { t } from "./i18n/index.js";
 import type { MessageId } from "./i18n/messages.js";
@@ -149,15 +151,19 @@ export function Player(): JSX.Element {
                   textAlign: "left",
                   padding: "16px 18px",
                   borderRadius: 8,
-                  border: "1px solid #4a4238",
-                  background: "rgba(42,38,32,0.5)",
+                  border: entry.arc.meta.id === "karazhan" ? "1px solid #574a7a" : "1px solid #4a4238",
+                  borderLeft: entry.arc.meta.id === "karazhan" ? "3px solid #8a79b8" : "1px solid #4a4238",
+                  background: entry.arc.meta.id === "karazhan" ? "rgba(48,36,64,0.5)" : "rgba(42,38,32,0.5)",
                   color: "#ece4d4",
                 }}
               >
-                <div>
-                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 22 }}>{c.manifest.name}</div>
-                  <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: "#a59c8b", marginTop: 2 }}>
-                    {c.manifest.domain} · engine {c.manifest.engineVersion} · {c.arc.challenges.length} contracts
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <CartridgeEmblem arcId={entry.arc.meta.id} size={30} />
+                  <div>
+                    <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 22 }}>{c.manifest.name}</div>
+                    <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: "#a59c8b", marginTop: 2 }}>
+                      {c.manifest.domain} · engine {c.manifest.engineVersion} · {c.arc.challenges.length} contracts
+                    </div>
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
