@@ -1,5 +1,6 @@
 import type { Agent, Arc, Challenge, Organization, RunReport } from "../engine/types.js";
 import type { ChallengeAssignment } from "../engine/cycle.js";
+import { challengeAccess, requiredAttunementChains } from "../engine/access.js";
 
 export type PlayNodeStatus = "available" | "locked" | "cleared";
 
@@ -58,17 +59,6 @@ export interface PlayReportView {
   rewardSummary: string;
 }
 
-function clearedMilestones(org: Organization): Set<string> {
-  const out = new Set<string>();
-  for (const agent of Object.values(org.agents)) {
-    for (const record of agent.assignmentHistory) {
-      if (record.outcome !== "success") continue;
-      out.add(record.challengeId);
-    }
-  }
-  return out;
-}
-
 function clearedChallengeIds(org: Organization): Set<string> {
   const out = new Set<string>();
   for (const agent of Object.values(org.agents)) {
@@ -79,11 +69,14 @@ function clearedChallengeIds(org: Organization): Set<string> {
   return out;
 }
 
-function statusForChallenge(challenge: Challenge, org: Organization, cleared: Set<string>): PlayNodeStatus {
+// Gate evaluation lives in the vendored engine (engine/access.ts:
+// challengeAccess), the same derivation runCycle enforces — milestone gates
+// AND attunement-chain gates. Roster feasibility mode: the node shows
+// available once any legal party could exist; runCycle re-judges the actual
+// party on run.
+function statusForChallenge(challenge: Challenge, org: Organization, arc: Arc, cleared: Set<string>): PlayNodeStatus {
   if (cleared.has(challenge.id)) return "cleared";
-  const milestones = clearedMilestones(org);
-  const gated = challenge.accessRequirements.orgMilestones.some((m) => !milestones.has(m.replace(/-cleared$/, "")) && !milestones.has(m));
-  return gated ? "locked" : "available";
+  return challengeAccess(challenge, org, arc).accessible ? "available" : "locked";
 }
 
 /** challengeId -> earliest cycle any agent recorded a success on it. */
@@ -102,8 +95,10 @@ function earliestSuccessCycles(org: Organization): Map<string, number> {
 // First cycle the challenge's milestone gates were all satisfied. Success records
 // are stamped with the pre-advance cycle, so a gate cleared at cycle N opens the
 // challenge at N+1. Ungated challenges are open from the arc start (cycle 0).
-// Milestone-id normalization must match statusForChallenge exactly so this can
-// never disagree with the status it annotates.
+// The `-cleared` normalization here matches engine/access.ts milestoneSatisfied
+// (which statusForChallenge delegates to), so this can never disagree with the
+// status it annotates. Attunement-gated nodes only get a timestamp once
+// available, so the signal never ages a contract the player couldn't take.
 function availableSince(challenge: Challenge, successCycles: Map<string, number>): number | null {
   let since = 0;
   for (const m of challenge.accessRequirements.orgMilestones) {
@@ -129,6 +124,15 @@ function requirementLabels(challenge: Challenge, arc: Arc): string[] {
   for (const milestone of challenge.accessRequirements.orgMilestones) {
     labels.push(`requires ${milestone}`);
   }
+  // Attunement gates: a chain's grantsAccessTo and the challenge's own
+  // agentAttunements are one gate (engine/access.ts). Label with the authored
+  // chain name and how much of the party must hold it.
+  for (const chainId of requiredAttunementChains(challenge, arc)) {
+    const chain = arc.attunementChains.find((c) => c.id === chainId);
+    const threshold = challenge.accessRequirements.attunementThreshold ?? 1;
+    const share = threshold >= 1 ? "full party" : `${Math.round(threshold * 100)}% of party`;
+    labels.push(`attunement: ${chain?.name ?? chainId} (${share})`);
+  }
   return labels;
 }
 
@@ -153,7 +157,7 @@ export function compileArcToPlayScene(arc: Arc, org: Organization): PlayScene {
       const spread = 130;
       const centerY = height / 2;
       const offset = (challengeIndex - (challenges.length - 1) / 2) * spread;
-      const status = statusForChallenge(challenge, org, cleared);
+      const status = statusForChallenge(challenge, org, arc, cleared);
       nodes.push({
         id: `node:${challenge.id}`,
         challengeId: challenge.id,

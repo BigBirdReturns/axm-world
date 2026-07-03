@@ -211,7 +211,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   const contract = ix.selected ? (
     <div data-testid="contract-detail-stack">
       {world.lastEquip && <EquipFlash event={world.lastEquip} />}
-      <ContractRegion selected={ix.selected} party={ix.party} min={min} max={max} canRun={ix.canRun} onRun={interceptedRun} contract={ix.contract} readiness={ix.readiness} recommendation={ix.recommendation} fixPlan={ix.fixPlan} onApplyFix={ix.applyFix} compact={isMobile} />
+      <ContractRegion selected={ix.selected} party={ix.party} min={min} max={max} canRun={ix.canRun} onRun={interceptedRun} contract={ix.contract} readiness={ix.readiness} recommendation={ix.recommendation} fixPlan={ix.fixPlan} onApplyFix={ix.applyFix} compact={isMobile} difficultyModes={world.difficultyModes} difficultyModeId={world.difficultyModeId} onSelectDifficultyMode={world.setDifficultyModeId} />
     </div>
   ) : null;
   const loot = (
