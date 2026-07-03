@@ -77,9 +77,12 @@ planet becomes valuable when location, travel, territory, adjacency, or
 spatial memory matter to a cartridge. Until then it is proof and
 atmosphere — and its coach copy says so honestly.
 
-## The anti-extractive contract (binding)
+## The anti-extractive contract (a binding *design* constraint)
 
-This is not marketing copy. It is a design constraint that governs what may ship.
+This is product doctrine, not a legal or user agreement. "Binding" here means
+governance over our own design decisions — a constraint that governs what may
+ship — not a contractual, licensing, or refund obligation to anyone. It is not
+marketing copy either: it decides features.
 
 **Borrow the legibility. Reject the exploitation.** Two decades of live-service,
 mobile, and social design produced genuinely good *readability* systems. We keep
