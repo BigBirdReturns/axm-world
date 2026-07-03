@@ -39,9 +39,17 @@ for p in "${SHARED_PATHS[@]}"; do
   fi
   echo "Vendoring $p from $SHA ..."
   mkdir -p "$DEST"
-  # Replace every tracked .ts source; preserve the provenance file itself.
-  find "$DEST" -maxdepth 1 -name '*.ts' -delete
-  cp "$SRC"/*.ts "$DEST"/
+  # Mirror every tracked .ts source RECURSIVELY (subdirectories included), so the
+  # vendored copy matches the recursive drift check (check-engine-drift.sh uses
+  # `diff -rq`). Preserve the provenance file and any non-.ts content.
+  find "$DEST" -name '*.ts' -delete
+  ( cd "$SRC" && find . -name '*.ts' -print0 | while IFS= read -r -d '' f; do
+      mkdir -p "$DEST/$(dirname "$f")"
+      cp "$f" "$DEST/$f"
+    done )
+  # Prune directories left empty by the delete (e.g. a subdir removed upstream),
+  # so a stale empty dir cannot register as drift.
+  find "$DEST" -mindepth 1 -type d -empty -delete
 done
 
 cat > "$PROV" <<EOF
