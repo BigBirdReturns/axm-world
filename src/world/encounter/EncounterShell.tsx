@@ -76,7 +76,12 @@ function MarkerField({ objective }: { objective: EncounterObjective }): JSX.Elem
 
 export function EncounterShell({ world, challengeId, party, onClose }: Props): JSX.Element | null {
   const [resolved, setResolved] = useState(false);
-  const spec = world.encounterFor(challengeId);
+  // The posture choice — only offered when the cartridge authors difficulty modes.
+  // null = base ("Standard"). Recompiles the whole encounter (objectives + risk).
+  const modes = world.difficultyModes;
+  const [modeId, setModeId] = useState<string | null>(null);
+  const modeName = modeId ? modes.find((m) => m.id === modeId)?.name ?? modeId : t("encounterShell.postureStandard");
+  const spec = world.encounterFor(challengeId, modeId);
 
   // The encounter turn: which agents the player commits to the room. Seeded from
   // the derived/recommended party so it opens ready-to-go, but the player can pull
@@ -90,8 +95,8 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
   // Live projection of the CURRENT squad, from the same resolver-faithful
   // readiness the board uses. Recomputed as the player deploys.
   const readiness = useMemo(
-    () => (spec ? world.evaluateParty(challengeId, committed) : null),
-    [world, challengeId, committed, spec],
+    () => (spec ? world.evaluateParty(challengeId, committed, modeId) : null),
+    [world, challengeId, committed, modeId, spec],
   );
 
   if (!spec) return null;
@@ -117,7 +122,7 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
 
   const resolve = () => {
     if (!countOk) return;
-    world.runChallenge(challengeId, committed);
+    world.runChallenge(challengeId, committed, modeId);
     setResolved(true);
   };
 
@@ -150,6 +155,38 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
           <div className="encs-brief" data-testid="encs-brief">
             <p className="encs-approach">{spec.location.approach}</p>
             <p className="encs-provenance">{t("encounterShell.derivedNote")}</p>
+
+            {/* Posture choice — the second agency type. Rendered ONLY when the
+                cartridge authors difficulty modes; picking one recompiles the
+                encounter (harder objectives, added mechanics) and the projection. */}
+            {modes.length > 0 && (
+              <div className="encs-section" data-testid="encs-posture">
+                <div className="encs-section-label">{t("encounterShell.posture")}</div>
+                <div className="encs-posture-row">
+                  <button
+                    type="button"
+                    className={`encs-posture-btn${modeId === null ? " encs-posture-btn--on" : ""}`}
+                    data-testid="encs-posture-standard"
+                    aria-pressed={modeId === null}
+                    onClick={() => setModeId(null)}
+                  >
+                    {t("encounterShell.postureStandard")}
+                  </button>
+                  {modes.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      className={`encs-posture-btn${modeId === m.id ? " encs-posture-btn--on" : ""}`}
+                      data-testid={`encs-posture-${m.id}`}
+                      aria-pressed={modeId === m.id}
+                      onClick={() => setModeId(m.id)}
+                    >
+                      {m.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* The "room": objectives with their derived threat markers. */}
             <div className="encs-room" data-testid="encs-room">
@@ -252,6 +289,11 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
             <div className="encs-outcome-banner" style={{ borderColor: outcomeColor, color: outcomeColor }}>
               {t(OUTCOME_KEY[report.outcome])}
             </div>
+            {modes.length > 0 && (
+              <div className="encs-posture-record" data-testid="encs-posture-record">
+                {t("encounterShell.posture")}: <strong>{modeName}</strong>
+              </div>
+            )}
             {resolution && <p className="encs-narrative">{resolution.narrative}</p>}
 
             {/* Summary first, in player language: what happened, then why. No raw
