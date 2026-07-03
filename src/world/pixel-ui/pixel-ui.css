@@ -87,15 +87,37 @@
   box-sizing: border-box;
 }
 
+/* Hover: lift the button so the pressable affordance is unmistakable (badges
+   never do this — that is how the eye tells control from status). */
+.pixel-button:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
 .pixel-button:active:not(:disabled) {
   transform: translate(2px, 2px);
   box-shadow: 1px 1px 0 var(--ink);
+}
+
+/* The dominant CTA (e.g. RUN CONTRACT): the single largest, highest-contrast
+   action in its panel. Bigger label survives the squint test at thumbnail
+   scale; only this tier should carry a fully-saturated fill. */
+.pixel-button--cta {
+  min-height: 52px;
+  padding: 12px 18px;
+  font-size: 15px;
+  letter-spacing: 0.06em;
 }
 
 .pixel-button[data-variant="primary"]  { background: var(--gold);    color: var(--ink); border-color: var(--gold-border); }
 .pixel-button[data-variant="confirm"]  { background: var(--teal);    color: #fff;       border-color: var(--teal-dark); }
 .pixel-button[data-variant="danger"]   { background: var(--danger);  color: #fff;       border-color: var(--danger-dark); }
 .pixel-button[data-variant="secondary"]{ background: var(--cream);   color: var(--ink); border-color: var(--ink); }
+/* Action tier — clearly a button (heavy border + pressable shadow) but NOT the
+   saturated CTA. Fix actions (Train/Rally/Rest, Add/Swap) use this so they read
+   as legible secondary controls that never compete with the primary CTA. */
+.pixel-button[data-variant="action"]   { background: var(--cream);   color: var(--ink); border-color: var(--ink-soft); }
+.pixel-button[data-variant="action"] strong,
+.pixel-button[data-variant="action"] { font-weight: 800; }
 .pixel-button[data-variant="ghost"]    { background: transparent;    color: var(--ink); border-color: var(--stone); box-shadow: none; }
 .pixel-button:disabled, .pixel-button[data-variant="disabled"] {
   background: var(--cream-mid);
@@ -107,33 +129,42 @@
 
 /* ── PIXEL BADGE (state chip) ────────────────────────────────────────────── */
 
+/* Status badges RECEDE. Three-tier control language (see the button block
+   above): only action buttons carry the 3px pressable shadow + heavy ink
+   border. A badge reports state — it must never read as a control — so it is
+   flat (no shadow), hairline-bordered in its own hue, tinted (not saturated),
+   and pill-rounded to break from the sharp button rectangle. Colored text on a
+   light tint keeps contrast >= 4.5:1 while staying visually quiet. */
 .pixel-badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  min-height: 24px;
-  padding: 3px 8px;
-  border: 2px solid var(--ink);
+  min-height: 22px;
+  padding: 2px 8px;
+  border: 1px solid var(--stone-light);
+  border-radius: 999px;
   font-family: var(--px-font);
   font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  border-radius: 0;
   box-sizing: border-box;
-  /* default: dark */
-  background: var(--ink);
-  color: var(--cream);
+  box-shadow: none;
+  background: var(--cream-mid);
+  color: var(--ink-soft);
 }
 
-.pixel-badge[data-state="available"]   { background: var(--teal);    color: #fff;            border-color: var(--teal-dark); }
-.pixel-badge[data-state="reliable"]    { background: var(--teal);    color: #fff;            border-color: var(--teal-dark); }
-.pixel-badge[data-state="risky"]       { background: var(--gold);    color: var(--ink);      border-color: var(--gold-border); }
-.pixel-badge[data-state="failing"]     { background: var(--danger);  color: #fff;            border-color: var(--danger-dark); }
-.pixel-badge[data-state="locked"]      { background: var(--stone);   color: #fff;            border-color: #555; }
-.pixel-badge[data-state="recorded"]    { background: var(--coffee);  color: #fff;            border-color: #4a3020; }
-.pixel-badge[data-state="selected"]    { background: var(--teal);    color: #fff;            border-color: var(--teal-dark); }
-.pixel-badge[data-state="lootAvailable"]{ background: var(--gold-dark); color: var(--ink);   border-color: var(--coffee); }
+/* Tinted state fills: a soft wash of the state hue + the dark hue for text and
+   a hairline accent. Distinct from the saturated pressable buttons, still
+   unambiguously color-coded. */
+.pixel-badge[data-state="available"]   { background: rgba(23,165,137,0.14); color: var(--teal-dark);   border-color: rgba(15,122,99,0.5); }
+.pixel-badge[data-state="reliable"]    { background: rgba(23,165,137,0.14); color: var(--teal-dark);   border-color: rgba(15,122,99,0.5); }
+.pixel-badge[data-state="risky"]       { background: rgba(254,194,16,0.20); color: #7a5b00;            border-color: var(--gold-border); }
+.pixel-badge[data-state="failing"]     { background: rgba(215,55,47,0.14);  color: var(--danger-dark);  border-color: rgba(158,32,32,0.5); }
+.pixel-badge[data-state="locked"]      { background: rgba(122,115,104,0.16);color: var(--ink-muted);    border-color: var(--stone-light); }
+.pixel-badge[data-state="recorded"]    { background: rgba(104,74,47,0.14);  color: var(--coffee);       border-color: rgba(74,48,32,0.5); }
+.pixel-badge[data-state="selected"]    { background: rgba(23,165,137,0.20); color: var(--teal-dark);   border-color: var(--teal-dark); }
+.pixel-badge[data-state="lootAvailable"]{ background: rgba(212,169,58,0.22); color: #7a5b00;           border-color: var(--coffee); }
 
 /* ── ROLE BADGE ──────────────────────────────────────────────────────────── */
 

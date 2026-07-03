@@ -399,11 +399,11 @@ function DowntimeFixButton(props: { fix: DowntimeFix; onClick: () => void }): JS
   return (
     <PixelButton
       type="button"
-      variant="secondary"
+      variant="action"
       data-testid="roster-downtime-fix"
       onClick={onClick}
       title={fix.reason}
-      style={{ padding: "6px 8px", minHeight: 44, fontSize: 10, lineHeight: 1.3, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%", whiteSpace: "normal", textAlign: "left" }}
+      style={{ padding: "8px 10px", minHeight: 44, fontSize: 12, lineHeight: 1.3, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%", whiteSpace: "normal", textAlign: "left" }}
     >
       <span style={{ fontWeight: 800, display: "flex", alignItems: "center", gap: 5, flex: "0 1 auto", minWidth: 0 }}>
         <PixelIcon name={DOWNTIME_ICON[fix.action]} /> {label}
@@ -565,7 +565,8 @@ function RunButton(props: { selected: WorldNode; min: number; max: number; canRu
         disabled={disabled}
         data-testid="run-contract-button"
         variant={variant}
-        style={{ minWidth: "100%", minHeight: 46, fontSize: 13, lineHeight: 1.25, padding: "8px 14px", whiteSpace: "normal", wordBreak: "keep-all", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, textAlign: "center" }}
+        className="pixel-button--cta"
+        style={{ minWidth: "100%", lineHeight: 1.25, whiteSpace: "normal", wordBreak: "keep-all", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, textAlign: "center" }}
       >
         <PixelIcon name={icon} /> <span>{label}</span>
       </PixelButton>
@@ -625,18 +626,21 @@ function FixButton(props: { label: string; fix: FixSuggestion; onClick: () => vo
     <PixelButton
       type="button"
       onClick={props.onClick}
-      variant={fix.kind === "downtime" ? "secondary" : "primary"}
-      style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", fontSize: 12, lineHeight: 1.25 }}
+      // Fix actions are secondary controls — the "action" tier reads clearly as
+      // a button (heavy border + pressable shadow) but never wears the gold CTA
+      // fill, so RUN CONTRACT stays the single dominant action in the panel.
+      variant="action"
+      style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 12px", fontSize: 13, lineHeight: 1.3 }}
     >
       <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <span>{props.label}</span>
+        <span style={{ fontWeight: 800 }}>{props.label}</span>
         {delta && (
-          <span style={{ color: afterStatus === "ready" ? "var(--teal-dark)" : afterStatus === "short" ? "var(--danger-dark)" : "var(--ink-soft)", fontSize: 10 }}>
+          <span style={{ color: afterStatus === "ready" ? "var(--teal-dark)" : afterStatus === "short" ? "var(--danger-dark)" : "var(--ink-soft)", fontSize: 11 }}>
             {delta}
           </span>
         )}
       </span>
-      <span style={{ display: "block", marginTop: 3, fontWeight: 400, fontSize: 10, color: "var(--ink-soft)" }}>{fix.reason}</span>
+      <span style={{ display: "block", marginTop: 3, fontWeight: 400, fontSize: 11, color: "var(--ink-soft)" }}>{fix.reason}</span>
     </PixelButton>
   );
 }
