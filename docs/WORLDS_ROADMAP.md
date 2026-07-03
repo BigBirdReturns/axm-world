@@ -44,6 +44,49 @@ Attumen and you get a two-objective stable fight with a tank slot.
 
 ---
 
+## 0a. Encounter agency is a property of the contract, not the UI
+
+Encounter agency (a meaningful choice *before* the engine resolves) is **not** a
+universal feature the shell paints onto every encounter. It exists only when the
+authored contract exposes a real pre-resolution **lever** — something `runCycle`
+actually honors. The engine classifies the encounter by its available levers and
+renders the matching interaction. It never invents a lever the resolver ignores.
+
+This is the sovereignty rule made mechanical: **the cartridge record stays
+authoritative; the UI does not fabricate choice to entertain the player.** "There
+is no meaningful choice here" is as valid a render as offering one.
+
+### The taxonomy (render selected from authored levers)
+
+| Encounter type | Lever the engine honors | Player act | Example |
+|---|---|---|---|
+| **Fixed deployment** | none (party fixed, no modes, tokens inert) | confirm the derived squad, watch it resolve | **The Cellar** — `min == max == roster` |
+| **Deployment choice** | `rosterRequirements` slack + role reqs | choose which eligible agents enter (min..max), see risk change, commit a legal squad | **The Bridge Troll** — 4–6, 1 Vanguard, `perAssignedAgent` |
+| **Difficulty-mode choice** | authored `difficultyModes` | pick a posture (e.g. Careful/Aggressive); engine applies `applyDifficultyMode` | future — only if a cartridge authors modes |
+| **Resource-spend choice** | `tokensSpent` reaching `resolveChallenge` | spend/hold to change the *result* | future — **blocked**: today `tokensSpent` only debits the ledger, it never reaches the resolver, so it must not be sold as agency |
+| **Objective-order choice** | ordered/branching `completionCriteria` | sequence how objectives are engaged | future — needs an authored ordering lever |
+
+**Rules of the boundary.** The shell selects the encounter UI from the authored
+levers above — highest available agency wins, and it degrades honestly:
+- Fixed contracts render **confirm-only**; the deploy turn shows the required
+  squad and a projection, but there is nothing to change. Do not fake a branch.
+- A lever may only drive a choice once the engine genuinely honors it. The
+  resource-spend row is the standing example: it stays future work until
+  `tokensSpent` is threaded into `resolveChallenge` — surfacing it now would be
+  fake agency.
+- Adding a lever to a contract to satisfy a demo (e.g. authoring Careful/Aggressive
+  onto The Cellar) is a **cartridge-design change**, not a UI change, and moves the
+  proof backward. The Cellar's value is precisely that it is the fixed-party
+  compiler proof.
+
+Status: **Fixed deployment** and **Deployment choice** are implemented and
+verified (The Cellar renders confirm-only; The Bridge Troll renders a real
+deploy choice, and the committed squad — not the recommendation — is what
+`runCycle` resolves and what the receipt reports). The remaining three rows are
+future work, each gated on the authored lever actually existing and being honored.
+
+---
+
 ## 1. Where each stage actually is
 
 ### CART — authoring (axm-arc hub) · **mostly real**
