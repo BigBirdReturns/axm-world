@@ -5,6 +5,7 @@
 
 import { lazy, Suspense } from "react";
 import { ContractBoardScene } from "./contract-board/ContractBoard.js";
+import { WorldMapScene } from "./worldmap/WorldMap.js";
 import type { CostumeId } from "./presentation-prefs.js";
 import type { ArcInteraction } from "./useArcInteraction.js";
 import type { ArcWorld } from "./useArcWorld.js";
@@ -17,6 +18,9 @@ export interface SceneProps {
   /** False when this renderer is mounted but not the visible one. Most renderers are
    *  mounted only when active; this remains for renderer adapters that can pause loops. */
   active?: boolean;
+  /** Open the compiled encounter for a challenge directly from a surface (the world
+   *  map's ENTER ENCOUNTER). Optional: surfaces that don't offer it omit it. */
+  onEnterEncounter?: (challengeId: string) => void;
 }
 
 export interface LegendEntry {
@@ -101,6 +105,15 @@ export function getPresentations(): Representation[] {
       controlsHint: t("presentations.board.controlsHint"),
       purpose: t("presentations.board.purpose"),
       legend: [],
+    },
+    {
+      id: "map",
+      label: t("presentations.map.label"),
+      blurb: t("presentations.map.blurb"),
+      Scene: WorldMapScene,
+      controlsHint: t("presentations.map.controlsHint"),
+      purpose: t("presentations.map.purpose"),
+      legend,
     },
     {
       id: "globe",

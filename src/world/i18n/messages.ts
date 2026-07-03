@@ -182,6 +182,16 @@ export type MessageId =
   | "presentations.board.blurb"
   | "presentations.board.controlsHint"
   | "presentations.board.purpose"
+  | "presentations.map.label"
+  | "presentations.map.blurb"
+  | "presentations.map.controlsHint"
+  | "presentations.map.purpose"
+  | "worldMap.difficulty"
+  | "worldMap.enterEncounter"
+  | "worldMap.stateLocked"
+  | "worldMap.stateAvailable"
+  | "worldMap.stateActive"
+  | "worldMap.stateRecorded"
   | "presentations.globe.label"
   | "presentations.globe.blurb"
   | "presentations.globe.controlsHint"
@@ -455,6 +465,16 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.board.blurb": "2D contract board — readable cards, gates, risk, rewards, recorded marks",
     "presentations.board.controlsHint": "select a contract card",
     "presentations.board.purpose": "The cartridge's work as board-game cards: choose a place, inspect gates and risk, then manage the roster.",
+    "presentations.map.label": "Map",
+    "presentations.map.blurb": "2D world map — the same contracts as locations, by region, with state and an enter-encounter action",
+    "presentations.map.controlsHint": "pick a location, or enter its encounter",
+    "presentations.map.purpose": "The cartridge's contracts as world locations, grouped by region: see what's available, active, or recorded, and walk into an encounter.",
+    "worldMap.difficulty": "Difficulty",
+    "worldMap.enterEncounter": "Enter Encounter",
+    "worldMap.stateLocked": "Locked",
+    "worldMap.stateAvailable": "Available",
+    "worldMap.stateActive": "Active",
+    "worldMap.stateRecorded": "Recorded",
     "presentations.globe.label": "Planet",
     "presentations.globe.blurb": "3D world — optional spatial renderer",
     "presentations.globe.controlsHint": "drag to orbit · scroll to zoom · right-drag to pan · click a ◆ contract",
@@ -693,6 +713,16 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.board.blurb": "2D 契約板 — 易讀卡片、關卡、風險、獎勵、已記錄標記",
     "presentations.board.controlsHint": "點選契約卡片",
     "presentations.board.purpose": "以桌遊卡片呈現卡匣的工作：選擇地點、檢視關卡與風險，再管理名冊。",
+    "presentations.map.label": "地圖",
+    "presentations.map.blurb": "2D 世界地圖 — 相同契約化為地點，依地區分組，顯示狀態並可進入遭遇",
+    "presentations.map.controlsHint": "選擇地點，或進入其遭遇",
+    "presentations.map.purpose": "將卡匣的契約呈現為世界地點，依地區分組：查看可用、進行中或已記錄的狀態，並走入遭遇。",
+    "worldMap.difficulty": "難度",
+    "worldMap.enterEncounter": "進入遭遇",
+    "worldMap.stateLocked": "鎖定",
+    "worldMap.stateAvailable": "可用",
+    "worldMap.stateActive": "進行中",
+    "worldMap.stateRecorded": "已記錄",
     "presentations.globe.label": "星球",
     "presentations.globe.blurb": "3D 世界 — 選用的空間化渲染器",
     "presentations.globe.controlsHint": "拖曳以環繞 · 滾動以縮放 · 按右鍵拖曳以平移 · 點選 ◆ 契約",

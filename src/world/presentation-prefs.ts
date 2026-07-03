@@ -3,12 +3,12 @@
 
 import type { Arc } from "../engine/types.js";
 
-export type CostumeId = "board" | "globe" | "graph";
+export type CostumeId = "board" | "map" | "globe" | "graph";
 
 const KEY = "axm-world:costume:v1";
 
 export function isCostumeId(value: string | null | undefined): value is CostumeId {
-  return value === "board" || value === "globe" || value === "graph";
+  return value === "board" || value === "map" || value === "globe" || value === "graph";
 }
 
 /** Default costume for an arc. 2D contract board is the lightweight default. */
