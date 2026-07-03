@@ -24,7 +24,7 @@
 // PURE: no React, no three, no engine mutation. Given (challenge, org, arc) it
 // returns a plain data structure any surface can render.
 
-import type { Arc, Challenge, FailureConsequence, MechanicCheck, Organization } from "../../engine/types.js";
+import type { Arc, Challenge, FailureConsequence, MechanicCheck, Organization, ResourceSpendLever } from "../../engine/types.js";
 import { challengeAccess } from "../../engine/access.js";
 import { recommendAgentsForChallenge } from "../../play-pipeline/compile.js";
 import type { PlayNodeStatus } from "../../play-pipeline/compile.js";
@@ -115,6 +115,10 @@ export interface EncounterSpec {
   minAgents: number;
   maxAgents: number;
   resolutions: EncounterResolution[];
+  /** The authored resource-spend lever for this encounter, or null. Derived from
+   *  the challenge-level lever, else the first check that authors one. The shell
+   *  offers a spend control only when this is present (and gates/tokens allow). */
+  spendLever: ResourceSpendLever | null;
   /** What a clear opens up: gated challenges, attunement grants, narrative events.
    *  This is the "world-state change" half of the ledger writeback. */
   onClear: { unlocks: string[]; worldChanges: string[] };
@@ -357,6 +361,34 @@ export function compileEncounter(challenge: Challenge, org: Organization, arc: A
       narrative: challenge.outcomes[outcome].narrative,
       ledger: ledgerLines(challenge.outcomes[outcome], arc),
     })),
+    spendLever: spendLeverFor(challenge),
     onClear: onClearFor(challenge, arc),
   };
+}
+
+/** The encounter's effective GLOBAL spend lever. The shell renders a single
+ *  encounter-wide spend control, so it may only surface a lever that governs the
+ *  whole challenge coherently:
+ *   - a challenge-level `resourceSpend` is global by definition; else
+ *   - per-check levers ONLY when every check that authors one is identical, so the
+ *     one global control faithfully represents what the resolver applies to each
+ *     check (tokensSpent is a single challenge-wide count).
+ *  Divergent per-check levers return null — a single control would misrepresent
+ *  them; they await a per-objective spend UI. Null also when no lever is authored. */
+function spendLeverFor(challenge: Challenge): ResourceSpendLever | null {
+  if (challenge.resourceSpend) return challenge.resourceSpend;
+  const checkLevers = challenge.mechanicChecks
+    .map((c) => c.resourceSpend)
+    .filter((l): l is ResourceSpendLever => !!l);
+  const first = checkLevers[0];
+  if (!first) return null;
+  return checkLevers.every((l) => leversEqual(l, first)) ? first : null;
+}
+
+function leversEqual(a: ResourceSpendLever, b: ResourceSpendLever): boolean {
+  return (
+    a.maxTokens === b.maxTokens &&
+    a.steadinessPerToken === b.steadinessPerToken &&
+    a.minSteadiness === b.minSteadiness
+  );
 }

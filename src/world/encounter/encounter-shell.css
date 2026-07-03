@@ -158,6 +158,27 @@
   margin-bottom: 4px;
 }
 .encs-posture-record strong { color: var(--gold-dark, #b07d2a); }
+
+/* Resource-spend control — a small stepper; the projection above reflects it. */
+.encs-spend-row { display: flex; align-items: center; gap: 8px; }
+.encs-spend-btn {
+  width: 26px; height: 26px;
+  border: 1px solid var(--cream-border, #cbbfa6);
+  background: var(--cream, #efe7d6);
+  color: #2a251e;
+  font: 800 15px 'IBM Plex Mono', ui-monospace, monospace;
+  line-height: 1;
+  cursor: pointer;
+}
+.encs-spend-btn:hover:not(:disabled) { background: var(--cream-mid, #e4dac7); }
+.encs-spend-btn:disabled { opacity: 0.4; cursor: default; }
+.encs-spend-count { min-width: 18px; text-align: center; font: 800 14px 'IBM Plex Mono', ui-monospace, monospace; color: var(--gold-dark, #b07d2a); }
+.encs-spend-note { font: 12px system-ui, sans-serif; color: var(--stone, #6a6459); }
+.encs-spend-record {
+  font: 700 12px 'IBM Plex Mono', ui-monospace, monospace;
+  color: var(--gold-dark, #b07d2a);
+  padding: 2px 0 4px;
+}
 .encs-muster { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .encs-muster-head { font: 700 9px 'IBM Plex Mono', ui-monospace, monospace; text-transform: uppercase; letter-spacing: 0.06em; color: var(--stone, #6a6459); margin-bottom: 4px; }
 .encs-muster-empty { font: italic 11px system-ui, sans-serif; color: var(--stone, #8a8276); }

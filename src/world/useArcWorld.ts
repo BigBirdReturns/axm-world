@@ -33,6 +33,7 @@ import {
   type PartyReadiness,
 } from "./readiness.js";
 import { compileEncounter, type EncounterSpec } from "./encounter/compile-encounter.js";
+import { resolveTokensSpent } from "./encounter/spend.js";
 
 export interface RosterGear {
   id: string;
@@ -129,8 +130,9 @@ export interface ArcWorld {
    * difficultyModeId to preview the contract under an authored posture. */
   encounterFor: (challengeId: string, difficultyModeId?: string | null) => EncounterSpec | null;
   /** Faithful projection of the resolver for a candidate party, optionally under
-   * an authored difficulty posture. */
-  evaluateParty: (challengeId: string, agentIds: string[], difficultyModeId?: string | null) => PartyReadiness | null;
+   * an authored difficulty posture and/or resource-spend (tokensSpent narrows the
+   * projected risk band without moving the mean). */
+  evaluateParty: (challengeId: string, agentIds: string[], difficultyModeId?: string | null, tokensSpent?: number) => PartyReadiness | null;
   /** Plain-language reason the recommended party is the recommended party. */
   recommendationFor: (challengeId: string) => string | null;
   /** Actionable fixes for a weak party: add/swap/downtime/risk. */
@@ -148,7 +150,7 @@ export interface ArcWorld {
   /** Selected mode id, or null for base difficulty. Applied on the next run. */
   difficultyModeId: string | null;
   setDifficultyModeId: (id: string | null) => void;
-  runChallenge: (challengeId: string, agentIds: string[], difficultyModeId?: string | null) => void;
+  runChallenge: (challengeId: string, agentIds: string[], difficultyModeId?: string | null, tokensSpent?: number) => void;
   resolveDecision: (optionId: string) => void;
   applyDowntime: (agentId: string, action: DowntimeAction) => void;
   /** The portable custody object: manifest + arc + run state. */
@@ -270,11 +272,11 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   );
 
   const evaluateParty = useCallback(
-    (challengeId: string, agentIds: string[], difficultyModeId?: string | null): PartyReadiness | null => {
+    (challengeId: string, agentIds: string[], difficultyModeId?: string | null, tokensSpent?: number): PartyReadiness | null => {
       const c = challengeWithMode(challengeId, difficultyModeId);
       if (!c) return null;
       const party = agentIds.map((id) => org.agents[id]).filter((a): a is NonNullable<typeof a> => !!a);
-      return evaluatePartyReq(c, party, arc);
+      return evaluatePartyReq(c, party, arc, tokensSpent ?? 0);
     },
     [arc, org, challengeWithMode],
   );
@@ -307,7 +309,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   );
 
   const runChallenge = useCallback(
-    (challengeId: string, agentIds: string[], modeOverride?: string | null) => {
+    (challengeId: string, agentIds: string[], modeOverride?: string | null, tokensSpentOverride?: number) => {
       const challenge = arc.challenges.find((c) => c.id === challengeId);
       if (!challenge) return;
       const node = scene.nodes.find((n) => n.challengeId === challengeId);
@@ -315,10 +317,15 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
       // The encounter's posture choice wins when supplied (including an explicit
       // null = base); otherwise fall back to the board-level mode selection.
       const effectiveMode = modeOverride !== undefined ? modeOverride : difficultyModeId;
+      // Spend is explicit: the encounter passes an exact count (including 0);
+      // callers that pass nothing (auto-resolve, board quick-run) spend 0 — no
+      // implicit debit. The vendored resolver honors tokensSpent only for a
+      // lever-authored challenge, so an implicit default would be hidden agency.
+      const effectiveTokens = resolveTokensSpent(tokensSpentOverride, org.resources.tokens);
       const assignment: ChallengeAssignment = {
         challengeId,
         agentIds: agentIds.slice(0, challenge.rosterRequirements.maxAgents),
-        tokensSpent: org.resources.tokens > 0 ? 1 : 0,
+        tokensSpent: effectiveTokens,
         // Base difficulty unless a mode is chosen; the vendored runCycle applies
         // the transform (engine/difficulty.ts).
         ...(effectiveMode !== null ? { difficultyModeId: effectiveMode } : {}),
