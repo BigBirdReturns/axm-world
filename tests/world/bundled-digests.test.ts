@@ -5,6 +5,10 @@
 // the checked-in golden manifest. `cartridgeDigest` and the reserved-key list
 // are imported from the vendored digest module — never re-declared here — so the
 // single source of truth for custody-key exclusion cannot silently diverge.
+//
+// The expected values in src/world/bundled-digests.ts are a committed
+// expectation, updated intentionally by a human; this guard never writes them.
+// A mismatch means a bundled cartridge's authored law changed — fail loudly.
 
 import { describe, it, expect } from "vitest";
 import { cartridgeDigest, RESERVED_ENVELOPE_KEYS } from "../../src/engine/cartridge-digest";
@@ -16,11 +20,6 @@ import { EXPECTED_BUNDLED_DIGESTS } from "../../src/world/bundled-digests";
 describe("bundled cartridge golden digests", () => {
   const actual: Record<string, string> = {};
   for (const c of BUNDLED_CARTRIDGES) actual[c.manifest.id] = cartridgeIdentity(c);
-
-  it("records the actual bundled digests (visible in CI to seed the manifest)", () => {
-    console.log("BUNDLED_DIGESTS_JSON=" + JSON.stringify(actual));
-    expect(Object.keys(actual).length).toBe(BUNDLED_CARTRIDGES.length);
-  });
 
   it("each bundled cartridge matches its expected golden digest", () => {
     expect(actual).toEqual(EXPECTED_BUNDLED_DIGESTS);
