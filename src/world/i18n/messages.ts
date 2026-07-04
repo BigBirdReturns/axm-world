@@ -89,7 +89,7 @@ export type MessageId =
   // ── result / ledger clarity (post-action loop) ───────────────────────────
   | "result.outcome"
   | "result.whatHappened"
-  | "result.rewards"
+  | "result.whatChanged"
   | "result.recorded"
   | "result.persists"
   | "result.ledgerRecordedAt"
@@ -455,7 +455,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     // ledger stamps the "when".
     "result.outcome": "Outcome",
     "result.whatHappened": "What happened",
-    "result.rewards": "Rewards",
+    "result.whatChanged": "What changed",
     "result.recorded": "Recorded to the ledger",
     "result.persists": "Written to the Program 001 ledger — this result persists.",
     "result.ledgerRecordedAt": (params) => `Cycle ${String(num(params, "cycle")).padStart(2, "0")}`,
@@ -816,7 +816,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
 
     "result.outcome": "結果",
     "result.whatHappened": "發生了什麼",
-    "result.rewards": "獎勵",
+    "result.whatChanged": "帶來的改變",
     "result.recorded": "已記錄至帳本",
     "result.persists": "已寫入 Program 001 帳本 — 此結果將保留。",
     "result.ledgerRecordedAt": (params) => `週期 ${String(num(params, "cycle")).padStart(2, "0")}`,

@@ -917,10 +917,13 @@ export function ReportRegion(props: { lastReport: PlayReportView }): JSX.Element
         </div>
       )}
 
-      {/* Rewards. */}
+      {/* What changed — the run's consequence. rewardSummary is the authored outcome
+          narrative FOLLOWED BY the currency/loot delta (compile.ts summarizeReport);
+          for a no-reward result it is story text only. "What changed" names both
+          honestly, where "Rewards" would mislabel a narrative — or a failure — as a payout. */}
       {lastReport.rewardSummary && (
         <div>
-          <div style={sectionTitle}>{t("result.rewards")}</div>
+          <div style={sectionTitle}>{t("result.whatChanged")}</div>
           <div style={{ color: "var(--ink-muted)", fontSize: 12, fontFamily: "var(--px-font)" }}>{lastReport.rewardSummary}</div>
         </div>
       )}
