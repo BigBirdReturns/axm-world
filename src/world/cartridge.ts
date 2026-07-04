@@ -186,9 +186,17 @@ export const BUNDLED_CARTRIDGES: Cartridge[] = [FIRST_CHARTER_CARTRIDGE, KARAZHA
  */
 export function parseCartridge(input: unknown, trust: TrustLevel = "imported-unsigned"): Cartridge {
   if (input && typeof input === "object" && "arc" in input && "manifest" in input) {
-    const env = input as { manifest: Partial<CartridgeManifest>; arc: unknown };
+    const env = input as { manifest: Partial<CartridgeManifest>; arc: unknown; opening?: AuthoredOpening; people?: AuthoredPerson[] };
     const arc = validateArc(env.arc);
-    return { manifest: { ...manifestForArc(arc, trust), ...env.manifest, id: arc.meta.id }, arc };
+    // Preserve the authored envelope fields (opening beat, people) — they are
+    // cartridge DATA layered on the arc, so a parsed envelope must carry them
+    // through, not silently drop them.
+    return {
+      manifest: { ...manifestForArc(arc, trust), ...env.manifest, id: arc.meta.id },
+      arc,
+      ...(env.opening ? { opening: env.opening } : {}),
+      ...(env.people ? { people: env.people } : {}),
+    };
   }
   const arc = validateArc(input);
   return { manifest: manifestForArc(arc, trust), arc };

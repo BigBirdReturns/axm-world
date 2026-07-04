@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { hallSteward } from "../../src/world/inhabited/people";
-import { FIRST_CHARTER_CARTRIDGE, KARAZHAN_CARTRIDGE } from "../../src/world/cartridge";
+import { FIRST_CHARTER_CARTRIDGE, KARAZHAN_CARTRIDGE, parseCartridge, type AuthoredPerson } from "../../src/world/cartridge";
 import { cartridgeIdentity } from "../../src/world/cartridge-identity";
 
 describe("hallSteward — the authored person the hall surfaces", () => {
@@ -22,5 +22,20 @@ describe("hallSteward — the authored person the hall surfaces", () => {
     // Identity is cartridgeDigest(arc); the authored people ride in the envelope,
     // so a cartridge with people resolves to the same identity as its bare arc.
     expect(cartridgeIdentity(FIRST_CHARTER_CARTRIDGE)).toBe(cartridgeIdentity({ ...FIRST_CHARTER_CARTRIDGE, people: undefined }));
+  });
+
+  it("parseCartridge preserves authored people (and opening) from a full envelope", () => {
+    const people: AuthoredPerson[] = [
+      { id: "p1", name: "Test Person", role: "Tester", bio: "b", greeting: "g", fulfilledLine: "f" },
+    ];
+    const parsed = parseCartridge({
+      manifest: { id: "ignored" },
+      arc: FIRST_CHARTER_CARTRIDGE.arc,
+      people,
+      opening: FIRST_CHARTER_CARTRIDGE.opening,
+    });
+    // The forward-compat envelope path must not silently drop authored data.
+    expect(hallSteward(parsed)).toEqual(people[0]);
+    expect(parsed.opening).toBe(FIRST_CHARTER_CARTRIDGE.opening);
   });
 });
