@@ -141,7 +141,8 @@ export function CartridgeObjectPanel({ manifest, digest, ledger, openingChoice, 
         <div style={{ height: 1, background: "#2a2620", margin: "10px 0 8px" }} />
         {/* Contract ledger — the program's memory: an ordered, append-only record.
             The heading carries the cumulative count; each row its recording order;
-            and a closing line names the proof that binds it to the authored identity. */}
+            and a closing line names how each entry is recorded under the authored
+            identity (provenance over existing fields, not a new trust primitive). */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, marginBottom: 6 }}>
           <span style={{ color: "#a59c8b" }}>{t("cartridgePanel.ledger")}</span>
           {ledger.entries.length > 0 && (
@@ -174,10 +175,11 @@ export function CartridgeObjectPanel({ manifest, digest, ledger, openingChoice, 
                 </div>
               ))}
             </div>
-            {/* Proof: every entry above carries the same authored digest as the ledger
-                (see appendResult), so this record checks against the program identity. */}
-            <div data-testid="ledger-sealed" style={{ display: "flex", gap: 6, alignItems: "flex-start", marginTop: 8, color: "#6b6050", fontSize: 10, lineHeight: 1.4 }}>
-              <PixelIcon name="recorded" /> <span>{t("cartridgePanel.ledgerSealed")}</span>
+            {/* Provenance (not a cryptographic seal): every entry above carries the same
+                authored digest as the ledger (see appendResult) — recorded under the
+                program identity, so this record checks against it. */}
+            <div data-testid="ledger-provenance" style={{ display: "flex", gap: 6, alignItems: "flex-start", marginTop: 8, color: "#6b6050", fontSize: 10, lineHeight: 1.4 }}>
+              <PixelIcon name="recorded" /> <span>{t("cartridgePanel.ledgerProvenance")}</span>
             </div>
           </>
         )}

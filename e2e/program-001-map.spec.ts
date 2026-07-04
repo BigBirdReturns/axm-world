@@ -165,10 +165,10 @@ test("entering an encounter from the map records it, advances progress, and move
   await expect(page.getByTestId("ledger-entry")).toHaveCount(1);
   await expect(page.getByTestId("ledger-entry").first()).toContainText(/Cellar/i);
 
-  // The ledger reads as memory + proof over the SAME fields: a cumulative count,
-  // a per-entry recording order (seq), and a closing seal binding it to the
-  // authored identity. Display-only — no new schema, just the record made legible.
+  // The ledger reads as memory + provenance over the SAME fields: a cumulative
+  // count, a per-entry recording order (seq), and a closing line recording it under
+  // the authored identity. Display-only — no new schema, just the record made legible.
   await expect(page.getByTestId("ledger-count")).toHaveText(/1 recorded/i);
   await expect(page.getByTestId("ledger-entry").first().getByTestId("ledger-entry-seq")).toHaveText("01");
-  await expect(page.getByTestId("ledger-sealed")).toBeVisible();
+  await expect(page.getByTestId("ledger-provenance")).toBeVisible();
 });

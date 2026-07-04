@@ -24,13 +24,16 @@ describe("ledger memory pass (#66)", () => {
     expect(panel).toContain('t("shell.identityRecorded", { count: ledger.entries.length })');
   });
 
-  it("names the proof that binds the ledger to the authored identity", () => {
-    expect(panel).toContain('data-testid="ledger-sealed"');
-    expect(panel).toContain('t("cartridgePanel.ledgerSealed")');
-    // The proof copy exists in BOTH locales and speaks to identity + checking.
-    expect(formatMessage("en", "cartridgePanel.ledgerSealed")).toMatch(/identity/i);
-    expect(formatMessage("en", "cartridgePanel.ledgerSealed")).toMatch(/check/i);
-    expect(MESSAGES["zh-Hant"]).toHaveProperty("cartridgePanel.ledgerSealed");
+  it("names the provenance that binds the ledger to the authored identity — without overclaiming a seal", () => {
+    expect(panel).toContain('data-testid="ledger-provenance"');
+    expect(panel).toContain('t("cartridgePanel.ledgerProvenance")');
+    // The copy exists in BOTH locales and speaks to identity + checking...
+    expect(formatMessage("en", "cartridgePanel.ledgerProvenance")).toMatch(/identity/i);
+    expect(formatMessage("en", "cartridgePanel.ledgerProvenance")).toMatch(/check/i);
+    expect(MESSAGES["zh-Hant"]).toHaveProperty("cartridgePanel.ledgerProvenance");
+    // ...and does NOT imply a cryptographic seal/signature/trust primitive that
+    // doesn't exist. It is a plain provenance statement over existing fields.
+    expect(formatMessage("en", "cartridgePanel.ledgerProvenance")).not.toMatch(/seal|sign/i);
   });
 
   it("the memory/proof claims are honest: appended entries share the digest in recording order", () => {
