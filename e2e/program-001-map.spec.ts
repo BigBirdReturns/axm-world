@@ -145,6 +145,14 @@ test("entering an encounter from the map records it, advances progress, and move
   // duplicate resolver.
   await page.getByTestId("wm-enter-cellar").click();
   await expect(page.getByTestId("encounter-shell")).toBeVisible();
+
+  // #68: before committing, the encounter stages the confrontation as bodies — the
+  // committed squad ("N going in") faces the site, with the fit projection between
+  // them. Same encounter, resolved through the same engine; staging is display-only.
+  await expect(page.getByTestId("encs-staging")).toBeVisible();
+  await expect(page.getByTestId("encs-staging-party")).toContainText(/going in/i);
+  await expect(page.getByTestId("encs-staging-threat")).toBeVisible();
+
   await page.getByTestId("encs-resolve").click();
   await expect(page.getByTestId("encs-receipt")).toBeVisible();
   await page.getByTestId("encs-leave").click();

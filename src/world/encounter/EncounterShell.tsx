@@ -133,10 +133,16 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
 
   const committedSet = new Set(committed);
   const countOk = committed.length >= spec.minAgents && committed.length <= spec.maxAgents;
-  const projection = PROJECTION[readiness?.projectedOutcome ?? "none"];
+  const projectedOutcome = readiness?.projectedOutcome ?? "none";
+  const projection = PROJECTION[projectedOutcome];
   // The single most useful "why" line for the current squad (missing role, thin
   // check), so the projection is explained, not just colored.
   const projectionReason = readiness?.reasons[0] ?? null;
+  // Staging: the committed squad as bodies, and the fit projection as the tone of the
+  // space between them and the threat. Reuses the SAME projection the deploy control
+  // reads — the confrontation is felt, not recalculated.
+  const stagedParty = world.roster.filter((m) => committedSet.has(m.id));
+  const stagingTone = OUTCOME_COLOR[projectedOutcome] ?? "#8b7d6a";
 
   const toggle = (id: string) => {
     setCommitted((cur) => {
@@ -182,6 +188,48 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
           <div className="encs-brief" data-testid="encs-brief">
             <p className="encs-approach">{spec.location.approach}</p>
             <p className="encs-provenance">{t("encounterShell.derivedNote")}</p>
+
+            {/* Staging — the confrontation, embodied: THIS squad, going into THIS
+                situation. The committed party (bodies) faces the site's threat (body),
+                and the SAME live readiness projection colors the space between them —
+                the fit felt, not recalculated. Existing data only: committed roster,
+                spec, readiness. No combat, positioning, enemy mechanics, or new art. */}
+            <div className="encs-section" data-testid="encs-staging" data-projected={projectedOutcome}>
+              <div className="encs-section-label">{t("encounterShell.staging")}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {/* Who is going in — the committed squad as bodies. */}
+                <div data-testid="encs-staging-party" style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 9, letterSpacing: "0.06em", textTransform: "uppercase", color: "#8b7d6a", marginBottom: 5 }}>
+                    {t("encounterShell.goingIn", { n: committed.length })}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-end" }}>
+                    {stagedParty.map((m) => (
+                      <span key={m.id} data-testid={`encs-staging-body-${m.id}`} title={`${m.name} · ${m.role}`} style={{ display: "grid", justifyItems: "center", gap: 3, width: 42 }}>
+                        <span aria-hidden="true" style={{ width: 15, height: 25, borderRadius: "7px 7px 3px 3px", background: "#6f8f57", boxShadow: "0 3px 8px -3px rgba(0,0,0,0.7)" }} />
+                        <span style={{ fontSize: 8, color: "#cdd8c2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 42 }}>{m.name}</span>
+                      </span>
+                    ))}
+                    {committed.length === 0 && <span style={{ fontSize: 10, color: "#8b7d6a" }}>{t("encounterShell.projNone")}</span>}
+                  </div>
+                </div>
+                {/* The fit, embodied — the tension between squad and threat (same
+                    projection the deploy control reads; hover for the why). */}
+                <div data-testid="encs-staging-fit" title={projectionReason ?? undefined} style={{ flex: "none", display: "grid", justifyItems: "center", gap: 2, color: stagingTone, padding: "0 2px" }}>
+                  <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1 }}>►</span>
+                  <strong style={{ fontSize: 9, letterSpacing: "0.06em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{t(projection.key)}</strong>
+                </div>
+                {/* What they are facing — the site as a threat body. */}
+                <div data-testid="encs-staging-threat" style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
+                  <div style={{ fontSize: 9, letterSpacing: "0.06em", textTransform: "uppercase", color: "#8b7d6a", marginBottom: 5 }}>
+                    {t("encounterShell.difficulty")} {spec.difficulty}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "flex-end", gap: 8 }}>
+                    <span style={{ fontSize: 10, color: "#e0d6c2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{spec.location.site}</span>
+                    <span aria-hidden="true" style={{ width: 17, height: 27, borderRadius: "8px 8px 3px 3px", background: "#8a4a3d", boxShadow: "0 3px 8px -3px rgba(0,0,0,0.7)", flex: "none" }} />
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Posture choice — the second agency type. Rendered ONLY when the
                 cartridge authors difficulty modes; picking one recompiles the

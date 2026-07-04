@@ -213,6 +213,8 @@ export type MessageId =
   | "encounterShell.committed"
   | "encounterShell.reserve"
   | "encounterShell.projected"
+  | "encounterShell.staging"
+  | "encounterShell.goingIn"
   | "encounterShell.minNeeded"
   | "encounterShell.projReliable"
   | "encounterShell.projRisky"
@@ -605,6 +607,8 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounterShell.committed": "In the room",
     "encounterShell.reserve": "Reserve",
     "encounterShell.projected": "Projected",
+    "encounterShell.staging": "Staging",
+    "encounterShell.goingIn": (params) => `${num(params, "n")} going in`,
     "encounterShell.minNeeded": (params) => `Commit at least ${num(params, "n")}`,
     "encounterShell.projReliable": "Reliable",
     "encounterShell.projRisky": "Risky",
@@ -957,6 +961,8 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounterShell.committed": "已進場",
     "encounterShell.reserve": "後備",
     "encounterShell.projected": "預估",
+    "encounterShell.staging": "對陣",
+    "encounterShell.goingIn": (params) => `${num(params, "n")} 人出戰`,
     "encounterShell.minNeeded": (params) => `至少投入 ${num(params, "n")} 名`,
     "encounterShell.projReliable": "穩妥",
     "encounterShell.projRisky": "有風險",
