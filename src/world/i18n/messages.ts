@@ -74,7 +74,7 @@ export type MessageId =
   | "shell.outcomePartial"
   | "shell.outcomeFailed"
   | "shell.engineLoop"
-  | "shell.everyContractCleared"
+  | "shell.everyContractRecorded"
   | "shell.complete"
   | "shell.equipped"
   | "shell.rewardMomentTitle"
@@ -97,7 +97,6 @@ export type MessageId =
   | "status.failing"
   | "status.locked"
   | "status.recorded"
-  | "status.cleared"
   | "status.assigned"
   | "status.down"
   // ── readiness (src/world/readiness.ts) ──────────────────────────────────
@@ -425,7 +424,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.outcomePartial": "Outcome: Partial",
     "shell.outcomeFailed": "Outcome: Failed",
     "shell.engineLoop": "Engine loop",
-    "shell.everyContractCleared": "Every contract cleared",
+    "shell.everyContractRecorded": "Every contract recorded",
     "shell.complete": (params) => `${str(params, "name")} — Complete`,
     "shell.equipped": "Equipped:",
     "shell.rewardMomentTitle": "Reward moment.",
@@ -450,7 +449,6 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "status.failing": "Failing",
     "status.locked": "Locked",
     "status.recorded": "Recorded",
-    "status.cleared": "Cleared",
     "status.assigned": "Assigned",
     "status.down": "Down",
 
@@ -511,7 +509,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
 
     "contractBoard.title": "Contract Board",
     "contractBoard.heading": "Choose the next place",
-    "contractBoard.explainer": "Cards show what is available, what is locked, what is risky, and what the cartridge has recorded. Lines show which cleared place opens which locked one.",
+    "contractBoard.explainer": "Cards show what is available, what is locked, what is risky, and what the cartridge has recorded. Lines show which recorded place opens which locked one.",
     "contractBoard.party": "Party",
     "contractBoard.partyRange": (params) => {
       const min = num(params, "min");
@@ -635,7 +633,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "worldMap.legendAvailable": "Open — enter now",
     "worldMap.legendActive": "The pin you selected",
     "worldMap.legendSteep": "High authored difficulty",
-    "worldMap.legendRecorded": "Cleared, on the ledger",
+    "worldMap.legendRecorded": "Result written to the ledger",
     "worldMap.legendLocked": "Clear earlier contracts first",
     "presentations.globe.label": "Planet",
     "presentations.globe.blurb": "3D world — optional spatial renderer",
@@ -668,7 +666,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "cartridgePanel.cycle": "Cycle",
     "cartridgePanel.recordedNodes": "Recorded nodes",
     "cartridgePanel.decisionMark": "Decision mark",
-    "cartridgePanel.body": "Rodoh held the loop. This cartridge now carries engine marks — decisions, cleared nodes, cycle count, and roster state — that survive representation changes.",
+    "cartridgePanel.body": "Rodoh held the loop. This cartridge now carries engine marks — decisions, recorded nodes, cycle count, and roster state — that survive representation changes.",
     "cartridgePanel.exportRun": "Export run",
     "cartridgePanel.resume": "Resume",
     "cartridgePanel.leave": "Leave",
@@ -778,7 +776,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.outcomePartial": "結果：部分成功",
     "shell.outcomeFailed": "結果：失敗",
     "shell.engineLoop": "引擎循環",
-    "shell.everyContractCleared": "所有契約皆已完成",
+    "shell.everyContractRecorded": "所有契約皆已記錄",
     "shell.complete": (params) => `${str(params, "name")} — 已完成`,
     "shell.equipped": "已裝備：",
     "shell.rewardMomentTitle": "獎勵時刻。",
@@ -800,7 +798,6 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "status.failing": "將失敗",
     "status.locked": "鎖定",
     "status.recorded": "已記錄",
-    "status.cleared": "已完成",
     "status.assigned": "已指派",
     "status.down": "倒下",
 
@@ -852,7 +849,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
 
     "contractBoard.title": "契約板",
     "contractBoard.heading": "選擇下一個地點",
-    "contractBoard.explainer": "卡片顯示哪些契約可承接、哪些鎖定、哪些有風險，以及卡匣已記錄的結果。連線顯示已完成的地點解鎖了哪個鎖定地點。",
+    "contractBoard.explainer": "卡片顯示哪些契約可承接、哪些鎖定、哪些有風險，以及卡匣已記錄的結果。連線顯示已記錄的地點解鎖了哪個鎖定地點。",
     "contractBoard.party": "隊伍",
     "contractBoard.partyRange": (params) => {
       const min = num(params, "min");
@@ -973,7 +970,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "worldMap.legendAvailable": "開放 — 立即進入",
     "worldMap.legendActive": "你選取的地點",
     "worldMap.legendSteep": "作者設定的高難度",
-    "worldMap.legendRecorded": "已完成，記錄於帳本",
+    "worldMap.legendRecorded": "結果已寫入帳本",
     "worldMap.legendLocked": "請先完成較早的契約",
     "presentations.globe.label": "星球",
     "presentations.globe.blurb": "3D 世界 — 選用的空間化渲染器",
@@ -1006,7 +1003,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "cartridgePanel.cycle": "週期",
     "cartridgePanel.recordedNodes": "已記錄節點",
     "cartridgePanel.decisionMark": "決策標記",
-    "cartridgePanel.body": "Rodoh 持續維護此循環。此卡匣現在帶有引擎標記 — 決策、已完成節點、週期數與名冊狀態 — 在切換呈現方式後依然保留。",
+    "cartridgePanel.body": "Rodoh 持續維護此循環。此卡匣現在帶有引擎標記 — 決策、已記錄節點、週期數與名冊狀態 — 在切換呈現方式後依然保留。",
     "cartridgePanel.exportRun": "匯出執行",
     "cartridgePanel.resume": "繼續",
     "cartridgePanel.leave": "離開卡匣",

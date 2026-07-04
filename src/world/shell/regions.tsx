@@ -548,7 +548,10 @@ export function ContractRegion(props: ContractRegionProps): JSX.Element {
 
   const showReadiness = selected.status === "available" && contract;
   const contractStateBadge: "available" | "recorded" = selected.status === "cleared" ? "recorded" : "available";
-  const contractStateLabel = selected.status === "cleared" ? t("status.cleared") : t("status.available");
+  // A completed contract reads "Recorded" — the one canonical done-state label, the
+  // same word the board card and the map pin use (the badge visual is already the
+  // recorded state). "Cleared" survives only as the ledger's success grade.
+  const contractStateLabel = selected.status === "cleared" ? t("status.recorded") : t("status.available");
 
   return (
     <PixelPanel style={{ padding: "12px 14px" }}>
@@ -602,7 +605,7 @@ function RunButton(props: { selected: WorldNode; min: number; max: number; canRu
   const label = selected.status === "locked"
     ? t("status.locked")
     : selected.status === "cleared"
-    ? t("status.cleared")
+    ? t("status.recorded")
     : !countOk
     ? t("shell.assignRange", { min, max })
     : riskRun
@@ -868,7 +871,7 @@ export function CompleteBanner(props: { arcName: string }): JSX.Element {
     <PixelPanel style={{ padding: "16px 20px", textAlign: "center" }}>
       <PixelBadge state="reliable" style={{ marginBottom: 8, display: "inline-flex" }}>{t("shell.complete", { name: props.arcName })}</PixelBadge>
       <div style={{ fontFamily: "var(--px-font)", fontSize: 16, fontWeight: 800, color: "var(--teal-dark)" }}>
-        {t("shell.everyContractCleared")}
+        {t("shell.everyContractRecorded")}
       </div>
     </PixelPanel>
   );
