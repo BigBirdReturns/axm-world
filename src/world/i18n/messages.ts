@@ -121,6 +121,7 @@ export type MessageId =
   // ── PixelContractCard ───────────────────────────────────────────────────
   | "contractCard.needs"
   | "contractCard.clearEarlier"
+  | "contractCard.difficulty"
   // ── PixelGearSlot ────────────────────────────────────────────────────────
   | "gearSlot.noGear"
   // ── PixelRosterCard ──────────────────────────────────────────────────────
@@ -495,6 +496,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
 
     "contractCard.needs": "Needs",
     "contractCard.clearEarlier": "Clear earlier contracts",
+    "contractCard.difficulty": "Difficulty",
 
     "gearSlot.noGear": "No gear equipped",
 
@@ -835,6 +837,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
 
     "contractCard.needs": "需要",
     "contractCard.clearEarlier": "請先完成較早的契約",
+    "contractCard.difficulty": "難度",
 
     "gearSlot.noGear": "尚未裝備",
 
