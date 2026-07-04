@@ -75,6 +75,22 @@ describe("Rodoh pixel-ui integration", () => {
     expect(contractCard).toContain("{difficulty}");
   });
 
+  it("board cards carry the map's 'Up next' / 'Steep' markers from the shared projection", () => {
+    const board = read("src/world/contract-board/ContractBoard.tsx");
+    // The board reads the SAME pure helper the World-map uses — no second definition
+    // of next/steep, no coupling to the map's React components.
+    expect(board).toContain("deriveNodeMarkers");
+    expect(board).toContain("upNext=");
+    expect(board).toContain("steep=");
+
+    const card = read("src/world/pixel-ui/PixelContractCard.tsx");
+    // …and the card prints the map's own "Up next" / "Steep" chrome (reused ids), as a
+    // display-only overlay flagged for tests via data-upnext / data-steep.
+    expect(card).toContain('t("worldMap.nextContract")');
+    expect(card).toContain('t("worldMap.steep")');
+    expect(card).toContain("data-upnext");
+  });
+
   it("ContractBoard renders PixelContractCard, not bespoke card markup", () => {
     const contractBoard = read("src/world/contract-board/ContractBoard.tsx");
     expect(contractBoard).toContain("PixelContractCard");

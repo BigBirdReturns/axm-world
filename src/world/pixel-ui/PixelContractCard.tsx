@@ -39,6 +39,12 @@ type PixelContractCardProps = Omit<HTMLAttributes<HTMLButtonElement>, "onClick">
    *  for cartridges with no motif set — the title renders exactly as before. */
   titleMotif?: ReactNode;
   description: string;
+  /** The two map overlay markers, display-only and derived upstream (deriveNodeMarkers)
+   *  from the SAME projection the World-map uses — the card never recomputes them, so
+   *  board and map speak one marker language. `upNext` = the single shared "next"
+   *  contract; `steep` = the arc-relative high-difficulty read. */
+  upNext?: boolean;
+  steep?: boolean;
   unlockRequirements?: string[];
   requirements?: ReactNode;
   riskNote?: ReactNode;
@@ -51,6 +57,7 @@ type PixelContractCardProps = Omit<HTMLAttributes<HTMLButtonElement>, "onClick">
 export function PixelContractCard(props: PixelContractCardProps): JSX.Element {
   const {
     state, selected = false, difficulty, title, titleMotif, description,
+    upNext = false, steep = false,
     unlockRequirements, requirements, riskNote, readyNote,
     footerLeft, footerRight, onClick, className = "", ...rest
   } = props;
@@ -60,6 +67,8 @@ export function PixelContractCard(props: PixelContractCardProps): JSX.Element {
       className={`pixel-contract-card ${className}`}
       data-state={state}
       data-selected={selected ? "true" : undefined}
+      data-upnext={upNext ? "true" : undefined}
+      data-steep={steep ? "true" : undefined}
       type="button"
       onClick={onClick}
       {...rest}
@@ -75,6 +84,28 @@ export function PixelContractCard(props: PixelContractCardProps): JSX.Element {
             <span className="pixel-contract-card__difficulty-value">{difficulty}</span>
           </span>
         </div>
+
+        {/* Map markers carried onto the card — display-only, and the SAME "Up next" /
+            "Steep" chrome the World-map pin prints (reused ids, not a second string).
+            The engine seam is untouched: these change nothing the card does on click. */}
+        {(upNext || steep) && (
+          <div className="pixel-contract-card__markers">
+            {upNext && (
+              <span className="pixel-contract-card__marker pixel-contract-card__marker--next" data-testid="contract-card-marker-next">
+                <span aria-hidden="true">▸</span> {t("worldMap.nextContract")}
+              </span>
+            )}
+            {steep && (
+              <span
+                className="pixel-contract-card__marker pixel-contract-card__marker--steep"
+                data-testid="contract-card-marker-steep"
+                aria-label={t("worldMap.steepContract")}
+              >
+                <span aria-hidden="true">⚠</span> {t("worldMap.steep")}
+              </span>
+            )}
+          </div>
+        )}
         <h3 className="pixel-contract-card__title">
           {titleMotif ? <span className="pixel-contract-card__title-motif" aria-hidden="true">{titleMotif}</span> : null}
           {title}

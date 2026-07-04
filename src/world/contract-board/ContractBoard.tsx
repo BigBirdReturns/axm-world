@@ -8,6 +8,7 @@ import type { CheckStatus, PartyReadiness } from "../readiness.js";
 import { attrIcon, roleIcon, itemIcon } from "../theme-icons.js";
 import { CartridgeMotif } from "../themes/CartridgeMotif.js";
 import { cartridgePaletteScope } from "../themes/select.js";
+import { deriveNodeMarkers } from "../worldmap/derive.js";
 import { t } from "../i18n/index.js";
 import { unlockEdges } from "./adjacency.js";
 import "./contract-board.css";
@@ -92,9 +93,13 @@ function ContractLocationCard(props: {
   node: WorldNode;
   world: ArcWorld;
   selected: boolean;
+  /** The map's overlay markers for this node, projected upstream by the shared
+   *  deriveNodeMarkers — display-only, never recomputed here. */
+  upNext: boolean;
+  steep: boolean;
   onSelect: (id: string) => void;
 }): JSX.Element {
-  const { node, world, selected, onSelect } = props;
+  const { node, world, selected, upNext, steep, onSelect } = props;
   const challenge = challengeFor(world, node.challengeId);
   const recommended = node.status === "available" ? world.recommendedParty(node.challengeId) : [];
   const readiness = node.status === "available" ? world.evaluateParty(node.challengeId, recommended) : null;
@@ -120,6 +125,10 @@ function ContractLocationCard(props: {
       data-testid={`contract-board-card-${node.challengeId}`}
       state={state}
       selected={selected}
+      upNext={upNext}
+      // A recorded contract is done, so its steep read recedes — mirroring the map,
+      // where the steep tag hides once a pin reads recorded.
+      steep={steep && node.status !== "cleared"}
       difficulty={node.difficulty}
       title={node.title}
       titleMotif={
@@ -210,6 +219,9 @@ export function ContractBoardScene({ world, interaction, modalOpen = false }: Co
   // Locked to unlocking adjacency, derived from the engine's own milestone links.
   const edges = useMemo(() => unlockEdges(world.nodes, world.arc.challenges), [world.nodes, world.arc.challenges]);
   const statusById = useMemo(() => new Map(world.nodes.map((n) => [n.challengeId, n.status])), [world.nodes]);
+  // "Up next" / "Steep" markers, from the SAME pure projection the World-map reads —
+  // one definition, so a card and its map pin can never disagree.
+  const markers = useMemo(() => deriveNodeMarkers(world.nodes), [world.nodes]);
 
   const boardRef = useRef<HTMLDivElement | null>(null);
   const cardEls = useRef(new Map<string, HTMLDivElement>());
@@ -304,6 +316,8 @@ export function ContractBoardScene({ world, interaction, modalOpen = false }: Co
                       node={node}
                       world={world}
                       selected={interaction.selectedId === node.challengeId}
+                      upNext={markers.get(node.challengeId)?.next ?? false}
+                      steep={markers.get(node.challengeId)?.steep ?? false}
                       onSelect={(id) => interaction.select(interaction.selectedId === id ? null : id)}
                     />
                   </div>

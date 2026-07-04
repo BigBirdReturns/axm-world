@@ -34,6 +34,19 @@ async function openCartridgeObject(page: Page): Promise<void> {
   await expect(page.getByTestId("cartridge-digest")).toBeVisible();
 }
 
+async function showBoard(page: Page): Promise<void> {
+  const width = page.viewportSize()?.width ?? 9999;
+  // Mobile cold-start auto-advances to the contract step; step back to the board.
+  if (width < 700 && (await page.getByTestId("mobile-step-back").count())) {
+    await page.getByTestId("mobile-step-back").click();
+  }
+  // The board is the default representation; switch back to it if another is active.
+  if (!(await page.getByTestId("contract-board").isVisible().catch(() => false))) {
+    await page.getByTestId("view-run-graph").click();
+  }
+  await expect(page.getByTestId("contract-board")).toBeVisible();
+}
+
 test("the map presents Program 001 as a cartridge surface: named world, region state, steepness, and the next contract", async ({ page }) => {
   await enterCartridge(page);
   await showMap(page);
@@ -63,6 +76,20 @@ test("the map presents Program 001 as a cartridge surface: named world, region s
   for (const marker of ["next", "available", "active", "steep", "recorded", "locked"]) {
     await expect(page.getByTestId(`wm-legend-${marker}`)).toBeVisible();
   }
+});
+
+test("the board speaks the same marker language as the map: the same 'Up next' and 'Steep' contracts", async ({ page }) => {
+  await enterCartridge(page);
+  await showBoard(page);
+
+  // The map's next pin (cellar) and steep pins (wardens-keep, bandit-camp) read
+  // identically on the board cards — one shared projection (deriveNodeMarkers), not
+  // a parallel interpretation. Markers are display-only: the card still selects.
+  await expect(page.getByTestId("contract-board-card-cellar")).toHaveAttribute("data-upnext", "true");
+  await expect(page.getByTestId("contract-board-card-cellar")).not.toHaveAttribute("data-steep", "true");
+  await expect(page.getByTestId("contract-board-card-cellar").getByTestId("contract-card-marker-next")).toBeVisible();
+  await expect(page.getByTestId("contract-board-card-wardens-keep")).toHaveAttribute("data-steep", "true");
+  await expect(page.getByTestId("contract-board-card-bandit-camp")).toHaveAttribute("data-steep", "true");
 });
 
 test("entering an encounter from the map records it, advances progress, and moves the next marker — same digest-stamped ledger", async ({ page }) => {

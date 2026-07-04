@@ -88,26 +88,59 @@ function regionStatus(locations: readonly MapLocation[]): RegionStatus {
   return "active";
 }
 
+/** A node's two strategic overlay markers — the shared "next" contract and the
+ *  arc-relative "steep" read — exactly as the map projects them. */
+export interface NodeMarkers {
+  /** The one contract to act on next: the first still-available node, i.e. exactly
+   *  the contract the inhabited hall's steward holds. At most one node is `next`. */
+  next: boolean;
+  /** Authored difficulty in the arc's upper band — a purely visual "steep climb"
+   *  read (arc-relative), NOT a mechanic and NOT party-relative risk. */
+  steep: boolean;
+}
+
+/** The SINGLE definition of the map's "next" and "steep" markers: a pure projection
+ *  of the run's nodes keyed by challengeId. deriveWorldMap builds its pins from this,
+ *  and the contract board reads the SAME helper for its cards — so the two surfaces
+ *  speak one marker language and can never drift into a second definition of either
+ *  word. Display-only: it derives nothing new and changes nothing the engine resolves. */
+export function deriveNodeMarkers(nodes: readonly WorldNode[]): Map<string, NodeMarkers> {
+  const cutoff = steepCutoff(nodes);
+  // The hall steward's held contract IS "next". When every contract is recorded the
+  // steward reads as fulfilled (resolved) and there is no next node.
+  const hall = deriveHallView(nodes);
+  const nextChallengeId = hall.resolved ? null : hall.challengeId;
+  const markers = new Map<string, NodeMarkers>();
+  for (const node of nodes) {
+    markers.set(node.challengeId, {
+      next: node.challengeId === nextChallengeId,
+      steep: cutoff !== null && node.difficulty >= cutoff,
+    });
+  }
+  return markers;
+}
+
 /** Group the world nodes into regions (progression tiers), preserving tier order.
  *  The map is a projection of this — one section per region, one pin per node — with
  *  each pin's steepness and the run's single "next" contract derived alongside. */
 export function deriveWorldMap(nodes: WorldNode[], arc: Arc, selectedId: string | null): WorldMapView {
-  const cutoff = steepCutoff(nodes);
-  // The hall steward's held contract IS the map's "next". When every contract is
-  // recorded the steward reads as fulfilled (resolved) and there is no next node.
-  const hall = deriveHallView(nodes);
-  const nextChallengeId = hall.resolved ? null : hall.challengeId;
+  // Markers come from the shared projection, and "next" is read back from it — one
+  // source of truth, so the map header, the map pins, and the board cards agree by
+  // construction rather than by three parallel computations.
+  const markers = deriveNodeMarkers(nodes);
+  const nextChallengeId = [...markers].find(([, m]) => m.next)?.[0] ?? null;
 
   const byTier = new Map<number, MapLocation[]>();
   for (const node of nodes) {
+    const marker = markers.get(node.challengeId)!;
     const list = byTier.get(node.tierIndex) ?? [];
     list.push({
       challengeId: node.challengeId,
       title: node.title,
       state: mapNodeState(node, selectedId),
       difficulty: node.difficulty,
-      steep: cutoff !== null && node.difficulty >= cutoff,
-      next: node.challengeId === nextChallengeId,
+      steep: marker.steep,
+      next: marker.next,
     });
     byTier.set(node.tierIndex, list);
   }
