@@ -8,6 +8,7 @@ export * from "./PixelRoleBadge.js";
 export * from "./PixelAttribute.js";
 export * from "./PixelGearSlot.js";
 export * from "./PixelStateBadge.js";
+export * from "./PixelStateBands.js";
 export * from "./PixelReadinessRow.js";
 export * from "./PixelLootCard.js";
 export * from "./PixelRosterCard.js";

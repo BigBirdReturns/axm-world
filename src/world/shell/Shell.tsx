@@ -16,6 +16,7 @@ import { cartridgePaletteScope } from "../themes/select.js";
 import "../themes/karazhan/karazhan.css";
 import "../themes/first-charter/first-charter.css";
 import { getPresentations, type Representation } from "../presentations.js";
+import { deriveNodeMarkers } from "../worldmap/derive.js";
 import { loadCostume, saveCostume, isCostumeId } from "../presentation-prefs.js";
 import { useIsMobile } from "../use-viewport.js";
 import { getEngineCoachMessage } from "./coach.js";
@@ -260,11 +261,18 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
       onApplyFix={ix.applyFix}
     />
   );
+  // "Up next" for the detail panel comes from the SAME shared projection the board and
+  // map read, so the commit surface marks the same single contract they do.
+  const nextChallengeId = useMemo(() => {
+    const markers = deriveNodeMarkers(world.nodes);
+    return [...markers].find(([, m]) => m.next)?.[0] ?? null;
+  }, [world.nodes]);
   const contractProps = ix.selected
     ? {
         selected: ix.selected, party: ix.party, min, max, canRun: ix.canRun, onRun: interceptedRun,
         contract: ix.contract, readiness: ix.readiness, recommendation: ix.recommendation,
         fixPlan: ix.fixPlan, onApplyFix: ix.applyFix, compact: isMobile,
+        upNext: ix.selected.challengeId === nextChallengeId,
         difficultyModes: world.difficultyModes, difficultyModeId: world.difficultyModeId,
         onSelectDifficultyMode: world.setDifficultyModeId,
       }

@@ -2,6 +2,7 @@ import type { HTMLAttributes, ReactNode } from "react";
 import { PixelIcon, type PixelIconName } from "./PixelIcon.js";
 import { PixelPanel } from "./PixelPanel.js";
 import { PixelStateBadge } from "./PixelStateBadge.js";
+import { PixelStateBands } from "./PixelStateBands.js";
 import type { PixelBadgeState } from "./PixelBadge.js";
 import { t, type MessageId } from "../i18n/index.js";
 import "./pixel-ui.css";
@@ -138,21 +139,16 @@ export function PixelContractCard(props: PixelContractCardProps): JSX.Element {
           </div>
         ) : null}
 
-        {/* ── World-state band: what the world says ── */}
-        <div className="pixel-contract-card__band pixel-contract-card__band--world" data-testid="contract-card-world-band" data-state={state}>
-          <span className="pixel-contract-card__band-label"><PixelIcon name="available" /> {t("contractCard.worldState")}</span>
-          <span className="pixel-contract-card__band-primary">{worldStateLabel}</span>
-          {worldStateNote && <span className="pixel-contract-card__band-note">{worldStateNote}</span>}
-        </div>
-
-        {/* ── Squad-fit band: how this roster measures up ── */}
-        <div className="pixel-contract-card__band pixel-contract-card__band--squad" data-testid="contract-card-squad-band" data-squadfit={squadFit ?? "none"}>
-          <span className="pixel-contract-card__band-label">{t("contractCard.squadFit")}</span>
-          <span className="pixel-contract-card__band-primary pixel-contract-card__squad-verdict">
-            {squadFit ? <PixelIcon name={squadFit} /> : null} {squadFitLabel}
-          </span>
-          {squadFitReason && <span className="pixel-contract-card__band-note">{squadFitReason}</span>}
-        </div>
+        {/* The two named axis bands — World state + Squad fit — shared verbatim with
+            the detail panel via PixelStateBands, so board and commit surface agree. */}
+        <PixelStateBands
+          state={state}
+          worldStateLabel={worldStateLabel}
+          worldStateNote={worldStateNote}
+          squadFit={squadFit}
+          squadFitLabel={squadFitLabel}
+          squadFitReason={squadFitReason}
+        />
 
         <footer className="pixel-contract-card__footer">
           <span>{footerLeft}</span>

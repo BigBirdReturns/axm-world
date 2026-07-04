@@ -25,11 +25,20 @@ import {
   PixelRosterCard,
   PixelLootCard,
   PixelReadinessRow,
+  PixelStateBands,
   type PixelIconName,
   type ReadinessStatus,
   type RosterCardAttribute,
   type RosterCardGear,
 } from "../pixel-ui/index.js";
+import {
+  contractCardState,
+  squadFit,
+  squadFitKind,
+  squadFitLabelId,
+  worldStateLabelId,
+  worldStateNoteId,
+} from "../contract-board/card-axes.js";
 
 // The `panel` export is kept for Shell.tsx wrappers that set the outer chrome.
 // Gameplay content inside uses cream PixelPanel — this dark shell is system chrome only.
@@ -458,6 +467,9 @@ export interface ContractRegionProps {
   max: number;
   canRun: boolean;
   onRun: () => void;
+  /** Whether the selected contract is the run's single "next" — from the SAME shared
+   *  projection the board and map read, so the commit surface marks the same place. */
+  upNext?: boolean;
   contract: ContractRequirements | null;
   readiness: PartyReadiness | null;
   recommendation: string | null;
@@ -516,15 +528,52 @@ export function ContractActions(props: ContractRegionProps): JSX.Element {
 }
 
 export function ContractRegion(props: ContractRegionProps): JSX.Element {
-  const { selected, party, min, max, canRun, onRun, contract, readiness, recommendation, fixPlan, onApplyFix, compact, difficultyModes, difficultyModeId, onSelectDifficultyMode, render = "full" } = props;
+  const { selected, party, min, max, canRun, onRun, contract, readiness, recommendation, fixPlan, onApplyFix, compact, difficultyModes, difficultyModeId, onSelectDifficultyMode, upNext = false, render = "full" } = props;
   const detailOnly = render === "detail";
+
+  // The commit surface reads on the SAME two axes as the board card, from the SAME
+  // shared card-axes projection — so the panel where the player commits speaks exactly
+  // the board's language. Display-only; the readiness math is untouched.
+  const cardState = contractCardState(selected);
+  const fit = squadFit(selected, readiness);
+  const noteId = worldStateNoteId(selected, upNext);
+  const bands = (
+    <div style={{ display: "grid", gap: 8, margin: "10px 0" }}>
+      <PixelStateBands
+        state={cardState}
+        worldStateLabel={t(worldStateLabelId(cardState))}
+        worldStateNote={noteId ? t(noteId) : undefined}
+        squadFit={fit}
+        squadFitLabel={t(squadFitLabelId(squadFitKind(selected, fit)))}
+        squadFitReason={fit === "reliable" ? t("contractBoard.recommendedReliable") : fit ? readiness?.reasons?.[0] : undefined}
+      />
+    </div>
+  );
+  // Header markers — state badge, Up next where applicable, and Difficulty — the same
+  // immediate reads the board card carries.
+  const header = (
+    <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+      <PixelBadge state={cardState} style={{ display: "inline-flex" }}>
+        {t(cardState === "locked" ? "status.locked" : cardState === "recorded" ? "status.recorded" : "status.available")}
+      </PixelBadge>
+      {upNext && (
+        <span data-testid="detail-up-next" style={{ display: "inline-flex", alignItems: "center", gap: 3, fontFamily: "var(--px-font)", fontSize: 9, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--ink)", background: "var(--parchment-gold)", border: "2px solid var(--gold-border)", padding: "1px 6px" }}>
+          <span aria-hidden="true">▸</span> {t("worldMap.nextContract")}
+        </span>
+      )}
+      <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "var(--px-font)", fontSize: 8, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-soft)" }}>
+        {t("contractCard.difficulty")}
+        <span style={{ display: "inline-flex", minWidth: 26, height: 22, alignItems: "center", justifyContent: "center", background: "var(--ink)", color: "var(--gold)", border: "2px solid var(--ink-soft)", fontSize: 12, fontWeight: 800 }}>{selected.difficulty}</span>
+      </span>
+    </div>
+  );
 
   // Locked contracts show only unlock requirements — no party count, no readiness math,
   // no fix plan. Party assignment is irrelevant until the node unlocks.
   if (selected.status === "locked") {
     return (
       <PixelPanel style={{ padding: "12px 14px" }}>
-        <PixelBadge state="locked" style={{ marginBottom: 8, display: "inline-flex" }}>{t("status.locked")}</PixelBadge>
+        {header}
         <div data-testid="selected-contract-title" style={{ fontFamily: "var(--px-font)", fontSize: compact ? 22 : 18, fontWeight: 800, color: "var(--ink)", marginBottom: 4 }}>
           {selected.title}
         </div>
@@ -537,6 +586,7 @@ export function ContractRegion(props: ContractRegionProps): JSX.Element {
             </ul>
           </div>
         )}
+        {bands}
         {!detailOnly && (
           <PixelButton disabled variant="disabled" style={{ width: "100%", marginTop: 14, minHeight: 44, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
             <PixelIcon name="locked" /> <span>{t("status.locked")}</span>
@@ -547,17 +597,10 @@ export function ContractRegion(props: ContractRegionProps): JSX.Element {
   }
 
   const showReadiness = selected.status === "available" && contract;
-  const contractStateBadge: "available" | "recorded" = selected.status === "cleared" ? "recorded" : "available";
-  // A completed contract reads "Recorded" — the one canonical done-state label, the
-  // same word the board card and the map pin use (the badge visual is already the
-  // recorded state). "Cleared" survives only as the ledger's success grade.
-  const contractStateLabel = selected.status === "cleared" ? t("status.recorded") : t("status.available");
 
   return (
     <PixelPanel style={{ padding: "12px 14px" }}>
-      <PixelBadge state={contractStateBadge} style={{ marginBottom: 8, display: "inline-flex" }}>
-        {contractStateLabel}
-      </PixelBadge>
+      {header}
       <div data-testid="selected-contract-title" style={{ fontFamily: "var(--px-font)", fontSize: compact ? 22 : 18, fontWeight: 800, letterSpacing: "0.02em", color: "var(--ink)", marginBottom: 4 }}>
         {selected.title}
       </div>
@@ -572,6 +615,8 @@ export function ContractRegion(props: ContractRegionProps): JSX.Element {
       <div data-testid="party-count" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: party.length >= min && party.length <= max ? "var(--teal-dark)" : "var(--gold-dark)", marginBottom: 8, fontFamily: "var(--px-font)" }}>
         {t("shell.partyCount", { count: party.length, min, max })}
       </div>
+
+      {bands}
 
       {showReadiness && <ReadinessPanel contract={contract} readiness={readiness} />}
 
