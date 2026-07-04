@@ -17,6 +17,7 @@ import type { SceneProps } from "../presentations.js";
 import { deriveHallView, canTakeContract } from "./hall.js";
 import { hallSteward } from "./people.js";
 import { regionNameForTier } from "../progression.js";
+import { summarizeLedger } from "../ledger.js";
 import { t } from "../i18n/index.js";
 
 const wrap: CSSProperties = {
@@ -101,7 +102,11 @@ export function HallScene({ world, modalOpen = false, onEnterEncounter }: SceneP
   // contract and the map's next pin as one place, not two navigation systems.
   const heldNode = view.challengeId ? world.nodes.find((n) => n.challengeId === view.challengeId) ?? null : null;
   const regionName = heldNode ? regionNameForTier(world.cartridge.arc, heldNode.tierIndex) : null;
-  const worldChanged = world.clearedCount > 0;
+  // What the hall REMEMBERS — derived from the same run ledger every surface reads
+  // (summarizeLedger). A result enters the ledger on any outcome, so the hall
+  // acknowledges memory keyed on the ledger, not just on a visibly-cleared node.
+  const memory = summarizeLedger(world.ledger);
+  const remembers = memory.entryCount > 0;
   // Unclaimed loot must be claimed before starting another run: runChallenge
   // replaces the pending reward choices, so taking a new contract now would
   // silently discard the previous reward. Mirrors the board's loot-owns-the-rail
@@ -126,14 +131,25 @@ export function HallScene({ world, modalOpen = false, onEnterEncounter }: SceneP
 
   return (
     <div data-testid="hall-scene" style={wrap}>
-      {/* World-change band: derived from run state — the world visibly answers once
-          any contract is recorded. */}
-      {worldChanged && (
+      {/* Memory band: derived from the run ledger — once a result is recorded, the
+          hall acknowledges it. It says the place remembers (worldChanged), then NAMES
+          the last result and how many the ledger now holds (where the memory lives).
+          The steward below still points to what remains next — you returned to a place
+          that remembers what happened AND knows what is left. */}
+      {remembers && (
         <div
           data-testid="hall-world-change"
           style={{ flex: "none", padding: "8px 14px", borderBottom: "1px solid rgba(116,173,119,0.4)", background: "rgba(116,173,119,0.12)", color: "#cfe0c6", fontSize: 11, letterSpacing: "0.06em", textAlign: "center" }}
         >
-          {t("hall.worldChanged")}
+          <div>{t("hall.worldChanged")}</div>
+          {memory.lastResult && (
+            <div
+              data-testid="hall-last-recorded"
+              style={{ marginTop: 3, fontSize: 10, letterSpacing: "0.04em", color: "#a7b89e" }}
+            >
+              {t("hall.lastRecorded", { name: memory.lastResult.challengeName, count: memory.entryCount })}
+            </div>
+          )}
         </div>
       )}
 

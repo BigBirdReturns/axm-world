@@ -86,6 +86,10 @@ test("resolving a contract in the hall writes one digest-stamped ledger entry, c
   // The world visibly changed, and exactly one entry was written under the same digest.
   await showHall(page, { switchCostume: false });
   await expect(page.getByTestId("hall-world-change")).toBeVisible();
+  // #67: the hall now NAMES what it just recorded and how many the ledger holds —
+  // you returned to a place that knows something happened.
+  await expect(page.getByTestId("hall-last-recorded")).toContainText(/Cellar/i);
+  await expect(page.getByTestId("hall-last-recorded")).toContainText(/1 in the ledger/i);
   await openCartridgeObject(page);
   await expect(page.getByTestId("cartridge-digest")).toHaveText(DIGEST);
   await expect(page.getByTestId("ledger-entry")).toHaveCount(1);
