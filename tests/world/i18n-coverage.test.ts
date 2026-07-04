@@ -51,9 +51,20 @@ interface Violation {
   text: string;
 }
 
-function findBareLiterals(relPath: string): Violation[] {
-  const source = fs.readFileSync(path.join(REPO_ROOT, relPath), "utf8");
-  const sf = ts.createSourceFile(relPath, source, ts.ScriptTarget.Latest, /* setParentNodes */ true, ts.ScriptKind.TSX);
+// Text of a BARE string/template literal (no interpolation), or null. Covers
+// both "x" and `x`: the expression forms `={"x"}` / `={`x`}` render raw English
+// exactly like `="x"`, so the guard must treat them identically. A template WITH
+// substitutions (`Loading ${name}`) is not bare — it composes content — and is
+// intentionally not treated as a flat literal here.
+function bareLiteralText(node: ts.Expression | undefined): string | null {
+  if (!node) return null;
+  if (ts.isStringLiteral(node)) return node.text;
+  if (ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
+  return null;
+}
+
+function scanSource(source: string, fileName: string): Violation[] {
+  const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, /* setParentNodes */ true, ts.ScriptKind.TSX);
   const violations: Violation[] = [];
   const lineOf = (node: ts.Node): number => sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
 
@@ -64,30 +75,46 @@ function findBareLiterals(relPath: string): Violation[] {
       if (HAS_WORD.test(text)) violations.push({ line: lineOf(node), kind: "jsx-text", text });
     }
 
-    // (2) User-facing attribute with a bare string literal: aria-label="Remove"
-    if (ts.isJsxAttribute(node) && node.initializer && ts.isStringLiteral(node.initializer)) {
+    // (2) User-facing attribute with a bare literal, in EITHER form:
+    //     aria-label="Remove"   or   aria-label={"Remove"} / {`Remove`}
+    // The expression forms wrap the literal in a JsxExpression, so a naive
+    // isStringLiteral(initializer) check would miss them.
+    if (ts.isJsxAttribute(node) && node.initializer) {
       const name = node.name.getText(sf);
-      if (USER_FACING_ATTRS.has(name) && HAS_WORD.test(node.initializer.text)) {
-        violations.push({ line: lineOf(node), kind: `attr:${name}`, text: node.initializer.text });
+      if (USER_FACING_ATTRS.has(name)) {
+        const init = node.initializer;
+        const text = ts.isStringLiteral(init)
+          ? init.text
+          : ts.isJsxExpression(init)
+            ? bareLiteralText(init.expression)
+            : null;
+        if (text !== null && HAS_WORD.test(text)) {
+          violations.push({ line: lineOf(node), kind: `attr:${name}`, text });
+        }
       }
     }
 
-    // (3) A string literal rendered directly as a JSX child expression: {"Hello"}
+    // (3) A bare literal rendered directly as a JSX child expression:
+    //     {"Hello"} / {`Hello`}
     if (
       ts.isJsxExpression(node) &&
-      node.expression &&
-      ts.isStringLiteral(node.expression) &&
       node.parent &&
-      (ts.isJsxElement(node.parent) || ts.isJsxFragment(node.parent)) &&
-      HAS_WORD.test(node.expression.text)
+      (ts.isJsxElement(node.parent) || ts.isJsxFragment(node.parent))
     ) {
-      violations.push({ line: lineOf(node), kind: "jsx-expr-string", text: node.expression.text });
+      const text = bareLiteralText(node.expression);
+      if (text !== null && HAS_WORD.test(text)) {
+        violations.push({ line: lineOf(node), kind: "jsx-expr-string", text });
+      }
     }
 
     ts.forEachChild(node, visit);
   };
   visit(sf);
   return violations;
+}
+
+function findBareLiterals(relPath: string): Violation[] {
+  return scanSource(fs.readFileSync(path.join(REPO_ROOT, relPath), "utf8"), relPath);
 }
 
 describe("i18n coverage: listed chrome files route user-facing text through t()", () => {
@@ -102,5 +129,39 @@ describe("i18n coverage: listed chrome files route user-facing text through t()"
     const violations = findBareLiterals(relPath);
     const report = violations.map((v) => `  ${relPath}:${v.line} [${v.kind}] "${v.text}"`).join("\n");
     expect(violations, `bare user-facing literal(s) found — route these through t():\n${report}`).toEqual([]);
+  });
+});
+
+describe("i18n coverage: detector recognizes every bare-literal form", () => {
+  const wrap = (jsx: string): string => `export const C = () => (${jsx});`;
+  const texts = (jsx: string): string[] => scanSource(wrap(jsx), "snippet.tsx").map((v) => v.text);
+
+  it("flags raw JSX text", () => {
+    expect(texts("<div>Cartridge worlds that remember.</div>")).toContain("Cartridge worlds that remember.");
+  });
+
+  it("flags user-facing attribute literals in string AND expression form", () => {
+    // The gap the Codex review flagged: expression-wrapped attribute literals
+    // (and no-substitution templates) render raw English but evade a naive
+    // isStringLiteral(initializer) check.
+    expect(texts(`<button aria-label="Remove item" />`)).toContain("Remove item");
+    expect(texts(`<button aria-label={"Remove item"} />`)).toContain("Remove item");
+    expect(texts("<input placeholder={`Search here`} />")).toContain("Search here");
+  });
+
+  it("flags string- and template-literal JSX children", () => {
+    expect(texts(`<span>{"Bare child text"}</span>`)).toContain("Bare child text");
+    expect(texts("<span>{`Bare child text`}</span>")).toContain("Bare child text");
+  });
+
+  it("does not flag t() calls, content expressions, punctuation, or structural attributes", () => {
+    expect(texts(`<span>{t("boot.enter")}</span>`)).toEqual([]);
+    expect(texts("<span>{cartridge.manifest.name}</span>")).toEqual([]);
+    expect(texts(`<span>{" · "}</span>`)).toEqual([]);
+    expect(texts("<span> → </span>")).toEqual([]);
+    expect(texts(`<div data-testid="open-cartridge" />`)).toEqual([]);
+    expect(texts(`<label htmlFor="cartridge-file-input">{t("boot.openCartridge")}</label>`)).toEqual([]);
+    // A substituting template is content composition, not a flat chrome literal.
+    expect(texts("<span aria-label={`Loading ${name}`} />")).toEqual([]);
   });
 });
