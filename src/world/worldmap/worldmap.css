@@ -143,6 +143,9 @@
 .wm-pin-title-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .wm-pin-title { font: 800 13px system-ui, sans-serif; color: #e8dcc4; }
 .wm-next-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font: 800 8px 'IBM Plex Mono', ui-monospace, monospace;
   text-transform: uppercase;
   letter-spacing: 0.08em;

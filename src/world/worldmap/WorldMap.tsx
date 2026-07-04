@@ -96,7 +96,9 @@ export function WorldMapScene({ world, interaction: ix, onEnterEncounter }: Scen
                     <div className="wm-pin-title-row">
                       <span className="wm-pin-title">{loc.title}</span>
                       {loc.next && (
-                        <span className="wm-next-tag" data-testid={`wm-next-${loc.challengeId}`}>{t("worldMap.nextContract")}</span>
+                        <span className="wm-next-tag" data-testid={`wm-next-${loc.challengeId}`}>
+                          <span aria-hidden="true">▸</span> {t("worldMap.nextContract")}
+                        </span>
                       )}
                     </div>
                     <div className="wm-pin-meta">

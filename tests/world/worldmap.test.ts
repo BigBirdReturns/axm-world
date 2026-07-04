@@ -13,6 +13,7 @@ import { compileArcToPlayScene } from "../../src/play-pipeline/compile.js";
 import { buildWorldLayout, DEFAULT_WORLD_CONFIG } from "../../src/world/contract.js";
 import { deriveWorldMap, mapNodeState } from "../../src/world/worldmap/derive.js";
 import { deriveHallView } from "../../src/world/inhabited/hall.js";
+import { regionNameForTier } from "../../src/world/progression.js";
 
 function nodesFor(org = bootstrapOrg(FIRST_CHARTER)) {
   const scene = compileArcToPlayScene(FIRST_CHARTER, org);
@@ -107,6 +108,26 @@ describe("world-map projection", () => {
     expect(nextLocs[0]!.challengeId).toBe(map.nextChallengeId);
     // Cold start, the first available contract is The Cellar.
     expect(map.nextChallengeId).toBe("cellar");
+  });
+
+  it("names the steward's held contract and the map's next pin by the SAME region", () => {
+    // The map's next pin and the hall's held contract are already proven to be the
+    // same node; this pins that both surfaces NAME its place identically, via the
+    // shared regionNameForTier — so the player reads one place, not two systems.
+    const nodes = nodesFor();
+    const map = deriveWorldMap(nodes, FIRST_CHARTER, null);
+    const hall = deriveHallView(nodes);
+    const heldNode = nodes.find((n) => n.challengeId === hall.challengeId)!;
+    const nextRegion = map.regions.find((r) => r.locations.some((l) => l.challengeId === map.nextChallengeId))!;
+    expect(regionNameForTier(FIRST_CHARTER, heldNode.tierIndex)).toBe(nextRegion.name);
+    // Cold start, that shared region is Proving Grounds.
+    expect(nextRegion.name).toBe("Proving Grounds");
+  });
+
+  it("regionNameForTier returns the authored tier name, with a neutral fallback for an undefined tier", () => {
+    expect(regionNameForTier(FIRST_CHARTER, 0)).toBe("Proving Grounds");
+    expect(regionNameForTier(FIRST_CHARTER, 1)).toBe("The Contract");
+    expect(regionNameForTier(FIRST_CHARTER, 999)).toBe("The Field");
   });
 
   it("moves 'next' forward as contracts are recorded, and drops it once all are cleared", () => {
