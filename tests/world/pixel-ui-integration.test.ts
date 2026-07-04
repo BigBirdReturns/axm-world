@@ -91,6 +91,18 @@ describe("Rodoh pixel-ui integration", () => {
     expect(card).toContain("data-upnext");
   });
 
+  it("the contract card shows world state and squad fit as two separate named bands", () => {
+    const card = read("src/world/pixel-ui/PixelContractCard.tsx");
+    expect(card).toContain('t("contractCard.worldState")');
+    expect(card).toContain('t("contractCard.squadFit")');
+    expect(card).toContain("contract-card-world-band");
+    expect(card).toContain("contract-card-squad-band");
+    // The board feeds the two axes from separate pure helpers — state takes no readiness.
+    const board = read("src/world/contract-board/ContractBoard.tsx");
+    expect(board).toContain("contractCardState(node)");
+    expect(board).toContain("squadFit(node, readiness)");
+  });
+
   it("ContractBoard renders PixelContractCard, not bespoke card markup", () => {
     const contractBoard = read("src/world/contract-board/ContractBoard.tsx");
     expect(contractBoard).toContain("PixelContractCard");

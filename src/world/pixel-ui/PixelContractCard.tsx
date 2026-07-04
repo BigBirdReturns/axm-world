@@ -6,14 +6,20 @@ import type { PixelBadgeState } from "./PixelBadge.js";
 import { t, type MessageId } from "../i18n/index.js";
 import "./pixel-ui.css";
 
-export type ContractCardState = "selected" | "available" | "reliable" | "risky" | "failing" | "locked" | "recorded";
+// The card reads on TWO INDEPENDENT axes, shown as two named bands:
+//   • WORLD/CONTRACT STATE — what the cartridge/world says about the contract:
+//     available / locked / recorded (plus the up-next / steep header markers).
+//   • SQUAD FIT — how the currently assigned roster performs against it. A SEPARATE
+//     axis, deliberately never folded into the state, so a squad verdict like "risky"
+//     can never read as a property of the contract itself.
+// Selection is neither axis — it's a visual highlight (the card border), not a state.
+export type ContractCardState = "available" | "locked" | "recorded";
+
+// The squad-fit verdict — the same words the readiness projection already uses.
+export type SquadFit = "reliable" | "risky" | "failing";
 
 const STATE_TO_BADGE: Record<ContractCardState, PixelBadgeState> = {
-  selected: "selected",
   available: "available",
-  reliable: "reliable",
-  risky: "risky",
-  failing: "failing",
   locked: "locked",
   recorded: "recorded",
 };
@@ -21,11 +27,7 @@ const STATE_TO_BADGE: Record<ContractCardState, PixelBadgeState> = {
 // Shared status vocabulary — resolved live (not a module-level const) so it
 // re-translates on locale switch.
 const STATUS_LABEL_ID: Record<ContractCardState, MessageId> = {
-  selected: "status.selected",
   available: "status.available",
-  reliable: "status.reliable",
-  risky: "status.risky",
-  failing: "status.failing",
   locked: "status.locked",
   recorded: "status.recorded",
 };
@@ -45,10 +47,17 @@ type PixelContractCardProps = Omit<HTMLAttributes<HTMLButtonElement>, "onClick">
    *  contract; `steep` = the arc-relative high-difficulty read. */
   upNext?: boolean;
   steep?: boolean;
-  unlockRequirements?: string[];
   requirements?: ReactNode;
-  riskNote?: ReactNode;
-  readyNote?: ReactNode;
+  unlockRequirements?: string[];
+  /** WORLD-STATE band: the plain state line ("Available now" / "Locked" / "Recorded")
+   *  plus an optional secondary note. Both are computed upstream from existing state. */
+  worldStateLabel: string;
+  worldStateNote?: ReactNode;
+  /** SQUAD-FIT band: the verdict (for colour/icon; null when not evaluated), its label
+   *  ("Reliable" / "Not evaluated until available" / …), and the readiness reason. */
+  squadFit?: SquadFit | null;
+  squadFitLabel: string;
+  squadFitReason?: ReactNode;
   footerLeft?: ReactNode;
   footerRight?: ReactNode;
   onClick: () => void;
@@ -57,8 +66,8 @@ type PixelContractCardProps = Omit<HTMLAttributes<HTMLButtonElement>, "onClick">
 export function PixelContractCard(props: PixelContractCardProps): JSX.Element {
   const {
     state, selected = false, difficulty, title, titleMotif, description,
-    upNext = false, steep = false,
-    unlockRequirements, requirements, riskNote, readyNote,
+    upNext = false, steep = false, requirements, unlockRequirements,
+    worldStateLabel, worldStateNote, squadFit = null, squadFitLabel, squadFitReason,
     footerLeft, footerRight, onClick, className = "", ...rest
   } = props;
 
@@ -86,8 +95,7 @@ export function PixelContractCard(props: PixelContractCardProps): JSX.Element {
         </div>
 
         {/* Map markers carried onto the card — display-only, and the SAME "Up next" /
-            "Steep" chrome the World-map pin prints (reused ids, not a second string).
-            The engine seam is untouched: these change nothing the card does on click. */}
+            "Steep" chrome the World-map pin prints (reused ids, not a second string). */}
         {(upNext || steep) && (
           <div className="pixel-contract-card__markers">
             {upNext && (
@@ -112,20 +120,39 @@ export function PixelContractCard(props: PixelContractCardProps): JSX.Element {
         </h3>
         <p className="pixel-contract-card__desc">{description}</p>
 
-        {state === "locked" ? (
-          <div className="pixel-contract-card__gate" data-testid="unlock-requirements">
-            <strong>{t("contractCard.needs")}</strong>
-            {(unlockRequirements?.length ? unlockRequirements : [t("contractCard.clearEarlier")]).slice(0, 2).map((reqText, i) => (
-              <span key={i}><PixelIcon name="locked" /> {reqText}</span>
-            ))}
+        {/* NEEDS — authored roster requirements (available) or the unlock blockers
+            (locked). A contract attribute, not a state or a squad verdict. */}
+        {state === "locked" && unlockRequirements?.length ? (
+          <div className="pixel-contract-card__needs" data-testid="unlock-requirements">
+            <span className="pixel-contract-card__needs-label">{t("contractCard.needs")}</span>
+            <div className="pixel-contract-card__needs-body">
+              {unlockRequirements.slice(0, 2).map((reqText, i) => (
+                <span key={i} className="pixel-contract-card__pill"><PixelIcon name="locked" /> {reqText}</span>
+              ))}
+            </div>
           </div>
-        ) : (
-          <>
-            {requirements && <div className="pixel-contract-card__requirements">{requirements}</div>}
-            {riskNote && <div className="pixel-contract-card__risk">{riskNote}</div>}
-            {readyNote && <div className="pixel-contract-card__ready">{readyNote}</div>}
-          </>
-        )}
+        ) : requirements ? (
+          <div className="pixel-contract-card__needs">
+            <span className="pixel-contract-card__needs-label">{t("contractCard.needs")}</span>
+            <div className="pixel-contract-card__needs-body">{requirements}</div>
+          </div>
+        ) : null}
+
+        {/* ── World-state band: what the world says ── */}
+        <div className="pixel-contract-card__band pixel-contract-card__band--world" data-testid="contract-card-world-band" data-state={state}>
+          <span className="pixel-contract-card__band-label"><PixelIcon name="available" /> {t("contractCard.worldState")}</span>
+          <span className="pixel-contract-card__band-primary">{worldStateLabel}</span>
+          {worldStateNote && <span className="pixel-contract-card__band-note">{worldStateNote}</span>}
+        </div>
+
+        {/* ── Squad-fit band: how this roster measures up ── */}
+        <div className="pixel-contract-card__band pixel-contract-card__band--squad" data-testid="contract-card-squad-band" data-squadfit={squadFit ?? "none"}>
+          <span className="pixel-contract-card__band-label">{t("contractCard.squadFit")}</span>
+          <span className="pixel-contract-card__band-primary pixel-contract-card__squad-verdict">
+            {squadFit ? <PixelIcon name={squadFit} /> : null} {squadFitLabel}
+          </span>
+          {squadFitReason && <span className="pixel-contract-card__band-note">{squadFitReason}</span>}
+        </div>
 
         <footer className="pixel-contract-card__footer">
           <span>{footerLeft}</span>

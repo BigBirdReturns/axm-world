@@ -40,8 +40,8 @@ describe("completed-contract wording is unified on 'Recorded'", () => {
   });
 
   it("the board card renders the engine 'cleared' status under the 'recorded' label", () => {
-    // ContractBoard collapses engine status "cleared" → card state "recorded"…
-    expect(read("src/world/contract-board/ContractBoard.tsx")).toContain('node.status === "cleared") return "recorded"');
+    // The card-axes projection collapses engine status "cleared" → card state "recorded"…
+    expect(read("src/world/contract-board/card-axes.ts")).toContain('node.status === "cleared") return "recorded"');
     // …and the card maps that state to the canonical label id.
     expect(read("src/world/pixel-ui/PixelContractCard.tsx")).toContain('recorded: "status.recorded"');
   });
