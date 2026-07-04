@@ -12,7 +12,7 @@
 
 import { useState, type CSSProperties } from "react";
 import type { SceneProps } from "../presentations.js";
-import { deriveHallView } from "./hall.js";
+import { deriveHallView, canTakeContract } from "./hall.js";
 import { t } from "../i18n/index.js";
 
 const wrap: CSSProperties = {
@@ -48,9 +48,15 @@ export function HallScene({ world, modalOpen = false }: SceneProps): JSX.Element
   const [open, setOpen] = useState(false);
   const view = deriveHallView(world.nodes);
   const worldChanged = world.clearedCount > 0;
+  // Unclaimed loot must be claimed before starting another run: runChallenge
+  // replaces the pending reward choices, so taking a new contract now would
+  // silently discard the previous reward. Mirrors the board's loot-owns-the-rail
+  // guarantee.
+  const lootPending = world.pendingLoot.length > 0;
+  const canTake = canTakeContract(view, world.pendingLoot.length);
 
   const accept = (): void => {
-    if (!view.challengeId || view.resolved) return;
+    if (!canTake || !view.challengeId) return;
     world.runChallenge(view.challengeId, world.recommendedParty(view.challengeId));
     setOpen(false);
   };
@@ -110,14 +116,19 @@ export function HallScene({ world, modalOpen = false }: SceneProps): JSX.Element
           <div data-testid="hall-dialogue-contract" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, color: "#ece4d4" }}>
             {view.challengeName}
           </div>
+          {!view.resolved && lootPending && (
+            <div data-testid="hall-claim-first" style={{ color: "#e0a23a", fontSize: 11, letterSpacing: "0.04em" }}>
+              {t("hall.claimFirst")}
+            </div>
+          )}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
             {!view.resolved && (
               <button
                 type="button"
                 data-testid="hall-accept"
-                disabled={modalOpen}
+                disabled={!canTake || modalOpen}
                 onClick={accept}
-                style={{ cursor: modalOpen ? "not-allowed" : "pointer", padding: "8px 16px", border: "none", background: "var(--gold, #c9a14a)", color: "#1b160c", fontFamily: "var(--px-font)", fontSize: 12, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase" }}
+                style={{ cursor: !canTake || modalOpen ? "not-allowed" : "pointer", opacity: !canTake || modalOpen ? 0.5 : 1, padding: "8px 16px", border: "none", background: "var(--gold, #c9a14a)", color: "#1b160c", fontFamily: "var(--px-font)", fontSize: 12, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase" }}
               >
                 {t("hall.accept")}
               </button>

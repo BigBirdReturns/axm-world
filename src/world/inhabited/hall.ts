@@ -21,6 +21,15 @@ export interface HallView {
 
 type NodeView = Pick<WorldNode, "challengeId" | "title" | "status">;
 
+/** Whether the steward may hand over a contract right now. False while a reward
+ *  is unclaimed: resolving another contract calls runChallenge, which REPLACES
+ *  the pending reward choices, so starting a new run before claiming would
+ *  silently discard the previous contract's loot. The board enforces this by
+ *  letting pending loot own the rail; the hall must enforce the same guarantee. */
+export function canTakeContract(view: HallView, pendingLootCount: number): boolean {
+  return view.challengeId !== null && !view.resolved && pendingLootCount === 0;
+}
+
 export function deriveHallView(nodes: readonly NodeView[]): HallView {
   const available = nodes.find((n) => n.status === "available");
   if (available) {

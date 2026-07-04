@@ -230,6 +230,7 @@ export type MessageId =
   | "hall.leave"
   | "hall.recordedNote"
   | "hall.worldChanged"
+  | "hall.claimFirst"
   | "worldMap.difficulty"
   | "worldMap.enterEncounter"
   | "worldMap.stateLocked"
@@ -588,6 +589,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "hall.leave": "Leave",
     "hall.recordedNote": "This contract is recorded in the world.",
     "hall.worldChanged": "The charter has begun — the world remembers.",
+    "hall.claimFirst": "Claim your reward before taking another contract.",
     "worldMap.difficulty": "Difficulty",
     "worldMap.enterEncounter": "Enter Encounter",
     "worldMap.stateLocked": "Locked",
@@ -906,6 +908,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "hall.leave": "離開",
     "hall.recordedNote": "此契約已記錄於世界中。",
     "hall.worldChanged": "憲章已然開始 — 世界記得。",
+    "hall.claimFirst": "領取獎勵後才能承接下一份契約。",
     "worldMap.difficulty": "難度",
     "worldMap.enterEncounter": "進入遭遇",
     "worldMap.stateLocked": "鎖定",
