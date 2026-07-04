@@ -139,27 +139,47 @@ export function CartridgeObjectPanel({ manifest, digest, ledger, openingChoice, 
         {row(t("cartridgePanel.decisionMark"), openingChoice ?? "—")}
 
         <div style={{ height: 1, background: "#2a2620", margin: "10px 0 8px" }} />
-        <div style={{ color: "#a59c8b", marginBottom: 6 }}>{t("cartridgePanel.ledger")}</div>
+        {/* Contract ledger — the program's memory: an ordered, append-only record.
+            The heading carries the cumulative count; each row its recording order;
+            and a closing line names the proof that binds it to the authored identity. */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, marginBottom: 6 }}>
+          <span style={{ color: "#a59c8b" }}>{t("cartridgePanel.ledger")}</span>
+          {ledger.entries.length > 0 && (
+            <span data-testid="ledger-count" style={{ color: "#6b6050", fontSize: 11, flex: "none" }}>{t("shell.identityRecorded", { count: ledger.entries.length })}</span>
+          )}
+        </div>
         {ledger.entries.length === 0 ? (
           <div data-testid="ledger-empty" style={{ color: "#6b6050", fontSize: 12 }}>{t("cartridgePanel.ledgerEmpty")}</div>
         ) : (
-          <div data-testid="cartridge-ledger" style={{ display: "grid", gap: 3 }}>
-            {ledger.entries.map((entry) => (
-              <div
-                key={entry.seq}
-                data-testid="ledger-entry"
-                style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, alignItems: "baseline" }}
-              >
-                <span style={{ color: "#d8cfbd", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.challengeName}</span>
-                {/* When it was recorded (the run's cycle — deterministic, not a wall clock)
-                    beside the outcome grade: memory that says what happened AND when. */}
-                <span style={{ display: "flex", gap: 8, flex: "none", alignItems: "baseline" }}>
-                  <span data-testid="ledger-entry-when" style={{ color: "#6b6050", fontSize: 10 }}>{t("result.ledgerRecordedAt", { cycle: entry.cycle })}</span>
-                  <span style={{ color: OUTCOME_COLOR[entry.outcome] ?? "#a59c8b" }}>{t(OUTCOME_LABEL_ID[entry.outcome])}</span>
-                </span>
-              </div>
-            ))}
-          </div>
+          <>
+            <div data-testid="cartridge-ledger" style={{ display: "grid", gap: 3 }}>
+              {ledger.entries.map((entry) => (
+                <div
+                  key={entry.seq}
+                  data-testid="ledger-entry"
+                  style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, alignItems: "baseline" }}
+                >
+                  <span style={{ display: "flex", gap: 8, minWidth: 0, alignItems: "baseline" }}>
+                    {/* Recording order (seq + 1) — reads the ledger as an ordered log,
+                        not an unordered set. Append index, never a wall clock. */}
+                    <span data-testid="ledger-entry-seq" style={{ color: "#6b6050", fontSize: 10, fontVariantNumeric: "tabular-nums", flex: "none" }}>{String(entry.seq + 1).padStart(2, "0")}</span>
+                    <span style={{ color: "#d8cfbd", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.challengeName}</span>
+                  </span>
+                  {/* When it was recorded (the run's cycle — deterministic, not a wall clock)
+                      beside the outcome grade: memory that says what happened AND when. */}
+                  <span style={{ display: "flex", gap: 8, flex: "none", alignItems: "baseline" }}>
+                    <span data-testid="ledger-entry-when" style={{ color: "#6b6050", fontSize: 10 }}>{t("result.ledgerRecordedAt", { cycle: entry.cycle })}</span>
+                    <span style={{ color: OUTCOME_COLOR[entry.outcome] ?? "#a59c8b" }}>{t(OUTCOME_LABEL_ID[entry.outcome])}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+            {/* Proof: every entry above carries the same authored digest as the ledger
+                (see appendResult), so this record checks against the program identity. */}
+            <div data-testid="ledger-sealed" style={{ display: "flex", gap: 6, alignItems: "flex-start", marginTop: 8, color: "#6b6050", fontSize: 10, lineHeight: 1.4 }}>
+              <PixelIcon name="recorded" /> <span>{t("cartridgePanel.ledgerSealed")}</span>
+            </div>
+          </>
         )}
 
         <p style={{ color: "#a59c8b", fontFamily: "'Lora', Georgia, serif", fontSize: 13, lineHeight: 1.5, margin: "14px 0 16px" }}>

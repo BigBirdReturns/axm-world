@@ -311,6 +311,7 @@ export type MessageId =
   | "cartridgePanel.identity"
   | "cartridgePanel.ledger"
   | "cartridgePanel.ledgerEmpty"
+  | "cartridgePanel.ledgerSealed"
   // ── boot screen (cartridge bay) ──────────────────────────────────────────
   | "boot.openCartridge"
   | "boot.remove"
@@ -703,6 +704,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "cartridgePanel.identity": "Authored identity",
     "cartridgePanel.ledger": "Contract ledger",
     "cartridgePanel.ledgerEmpty": "No contracts recorded yet.",
+    "cartridgePanel.ledgerSealed": "Each result is sealed under the authored identity above — this ledger checks against the program.",
 
     "boot.openCartridge": "Open cartridge…",
     "boot.remove": "Remove",
@@ -1047,6 +1049,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "cartridgePanel.resume": "繼續",
     "cartridgePanel.leave": "離開卡匣",
     "cartridgePanel.trust": "信任等級",
+    "cartridgePanel.ledgerSealed": "每筆結果皆以上方的作者身分封存 — 此帳本可對照程式核對。",
 
     "boot.openCartridge": "開啟卡匣…",
     "boot.remove": "移除",
