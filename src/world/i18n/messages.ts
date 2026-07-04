@@ -247,6 +247,7 @@ export type MessageId =
   | "hall.leave"
   | "hall.recordedNote"
   | "hall.worldChanged"
+  | "hall.lastRecorded"
   | "hall.claimFirst"
   | "hall.threshold"
   | "hall.approach"
@@ -637,6 +638,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "hall.leave": "Leave",
     "hall.recordedNote": "This contract is recorded in the world.",
     "hall.worldChanged": "The charter has begun — the world remembers.",
+    "hall.lastRecorded": (params) => `Last recorded: ${str(params, "name")} · ${num(params, "count")} in the ledger.`,
     "hall.claimFirst": "Claim your reward before taking another contract.",
     "hall.threshold": "Encounter threshold",
     "hall.approach": "Approach",
@@ -988,6 +990,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "hall.leave": "離開",
     "hall.recordedNote": "此契約已記錄於世界中。",
     "hall.worldChanged": "憲章已然開始 — 世界記得。",
+    "hall.lastRecorded": (params) => `最近記錄：${str(params, "name")} · 帳本中共 ${num(params, "count")} 筆。`,
     "hall.claimFirst": "領取獎勵後才能承接下一份契約。",
     "hall.threshold": "遭遇入口",
     "hall.approach": "靠近",
