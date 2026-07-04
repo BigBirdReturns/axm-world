@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { bootstrapOrg } from "../../src/spoke/bootstrap";
 import { FIRST_CHARTER_CARTRIDGE } from "../../src/world/cartridge";
-import { emptyLedger, appendResult } from "../../src/world/ledger";
+import { emptyLedger, appendResult, LEDGER_SCHEMA_VERSION, type Consequence } from "../../src/world/ledger";
 import { saveRun, loadRun, clearRun, readProgramSaveSummary, SAVE_SCHEMA_VERSION, saveKeyFor, type KVStorage } from "../../src/world/save";
 
 function fakeStorage(): KVStorage {
@@ -29,6 +29,53 @@ describe("program run persistence", () => {
     expect(loaded!.ledger.entries[0]!.authoredArcDigest).toBe(DIGEST);
     // The opening decision label survives reload, so the decision mark is not lost.
     expect(loaded!.openingChoice).toBe("Hold the line");
+  });
+
+  it("backfills a consequence for old ledger entries saved before the record existed (#69)", () => {
+    const org = bootstrapOrg(arc);
+    const ledger = appendResult(emptyLedger(DIGEST), { challengeId: "c1", challengeName: "The Cellar", outcome: "success", cycle: org.cycle });
+    const s = fakeStorage();
+    saveRun(s, { arc, authoredArcDigest: DIGEST, state: { org, ledger, openingChoice: null } });
+
+    // Rewrite the stored blob to look like an OLD save: ledger version 1 and entries
+    // with NO consequence field (as they were persisted before #69).
+    const key = saveKeyFor(DIGEST);
+    const stored = JSON.parse(s.getItem(key)!);
+    stored.ledger.version = 1;
+    for (const e of stored.ledger.entries) delete e.consequence;
+    s.setItem(key, JSON.stringify(stored));
+
+    const loaded = loadRun(s, { arc, authoredArcDigest: DIGEST });
+    expect(loaded).not.toBeNull();
+    expect(loaded!.ledger.entries).toHaveLength(1);
+    const c = loaded!.ledger.entries[0]!.consequence;
+    // Present and HONEST: grade + contract + recorded, nothing invented.
+    expect(c).toBeDefined();
+    expect(c.outcome.grade).toBe("cleared");
+    expect(c.contract).toEqual({ id: "c1", title: "The Cellar" });
+    expect(c.party.members).toEqual([]);
+    expect(c.rewards).toEqual([]);
+    expect(c.worldChanges).toEqual([{ kind: "recorded", targetId: "c1", label: "The Cellar" }]);
+    // The whole ledger is brought to the current schema version on load.
+    expect(loaded!.ledger.version).toBe(LEDGER_SCHEMA_VERSION);
+  });
+
+  it("round-trips a full structured consequence intact for a new save (#69)", () => {
+    const org = bootstrapOrg(arc);
+    const rich: Consequence = {
+      schemaVersion: 1,
+      outcome: { grade: "cleared" },
+      contract: { id: "c1", title: "The Cellar" },
+      party: { members: [{ id: "a1", name: "Gwenna", role: "Vanguard" }] },
+      objectives: [{ id: "o1", label: "Cellar Sweep", status: "cleared" }],
+      rewards: [{ kind: "gold", label: "Gold", amount: 125 }],
+      worldChanges: [{ kind: "recorded", targetId: "c1", label: "The Cellar" }],
+    };
+    const ledger = appendResult(emptyLedger(DIGEST), { challengeId: "c1", challengeName: "The Cellar", outcome: "success", cycle: org.cycle, consequence: rich });
+    const s = fakeStorage();
+    saveRun(s, { arc, authoredArcDigest: DIGEST, state: { org, ledger } });
+    const loaded = loadRun(s, { arc, authoredArcDigest: DIGEST });
+    expect(loaded!.ledger.entries[0]!.consequence).toEqual(rich);
   });
 
   it("defaults opening choice to null when none was persisted", () => {

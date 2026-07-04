@@ -310,7 +310,11 @@ function ledgerLines(outcome: Challenge["outcomes"][keyof Challenge["outcomes"]]
 }
 
 /** What a clear opens: milestone-gated challenges, attunement grants keyed off
- *  this clear, and narrative events that trigger on it. All derived from the arc. */
+ *  this clear, and narrative events that trigger on it. All derived from the arc.
+ *  This is the brief's ASPIRATIONAL hint ("what clearing this contributes toward")
+ *  — it may over-claim for a multi-step gate, so it is display-only and is NOT the
+ *  source of the ledger's durable "unlocked" facts (those use a real post-run
+ *  availability diff; see src/world/consequence.ts). */
 function onClearFor(challenge: Challenge, arc: Arc): EncounterSpec["onClear"] {
   const flag = challenge.outcomes.success.milestoneFlag;
   const unlocks: string[] = [];
