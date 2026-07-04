@@ -33,6 +33,7 @@ const I18N_CLEAN_CHROME = [
   "src/world/Player.tsx",
   "src/world/components/CartridgeBayCard.tsx",
   "src/world/shell/ProgramIdentityStrip.tsx",
+  "src/world/inhabited/HallScene.tsx",
 ];
 
 // Attributes that render as user-facing text, so a string literal in one is an

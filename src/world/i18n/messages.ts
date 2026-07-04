@@ -216,6 +216,20 @@ export type MessageId =
   | "presentations.map.blurb"
   | "presentations.map.controlsHint"
   | "presentations.map.purpose"
+  // ── inhabited hall (presentation + scene chrome) ─────────────────────────
+  | "presentations.hall.label"
+  | "presentations.hall.blurb"
+  | "presentations.hall.controlsHint"
+  | "presentations.hall.purpose"
+  | "hall.you"
+  | "hall.steward"
+  | "hall.offering"
+  | "hall.fulfilled"
+  | "hall.talk"
+  | "hall.accept"
+  | "hall.leave"
+  | "hall.recordedNote"
+  | "hall.worldChanged"
   | "worldMap.difficulty"
   | "worldMap.enterEncounter"
   | "worldMap.stateLocked"
@@ -561,6 +575,19 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.map.blurb": "2D world map — the same contracts as locations, by region, with state and an enter-encounter action",
     "presentations.map.controlsHint": "pick a location, or enter its encounter",
     "presentations.map.purpose": "The cartridge's contracts as world locations, grouped by region: see what's available, active, or recorded, and walk into an encounter.",
+    "presentations.hall.label": "Hall",
+    "presentations.hall.blurb": "Inhabited hall — meet the steward and take a contract in person",
+    "presentations.hall.controlsHint": "talk to the steward to take a contract",
+    "presentations.hall.purpose": "The cartridge's founding hall, inhabited: meet the steward, accept a contract in person, and watch the world change — the same contract and ledger as every other surface.",
+    "hall.you": "You",
+    "hall.steward": "The Steward",
+    "hall.offering": "Has a contract for you",
+    "hall.fulfilled": "Contract fulfilled",
+    "hall.talk": "Talk",
+    "hall.accept": "Accept & resolve",
+    "hall.leave": "Leave",
+    "hall.recordedNote": "This contract is recorded in the world.",
+    "hall.worldChanged": "The charter has begun — the world remembers.",
     "worldMap.difficulty": "Difficulty",
     "worldMap.enterEncounter": "Enter Encounter",
     "worldMap.stateLocked": "Locked",
@@ -866,6 +893,19 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.map.blurb": "2D 世界地圖 — 相同契約化為地點，依地區分組，顯示狀態並可進入遭遇",
     "presentations.map.controlsHint": "選擇地點，或進入其遭遇",
     "presentations.map.purpose": "將卡匣的契約呈現為世界地點，依地區分組：查看可用、進行中或已記錄的狀態，並走入遭遇。",
+    "presentations.hall.label": "契約堂",
+    "presentations.hall.blurb": "有人的契約堂 — 與管事會面，親自承接契約",
+    "presentations.hall.controlsHint": "與管事對話以承接契約",
+    "presentations.hall.purpose": "卡匣的創立之堂，有人居住：與管事會面、親自承接契約，並看著世界改變 — 與其他所有介面相同的契約與帳本。",
+    "hall.you": "你",
+    "hall.steward": "管事",
+    "hall.offering": "有一份契約給你",
+    "hall.fulfilled": "契約已履行",
+    "hall.talk": "對話",
+    "hall.accept": "承接並結算",
+    "hall.leave": "離開",
+    "hall.recordedNote": "此契約已記錄於世界中。",
+    "hall.worldChanged": "憲章已然開始 — 世界記得。",
     "worldMap.difficulty": "難度",
     "worldMap.enterEncounter": "進入遭遇",
     "worldMap.stateLocked": "鎖定",

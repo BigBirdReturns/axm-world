@@ -6,6 +6,7 @@
 import { lazy, Suspense } from "react";
 import { ContractBoardScene } from "./contract-board/ContractBoard.js";
 import { WorldMapScene } from "./worldmap/WorldMap.js";
+import { HallScene } from "./inhabited/HallScene.js";
 import type { CostumeId } from "./presentation-prefs.js";
 import type { ArcInteraction } from "./useArcInteraction.js";
 import type { ArcWorld } from "./useArcWorld.js";
@@ -114,6 +115,15 @@ export function getPresentations(): Representation[] {
       controlsHint: t("presentations.map.controlsHint"),
       purpose: t("presentations.map.purpose"),
       legend,
+    },
+    {
+      id: "hall",
+      label: t("presentations.hall.label"),
+      blurb: t("presentations.hall.blurb"),
+      Scene: HallScene,
+      controlsHint: t("presentations.hall.controlsHint"),
+      purpose: t("presentations.hall.purpose"),
+      legend: [],
     },
     {
       id: "globe",
