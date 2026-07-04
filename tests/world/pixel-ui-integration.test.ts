@@ -91,16 +91,33 @@ describe("Rodoh pixel-ui integration", () => {
     expect(card).toContain("data-upnext");
   });
 
-  it("the contract card shows world state and squad fit as two separate named bands", () => {
-    const card = read("src/world/pixel-ui/PixelContractCard.tsx");
-    expect(card).toContain('t("contractCard.worldState")');
-    expect(card).toContain('t("contractCard.squadFit")');
-    expect(card).toContain("contract-card-world-band");
-    expect(card).toContain("contract-card-squad-band");
-    // The board feeds the two axes from separate pure helpers — state takes no readiness.
+  it("world state and squad fit render as two separate named bands, shared by every surface", () => {
+    // The two named bands live in one shared component, so the board card and the
+    // detail panel render them identically and can never drift.
+    const bands = read("src/world/pixel-ui/PixelStateBands.tsx");
+    expect(bands).toContain('t("contractCard.worldState")');
+    expect(bands).toContain('t("contractCard.squadFit")');
+    expect(bands).toContain("contract-card-world-band");
+    expect(bands).toContain("contract-card-squad-band");
+    // The board card renders the shared bands, fed from separate pure axes.
+    expect(read("src/world/pixel-ui/PixelContractCard.tsx")).toContain("PixelStateBands");
     const board = read("src/world/contract-board/ContractBoard.tsx");
     expect(board).toContain("contractCardState(node)");
     expect(board).toContain("squadFit(node, readiness)");
+  });
+
+  it("the detail panel (commit surface) speaks the same two-axis language as the board", () => {
+    const regions = read("src/world/shell/regions.tsx");
+    // Same shared bands, fed from the same card-axes projection — one language.
+    expect(regions).toContain("PixelStateBands");
+    expect(regions).toContain("contractCardState(selected)");
+    expect(regions).toContain("squadFit(selected, readiness)");
+    // World-state markers travel to the commit surface: state badge + up next + steep.
+    expect(regions).toContain("detail-up-next");
+    expect(regions).toContain("detail-steep");
+    // Shell feeds up next / steep from the shared node-marker projection.
+    const shell = read("src/world/shell/Shell.tsx");
+    expect(shell).toContain("deriveNodeMarkers(world.nodes)");
   });
 
   it("ContractBoard renders PixelContractCard, not bespoke card markup", () => {

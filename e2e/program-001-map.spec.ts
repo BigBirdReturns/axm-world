@@ -110,6 +110,31 @@ test("board card separates world state from squad fit: a readiness verdict is ne
   await expect(bandit.getByTestId("contract-card-squad-band")).toHaveAttribute("data-squadfit", "none");
 });
 
+test("world-state markers travel to the commit surface: the detail panel carries Up next / Steep and the two bands", async ({ page }, testInfo) => {
+  // The detail panel is the desktop right-rail; on mobile it's staged into separate
+  // steps, so this cross-surface check runs on desktop.
+  test.skip(testInfo.project.name !== "desktop", "detail panel is a desktop right-rail");
+  await enterCartridge(page);
+  await showBoard(page);
+  const detail = page.getByTestId("contract-detail-stack");
+
+  // Selecting the next contract (cellar) carries ▸ Up next and both bands onto the
+  // commit surface — the player never has to remember them from the board.
+  await page.getByTestId("contract-board-card-cellar").click();
+  if (!(await page.getByTestId("selected-contract-title").isVisible().catch(() => false))) {
+    await page.getByTestId("contract-board-card-cellar").click();
+  }
+  await expect(page.getByTestId("selected-contract-title")).toBeVisible();
+  await expect(detail.getByTestId("detail-up-next")).toBeVisible();
+  await expect(detail.getByTestId("contract-card-world-band")).toBeVisible();
+  await expect(detail.getByTestId("contract-card-squad-band")).toBeVisible();
+
+  // A steep contract carries ⚠ Steep forward too (Bandit Camp: locked + steep).
+  await page.getByTestId("contract-board-card-bandit-camp").click();
+  await expect(page.getByTestId("selected-contract-title")).toBeVisible();
+  await expect(detail.getByTestId("detail-steep")).toBeVisible();
+});
+
 test("entering an encounter from the map records it, advances progress, and moves the next marker — same digest-stamped ledger", async ({ page }) => {
   test.slow();
   await enterCartridge(page);

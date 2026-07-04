@@ -16,6 +16,7 @@ import { cartridgePaletteScope } from "../themes/select.js";
 import "../themes/karazhan/karazhan.css";
 import "../themes/first-charter/first-charter.css";
 import { getPresentations, type Representation } from "../presentations.js";
+import { deriveNodeMarkers } from "../worldmap/derive.js";
 import { loadCostume, saveCostume, isCostumeId } from "../presentation-prefs.js";
 import { useIsMobile } from "../use-viewport.js";
 import { getEngineCoachMessage } from "./coach.js";
@@ -260,11 +261,20 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
       onApplyFix={ix.applyFix}
     />
   );
+  // "Up next" / "Steep" for the detail panel come from the SAME shared projection the
+  // board and map read, so the world-state markers travel with the contract to the
+  // commit surface — the player never has to remember them from the previous screen.
+  const selectedMarkers = useMemo(
+    () => (ix.selectedId ? deriveNodeMarkers(world.nodes).get(ix.selectedId) ?? null : null),
+    [world.nodes, ix.selectedId],
+  );
   const contractProps = ix.selected
     ? {
         selected: ix.selected, party: ix.party, min, max, canRun: ix.canRun, onRun: interceptedRun,
         contract: ix.contract, readiness: ix.readiness, recommendation: ix.recommendation,
         fixPlan: ix.fixPlan, onApplyFix: ix.applyFix, compact: isMobile,
+        upNext: selectedMarkers?.next ?? false,
+        steep: selectedMarkers?.steep ?? false,
         difficultyModes: world.difficultyModes, difficultyModeId: world.difficultyModeId,
         onSelectDifficultyMode: world.setDifficultyModeId,
       }
