@@ -66,11 +66,34 @@ export interface AuthoredOpening {
   options: AuthoredOption[];
 }
 
+// ── Authored people (cartridge DATA, not player logic) ──────────────────────
+// The person the player meets in the inhabited hall. Like the opening beat, this
+// is authored cartridge content axm-world only reads and surfaces — the name,
+// role, bio, and spoken lines belong to the cartridge, never to runtime chrome
+// (buttons/prompts/labels stay in the message catalog). Cartridge-layer data, so
+// it never touches the arc and never perturbs the computed identity.
+
+export interface AuthoredPerson {
+  id: string;
+  /** The person's name and role — authored, surfaced verbatim. */
+  name: string;
+  role: string;
+  /** A short authored bio. */
+  bio: string;
+  /** What they say while they still hold a contract for you. */
+  greeting: string;
+  /** What they say once their contract is recorded in the world. */
+  fulfilledLine: string;
+}
+
 export interface Cartridge {
   manifest: CartridgeManifest;
   arc: Arc;
   /** Optional authored opening decision the player faces on entering the world. */
   opening?: AuthoredOpening;
+  /** Optional authored people the inhabited surfaces meet. Absent → the hall
+   *  falls back to a generic runtime steward. */
+  people?: AuthoredPerson[];
 }
 
 /** First Charter's opening oath — an ownership/governance choice, not a tactical one. */
@@ -125,11 +148,24 @@ function manifestForArc(arc: Arc, trust: TrustLevel, preferredCostume?: CostumeI
   };
 }
 
+/** The First Charter's authored people — whom the player meets in the hall. */
+export const FIRST_CHARTER_PEOPLE: AuthoredPerson[] = [
+  {
+    id: "charter-keeper",
+    name: "Maren Vos",
+    role: "Charter-Keeper",
+    bio: "Keeper of the founding writ. She logs every contract the hall takes and every mark it leaves on the world.",
+    greeting: "The hall's work waits, and the ledger with it. Take the contract when you're ready — I'll see it recorded.",
+    fulfilledLine: "It's done, and written. The charter remembers what the hall did here.",
+  },
+];
+
 /** The demo cartridge: First Charter, wrapped as a proper artifact. */
 export const FIRST_CHARTER_CARTRIDGE: Cartridge = {
   manifest: manifestForArc(FIRST_CHARTER, "bundled", "board"),
   arc: FIRST_CHARTER,
   opening: FIRST_CHARTER_OPENING,
+  people: FIRST_CHARTER_PEOPLE,
 };
 
 /** The second bundled game: Karazhan. Structurally distinct from First Charter —
@@ -150,9 +186,17 @@ export const BUNDLED_CARTRIDGES: Cartridge[] = [FIRST_CHARTER_CARTRIDGE, KARAZHA
  */
 export function parseCartridge(input: unknown, trust: TrustLevel = "imported-unsigned"): Cartridge {
   if (input && typeof input === "object" && "arc" in input && "manifest" in input) {
-    const env = input as { manifest: Partial<CartridgeManifest>; arc: unknown };
+    const env = input as { manifest: Partial<CartridgeManifest>; arc: unknown; opening?: AuthoredOpening; people?: AuthoredPerson[] };
     const arc = validateArc(env.arc);
-    return { manifest: { ...manifestForArc(arc, trust), ...env.manifest, id: arc.meta.id }, arc };
+    // Preserve the authored envelope fields (opening beat, people) — they are
+    // cartridge DATA layered on the arc, so a parsed envelope must carry them
+    // through, not silently drop them.
+    return {
+      manifest: { ...manifestForArc(arc, trust), ...env.manifest, id: arc.meta.id },
+      arc,
+      ...(env.opening ? { opening: env.opening } : {}),
+      ...(env.people ? { people: env.people } : {}),
+    };
   }
   const arc = validateArc(input);
   return { manifest: manifestForArc(arc, trust), arc };

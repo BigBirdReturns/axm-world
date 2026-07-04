@@ -15,6 +15,7 @@
 import { useState, type CSSProperties } from "react";
 import type { SceneProps } from "../presentations.js";
 import { deriveHallView, canTakeContract } from "./hall.js";
+import { hallSteward } from "./people.js";
 import { t } from "../i18n/index.js";
 
 const wrap: CSSProperties = {
@@ -61,6 +62,10 @@ export function HallScene({ world, modalOpen = false, onEnterEncounter }: SceneP
   const [open, setOpen] = useState(false);
   const [atThreshold, setAtThreshold] = useState(false);
   const view = deriveHallView(world.nodes);
+  // The authored person the cartridge places in the hall (name/role/bio/spoken
+  // lines flow verbatim); null → a generic runtime steward for cartridges that
+  // author no people. Personhood is authored; the action paths are unchanged.
+  const person = hallSteward(world.cartridge);
   const worldChanged = world.clearedCount > 0;
   // Unclaimed loot must be claimed before starting another run: runChallenge
   // replaces the pending reward choices, so taking a new contract now would
@@ -105,9 +110,13 @@ export function HallScene({ world, modalOpen = false, onEnterEncounter }: SceneP
           <Figure color="#6f8f57" label={t("hall.you")} testid="hall-you" />
         </div>
 
-        {/* The steward — take the contract in person (quick resolve). */}
+        {/* The steward — an authored person when the cartridge names one, else a
+            generic runtime steward. Take the contract in person (quick resolve). */}
         <div style={groupStyle}>
-          <Figure color={view.resolved ? "#74ad77" : "#c9a14a"} label={t("hall.steward")} testid="hall-npc" resolved={view.resolved} />
+          <Figure color={view.resolved ? "#74ad77" : "#c9a14a"} label={person ? person.name : t("hall.steward")} testid="hall-npc" resolved={view.resolved} />
+          {person && (
+            <span data-testid="hall-npc-role" style={{ fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8b7d6a" }}>{person.role}</span>
+          )}
           <span data-testid="hall-npc-state" style={{ fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase", color: view.resolved ? "#74ad77" : "#c9a14a" }}>
             {view.resolved ? t("hall.fulfilled") : t("hall.offering")}
           </span>
@@ -150,8 +159,18 @@ export function HallScene({ world, modalOpen = false, onEnterEncounter }: SceneP
           style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "14px 16px", borderTop: "1px solid #4a4238", background: "rgba(23,21,15,0.98)", display: "grid", gap: 10 }}
         >
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <strong style={{ color: "#c9a14a", fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase" }}>{t("hall.steward")}</strong>
-            <span style={{ color: "#a59c8b", fontSize: 12 }}>{view.resolved ? t("hall.recordedNote") : t("hall.offering")}</span>
+            <strong data-testid="hall-dialogue-speaker" style={{ color: "#c9a14a", fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase" }}>{person ? person.name : t("hall.steward")}</strong>
+            {person && <span style={{ color: "#8b7d6a", fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase" }}>{person.role}</span>}
+          </div>
+          {person && (
+            <div data-testid="hall-dialogue-bio" style={{ color: "#a59c8b", fontFamily: "'Lora', Georgia, serif", fontSize: 12, lineHeight: 1.5 }}>{person.bio}</div>
+          )}
+          {/* Authored spoken line when the cartridge names a person; otherwise the
+              generic status copy. */}
+          <div data-testid="hall-dialogue-line" style={{ color: "#d8cfbd", fontFamily: "'Lora', Georgia, serif", fontSize: 13, lineHeight: 1.5 }}>
+            {view.resolved
+              ? (person ? person.fulfilledLine : t("hall.recordedNote"))
+              : (person ? person.greeting : t("hall.offering"))}
           </div>
           <div data-testid="hall-dialogue-contract" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, color: "#ece4d4" }}>
             {view.challengeName}
