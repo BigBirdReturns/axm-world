@@ -54,6 +54,25 @@ test("the hall presents the cartridge as an inhabited scene: a steward holding a
   await expect(page.getByTestId("hall-dialogue-contract")).toContainText(/Cellar/i);
 });
 
+test("the steward's contract and the map's next pin are one place: same region, same up-next marker", async ({ page }) => {
+  await enterCartridge(page);
+  await showHall(page, { switchCostume: true });
+
+  // In the hall, the steward's contract is named by its region and wears the
+  // "▸ Up next" marker — it is the next thing to take.
+  await expect(page.getByTestId("hall-contract-region")).toContainText(/Proving Grounds/i);
+  await expect(page.getByTestId("hall-contract-region-next")).toBeVisible();
+
+  // Switch to the strategic map: the SAME contract (The Cellar) is the next pin,
+  // in the SAME region — one place, not two competing navigation systems.
+  await page.getByTestId("view-map").click();
+  await expect(page.getByTestId("world-map")).toBeVisible();
+  await expect(page.getByTestId("wm-next-cellar")).toBeVisible();
+  const provingGrounds = page.getByTestId("wm-region-0");
+  await expect(provingGrounds).toContainText(/Proving Grounds/i);
+  await expect(provingGrounds.getByTestId("wm-pin-cellar")).toBeVisible();
+});
+
 test("resolving a contract in the hall writes one digest-stamped ledger entry, changes the world, and survives reload", async ({ page }) => {
   test.slow();
   await enterCartridge(page);

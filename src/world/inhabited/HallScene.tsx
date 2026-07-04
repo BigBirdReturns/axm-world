@@ -16,6 +16,7 @@ import { useState, type CSSProperties } from "react";
 import type { SceneProps } from "../presentations.js";
 import { deriveHallView, canTakeContract } from "./hall.js";
 import { hallSteward } from "./people.js";
+import { regionNameForTier } from "../progression.js";
 import { t } from "../i18n/index.js";
 
 const wrap: CSSProperties = {
@@ -48,6 +49,34 @@ const btnGhost: CSSProperties = {
   padding: "7px 14px", border: "1px solid #6b5935", background: "rgba(32,28,20,0.92)", color: "#e6dcc6",
   fontFamily: "var(--px-font)", fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase",
 };
+// The "next contract" chip — deliberately identical to the world-map's
+// .wm-next-tag (parchment-gold on ink, ▸ caret) so the marker on the steward's
+// contract and the marker on the map's next pin read as the SAME affordance.
+const nextTag: CSSProperties = {
+  display: "inline-flex", alignItems: "center", gap: 3,
+  fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontSize: 8, fontWeight: 800,
+  letterSpacing: "0.08em", textTransform: "uppercase", color: "#1b160c",
+  background: "var(--parchment-gold, #d8b276)", padding: "1px 5px",
+};
+
+// Shared "▸ Up next" marker + authored region name. The region flows verbatim
+// (authored content); the marker routes through t() and only shows while the
+// contract is still the one to take (unresolved).
+function ContractPlace(props: { regionName: string; isNext: boolean; testid: string }): JSX.Element {
+  return (
+    <span
+      data-testid={props.testid}
+      style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8b7d6a" }}
+    >
+      {props.isNext && (
+        <span data-testid={`${props.testid}-next`} style={nextTag}>
+          <span aria-hidden="true">▸</span> {t("worldMap.nextContract")}
+        </span>
+      )}
+      {props.regionName}
+    </span>
+  );
+}
 
 function Figure(props: { color: string; label: string; testid?: string; resolved?: boolean }): JSX.Element {
   return (
@@ -66,6 +95,12 @@ export function HallScene({ world, modalOpen = false, onEnterEncounter }: SceneP
   // lines flow verbatim); null → a generic runtime steward for cartridges that
   // author no people. Personhood is authored; the action paths are unchanged.
   const person = hallSteward(world.cartridge);
+  // The contract the steward holds is the SAME node the world-map marks "next"
+  // (both derive from deriveHallView). Naming its region here — via the shared
+  // regionNameForTier the map groups by — lets the player see the steward's
+  // contract and the map's next pin as one place, not two navigation systems.
+  const heldNode = view.challengeId ? world.nodes.find((n) => n.challengeId === view.challengeId) ?? null : null;
+  const regionName = heldNode ? regionNameForTier(world.cartridge.arc, heldNode.tierIndex) : null;
   const worldChanged = world.clearedCount > 0;
   // Unclaimed loot must be claimed before starting another run: runChallenge
   // replaces the pending reward choices, so taking a new contract now would
@@ -120,6 +155,11 @@ export function HallScene({ world, modalOpen = false, onEnterEncounter }: SceneP
           <span data-testid="hall-npc-state" style={{ fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase", color: view.resolved ? "#74ad77" : "#c9a14a" }}>
             {view.resolved ? t("hall.fulfilled") : t("hall.offering")}
           </span>
+          {/* The steward's contract, named by the same region the map groups it under —
+              with the same "▸ Up next" marker the map's next pin carries. */}
+          {view.challengeId && regionName && (
+            <ContractPlace regionName={regionName} isNext={!view.resolved} testid="hall-contract-region" />
+          )}
           {view.challengeId && (
             <button type="button" data-testid="hall-talk" disabled={modalOpen} onClick={() => setOpen(true)} style={{ ...btnGhost, cursor: modalOpen ? "not-allowed" : "pointer" }}>
               {t("hall.talk")}
@@ -172,6 +212,9 @@ export function HallScene({ world, modalOpen = false, onEnterEncounter }: SceneP
               ? (person ? person.fulfilledLine : t("hall.recordedNote"))
               : (person ? person.greeting : t("hall.offering"))}
           </div>
+          {regionName && (
+            <ContractPlace regionName={regionName} isNext={!view.resolved} testid="hall-dialogue-region" />
+          )}
           <div data-testid="hall-dialogue-contract" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, color: "#ece4d4" }}>
             {view.challengeName}
           </div>

@@ -14,6 +14,7 @@
 import type { Arc } from "../../engine/types.js";
 import type { WorldNode } from "../contract.js";
 import { deriveHallView } from "../inhabited/hall.js";
+import { regionNameForTier } from "../progression.js";
 
 /** A node's map state, collapsing engine status + current selection into the four
  *  the map renders: locked / available / active (the selected node) / recorded. */
@@ -63,10 +64,6 @@ export function mapNodeState(node: WorldNode, selectedId: string | null): MapNod
   if (node.status === "cleared") return "recorded";
   if (node.status === "locked") return "locked";
   return node.challengeId === selectedId ? "active" : "available";
-}
-
-function regionName(arc: Arc, tierIndex: number): string {
-  return arc.progressionTiers[tierIndex]?.name ?? "The Field";
 }
 
 /** The authored-difficulty cutoff above which a contract reads as "steep": the top
@@ -120,7 +117,7 @@ export function deriveWorldMap(nodes: WorldNode[], arc: Arc, selectedId: string 
     .map((tierIndex) => {
       const locations = byTier.get(tierIndex) ?? [];
       return {
-        name: regionName(arc, tierIndex),
+        name: regionNameForTier(arc, tierIndex),
         tierIndex,
         locations,
         status: regionStatus(locations),
