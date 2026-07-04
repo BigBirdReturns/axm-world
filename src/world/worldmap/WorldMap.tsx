@@ -16,6 +16,7 @@
 
 import type { SceneProps } from "../presentations.js";
 import { deriveWorldMap, type MapNodeState, type RegionStatus } from "./derive.js";
+import { MAP_LEGEND, MARKER_GLYPH } from "./legend.js";
 import { CartridgeMotif } from "../themes/CartridgeMotif.js";
 import { PixelIcon } from "../pixel-ui/index.js";
 import { t } from "../i18n/index.js";
@@ -56,6 +57,29 @@ export function WorldMapScene({ world, interaction: ix, onEnterEncounter }: Scen
           </span>
         </div>
       </header>
+
+      {/* State key: a compact, always-visible glossary so every pin marker reads
+          without leaving the map. Static chrome over the run's own vocabulary — it
+          explains the states #57/#58 already derive; it adds no mechanic. */}
+      <div className="wm-legend" data-testid="wm-legend">
+        <span className="wm-legend-title">{t("worldMap.legendTitle")}</span>
+        <ul className="wm-legend-items">
+          {MAP_LEGEND.map((entry) => (
+            <li
+              key={entry.marker}
+              className="wm-legend-item"
+              data-marker={entry.marker}
+              data-testid={`wm-legend-${entry.marker}`}
+            >
+              <span className={`wm-legend-swatch wm-legend-swatch--${entry.marker}`} aria-hidden="true">
+                {MARKER_GLYPH[entry.marker]}
+              </span>
+              <span className="wm-legend-term">{t(entry.term)}</span>
+              <span className="wm-legend-gloss">{t(entry.gloss)}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
 
       <div className="wm-scroll">
         {map.regions.map((region) => (

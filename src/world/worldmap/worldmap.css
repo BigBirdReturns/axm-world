@@ -64,6 +64,67 @@
   transition: width 0.4s ease;
 }
 
+/* ── Legend / state key: a compact, always-visible glossary tying each pin marker
+      to the word the map already prints and what it means. Static chrome — it
+      explains the map's vocabulary, it derives nothing. Each swatch mirrors the
+      marker it explains, so the key and the pins read as one system. ── */
+.wm-legend {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 7px clamp(12px, 4vw, 40px);
+  border-bottom: 1px solid rgba(201, 161, 74, 0.14);
+  background: rgba(11, 10, 8, 0.5);
+}
+.wm-legend-title {
+  flex: none;
+  font: 700 8px 'IBM Plex Mono', ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #8b7d6a;
+}
+.wm-legend-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+.wm-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.wm-legend-swatch {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  display: grid;
+  place-items: center;
+  border-left: 3px solid #4a4238;
+  background: rgba(74, 66, 56, 0.35);
+  font: 700 9px 'IBM Plex Mono', ui-monospace, monospace;
+  line-height: 1;
+}
+/* Mirror each pin marker: left-edge colour + chip tint, glyphs for the overlays. */
+.wm-legend-swatch--available { border-left-color: var(--gold-border, #a9772a); background: rgba(201, 161, 74, 0.16); }
+.wm-legend-swatch--active { border-left-color: var(--state-selected, #b01c18); background: rgba(176, 28, 24, 0.22); }
+.wm-legend-swatch--recorded { border-left-color: #3f6a41; background: rgba(63, 106, 65, 0.22); color: #74ad77; }
+.wm-legend-swatch--locked { border-left-color: #6a6154; background: rgba(90, 84, 74, 0.2); opacity: 0.6; }
+.wm-legend-swatch--next {
+  border-left-color: #d8b276;
+  background: var(--parchment-gold, #d8b276);
+  color: #1b160c;
+  box-shadow: 0 0 10px -4px rgba(216, 178, 118, 0.8);
+}
+.wm-legend-swatch--steep { border-left-color: #e0a23a; background: rgba(224, 162, 58, 0.14); color: #e0a23a; }
+.wm-legend-term {
+  font: 700 9px 'IBM Plex Mono', ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #cabb9f;
+}
+.wm-legend-gloss { font: 500 10px system-ui, sans-serif; color: #8b8272; }
+
 /* ── Scroll body ── */
 .wm-scroll {
   flex: 1;

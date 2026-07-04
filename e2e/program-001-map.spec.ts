@@ -56,6 +56,13 @@ test("the map presents Program 001 as a cartridge surface: named world, region s
   await expect(page.getByTestId("wm-pin-steep-wardens-keep")).toBeVisible();
   await expect(page.getByTestId("wm-pin-steep-bandit-camp")).toBeVisible();
   await expect(page.getByTestId("wm-pin-steep-cellar")).toHaveCount(0);
+
+  // A state key rides on the map surface so every marker reads without leaving it:
+  // all six visible states are explained in place (acceptance for the legend PR).
+  await expect(page.getByTestId("wm-legend")).toBeVisible();
+  for (const marker of ["next", "available", "active", "steep", "recorded", "locked"]) {
+    await expect(page.getByTestId(`wm-legend-${marker}`)).toBeVisible();
+  }
 });
 
 test("entering an encounter from the map records it, advances progress, and moves the next marker — same digest-stamped ledger", async ({ page }) => {
