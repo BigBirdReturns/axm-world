@@ -519,6 +519,45 @@
   font-size: 12px;
   font-weight: 800;
 }
+/* ── Map markers carried onto the card (display-only): the same "Up next" / "Steep"
+      overlays the World-map pin shows, projected from the one shared source. ── */
+.pixel-contract-card__markers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 2px 0 6px;
+}
+.pixel-contract-card__marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--px-font);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  line-height: 1;
+}
+/* "Up next" — a filled parchment-gold pill, the map's own next accent. */
+.pixel-contract-card__marker--next {
+  color: var(--ink);
+  background: var(--parchment-gold);
+  border: 2px solid var(--gold-border);
+  box-shadow: 2px 2px 0 #000;
+}
+/* "Steep" — an amber caution chip, outlined (never red: red reads as failing). */
+.pixel-contract-card__marker--steep {
+  color: var(--gold-dark);
+  background: rgba(212, 169, 58, 0.14);
+  border: 2px solid var(--gold-dark);
+}
+/* The next contract gets a gold top-edge accent, echoing the map pin's glow without
+   fighting the state / selected border. */
+.pixel-contract-card[data-upnext="true"] .pixel-contract-card__panel {
+  box-shadow: inset 0 3px 0 0 var(--parchment-gold);
+}
+
 .pixel-contract-card__title {
   margin: 0;
   color: var(--ink);

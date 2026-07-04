@@ -11,7 +11,7 @@ import { FIRST_CHARTER } from "../../src/arcs/index.js";
 import { bootstrapOrg } from "../../src/spoke/bootstrap.js";
 import { compileArcToPlayScene } from "../../src/play-pipeline/compile.js";
 import { buildWorldLayout, DEFAULT_WORLD_CONFIG } from "../../src/world/contract.js";
-import { deriveWorldMap, mapNodeState } from "../../src/world/worldmap/derive.js";
+import { deriveWorldMap, deriveNodeMarkers, mapNodeState } from "../../src/world/worldmap/derive.js";
 import { MAP_LEGEND, type MapMarker } from "../../src/world/worldmap/legend.js";
 import { deriveHallView } from "../../src/world/inhabited/hall.js";
 import { regionNameForTier } from "../../src/world/progression.js";
@@ -191,6 +191,54 @@ describe("world-map legend", () => {
         expect(formatMessage("en", id)).not.toBe(id);
         expect(formatMessage("zh-Hant", id)).not.toBe(id);
       }
+    }
+  });
+});
+
+describe("shared node markers: the board reads the same next/steep as the map", () => {
+  function mapMarkerFor(map: ReturnType<typeof deriveWorldMap>, id: string): { next: boolean; steep: boolean } {
+    const loc = map.regions.flatMap((r) => r.locations).find((l) => l.challengeId === id)!;
+    return { next: loc.next, steep: loc.steep };
+  }
+
+  it("deriveNodeMarkers matches deriveWorldMap's per-pin next/steep for every challenge, across states", () => {
+    // The board consumes deriveNodeMarkers; the map's pins come from the same helper.
+    // This pins that the board card marker for a contract IS the map node marker for
+    // the same challengeId — one definition of "next"/"steep", not two.
+    const scenarios = [
+      nodesFor(), // cold start
+      nodesFor(clearing(bootstrapOrg(FIRST_CHARTER), "cellar")), // one recorded → next advances
+    ];
+    for (const nodes of scenarios) {
+      const markers = deriveNodeMarkers(nodes);
+      const map = deriveWorldMap(nodes, FIRST_CHARTER, null);
+      const ids = map.regions.flatMap((r) => r.locations).map((l) => l.challengeId);
+      // Same key set…
+      expect([...markers.keys()].sort()).toEqual([...ids].sort());
+      // …and the same marker for every challenge.
+      for (const id of ids) expect(markers.get(id)).toEqual(mapMarkerFor(map, id));
+    }
+  });
+
+  it("marks exactly one 'next', and it is the hall steward's held contract — the map's single source", () => {
+    const nodes = nodesFor();
+    const markers = deriveNodeMarkers(nodes);
+    const nextIds = [...markers].filter(([, m]) => m.next).map(([id]) => id);
+    expect(nextIds).toEqual([deriveHallView(nodes).challengeId]);
+    // And the map's header roll-up names the same node.
+    expect(deriveWorldMap(nodes, FIRST_CHARTER, null).nextChallengeId).toBe(nextIds[0]);
+  });
+
+  it("markers are selection-independent — a display-only overlay, never contract state", () => {
+    // deriveNodeMarkers takes no selection; whatever pin the map has selected, the
+    // board reads identical markers. (steep matches the map's raw pin flag; the board
+    // additionally hides steep on a recorded card, which is a render choice, not a
+    // second derivation.)
+    const nodes = nodesFor();
+    const base = deriveNodeMarkers(nodes);
+    const mapSelected = deriveWorldMap(nodes, FIRST_CHARTER, "cellar");
+    for (const loc of mapSelected.regions.flatMap((r) => r.locations)) {
+      expect(base.get(loc.challengeId)).toEqual({ next: loc.next, steep: loc.steep });
     }
   });
 });
