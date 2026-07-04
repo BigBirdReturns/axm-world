@@ -309,16 +309,29 @@ function ledgerLines(outcome: Challenge["outcomes"][keyof Challenge["outcomes"]]
   return lines;
 }
 
-/** What a clear opens: milestone-gated challenges, attunement grants keyed off
- *  this clear, and narrative events that trigger on it. All derived from the arc. */
-function onClearFor(challenge: Challenge, arc: Arc): EncounterSpec["onClear"] {
+/** Structured (id + display label) view of what clearing a challenge opens, so
+ *  both the EncounterSpec (labels only) and the ledger's consequence record (ids
+ *  + labels) derive from ONE source. Narrative world-changes are keyed to the
+ *  challenge that triggered them (NarrativeEvent has no id of its own). */
+export interface OnClearChanges {
+  unlocks: Array<{ id: string; label: string }>;
+  worldChanges: Array<{ id: string; label: string }>;
+}
+
+export function onClearChanges(challenge: Challenge, arc: Arc): OnClearChanges {
   const flag = challenge.outcomes.success.milestoneFlag;
-  const unlocks: string[] = [];
+  const unlocks: Array<{ id: string; label: string }> = [];
+  const seen = new Set<string>();
+  const pushUnlock = (id: string, label: string): void => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    unlocks.push({ id, label });
+  };
 
   if (flag) {
     for (const other of arc.challenges) {
       if (other.id === challenge.id) continue;
-      if (other.accessRequirements.orgMilestones.includes(flag)) unlocks.push(other.name);
+      if (other.accessRequirements.orgMilestones.includes(flag)) pushUnlock(other.id, other.name);
     }
   }
   for (const chain of arc.attunementChains) {
@@ -326,15 +339,25 @@ function onClearFor(challenge: Challenge, arc: Arc): EncounterSpec["onClear"] {
     if (!keysOffThis) continue;
     for (const grantedId of chain.grantsAccessTo) {
       const granted = arc.challenges.find((c) => c.id === grantedId);
-      if (granted && !unlocks.includes(granted.name)) unlocks.push(granted.name);
+      if (granted) pushUnlock(granted.id, granted.name);
     }
   }
 
   const worldChanges = arc.narrativeEvents
-    .filter((e) => (e.trigger.type === "first_clear" && e.trigger.target === challenge.id))
-    .map((e) => e.title);
+    .filter((e) => e.trigger.type === "first_clear" && e.trigger.target === challenge.id)
+    .map((e) => ({ id: challenge.id, label: e.title }));
 
   return { unlocks, worldChanges };
+}
+
+/** What a clear opens, as display labels for the encounter brief. Derived from
+ *  the same source as the consequence record (onClearChanges) so they never drift. */
+function onClearFor(challenge: Challenge, arc: Arc): EncounterSpec["onClear"] {
+  const changes = onClearChanges(challenge, arc);
+  return {
+    unlocks: changes.unlocks.map((u) => u.label),
+    worldChanges: changes.worldChanges.map((w) => w.label),
+  };
 }
 
 // ── The compiler ──────────────────────────────────────────────────────────────

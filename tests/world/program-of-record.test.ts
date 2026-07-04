@@ -21,7 +21,7 @@ describe("Program 001 — controlled object", () => {
 
   it("declares save + ledger schema versions and runtime surfaces", () => {
     expect(PROGRAM_001.saveSchemaVersion).toBe(1);
-    expect(PROGRAM_001.ledgerSchemaVersion).toBe(1);
+    expect(PROGRAM_001.ledgerSchemaVersion).toBe(2);
     expect(PROGRAM_001.runtimeSurfaces).toContain("ledger");
     expect(PROGRAM_001.runtimeSurfaces).toContain("world");
   });

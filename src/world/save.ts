@@ -11,7 +11,7 @@
 
 import type { Arc, Organization } from "../engine/types.js";
 import { serializeGame, deserializeGame } from "../engine/save.js";
-import { emptyLedger, summarizeLedger, type ContractOutcome, type Ledger } from "./ledger.js";
+import { emptyLedger, migrateLedger, summarizeLedger, type ContractOutcome, type Ledger } from "./ledger.js";
 
 /** Save schema version. Kept in lockstep with PROGRAM_001.saveSchemaVersion. */
 export const SAVE_SCHEMA_VERSION = 1;
@@ -144,7 +144,11 @@ function normalizeLedger(ledger: unknown, authoredArcDigest: string): Ledger {
     Array.isArray((ledger as Ledger).entries) &&
     (ledger as Ledger).authoredArcDigest === authoredArcDigest
   ) {
-    return ledger as Ledger;
+    // Migrate a restored ledger to the current schema: entries saved before the
+    // structured consequence record existed are backfilled honestly (grade,
+    // contract, and "recorded" only — never invented rewards/party/unlocks), and
+    // the ledger version is brought current. New entries pass through untouched.
+    return migrateLedger(ledger as Ledger);
   }
   return emptyLedger(authoredArcDigest);
 }

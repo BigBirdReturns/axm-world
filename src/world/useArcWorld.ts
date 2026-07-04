@@ -25,6 +25,7 @@ import { applyAgentDowntime, type DowntimeAction } from "./agent-management.js";
 import { FIRST_CHARTER_CARTRIDGE, type AuthoredEffect, type AuthoredOpening, type Cartridge } from "./cartridge.js";
 import { cartridgeIdentity } from "./cartridge-identity.js";
 import { appendResult, emptyLedger, type Ledger } from "./ledger.js";
+import { buildConsequence } from "./consequence.js";
 import { loadRun, saveRun } from "./save.js";
 import {
   describeContract as describeContractReq,
@@ -88,7 +89,7 @@ export interface LastEquipEvent {
 }
 
 export interface CustodyObject {
-  format: "axm-cartridge-run/v1";
+  format: "axm-cartridge-run/v2";
   manifest: Cartridge["manifest"];
   arc: Arc;
   runState: {
@@ -98,6 +99,10 @@ export interface CustodyObject {
     totalNodes: number;
     roster: Array<{ name: string; morale: number; stress: number }>;
   };
+  /** The full run ledger — every resolved contract with its structured
+   *  consequence record — so the durable truth travels with the exported run
+   *  (v2). Older exports (v1) carried only the runState summary. */
+  ledger: Ledger;
 }
 
 export interface ArcWorld {
@@ -355,14 +360,30 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
       setPendingRewardChoices(result.pendingRewardChoices);
       const report: RunReport | undefined = result.reports[0];
       const agentName = (id: string): string => result.org.agents[id]?.name ?? org.agents[id]?.name ?? id;
-      setLastReport(report ? summarizeReport(report, arc, agentName) : null);
-      if (report) {
+      const view = report ? summarizeReport(report, arc, agentName) : null;
+      setLastReport(view);
+      if (report && view) {
+        // Build the structured, durable consequence record from THIS run's report
+        // (see consequence.ts) and stamp it onto the ledger entry that proves the
+        // run happened — one resolved run → one entry → one consequence.
+        const consequence = buildConsequence({
+          report,
+          challenge,
+          arc,
+          objectives: view.objectives,
+          resolveAgent: (id) => {
+            const agent = result.org.agents[id] ?? org.agents[id];
+            return agent ? { name: agent.name, role: roleName(arc, agent.role) } : { name: id };
+          },
+          resourceNames: { currency: scene.resources.currencyName, reputation: scene.resources.reputationName },
+        });
         setLedger((cur) =>
           appendResult(cur, {
             challengeId: report.challengeId,
             challengeName: challenge.name,
             outcome: report.outcome,
             cycle: report.cycle,
+            consequence,
           }),
         );
       }
@@ -438,7 +459,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
 
   const buildExport = useCallback(
     (): CustodyObject => ({
-      format: "axm-cartridge-run/v1",
+      format: "axm-cartridge-run/v2",
       manifest: cartridge.manifest,
       arc: cartridge.arc,
       runState: {
@@ -452,8 +473,11 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
           stress: Math.round(a.stress),
         })),
       },
+      // The durable record travels with the exported run: the full ledger, every
+      // entry carrying its structured consequence.
+      ledger,
     }),
-    [cartridge, org, openingChoice, clearedCount, totalNodes],
+    [cartridge, org, openingChoice, clearedCount, totalNodes, ledger],
   );
 
   return {

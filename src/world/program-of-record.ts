@@ -67,7 +67,9 @@ export function defineProgram(
 export const PROGRAM_001: ProgramOfRecord = defineProgram("program-001", FIRST_CHARTER_CARTRIDGE, {
   runtimeSurfaces: ["board", "encounter", "result", "ledger", "world"],
   saveSchemaVersion: 1,
-  ledgerSchemaVersion: 1,
+  // Ledger schema 2: entries carry a structured consequence record (#69). Kept in
+  // lockstep with LEDGER_SCHEMA_VERSION (ledger-schema-lockstep.test.ts enforces it).
+  ledgerSchemaVersion: 2,
 });
 
 /** Every cartridge RODOH treats as a controlled program of record. Keyed by
