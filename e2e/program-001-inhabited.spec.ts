@@ -39,9 +39,18 @@ test("the hall presents the cartridge as an inhabited scene: a steward holding a
   await expect(page.getByTestId("hall-npc")).toHaveAttribute("data-resolved", "false");
   await expect(page.getByTestId("hall-world-change")).toHaveCount(0);
 
-  // Talk: the dialogue presents the authored contract name (cold-start focus, "The Cellar").
+  // The steward is an authored person, not a generic runtime figure: the First
+  // Charter names "Maren Vos, Charter-Keeper".
+  await expect(page.getByTestId("hall-npc")).toContainText(/Maren Vos/);
+  await expect(page.getByTestId("hall-npc-role")).toContainText(/Charter-Keeper/i);
+
+  // Talk: the dialogue presents the authored person, their spoken line, and the
+  // authored contract name (cold-start focus, "The Cellar").
   await page.getByTestId("hall-talk").click();
   await expect(page.getByTestId("hall-dialogue")).toBeVisible();
+  await expect(page.getByTestId("hall-dialogue-speaker")).toContainText(/Maren Vos/);
+  await expect(page.getByTestId("hall-dialogue-bio")).toBeVisible();
+  await expect(page.getByTestId("hall-dialogue-line")).toContainText(/Take the contract/i);
   await expect(page.getByTestId("hall-dialogue-contract")).toContainText(/Cellar/i);
 });
 
