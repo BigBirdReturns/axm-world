@@ -60,9 +60,21 @@ describe("board card: world state and squad fit are separate axes", () => {
     expect(squadFitKind(node("cleared"), null)).toBe("not-relevant");
   });
 
+  it("an OPEN contract with no projected party reads 'Assign a party', not the locked copy", () => {
+    // Codex edge case: an available contract with no candidate party (e.g. all agents
+    // downed) must NOT borrow the locked "not evaluated until available" copy — that
+    // would contradict the same card's "Available now" world band.
+    const kind = squadFitKind(node("available"), squadFit(node("available"), rd("none")));
+    expect(kind).toBe("no-party");
+    expect(squadFitLabelId(kind)).toBe("contractCard.squadNoParty");
+    expect(formatMessage("en", "contractCard.squadNoParty")).toBe("Assign a party");
+    // The open-but-unstaffed kind is distinct from the locked "not yet available" kind.
+    expect(squadFitKind(node("available"), null)).not.toBe(squadFitKind(node("locked"), null));
+  });
+
   it("the two bands draw from DISJOINT label sets — no shared word to blur the axes", () => {
     const worldIds = (["available", "locked", "recorded"] as const).map(worldStateLabelId);
-    const squadIds = (["reliable", "risky", "failing", "not-evaluated", "not-relevant"] as const).map(squadFitLabelId);
+    const squadIds = (["reliable", "risky", "failing", "not-evaluated", "no-party", "not-relevant"] as const).map(squadFitLabelId);
     expect(worldIds.some((id) => squadIds.includes(id as never))).toBe(false);
     // Every band label resolves in both locales.
     for (const id of [...worldIds, ...squadIds]) {

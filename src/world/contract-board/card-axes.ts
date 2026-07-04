@@ -56,15 +56,21 @@ export function squadFit(node: WorldNode, readiness: PartyReadiness | null): Squ
 }
 
 /** Why the squad-fit band reads the way it does. A verdict when the contract is open
- *  and evaluated; otherwise an HONEST non-verdict — never "failing" for a contract
- *  the world simply hasn't opened. "not-evaluated" = locked / no party yet;
- *  "not-relevant" = already recorded. */
-export type SquadFitKind = SquadFit | "not-evaluated" | "not-relevant";
+ *  AND has a projected party; otherwise an HONEST non-verdict — never "failing" for a
+ *  contract the world hasn't opened. The three non-verdict kinds are kept distinct so
+ *  the copy never contradicts the world band:
+ *    • "not-evaluated" — locked (not yet available to evaluate against),
+ *    • "no-party"      — OPEN but no party is projected (e.g. no eligible agents),
+ *    • "not-relevant"  — already recorded. */
+export type SquadFitKind = SquadFit | "not-evaluated" | "no-party" | "not-relevant";
 
 export function squadFitKind(node: WorldNode, fit: SquadFit | null): SquadFitKind {
   if (fit) return fit;
   if (node.status === "cleared") return "not-relevant";
-  return "not-evaluated";
+  if (node.status === "locked") return "not-evaluated";
+  // Open, but nothing to judge yet — the contract IS available, so it must NOT borrow
+  // the locked "not yet available" copy (that would contradict its own world band).
+  return "no-party";
 }
 
 export function squadFitLabelId(kind: SquadFitKind): MessageId {
@@ -79,5 +85,7 @@ export function squadFitLabelId(kind: SquadFitKind): MessageId {
       return "contractCard.squadNotRelevant"; // "No longer relevant"
     case "not-evaluated":
       return "contractCard.squadNotEvaluated"; // "Not evaluated until available"
+    case "no-party":
+      return "contractCard.squadNoParty"; // "Assign a party"
   }
 }

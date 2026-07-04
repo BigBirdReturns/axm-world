@@ -126,6 +126,7 @@ export type MessageId =
   | "contractCard.worldAvailable"
   | "contractCard.worldNextNote"
   | "contractCard.squadNotEvaluated"
+  | "contractCard.squadNoParty"
   | "contractCard.squadNotRelevant"
   // ── PixelGearSlot ────────────────────────────────────────────────────────
   | "gearSlot.noGear"
@@ -508,6 +509,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "contractCard.worldAvailable": "Available now",
     "contractCard.worldNextNote": "Steward's next contract",
     "contractCard.squadNotEvaluated": "Not evaluated until available",
+    "contractCard.squadNoParty": "Assign a party",
     "contractCard.squadNotRelevant": "No longer relevant",
 
     "gearSlot.noGear": "No gear equipped",
@@ -854,6 +856,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "contractCard.worldAvailable": "現可承接",
     "contractCard.worldNextNote": "管事的下一份契約",
     "contractCard.squadNotEvaluated": "開放後才會評估",
+    "contractCard.squadNoParty": "請指派隊伍",
     "contractCard.squadNotRelevant": "已無關聯",
 
     "gearSlot.noGear": "尚未裝備",
