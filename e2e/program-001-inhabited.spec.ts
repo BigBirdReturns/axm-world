@@ -82,3 +82,37 @@ test("resolving a contract in the hall writes one digest-stamped ledger entry, c
   await showHall(page, { switchCostume: false });
   await expect(page.getByTestId("hall-world-change")).toBeVisible();
 });
+
+test("walk into the encounter from the hall: the same EncounterShell the board uses, resolving to the same digest-stamped ledger", async ({ page }) => {
+  test.slow();
+  await enterCartridge(page);
+  await showHall(page, { switchCostume: true });
+
+  // Navigate to the in-world encounter threshold, then walk in.
+  await page.getByTestId("hall-approach").click();
+  await page.getByTestId("hall-enter-encounter").click();
+
+  // This is the SAME EncounterShell the board's PLAY ENCOUNTER opens — resolution
+  // runs the real engine (encs-resolve → world.runChallenge), not a duplicate.
+  await expect(page.getByTestId("encounter-shell")).toBeVisible();
+  await page.getByTestId("encs-resolve").click();
+  await expect(page.getByTestId("encs-receipt")).toBeVisible();
+  await page.getByTestId("encs-leave").click();
+  await expect(page.getByTestId("encounter-shell")).toHaveCount(0);
+  await resolvePendingDecisions(page);
+
+  // Same authored result: one digest-stamped ledger entry, world changed, survives reload.
+  await openCartridgeObject(page);
+  await expect(page.getByTestId("cartridge-digest")).toHaveText(DIGEST);
+  await expect(page.getByTestId("ledger-entry")).toHaveCount(1);
+  await expect(page.getByTestId("ledger-entry").first()).toContainText(/Cellar/i);
+  await page.getByRole("button", { name: /resume/i }).click();
+  await expect(page.getByTestId("cartridge-digest")).toHaveCount(0);
+
+  await page.reload();
+  await page.locator('[data-testid^="play-cartridge-"]').first().click();
+  await expect(page.getByTestId("pending-decision-card")).toHaveCount(0);
+  await openCartridgeObject(page);
+  await expect(page.getByTestId("cartridge-digest")).toHaveText(DIGEST);
+  await expect(page.getByTestId("ledger-entry")).toHaveCount(1);
+});
