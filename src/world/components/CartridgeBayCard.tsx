@@ -121,7 +121,7 @@ function ProgramPlaque({ entry, cartridge, program, save, onEnter }: Omit<Props,
             </div>
             <div style={{ fontFamily: condensed, fontWeight: 700, fontSize: 24, lineHeight: 1.05 }}>{c.manifest.name}</div>
             <div style={{ fontFamily: mono, fontSize: 11, color: "#a59c8b", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {c.manifest.domain} · engine {c.manifest.engineVersion} · {c.arc.challenges.length} contracts
+              {t("boot.cartridgeMeta", { domain: c.manifest.domain, engine: c.manifest.engineVersion, count: c.arc.challenges.length })}
             </div>
           </div>
         </div>
@@ -204,7 +204,7 @@ function ClassicRow({ entry, cartridge, onEnter, onRemove }: Omit<Props, "progra
         <div>
           <div style={{ fontFamily: condensed, fontWeight: 700, fontSize: 22 }}>{c.manifest.name}</div>
           <div style={{ fontFamily: mono, fontSize: 11, color: "#a59c8b", marginTop: 2 }}>
-            {c.manifest.domain} · engine {c.manifest.engineVersion} · {c.arc.challenges.length} contracts
+            {t("boot.cartridgeMeta", { domain: c.manifest.domain, engine: c.manifest.engineVersion, count: c.arc.challenges.length })}
           </div>
         </div>
       </div>

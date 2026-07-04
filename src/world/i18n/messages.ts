@@ -276,7 +276,15 @@ export type MessageId =
   | "boot.contractsRecorded"
   | "boot.resumable"
   | "boot.enter"
-  | "boot.resume";
+  | "boot.resume"
+  // ── boot screen: chrome copy (swept from bare literals) ──────────────────
+  | "boot.runtimeEyebrow"
+  | "boot.heroTitle"
+  | "boot.heroBody"
+  | "boot.footerNote"
+  | "boot.holdTheLoop"
+  | "boot.loadingNamed"
+  | "boot.cartridgeMeta";
 
 /**
  * Ids intentionally left out of the zh-Hant catalog. Documented, not
@@ -610,6 +618,18 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "boot.resumable": "Resumable",
     "boot.enter": "Enter",
     "boot.resume": "Resume",
+    "boot.runtimeEyebrow": "AXM-WORLD runtime shell",
+    "boot.heroTitle": "Cartridge worlds that remember.",
+    "boot.heroBody": "Pick up a cartridge. Hold the loop. Mark what happened. Keep going.",
+    "boot.footerNote": "Rodoh records the run. AXM-WORLD renders the shell. The cartridge stays yours.",
+    "boot.holdTheLoop": "Hold the loop.",
+    "boot.loadingNamed": (params) => `Loading ${str(params, "name")}`,
+    // domain / engine version / count flow verbatim as content params; only the
+    // "engine" and "contracts" words are chrome.
+    "boot.cartridgeMeta": (params) => {
+      const count = num(params, "count");
+      return `${str(params, "domain")} · engine ${str(params, "engine")} · ${count} contract${count === 1 ? "" : "s"}`;
+    },
   },
   "zh-Hant": {
     "coach.arcComplete": "卡匣已標記為完成。離開前請檢視或匯出本次執行狀態。",
@@ -891,6 +911,13 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "boot.resumable": "可繼續",
     "boot.enter": "進入",
     "boot.resume": "繼續",
+    "boot.runtimeEyebrow": "AXM-WORLD 執行環境外殼",
+    "boot.heroTitle": "會記憶的卡匣世界。",
+    "boot.heroBody": "拿起一張卡匣。維持循環。記下發生的事。繼續前進。",
+    "boot.footerNote": "Rodoh 記錄執行。AXM-WORLD 呈現外殼。卡匣仍歸你所有。",
+    "boot.holdTheLoop": "維持循環。",
+    "boot.loadingNamed": (params) => `載入 ${str(params, "name")} 中`,
+    "boot.cartridgeMeta": (params) => `${str(params, "domain")} · 引擎 ${str(params, "engine")} · ${num(params, "count")} 份契約`,
   },
 };
 

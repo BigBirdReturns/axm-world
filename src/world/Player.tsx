@@ -76,7 +76,7 @@ export function Player(): JSX.Element {
         fallback={
           <div style={{ ...screen, font: "14px 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b" }}>
             <div style={{ display: "grid", gap: 14, justifyItems: "center" }}>
-              <RodohRuntimeMark variant="boot" label="RODOH RUNTIME v1.0" caption={`Loading ${cartridge.manifest.name}`} />
+              <RodohRuntimeMark variant="boot" label="RODOH RUNTIME v1.0" caption={t("boot.loadingNamed", { name: cartridge.manifest.name })} />
             </div>
           </div>
         }
@@ -111,16 +111,16 @@ export function Player(): JSX.Element {
     <div style={screen}>
       <div style={{ width: "min(560px, 92vw)" }}>
         <div style={{ marginBottom: 18 }}>
-          <RodohRuntimeMark variant="boot" label="RODOH RUNTIME v1.0" caption="Hold the loop." />
+          <RodohRuntimeMark variant="boot" label="RODOH RUNTIME v1.0" caption={t("boot.holdTheLoop")} />
         </div>
         <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase", color: "#6f8f57" }}>
-          AXM-WORLD runtime shell
+          {t("boot.runtimeEyebrow")}
         </div>
         <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: "clamp(34px, 7vw, 56px)", lineHeight: 1, margin: "6px 0 4px" }}>
-          Cartridge worlds that remember.
+          {t("boot.heroTitle")}
         </h1>
         <p style={{ color: "#a59c8b", margin: "0 0 22px", maxWidth: "48ch" }}>
-          Pick up a cartridge. Hold the loop. Mark what happened. Keep going.
+          {t("boot.heroBody")}
         </p>
 
         <div style={{ display: "grid", gap: 10 }}>
@@ -185,7 +185,7 @@ export function Player(): JSX.Element {
         )}
 
         <p style={{ color: "#a59c8b", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, marginTop: 18 }}>
-          Rodoh records the run. AXM-WORLD renders the shell. The cartridge stays yours.
+          {t("boot.footerNote")}
         </p>
       </div>
     </div>
