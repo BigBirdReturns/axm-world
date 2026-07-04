@@ -25,7 +25,7 @@ import { applyAgentDowntime, type DowntimeAction } from "./agent-management.js";
 import { FIRST_CHARTER_CARTRIDGE, type AuthoredEffect, type AuthoredOpening, type Cartridge } from "./cartridge.js";
 import { cartridgeIdentity } from "./cartridge-identity.js";
 import { appendResult, emptyLedger, type Ledger } from "./ledger.js";
-import { buildConsequence } from "./consequence.js";
+import { buildConsequence, newlyAvailableContracts } from "./consequence.js";
 import { loadRun, saveRun } from "./save.js";
 import {
   describeContract as describeContractReq,
@@ -363,6 +363,10 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
       const view = report ? summarizeReport(report, arc, agentName) : null;
       setLastReport(view);
       if (report && view) {
+        // The HONEST post-run unlock delta: contracts available AFTER this run that
+        // were not available BEFORE (real access state, not the brief's aspirational
+        // hint — so a clear that only partially satisfies a gate opens nothing here).
+        const newlyAvailable = newlyAvailableContracts(scene.nodes, compileArcToPlayScene(arc, result.org).nodes);
         // Build the structured, durable consequence record from THIS run's report
         // (see consequence.ts) and stamp it onto the ledger entry that proves the
         // run happened — one resolved run → one entry → one consequence.
@@ -376,6 +380,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
             return agent ? { name: agent.name, role: roleName(arc, agent.role) } : { name: id };
           },
           resourceNames: { currency: scene.resources.currencyName, reputation: scene.resources.reputationName },
+          newlyAvailable,
         });
         setLedger((cur) =>
           appendResult(cur, {
