@@ -57,11 +57,35 @@ describe("completed-contract wording is unified on 'Recorded'", () => {
     // The cartridge panel's completed-state roll-up and prose both say "Recorded".
     expect(formatMessage("en", "cartridgePanel.recordedNodes")).toBe("Recorded nodes");
     expect(formatMessage("en", "cartridgePanel.body")).not.toMatch(/cleared/i);
-    // The per-entry outcome GRADE is a separate axis and legitimately keeps "Cleared"
-    // for a clean success — a contract can be Recorded with a Partial / Failed outcome.
-    expect(formatMessage("en", "cartridgePanel.outcomeSuccess")).toBe("Cleared");
-    expect(formatMessage("en", "cartridgePanel.outcomePartial")).toBe("Partial");
-    expect(formatMessage("en", "cartridgePanel.outcomeFailure")).toBe("Failed");
+    // The outcome GRADE is a separate axis from "recorded", now spoken through ONE
+    // canonical id set (outcome.*) everywhere the grade shows — the immediate overlay,
+    // the encounter receipt, the revisit modal, and the ledger — in both locales. A
+    // contract can be Recorded with a Cleared, Partial, or Failed grade.
+    expect(formatMessage("en", "outcome.cleared")).toBe("Cleared");
+    expect(formatMessage("en", "outcome.partial")).toBe("Partial");
+    expect(formatMessage("en", "outcome.failed")).toBe("Failed");
+    expect(formatMessage("zh-Hant", "outcome.cleared")).toBe("達成");
+    expect(formatMessage("zh-Hant", "outcome.partial")).toBe("部分");
+    expect(formatMessage("zh-Hant", "outcome.failed")).toBe("失敗");
+  });
+
+  it("the outcome grade is ONE consolidated Cleared/Partial/Failed axis, and 'Success' wording is retired", () => {
+    // The old divergent grade ids are gone — no "Outcome: Success" wording, and no
+    // second cartridge-panel grade set. An unmapped id falls through to itself.
+    expect(MESSAGES.en).not.toHaveProperty("shell.outcomeSuccess");
+    expect(MESSAGES.en).not.toHaveProperty("cartridgePanel.outcomeSuccess");
+    expect(formatMessage("en", "shell.outcomeSuccess" as never)).toBe("shell.outcomeSuccess");
+    expect(formatMessage("en", "outcome.cleared")).not.toMatch(/success/i);
+    // Every surface that shows the grade routes through the one canonical id set:
+    // the immediate overlay, the encounter receipt, the revisit modal, the ledger.
+    for (const surface of [
+      "src/world/encounter/EncounterDirector.tsx",
+      "src/world/encounter/EncounterShell.tsx",
+      "src/world/shell/regions.tsx",
+      "src/world/components/CartridgeObjectPanel.tsx",
+    ]) {
+      expect(read(surface), `${surface} should speak the canonical grade axis`).toContain('"outcome.cleared"');
+    }
   });
 
   it("the board explainer describes the done state as 'recorded', not 'cleared'", () => {

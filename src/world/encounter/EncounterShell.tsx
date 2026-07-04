@@ -50,11 +50,21 @@ const OUTCOME_COLOR: Record<string, string> = {
 };
 
 // Outcome banner reuses the encounter-director's existing outcome chrome keys, so
-// no new localized strings are minted for what's already translated.
+// no new localized strings are minted for what's already translated. This is the
+// authored NARRATIVE ("Contract fulfilled." …) — the "what happened" line.
 const OUTCOME_KEY = {
   success: "encounter.outcomeFulfilled",
   partial: "encounter.outcomePartial",
   failure: "encounter.outcomeFailure",
+} as const;
+
+// The canonical grade axis (Cleared / Partial / Failed) — the same grade the
+// immediate overlay, the revisit modal, and the ledger speak. Sits above the
+// narrative so the receipt states the grade AND what happened.
+const GRADE_KEY = {
+  success: "outcome.cleared",
+  partial: "outcome.partial",
+  failure: "outcome.failed",
 } as const;
 
 interface Props {
@@ -342,6 +352,12 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
         {report && (
           <div className="encs-receipt" data-testid="encs-receipt" data-outcome={report.outcome}>
             <div className="encs-outcome-banner" style={{ borderColor: outcomeColor, color: outcomeColor }}>
+              <span
+                data-testid="encs-outcome-grade"
+                style={{ display: "block", fontSize: "0.72em", fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", opacity: 0.85, marginBottom: 2 }}
+              >
+                {t(GRADE_KEY[report.outcome])}
+              </span>
               {t(OUTCOME_KEY[report.outcome])}
             </div>
             {modes.length > 0 && (

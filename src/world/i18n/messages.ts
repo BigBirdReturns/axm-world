@@ -70,9 +70,6 @@ export type MessageId =
   | "shell.projectedFail"
   | "shell.assignParty"
   | "shell.equipArrow"
-  | "shell.outcomeSuccess"
-  | "shell.outcomePartial"
-  | "shell.outcomeFailed"
   | "shell.engineLoop"
   | "shell.everyContractRecorded"
   | "shell.complete"
@@ -89,6 +86,20 @@ export type MessageId =
   | "shell.runtimeName"
   | "shell.identityRecorded"
   | "shell.identityFresh"
+  // ── result / ledger clarity (post-action loop) ───────────────────────────
+  | "result.outcome"
+  | "result.whatHappened"
+  | "result.rewards"
+  | "result.recorded"
+  | "result.persists"
+  | "result.ledgerRecordedAt"
+  // ── canonical outcome grade axis (Cleared / Partial / Failed) — the one
+  //    grade vocabulary spoken by the immediate overlay, the revisit modal,
+  //    the encounter receipt, and the ledger. NOT the memory axis ("recorded"),
+  //    and NOT the authored per-outcome narrative ("encounter.outcome*"). ─────
+  | "outcome.cleared"
+  | "outcome.partial"
+  | "outcome.failed"
   // ── shared status vocabulary (roster/contract/readiness states) ────────
   | "status.selected"
   | "status.available"
@@ -158,7 +169,6 @@ export type MessageId =
   | "encounter.travelingToBoard"
   | "encounter.travelNote"
   | "encounter.resolving"
-  | "encounter.recordedOnBoard"
   | "encounter.continue"
   | "encounter.clickToSkip"
   | "encounter.partyMovesOut"
@@ -301,9 +311,6 @@ export type MessageId =
   | "cartridgePanel.identity"
   | "cartridgePanel.ledger"
   | "cartridgePanel.ledgerEmpty"
-  | "cartridgePanel.outcomeSuccess"
-  | "cartridgePanel.outcomePartial"
-  | "cartridgePanel.outcomeFailure"
   // ── boot screen (cartridge bay) ──────────────────────────────────────────
   | "boot.openCartridge"
   | "boot.remove"
@@ -343,9 +350,6 @@ export const EN_ONLY_IDS: MessageId[] = [
   "cartridgePanel.identity",
   "cartridgePanel.ledger",
   "cartridgePanel.ledgerEmpty",
-  "cartridgePanel.outcomeSuccess",
-  "cartridgePanel.outcomePartial",
-  "cartridgePanel.outcomeFailure",
 ];
 
 function num(params: MessageParams, key: string): number {
@@ -427,9 +431,6 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.projectedFail": "Projected to Fail",
     "shell.assignParty": "Assign a party",
     "shell.equipArrow": (params) => `Equip → ${str(params, "name")}`,
-    "shell.outcomeSuccess": "Outcome: Success",
-    "shell.outcomePartial": "Outcome: Partial",
-    "shell.outcomeFailed": "Outcome: Failed",
     "shell.engineLoop": "Engine loop",
     "shell.everyContractRecorded": "Every contract recorded",
     "shell.complete": (params) => `${str(params, "name")} — Complete`,
@@ -448,6 +449,19 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.runtimeName": "RODOH",
     "shell.identityRecorded": (params) => `${num(params, "count")} recorded`,
     "shell.identityFresh": "No runs recorded",
+
+    // The post-action loop, made legible: the OUTCOME grade (what happened) is a
+    // different axis from RECORDED (the memory state). The result names both, the
+    // ledger stamps the "when".
+    "result.outcome": "Outcome",
+    "result.whatHappened": "What happened",
+    "result.rewards": "Rewards",
+    "result.recorded": "Recorded to the ledger",
+    "result.persists": "Written to the Program 001 ledger — this result persists.",
+    "result.ledgerRecordedAt": (params) => `Cycle ${String(num(params, "cycle")).padStart(2, "0")}`,
+    "outcome.cleared": "Cleared",
+    "outcome.partial": "Partial",
+    "outcome.failed": "Failed",
 
     "status.selected": "Selected",
     "status.available": "Available",
@@ -545,7 +559,6 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounter.travelingToBoard": "Traveling to board position",
     "encounter.travelNote": "The committed party is moving toward the selected contract card.",
     "encounter.resolving": "Resolving…",
-    "encounter.recordedOnBoard": "Recorded on board",
     "encounter.continue": "Continue →",
     "encounter.clickToSkip": "click anywhere to skip",
     "encounter.partyMovesOut": "The party moves out.",
@@ -690,9 +703,6 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "cartridgePanel.identity": "Authored identity",
     "cartridgePanel.ledger": "Contract ledger",
     "cartridgePanel.ledgerEmpty": "No contracts recorded yet.",
-    "cartridgePanel.outcomeSuccess": "Cleared",
-    "cartridgePanel.outcomePartial": "Partial",
-    "cartridgePanel.outcomeFailure": "Failed",
 
     "boot.openCartridge": "Open cartridge…",
     "boot.remove": "Remove",
@@ -788,9 +798,6 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.projectedFail": "預測：將失敗",
     "shell.assignParty": "請指派隊伍",
     "shell.equipArrow": (params) => `裝備 → ${str(params, "name")}`,
-    "shell.outcomeSuccess": "結果：成功",
-    "shell.outcomePartial": "結果：部分成功",
-    "shell.outcomeFailed": "結果：失敗",
     "shell.engineLoop": "引擎循環",
     "shell.everyContractRecorded": "所有契約皆已記錄",
     "shell.complete": (params) => `${str(params, "name")} — 已完成`,
@@ -806,6 +813,16 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.runtimeName": "RODOH",
     "shell.identityRecorded": (params) => `已記錄 ${num(params, "count")}`,
     "shell.identityFresh": "尚無執行記錄",
+
+    "result.outcome": "結果",
+    "result.whatHappened": "發生了什麼",
+    "result.rewards": "獎勵",
+    "result.recorded": "已記錄至帳本",
+    "result.persists": "已寫入 Program 001 帳本 — 此結果將保留。",
+    "result.ledgerRecordedAt": (params) => `週期 ${String(num(params, "cycle")).padStart(2, "0")}`,
+    "outcome.cleared": "達成",
+    "outcome.partial": "部分",
+    "outcome.failed": "失敗",
 
     "status.selected": "已選取",
     "status.available": "可承接",
@@ -892,7 +909,6 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounter.travelingToBoard": "前往契約板位置",
     "encounter.travelNote": "已指派的隊伍正前往所選契約卡片。",
     "encounter.resolving": "結算中…",
-    "encounter.recordedOnBoard": "已記錄於契約板",
     "encounter.continue": "繼續 →",
     "encounter.clickToSkip": "點擊任意處以跳過",
     "encounter.partyMovesOut": "隊伍出發了。",

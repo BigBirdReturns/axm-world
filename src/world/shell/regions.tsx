@@ -875,25 +875,65 @@ export function LootRegion(props: { loot: PendingLootChoice[]; onClaimLoot: (cho
 
 // ── Report · Coach · Dispatches · Complete ──────────────────────────────────────────────────
 
+// The result moment, organized around what a player needs after acting: the OUTCOME
+// grade (what happened), then Rewards, then a distinct RECORDED statement — because
+// the run's grade (Cleared / Partial / Failed) and its memory state (Recorded) are
+// separate axes and must not blur. Display-only over the existing play report.
 export function ReportRegion(props: { lastReport: PlayReportView }): JSX.Element {
   const { lastReport } = props;
   const outcomeState: Record<string, "reliable" | "risky" | "failing"> = {
     success: "reliable", partial: "risky", failure: "failing",
   };
-  const outcomeLabelId: Record<string, "shell.outcomeSuccess" | "shell.outcomePartial" | "shell.outcomeFailed"> = {
-    success: "shell.outcomeSuccess", partial: "shell.outcomePartial", failure: "shell.outcomeFailed",
+  const outcomeLabelId: Record<string, "outcome.cleared" | "outcome.partial" | "outcome.failed"> = {
+    success: "outcome.cleared", partial: "outcome.partial", failure: "outcome.failed",
   };
   const labelId = outcomeLabelId[lastReport.outcome];
+  const sectionTitle: CSSProperties = { fontFamily: "var(--px-font)", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-muted)", marginBottom: 3 };
   return (
-    <PixelPanel data-testid="outcome-region" style={{ padding: "12px 14px" }}>
-      <div className="pixel-panel__title">{t("shell.contractOutcome")}</div>
-      <div style={{ marginBottom: 8 }}>
-        <PixelBadge state={outcomeState[lastReport.outcome] ?? "recorded"}>
-          {labelId ? t(labelId) : lastReport.outcome}
-        </PixelBadge>
+    <PixelPanel data-testid="outcome-region" style={{ padding: "12px 14px", display: "grid", gap: 10 }}>
+      {/* Outcome — the grade of this run. Its own axis, never conflated with "recorded". */}
+      <div>
+        <div style={sectionTitle}>{t("result.outcome")}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <PixelBadge state={outcomeState[lastReport.outcome] ?? "recorded"} data-testid="result-outcome-grade">
+            {labelId ? t(labelId) : lastReport.outcome}
+          </PixelBadge>
+          <span style={{ fontFamily: "var(--px-font)", fontSize: 14, fontWeight: 800, color: "var(--ink)" }}>{lastReport.challengeName}</span>
+        </div>
       </div>
-      <div style={{ fontFamily: "var(--px-font)", fontSize: 14, fontWeight: 800, color: "var(--ink)", marginBottom: 4 }}>{lastReport.challengeName}</div>
-      <div style={{ color: "var(--ink-muted)", fontSize: 12, fontFamily: "var(--px-font)" }}>{lastReport.rewardSummary}</div>
+
+      {/* What happened — per-objective, in player language. */}
+      {lastReport.objectives.length > 0 && (
+        <div data-testid="result-what-happened">
+          <div style={sectionTitle}>{t("result.whatHappened")}</div>
+          <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 3 }}>
+            {lastReport.objectives.map((o, i) => (
+              <li key={i} style={{ display: "flex", gap: 6, fontSize: 12, color: "var(--ink-soft)", fontFamily: "var(--px-font)" }}>
+                <span style={{ color: o.passed ? "var(--teal-dark)" : "var(--danger)", flex: "none" }} aria-hidden="true">{o.passed ? "✓" : "✗"}</span>
+                <span>{o.passed ? t("encounterShell.objectiveCleared", { name: o.name }) : t("encounterShell.objectiveNotCleared", { name: o.name })}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Rewards. */}
+      {lastReport.rewardSummary && (
+        <div>
+          <div style={sectionTitle}>{t("result.rewards")}</div>
+          <div style={{ color: "var(--ink-muted)", fontSize: 12, fontFamily: "var(--px-font)" }}>{lastReport.rewardSummary}</div>
+        </div>
+      )}
+
+      {/* Recorded — a DIFFERENT axis from the grade: the run is now memory on the
+          Program 001 ledger. This is what persists. */}
+      <div data-testid="result-recorded" style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 10px", background: "rgba(116,196,118,0.12)", borderLeft: "3px solid var(--teal)" }}>
+        <PixelIcon name="recorded" />
+        <div>
+          <div style={{ fontFamily: "var(--px-font)", fontSize: 11, fontWeight: 800, color: "var(--teal-dark)" }}>{t("result.recorded")}</div>
+          <div style={{ fontSize: 11, color: "var(--ink-muted)", lineHeight: 1.35 }}>{t("result.persists")}</div>
+        </div>
+      </div>
     </PixelPanel>
   );
 }
