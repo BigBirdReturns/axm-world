@@ -27,16 +27,17 @@ describe("completed-contract wording is unified on 'Recorded'", () => {
     expect(formatMessage("en", "status.cleared" as never)).toBe("status.cleared");
   });
 
-  it("the selected-contract detail badge and the disabled run action say 'Recorded', never 'Cleared'", () => {
+  it("the selected-contract detail and the disabled run action say 'Recorded', never 'Cleared'", () => {
     const regions = read("src/world/shell/regions.tsx");
     // No runtime surface may reach for the retired label.
     expect(regions).not.toContain('t("status.cleared")');
-    // The two completed-state branches — detail badge + RunButton label — both route
-    // through the canonical id (the engine status stays "cleared"; only the chrome
-    // changes).
-    const recordedHits = regions.match(/status === "cleared"\s*\?\s*t\("status\.recorded"\)/g) ?? [];
-    expect(recordedHits.length).toBeGreaterThanOrEqual(1);
-    expect((regions.match(/t\("status\.recorded"\)/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    // The disabled RunButton for a completed contract routes through the canonical id
+    // (the engine status stays "cleared"; only the chrome changes).
+    expect(regions).toMatch(/status === "cleared"\s*\?\s*t\("status\.recorded"\)/);
+    // The detail header badge + World-state band both name a completed contract
+    // "Recorded" (via the shared card-axes projection), never "Cleared".
+    expect(regions).toContain('cardState === "recorded" ? "status.recorded"');
+    expect((regions.match(/"status\.recorded"/g) ?? []).length).toBeGreaterThanOrEqual(2);
   });
 
   it("the board card renders the engine 'cleared' status under the 'recorded' label", () => {

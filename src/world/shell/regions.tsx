@@ -467,9 +467,11 @@ export interface ContractRegionProps {
   max: number;
   canRun: boolean;
   onRun: () => void;
-  /** Whether the selected contract is the run's single "next" — from the SAME shared
-   *  projection the board and map read, so the commit surface marks the same place. */
+  /** World-state markers for the selected contract — the run's single "next" and the
+   *  arc-relative "steep" read — from the SAME shared projection the board and map read,
+   *  so they travel with the contract to the commit surface. */
   upNext?: boolean;
+  steep?: boolean;
   contract: ContractRequirements | null;
   readiness: PartyReadiness | null;
   recommendation: string | null;
@@ -528,7 +530,7 @@ export function ContractActions(props: ContractRegionProps): JSX.Element {
 }
 
 export function ContractRegion(props: ContractRegionProps): JSX.Element {
-  const { selected, party, min, max, canRun, onRun, contract, readiness, recommendation, fixPlan, onApplyFix, compact, difficultyModes, difficultyModeId, onSelectDifficultyMode, upNext = false, render = "full" } = props;
+  const { selected, party, min, max, canRun, onRun, contract, readiness, recommendation, fixPlan, onApplyFix, compact, difficultyModes, difficultyModeId, onSelectDifficultyMode, upNext = false, steep = false, render = "full" } = props;
   const detailOnly = render === "detail";
 
   // The commit surface reads on the SAME two axes as the board card, from the SAME
@@ -559,6 +561,13 @@ export function ContractRegion(props: ContractRegionProps): JSX.Element {
       {upNext && (
         <span data-testid="detail-up-next" style={{ display: "inline-flex", alignItems: "center", gap: 3, fontFamily: "var(--px-font)", fontSize: 9, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--ink)", background: "var(--parchment-gold)", border: "2px solid var(--gold-border)", padding: "1px 6px" }}>
           <span aria-hidden="true">▸</span> {t("worldMap.nextContract")}
+        </span>
+      )}
+      {/* Steep travels with the contract to the commit surface — same amber warning the
+          board card and map pin carry (hidden once recorded, mirroring those surfaces). */}
+      {steep && cardState !== "recorded" && (
+        <span data-testid="detail-steep" aria-label={t("worldMap.steepContract")} style={{ display: "inline-flex", alignItems: "center", gap: 3, fontFamily: "var(--px-font)", fontSize: 9, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--gold-dark)", background: "rgba(212, 169, 58, 0.14)", border: "2px solid var(--gold-dark)", padding: "1px 6px" }}>
+          <span aria-hidden="true">⚠</span> {t("worldMap.steep")}
         </span>
       )}
       <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "var(--px-font)", fontSize: 8, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-soft)" }}>

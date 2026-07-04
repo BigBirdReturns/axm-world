@@ -261,18 +261,20 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
       onApplyFix={ix.applyFix}
     />
   );
-  // "Up next" for the detail panel comes from the SAME shared projection the board and
-  // map read, so the commit surface marks the same single contract they do.
-  const nextChallengeId = useMemo(() => {
-    const markers = deriveNodeMarkers(world.nodes);
-    return [...markers].find(([, m]) => m.next)?.[0] ?? null;
-  }, [world.nodes]);
+  // "Up next" / "Steep" for the detail panel come from the SAME shared projection the
+  // board and map read, so the world-state markers travel with the contract to the
+  // commit surface — the player never has to remember them from the previous screen.
+  const selectedMarkers = useMemo(
+    () => (ix.selectedId ? deriveNodeMarkers(world.nodes).get(ix.selectedId) ?? null : null),
+    [world.nodes, ix.selectedId],
+  );
   const contractProps = ix.selected
     ? {
         selected: ix.selected, party: ix.party, min, max, canRun: ix.canRun, onRun: interceptedRun,
         contract: ix.contract, readiness: ix.readiness, recommendation: ix.recommendation,
         fixPlan: ix.fixPlan, onApplyFix: ix.applyFix, compact: isMobile,
-        upNext: ix.selected.challengeId === nextChallengeId,
+        upNext: selectedMarkers?.next ?? false,
+        steep: selectedMarkers?.steep ?? false,
         difficultyModes: world.difficultyModes, difficultyModeId: world.difficultyModeId,
         onSelectDifficultyMode: world.setDifficultyModeId,
       }
