@@ -85,6 +85,10 @@ export type MessageId =
   | "shell.recordedOutcomeTitle"
   | "shell.dismissViewNote"
   | "shell.closeRecordedOutcome"
+  // ── in-shell program identity strip ──────────────────────────────────────
+  | "shell.runtimeName"
+  | "shell.identityRecorded"
+  | "shell.identityFresh"
   // ── shared status vocabulary (roster/contract/readiness states) ────────
   | "status.selected"
   | "status.available"
@@ -398,6 +402,12 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.recordedOutcomeTitle": "Recorded outcome",
     "shell.dismissViewNote": "Dismiss view note",
     "shell.closeRecordedOutcome": "Close recorded outcome",
+    // "RODOH" is the runtime wordmark shown as chrome (a brand token, kept as a
+    // key so the localization guard applies and there is one place to change it);
+    // its value is the same in every locale.
+    "shell.runtimeName": "RODOH",
+    "shell.identityRecorded": (params) => `${num(params, "count")} recorded`,
+    "shell.identityFresh": "No runs recorded",
 
     "status.selected": "Selected",
     "status.available": "Available",
@@ -709,6 +719,9 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.recordedOutcomeTitle": "已記錄的結果",
     "shell.dismissViewNote": "關閉檢視說明",
     "shell.closeRecordedOutcome": "關閉已記錄的結果",
+    "shell.runtimeName": "RODOH",
+    "shell.identityRecorded": (params) => `已記錄 ${num(params, "count")}`,
+    "shell.identityFresh": "尚無執行記錄",
 
     "status.selected": "已選取",
     "status.available": "可承接",

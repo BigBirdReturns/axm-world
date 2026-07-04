@@ -55,3 +55,20 @@ export function appendResult(ledger: Ledger, result: ContractResult): Ledger {
   };
   return { ...ledger, entries: [...ledger.entries, entry] };
 }
+
+/** A compact view of what a ledger remembers: how many contracts it recorded and
+ *  the most recent result. Pure and shared, so the boot-surface save summary and
+ *  the in-shell identity strip derive "N recorded · last contract" identically. */
+export interface LedgerSummary {
+  entryCount: number;
+  lastResult: { challengeName: string; outcome: ContractOutcome } | null;
+}
+
+export function summarizeLedger(ledger: Ledger): LedgerSummary {
+  const entries = ledger.entries;
+  const last = entries.length > 0 ? entries[entries.length - 1]! : null;
+  return {
+    entryCount: entries.length,
+    lastResult: last ? { challengeName: last.challengeName, outcome: last.outcome } : null,
+  };
+}
