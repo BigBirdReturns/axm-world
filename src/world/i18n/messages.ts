@@ -248,6 +248,13 @@ export type MessageId =
   | "worldMap.nextContract"
   | "worldMap.steep"
   | "worldMap.steepContract"
+  | "worldMap.legendTitle"
+  | "worldMap.legendNext"
+  | "worldMap.legendAvailable"
+  | "worldMap.legendActive"
+  | "worldMap.legendSteep"
+  | "worldMap.legendRecorded"
+  | "worldMap.legendLocked"
   | "presentations.globe.label"
   | "presentations.globe.blurb"
   | "presentations.globe.controlsHint"
@@ -618,6 +625,16 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "worldMap.nextContract": "Up next",
     "worldMap.steep": "Steep",
     "worldMap.steepContract": "Steep contract — high authored difficulty",
+    // Legend / state key — a compact glossary tying every pin marker to the word
+    // the map already prints and what it means. The terms reuse the existing state
+    // labels above; only these one-line glosses are new chrome.
+    "worldMap.legendTitle": "Map key",
+    "worldMap.legendNext": "The steward's held contract",
+    "worldMap.legendAvailable": "Open — enter now",
+    "worldMap.legendActive": "The pin you selected",
+    "worldMap.legendSteep": "High authored difficulty",
+    "worldMap.legendRecorded": "Cleared, on the ledger",
+    "worldMap.legendLocked": "Clear earlier contracts first",
     "presentations.globe.label": "Planet",
     "presentations.globe.blurb": "3D world — optional spatial renderer",
     "presentations.globe.controlsHint": "drag to orbit · scroll to zoom · right-drag to pan · click a ◆ contract",
@@ -948,6 +965,13 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "worldMap.nextContract": "接下來",
     "worldMap.steep": "險峻",
     "worldMap.steepContract": "險峻契約 — 作者設定的高難度",
+    "worldMap.legendTitle": "地圖圖例",
+    "worldMap.legendNext": "管事持有的契約",
+    "worldMap.legendAvailable": "開放 — 立即進入",
+    "worldMap.legendActive": "你選取的地點",
+    "worldMap.legendSteep": "作者設定的高難度",
+    "worldMap.legendRecorded": "已完成，記錄於帳本",
+    "worldMap.legendLocked": "請先完成較早的契約",
     "presentations.globe.label": "星球",
     "presentations.globe.blurb": "3D 世界 — 選用的空間化渲染器",
     "presentations.globe.controlsHint": "拖曳以環繞 · 滾動以縮放 · 按右鍵拖曳以平移 · 點選 ◆ 契約",

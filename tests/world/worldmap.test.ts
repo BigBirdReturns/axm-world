@@ -12,8 +12,10 @@ import { bootstrapOrg } from "../../src/spoke/bootstrap.js";
 import { compileArcToPlayScene } from "../../src/play-pipeline/compile.js";
 import { buildWorldLayout, DEFAULT_WORLD_CONFIG } from "../../src/world/contract.js";
 import { deriveWorldMap, mapNodeState } from "../../src/world/worldmap/derive.js";
+import { MAP_LEGEND, type MapMarker } from "../../src/world/worldmap/legend.js";
 import { deriveHallView } from "../../src/world/inhabited/hall.js";
 import { regionNameForTier } from "../../src/world/progression.js";
+import { formatMessage } from "../../src/world/i18n/messages.js";
 
 function nodesFor(org = bootstrapOrg(FIRST_CHARTER)) {
   const scene = compileArcToPlayScene(FIRST_CHARTER, org);
@@ -146,5 +148,49 @@ describe("world-map projection", () => {
     const allDone = deriveWorldMap(nodesFor(org), FIRST_CHARTER, null);
     expect(allDone.nextChallengeId).toBeNull();
     expect(allDone.regions.flatMap((r) => r.locations).some((l) => l.next)).toBe(false);
+  });
+});
+
+describe("world-map legend", () => {
+  // Every distinct marker WorldMap.tsx actually paints on a pin, derived exactly as
+  // the component renders it: the node state always, plus the "steep" overlay (shown
+  // unless recorded) and the shared "next" tag. This is the ground truth the legend
+  // must explain — no marker unexplained, none invented.
+  function markersRendered(map: ReturnType<typeof deriveWorldMap>): Set<MapMarker> {
+    const seen = new Set<MapMarker>();
+    for (const loc of map.regions.flatMap((r) => r.locations)) {
+      seen.add(loc.state);
+      if (loc.steep && loc.state !== "recorded") seen.add("steep");
+      if (loc.next) seen.add("next");
+    }
+    return seen;
+  }
+
+  it("explains exactly the marker set the map can render — no marker unexplained, none invented", () => {
+    // Drive First Charter through the states that surface every marker: a cold map
+    // (available / locked / steep / next), one with a pin selected (active), and one
+    // with a contract cleared (recorded).
+    const seen = new Set<MapMarker>();
+    for (const m of markersRendered(deriveWorldMap(nodesFor(), FIRST_CHARTER, null))) seen.add(m);
+    for (const m of markersRendered(deriveWorldMap(nodesFor(), FIRST_CHARTER, "cellar"))) seen.add(m);
+    const cleared = nodesFor(clearing(bootstrapOrg(FIRST_CHARTER), "cellar"));
+    for (const m of markersRendered(deriveWorldMap(cleared, FIRST_CHARTER, null))) seen.add(m);
+
+    // All six markers actually appeared, so the scenarios are honest…
+    expect(seen).toEqual(new Set<MapMarker>(["available", "active", "recorded", "locked", "steep", "next"]));
+    // …and the legend covers that set exactly — bijection, no gaps, no extras.
+    expect(new Set(MAP_LEGEND.map((e) => e.marker))).toEqual(seen);
+  });
+
+  it("lists each marker once and resolves every term + gloss in both locales", () => {
+    const markers = MAP_LEGEND.map((e) => e.marker);
+    expect(new Set(markers).size).toBe(markers.length);
+    for (const entry of MAP_LEGEND) {
+      for (const id of [entry.term, entry.gloss] as const) {
+        // A catalogued id never falls through to returning the raw id.
+        expect(formatMessage("en", id)).not.toBe(id);
+        expect(formatMessage("zh-Hant", id)).not.toBe(id);
+      }
+    }
   });
 });
