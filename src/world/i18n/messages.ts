@@ -121,6 +121,12 @@ export type MessageId =
   | "contractCard.needs"
   | "contractCard.clearEarlier"
   | "contractCard.difficulty"
+  | "contractCard.worldState"
+  | "contractCard.squadFit"
+  | "contractCard.worldAvailable"
+  | "contractCard.worldNextNote"
+  | "contractCard.squadNotEvaluated"
+  | "contractCard.squadNotRelevant"
   // ── PixelGearSlot ────────────────────────────────────────────────────────
   | "gearSlot.noGear"
   // ── PixelRosterCard ──────────────────────────────────────────────────────
@@ -495,6 +501,14 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "contractCard.needs": "Needs",
     "contractCard.clearEarlier": "Clear earlier contracts",
     "contractCard.difficulty": "Difficulty",
+    // The two card axes, named. World-state band vs squad-fit band — a player reads
+    // "what the world says" and "how my squad measures up" as different truths.
+    "contractCard.worldState": "World state",
+    "contractCard.squadFit": "Squad fit",
+    "contractCard.worldAvailable": "Available now",
+    "contractCard.worldNextNote": "Steward's next contract",
+    "contractCard.squadNotEvaluated": "Not evaluated until available",
+    "contractCard.squadNotRelevant": "No longer relevant",
 
     "gearSlot.noGear": "No gear equipped",
 
@@ -835,6 +849,12 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "contractCard.needs": "需要",
     "contractCard.clearEarlier": "請先完成較早的契約",
     "contractCard.difficulty": "難度",
+    "contractCard.worldState": "世界狀態",
+    "contractCard.squadFit": "隊伍契合",
+    "contractCard.worldAvailable": "現可承接",
+    "contractCard.worldNextNote": "管事的下一份契約",
+    "contractCard.squadNotEvaluated": "開放後才會評估",
+    "contractCard.squadNotRelevant": "已無關聯",
 
     "gearSlot.noGear": "尚未裝備",
 

@@ -21,6 +21,7 @@ import {
   PixelStateBadge,
   PIXEL_ICON_NAMES,
   type ContractCardState,
+  type SquadFit,
   type PixelBadgeState,
 } from "../pixel-ui/index.js";
 import { MotifIcon, type FirstCharterMotifName } from "../themes/first-charter/motif-icons.js";
@@ -29,9 +30,10 @@ const MOTIFS: FirstCharterMotifName[] = [
   "dandelion", "archiveBox", "coffeeMug", "crossedCalendar", "receiptTab", "notebook", "starSpark",
 ];
 
-const CONTRACT_STATES: ContractCardState[] = [
-  "selected", "available", "reliable", "risky", "failing", "locked", "recorded",
-];
+// The card's two axes, demoed independently: world/contract STATE and, for open
+// contracts, the SQUAD-FIT verdict. They never collapse into one badge.
+const CONTRACT_STATES: ContractCardState[] = ["available", "locked", "recorded"];
+const SQUAD_FITS: SquadFit[] = ["reliable", "risky", "failing"];
 
 const BADGE_STATES: PixelBadgeState[] = [
   "available", "reliable", "risky", "failing", "locked", "recorded", "selected", "lootAvailable",
@@ -244,22 +246,41 @@ export function RodohUiKitRoute(): JSX.Element {
         </div>
       </Section>
 
-      <Section id="contracts" title="Contract Cards" note="PixelContractCard — every projected outcome state, including locked with unlock requirements." wide>
+      <Section id="contracts" title="Contract Cards" note="PixelContractCard — two named axes: world state (available / locked / recorded) and, for open contracts, squad fit (reliable / risky / failing / not evaluated)." wide>
         <div className="rk-grid rk-grid--wide">
           {CONTRACT_STATES.map((state) => (
             <PixelContractCard
-              key={state}
+              key={`state-${state}`}
               state={state}
-              selected={state === "selected"}
               difficulty={3}
-              title={state === "locked" ? "The Warden's Keep" : "The Bridge Toll"}
+              title={state === "locked" ? "The Warden's Keep" : state === "recorded" ? "The Cellar" : "The Bridge Troll"}
               description={state === "locked" ? "The old warden has gone rogue." : "A troll wants coin or trouble."}
               unlockRequirements={["Clear The Cellar", "Clear The Bridge Troll"]}
-              requirements={state !== "locked" ? <span className="pixel-contract-card__pill"><PixelIcon name="vanguard" /> 1 Vanguard</span> : undefined}
-              riskNote={state === "risky" || state === "failing" ? <><PixelIcon name={state === "failing" ? "failing" : "risky"} /> Wits needs +1.2 buffer.</> : undefined}
-              readyNote={state === "reliable" ? <><PixelIcon name="reliable" /> Recommended party is reliable.</> : undefined}
+              requirements={state === "available" ? <span className="pixel-contract-card__pill"><PixelIcon name="vanguard" /> 1 Vanguard</span> : undefined}
+              worldStateLabel={state === "locked" ? "Locked" : state === "recorded" ? "Recorded" : "Available now"}
+              worldStateNote={state === "locked" ? "Clear earlier contracts first" : state === "recorded" ? "Result written to the ledger" : undefined}
+              squadFit={state === "available" ? "reliable" : null}
+              squadFitLabel={state === "available" ? "Reliable" : state === "recorded" ? "No longer relevant" : "Not evaluated until available"}
+              squadFitReason={state === "available" ? "Recommended party is reliable." : undefined}
               footerLeft="Party 2–3"
               footerRight={state !== "locked" ? <PixelIcon name="lootAvailable" label="Loot" /> : undefined}
+              onClick={() => {}}
+            />
+          ))}
+          {SQUAD_FITS.map((fit) => (
+            <PixelContractCard
+              key={`fit-${fit}`}
+              state="available"
+              difficulty={4}
+              title="The Bridge Troll"
+              description="A troll wants coin or trouble."
+              requirements={<span className="pixel-contract-card__pill"><PixelIcon name="vanguard" /> 1 Vanguard</span>}
+              worldStateLabel="Available now"
+              squadFit={fit}
+              squadFitLabel={fit === "reliable" ? "Reliable" : fit === "risky" ? "Risky" : "Failing"}
+              squadFitReason={fit === "reliable" ? "Recommended party is reliable." : "Wits needs +1.2 buffer."}
+              footerLeft="Party 2–3"
+              footerRight={<PixelIcon name="lootAvailable" label="Loot" />}
               onClick={() => {}}
             />
           ))}
@@ -321,12 +342,15 @@ export function RodohUiKitRoute(): JSX.Element {
           />
           <div style={{ display: "grid", gap: 12 }}>
             <PixelContractCard
-              state="risky"
+              state="available"
               difficulty={4}
               title="The Bridge Troll"
               description="A troll has claimed the river crossing north of town, demanding tolls and searching merchant wagons."
               requirements={<span className="pixel-contract-card__pill"><PixelIcon name="vanguard" /> 1 Vanguard</span>}
-              riskNote={<><PixelIcon name="risky" /> Wits needs +1.2 more buffer.</>}
+              worldStateLabel="Available now"
+              squadFit="risky"
+              squadFitLabel="Risky"
+              squadFitReason="Wits needs +1.2 more buffer."
               footerLeft="Party 2–3"
               footerRight={<PixelIcon name="lootAvailable" label="Loot" />}
               onClick={() => {}}
@@ -366,6 +390,11 @@ export function RodohUiKitRoute(): JSX.Element {
                   difficulty={2}
                   title="The Cellar"
                   description="A nest of giant rats has infested the guild cellar."
+                  worldStateLabel="Available now"
+                  worldStateNote="Steward's next contract"
+                  squadFit="reliable"
+                  squadFitLabel="Reliable"
+                  squadFitReason="Recommended party is reliable."
                   footerLeft="Party 6"
                   onClick={() => {}}
                 />

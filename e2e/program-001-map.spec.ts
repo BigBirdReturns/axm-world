@@ -92,6 +92,24 @@ test("the board speaks the same marker language as the map: the same 'Up next' a
   await expect(page.getByTestId("contract-board-card-bandit-camp")).toHaveAttribute("data-steep", "true");
 });
 
+test("board card separates world state from squad fit: a readiness verdict is never the contract state", async ({ page }) => {
+  await enterCartridge(page);
+  await showBoard(page);
+
+  // An open contract's header state reads its WORLD state — never the squad verdict.
+  // The Bridge Troll is available; its risky projection lives only in the squad band.
+  const bridge = page.getByTestId("contract-board-card-bridge-troll");
+  await expect(bridge).toHaveAttribute("data-state", "available");
+  await expect(bridge.getByTestId("contract-card-world-band")).toBeVisible();
+  await expect(bridge.getByTestId("contract-card-squad-band")).toBeVisible();
+
+  // A locked contract is world-locked, and its squad fit is "not evaluated" (data
+  // "none") — a locked card never implies squad failure.
+  const bandit = page.getByTestId("contract-board-card-bandit-camp");
+  await expect(bandit).toHaveAttribute("data-state", "locked");
+  await expect(bandit.getByTestId("contract-card-squad-band")).toHaveAttribute("data-squadfit", "none");
+});
+
 test("entering an encounter from the map records it, advances progress, and moves the next marker — same digest-stamped ledger", async ({ page }) => {
   test.slow();
   await enterCartridge(page);
