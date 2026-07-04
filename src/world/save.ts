@@ -11,7 +11,7 @@
 
 import type { Arc, Organization } from "../engine/types.js";
 import { serializeGame, deserializeGame } from "../engine/save.js";
-import { emptyLedger, type Ledger } from "./ledger.js";
+import { emptyLedger, type ContractOutcome, type Ledger } from "./ledger.js";
 
 /** Save schema version. Kept in lockstep with PROGRAM_001.saveSchemaVersion. */
 export const SAVE_SCHEMA_VERSION = 1;
@@ -99,6 +99,43 @@ export function loadRun(
 
 export function clearRun(storage: KVStorage, authoredArcDigest: string): void {
   storage.removeItem(saveKeyFor(authoredArcDigest));
+}
+
+/** A read-only, boot-surface view of a program's save slot: enough to tell the
+ *  player whether the program is fresh or resumable, and what it remembers,
+ *  WITHOUT entering it. Derived from `loadRun`, so "present" means the same thing
+ *  the boot flow's restore means — a save that belongs to THIS exact authored
+ *  program (digest guard) and is actually restorable. Returns null when there is
+ *  no such save. */
+export interface ProgramSaveSummary {
+  authoredArcDigest: string;
+  /** Number of resolved contracts recorded in the saved ledger. */
+  ledgerEntryCount: number;
+  /** The most recently recorded contract (name + outcome), or null for a save
+   *  that has resolved the opening but not yet run a contract. */
+  lastResult: { challengeName: string; outcome: ContractOutcome } | null;
+  /** The opening decision label the player chose, if any. */
+  openingChoice: string | null;
+}
+
+/** Summarize a program's save slot for the cartridge bay. Reuses `loadRun`'s
+ *  digest + schema + arc guards, so a summary is returned only when the run is
+ *  genuinely resumable — the boot plaque never offers "Resume" for a save that
+ *  restore would reject. */
+export function readProgramSaveSummary(
+  storage: KVStorage,
+  params: { arc: Arc; authoredArcDigest: string },
+): ProgramSaveSummary | null {
+  const run = loadRun(storage, params);
+  if (!run) return null;
+  const entries = run.ledger.entries;
+  const last = entries.length > 0 ? entries[entries.length - 1]! : null;
+  return {
+    authoredArcDigest: params.authoredArcDigest,
+    ledgerEntryCount: entries.length,
+    lastResult: last ? { challengeName: last.challengeName, outcome: last.outcome } : null,
+    openingChoice: run.openingChoice ?? null,
+  };
 }
 
 function normalizeLedger(ledger: unknown, authoredArcDigest: string): Ledger {

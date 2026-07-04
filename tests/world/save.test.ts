@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { bootstrapOrg } from "../../src/spoke/bootstrap";
 import { FIRST_CHARTER_CARTRIDGE } from "../../src/world/cartridge";
 import { emptyLedger, appendResult } from "../../src/world/ledger";
-import { saveRun, loadRun, clearRun, SAVE_SCHEMA_VERSION, saveKeyFor, type KVStorage } from "../../src/world/save";
+import { saveRun, loadRun, clearRun, readProgramSaveSummary, SAVE_SCHEMA_VERSION, saveKeyFor, type KVStorage } from "../../src/world/save";
 
 function fakeStorage(): KVStorage {
   const map = new Map<string, string>();
@@ -76,5 +76,52 @@ describe("program run persistence", () => {
 
   it("uses schema version 1", () => {
     expect(SAVE_SCHEMA_VERSION).toBe(1);
+  });
+});
+
+describe("readProgramSaveSummary (boot-plaque view)", () => {
+  it("returns null when there is no save for this program", () => {
+    const s = fakeStorage();
+    expect(readProgramSaveSummary(s, { arc, authoredArcDigest: DIGEST })).toBeNull();
+  });
+
+  it("summarizes ledger count, the LAST recorded result, and the opening choice", () => {
+    const org = bootstrapOrg(arc);
+    let ledger = emptyLedger(DIGEST);
+    ledger = appendResult(ledger, { challengeId: "c1", challengeName: "The Cellar", outcome: "success", cycle: 0 });
+    ledger = appendResult(ledger, { challengeId: "c2", challengeName: "The Vault", outcome: "partial", cycle: 1 });
+    const s = fakeStorage();
+    saveRun(s, { arc, authoredArcDigest: DIGEST, state: { org, ledger, openingChoice: "Hold the line" } });
+
+    const summary = readProgramSaveSummary(s, { arc, authoredArcDigest: DIGEST });
+    expect(summary).not.toBeNull();
+    expect(summary!.ledgerEntryCount).toBe(2);
+    // The last result is the most recently appended entry, not the first.
+    expect(summary!.lastResult).toEqual({ challengeName: "The Vault", outcome: "partial" });
+    expect(summary!.openingChoice).toBe("Hold the line");
+  });
+
+  it("reports a resumable save with no recorded contracts yet (fresh ledger)", () => {
+    const s = fakeStorage();
+    saveRun(s, { arc, authoredArcDigest: DIGEST, state: { org: bootstrapOrg(arc), ledger: emptyLedger(DIGEST), openingChoice: "Founding" } });
+    const summary = readProgramSaveSummary(s, { arc, authoredArcDigest: DIGEST });
+    expect(summary).not.toBeNull();
+    expect(summary!.ledgerEntryCount).toBe(0);
+    expect(summary!.lastResult).toBeNull();
+    expect(summary!.openingChoice).toBe("Founding");
+  });
+
+  it("returns null for a different authored program (never offers a foreign Resume)", () => {
+    const s = fakeStorage();
+    saveRun(s, { arc, authoredArcDigest: DIGEST, state: { org: bootstrapOrg(arc), ledger: emptyLedger(DIGEST) } });
+    // A different program's slot is empty, so no summary — the digest-keyed slot
+    // guard means one program's save never surfaces as another's resume state.
+    expect(readProgramSaveSummary(s, { arc, authoredArcDigest: "cart1_other" })).toBeNull();
+  });
+
+  it("returns null for corrupt data (matches loadRun — no phantom Resume)", () => {
+    const s = fakeStorage();
+    s.setItem(saveKeyFor(DIGEST), "{not json");
+    expect(readProgramSaveSummary(s, { arc, authoredArcDigest: DIGEST })).toBeNull();
   });
 });

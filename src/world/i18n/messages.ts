@@ -268,7 +268,15 @@ export type MessageId =
   | "boot.trustBundled"
   | "boot.trustImportedUnsigned"
   | "boot.trustVerified"
-  | "boot.trustQuarantined";
+  | "boot.trustQuarantined"
+  // ── boot screen: program-of-record plaque ────────────────────────────────
+  | "boot.programOfRecord"
+  | "boot.identity"
+  | "boot.freshProgram"
+  | "boot.contractsRecorded"
+  | "boot.resumable"
+  | "boot.enter"
+  | "boot.resume";
 
 /**
  * Ids intentionally left out of the zh-Hant catalog. Documented, not
@@ -592,6 +600,16 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "boot.trustImportedUnsigned": "Imported (unsigned)",
     "boot.trustVerified": "Verified",
     "boot.trustQuarantined": "Quarantined",
+    "boot.programOfRecord": "Program of record",
+    "boot.identity": "Authored identity",
+    "boot.freshProgram": "New program — no runs recorded yet",
+    "boot.contractsRecorded": (params) => {
+      const count = num(params, "count");
+      return `${count} contract${count === 1 ? "" : "s"} recorded`;
+    },
+    "boot.resumable": "Resumable",
+    "boot.enter": "Enter",
+    "boot.resume": "Resume",
   },
   "zh-Hant": {
     "coach.arcComplete": "卡匣已標記為完成。離開前請檢視或匯出本次執行狀態。",
@@ -866,6 +884,13 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "boot.trustImportedUnsigned": "已匯入（未簽署）",
     "boot.trustVerified": "已驗證",
     "boot.trustQuarantined": "已隔離",
+    "boot.programOfRecord": "正式記錄程式",
+    "boot.identity": "作者識別碼",
+    "boot.freshProgram": "全新程式 — 尚無執行記錄",
+    "boot.contractsRecorded": (params) => `已記錄 ${num(params, "count")} 份契約`,
+    "boot.resumable": "可繼續",
+    "boot.enter": "進入",
+    "boot.resume": "繼續",
   },
 };
 
