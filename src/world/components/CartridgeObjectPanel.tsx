@@ -60,10 +60,12 @@ const OUTCOME_COLOR: Record<string, string> = {
   failure: "#b01c18",
 };
 
+// The ledger speaks the one canonical grade axis (Cleared / Partial / Failed) —
+// the same labels the immediate overlay, revisit modal, and encounter receipt use.
 const OUTCOME_LABEL_ID: Record<"success" | "partial" | "failure", MessageId> = {
-  success: "cartridgePanel.outcomeSuccess",
-  partial: "cartridgePanel.outcomePartial",
-  failure: "cartridgePanel.outcomeFailure",
+  success: "outcome.cleared",
+  partial: "outcome.partial",
+  failure: "outcome.failed",
 };
 
 function row(label: string, value: string): JSX.Element {
@@ -146,10 +148,15 @@ export function CartridgeObjectPanel({ manifest, digest, ledger, openingChoice, 
               <div
                 key={entry.seq}
                 data-testid="ledger-entry"
-                style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12 }}
+                style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, alignItems: "baseline" }}
               >
                 <span style={{ color: "#d8cfbd", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.challengeName}</span>
-                <span style={{ color: OUTCOME_COLOR[entry.outcome] ?? "#a59c8b", flex: "none" }}>{t(OUTCOME_LABEL_ID[entry.outcome])}</span>
+                {/* When it was recorded (the run's cycle — deterministic, not a wall clock)
+                    beside the outcome grade: memory that says what happened AND when. */}
+                <span style={{ display: "flex", gap: 8, flex: "none", alignItems: "baseline" }}>
+                  <span data-testid="ledger-entry-when" style={{ color: "#6b6050", fontSize: 10 }}>{t("result.ledgerRecordedAt", { cycle: entry.cycle })}</span>
+                  <span style={{ color: OUTCOME_COLOR[entry.outcome] ?? "#a59c8b" }}>{t(OUTCOME_LABEL_ID[entry.outcome])}</span>
+                </span>
               </div>
             ))}
           </div>

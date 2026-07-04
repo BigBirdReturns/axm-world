@@ -40,8 +40,13 @@ describe("encounter and reward staging (PR B)", () => {
     const shell = read("src/world/shell/Shell.tsx");
     const encounter = read("src/world/encounter/EncounterDirector.tsx");
     expect(encounter).toContain('data-testid="outcome-banner"');
-    // Now a catalog id (i18n/messages.ts) so it reads correctly in both en and zh-Hant.
-    expect(encounter).toContain('t("encounter.recordedOnBoard")');
+    // The immediate moment states the canonical grade (Cleared / Partial / Failed)
+    // and, on its own axis, that the result was recorded — both catalog ids so they
+    // read in en and zh-Hant.
+    expect(encounter).toContain('data-testid="outcome-grade"');
+    expect(encounter).toContain('"outcome.cleared"');
+    expect(encounter).toContain('data-testid="outcome-recorded"');
+    expect(encounter).toContain('t("result.recorded")');
     expect(shell).toContain('data-testid="record-history-button"');
     expect(shell).toContain('data-testid="record-history-modal"');
     expect(shell).not.toContain("world.lastReport && <Card style={{ marginBottom: 10 }}><ReportRegion");

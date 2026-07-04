@@ -280,6 +280,13 @@ function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOut
   const isPreResult = phase === "dispatch" || phase === "travel" || phase === "encounter" || phase === "resolve-checks";
   const isResult = phase === "result" || phase === "record";
   const result = lastReport ? outcomeLabel(lastReport.outcome, challenge?.outcomes[lastReport.outcome]?.narrative) : null;
+  // The canonical grade (Cleared / Partial / Failed) — the same axis the receipt,
+  // the revisit modal, and the ledger speak. Distinct from the memory axis
+  // ("Recorded to the ledger", below) and from the authored narrative (result.label).
+  const gradeLabelId: Record<string, "outcome.cleared" | "outcome.partial" | "outcome.failed"> = {
+    success: "outcome.cleared", partial: "outcome.partial", failure: "outcome.failed",
+  };
+  const gradeId = lastReport ? gradeLabelId[lastReport.outcome] : undefined;
   const showBoardAnchor = phase === "travel" || isResult;
 
   return (
@@ -361,9 +368,22 @@ function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOut
         )}
 
         {isResult && result && (
+          // The immediate post-run moment answers the same five things the revisit
+          // modal does: the OUTCOME grade (Cleared / Partial / Failed) → the contract
+          // acted on → WHAT HAPPENED (authored narrative) → WHAT CHANGED (rewards /
+          // consequence lines) → and, on its own axis, WHAT WAS RECORDED (the result is
+          // now Program 001 memory) → then Continue (what's next). Display-only over
+          // the existing report; no new mechanics, schema, or reward breakdown.
           <div className="enc-content enc-content--result" data-testid="outcome-banner">
             <div className="enc-result-glyph" style={{ color: result.color }}>{result.glyph}</div>
-            <div className="enc-phase-label">{t("encounter.recordedOnBoard")}</div>
+            {gradeId && (
+              <div
+                data-testid="outcome-grade"
+                style={{ color: result.color, fontSize: 15, fontWeight: 800, letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'IBM Plex Mono', ui-monospace, monospace" }}
+              >
+                {t(gradeId)}
+              </div>
+            )}
             <div className="enc-title">{node.title}</div>
             <div className="enc-result-label" style={{ color: result.color }}>{result.label}</div>
             {lastReport?.rewardSummary && <div className="enc-reward-summary">{lastReport.rewardSummary}</div>}
@@ -374,6 +394,13 @@ function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOut
                 ))}
               </div>
             )}
+            {/* Recorded — the memory axis, never conflated with the grade above. */}
+            <div
+              data-testid="outcome-recorded"
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", color: "#74ad77" }}
+            >
+              <PixelIcon name="recorded" /> <span>{t("result.recorded")}</span>
+            </div>
             <button className="enc-dismiss-btn" onClick={onDismiss}>{t("encounter.continue")}</button>
           </div>
         )}
