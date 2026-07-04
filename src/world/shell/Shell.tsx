@@ -136,6 +136,11 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   // spatial encounter compiled from its record. Distinct from the RUN CONTRACT
   // auto-resolve (interceptedRun) — this is the "walk into it" path.
   const [encounterOpen, setEncounterOpen] = useState(false);
+  // Party to seed the encounter with. null = use the board-assembled party
+  // (ix.party) for the currently selected contract. Non-null = an explicit party
+  // for an encounter entered via onEnterEncounter (hall/map), where ix.party would
+  // otherwise be one render stale for a just-changed selection.
+  const [encounterParty, setEncounterParty] = useState<string[] | null>(null);
 
   // Scope the active cartridge's palette skin to <html> while this cartridge is
   // mounted. Cleared on unmount / cartridge switch so no arc keeps another's
@@ -172,6 +177,10 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   // the rest of the shell, exactly like the board's PLAY ENCOUNTER path.
   const enterEncounter = (challengeId: string) => {
     ix.select(challengeId);
+    // Seed with the recommended party for THIS challenge explicitly: ix.select's
+    // party reseed runs in a later effect, so ix.party can still hold the previous
+    // selection's party when EncounterShell snapshots it at mount.
+    setEncounterParty(world.recommendedParty(challengeId));
     setEncounterOpen(true);
   };
 
@@ -269,7 +278,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
       variant="primary"
       data-testid="play-encounter-button"
       disabled={!ix.canRun}
-      onClick={() => setEncounterOpen(true)}
+      onClick={() => { setEncounterParty(null); setEncounterOpen(true); }}
       style={{ width: "100%", minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}
     >
       <PixelIcon name="available" /> <span>{t("encounterShell.playEncounter")}</span>
@@ -470,8 +479,8 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
         <EncounterShell
           world={world}
           challengeId={ix.selectedId}
-          party={ix.party}
-          onClose={() => setEncounterOpen(false)}
+          party={encounterParty ?? ix.party}
+          onClose={() => { setEncounterOpen(false); setEncounterParty(null); }}
         />
       )}
     </div>
