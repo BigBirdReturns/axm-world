@@ -240,6 +240,14 @@ export type MessageId =
   | "worldMap.stateAvailable"
   | "worldMap.stateActive"
   | "worldMap.stateRecorded"
+  | "worldMap.contractMap"
+  | "worldMap.recordedOf"
+  | "worldMap.regionLocked"
+  | "worldMap.regionOpen"
+  | "worldMap.regionComplete"
+  | "worldMap.nextContract"
+  | "worldMap.steep"
+  | "worldMap.steepContract"
   | "presentations.globe.label"
   | "presentations.globe.blurb"
   | "presentations.globe.controlsHint"
@@ -602,6 +610,14 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "worldMap.stateAvailable": "Available",
     "worldMap.stateActive": "Active",
     "worldMap.stateRecorded": "Recorded",
+    "worldMap.contractMap": "Contract Map",
+    "worldMap.recordedOf": (params) => `${num(params, "recorded")}/${num(params, "total")} recorded`,
+    "worldMap.regionLocked": "Locked",
+    "worldMap.regionOpen": "Open",
+    "worldMap.regionComplete": "Complete",
+    "worldMap.nextContract": "Up next",
+    "worldMap.steep": "Steep",
+    "worldMap.steepContract": "Steep contract — high authored difficulty",
     "presentations.globe.label": "Planet",
     "presentations.globe.blurb": "3D world — optional spatial renderer",
     "presentations.globe.controlsHint": "drag to orbit · scroll to zoom · right-drag to pan · click a ◆ contract",
@@ -924,6 +940,14 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "worldMap.stateAvailable": "可用",
     "worldMap.stateActive": "進行中",
     "worldMap.stateRecorded": "已記錄",
+    "worldMap.contractMap": "契約地圖",
+    "worldMap.recordedOf": (params) => `已記錄 ${num(params, "recorded")}/${num(params, "total")}`,
+    "worldMap.regionLocked": "鎖定",
+    "worldMap.regionOpen": "開放",
+    "worldMap.regionComplete": "完成",
+    "worldMap.nextContract": "接下來",
+    "worldMap.steep": "險峻",
+    "worldMap.steepContract": "險峻契約 — 作者設定的高難度",
     "presentations.globe.label": "星球",
     "presentations.globe.blurb": "3D 世界 — 選用的空間化渲染器",
     "presentations.globe.controlsHint": "拖曳以環繞 · 滾動以縮放 · 按右鍵拖曳以平移 · 點選 ◆ 契約",
