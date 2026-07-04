@@ -64,6 +64,17 @@ describe("Rodoh pixel-ui integration", () => {
     expect(regions).toContain('selected.status === "locked"');
   });
 
+  it("PixelContractCard labels its difficulty through t(), not as a bare number", () => {
+    const contractCard = read("src/world/pixel-ui/PixelContractCard.tsx");
+    // The card's difficulty carries the "Difficulty" label (chrome via t()) beside
+    // the value, so the number reads as what it is — matching the map pin and the
+    // encounter shell rather than showing a context-free integer.
+    expect(contractCard).toContain('t("contractCard.difficulty")');
+    expect(contractCard).toContain("pixel-contract-card__difficulty-value");
+    // The number itself still flows verbatim as authored content, never catalogued.
+    expect(contractCard).toContain("{difficulty}");
+  });
+
   it("ContractBoard renders PixelContractCard, not bespoke card markup", () => {
     const contractBoard = read("src/world/contract-board/ContractBoard.tsx");
     expect(contractBoard).toContain("PixelContractCard");

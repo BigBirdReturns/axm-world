@@ -67,7 +67,13 @@ export function PixelContractCard(props: PixelContractCardProps): JSX.Element {
       <PixelPanel className="pixel-contract-card__panel">
         <div className="pixel-contract-card__top">
           <PixelStateBadge state={STATE_TO_BADGE[state]}>{t(STATUS_LABEL_ID[state])}</PixelStateBadge>
-          <span className="pixel-contract-card__difficulty">{difficulty}</span>
+          {/* The authored difficulty, labelled so the bare number reads as what it
+              is — the same "Difficulty N" wording the map pin and encounter shell
+              use. Chrome through t(); the value flows verbatim. */}
+          <span className="pixel-contract-card__difficulty">
+            <span className="pixel-contract-card__difficulty-label">{t("contractCard.difficulty")}</span>
+            <span className="pixel-contract-card__difficulty-value">{difficulty}</span>
+          </span>
         </div>
         <h3 className="pixel-contract-card__title">
           {titleMotif ? <span className="pixel-contract-card__title-motif" aria-hidden="true">{titleMotif}</span> : null}

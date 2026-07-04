@@ -494,6 +494,20 @@
 }
 .pixel-contract-card__difficulty {
   display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+}
+.pixel-contract-card__difficulty-label {
+  font-family: var(--px-font);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.pixel-contract-card__difficulty-value {
+  display: inline-flex;
   min-width: 28px;
   height: 24px;
   align-items: center;
