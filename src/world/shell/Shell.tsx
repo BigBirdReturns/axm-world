@@ -36,6 +36,7 @@ import {
 import { PixelButton, PixelIcon } from "../pixel-ui/index.js";
 import { DecisionPanel } from "../components/DecisionPanel.js";
 import { CartridgeObjectPanel } from "../components/CartridgeObjectPanel.js";
+import { ProgramIdentityStrip } from "./ProgramIdentityStrip.js";
 import { t, useLocale } from "../i18n/index.js";
 import type { ArcInteraction } from "../useArcInteraction.js";
 import type { ArcWorld } from "../useArcWorld.js";
@@ -317,6 +318,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
 
   return (
     <div data-testid="engine-shell" data-modal-open={modalOpen ? "true" : "false"} style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: "#0b0a08", overflow: "hidden", isolation: "isolate", fontFamily: "'IBM Plex Mono', ui-monospace, monospace" }}>
+      <ProgramIdentityStrip world={world} />
       <div
         style={{
           flex: "none",
@@ -324,7 +326,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
           flexWrap: "wrap",
           alignItems: "center",
           gap: 10,
-          padding: "calc(env(safe-area-inset-top, 0px) + 8px) 12px 8px",
+          padding: "8px 12px",
           borderBottom: "1px solid #2a2620",
           background: "rgba(15,13,9,0.92)",
         }}

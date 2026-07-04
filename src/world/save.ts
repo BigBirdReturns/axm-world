@@ -11,7 +11,7 @@
 
 import type { Arc, Organization } from "../engine/types.js";
 import { serializeGame, deserializeGame } from "../engine/save.js";
-import { emptyLedger, type ContractOutcome, type Ledger } from "./ledger.js";
+import { emptyLedger, summarizeLedger, type ContractOutcome, type Ledger } from "./ledger.js";
 
 /** Save schema version. Kept in lockstep with PROGRAM_001.saveSchemaVersion. */
 export const SAVE_SCHEMA_VERSION = 1;
@@ -128,12 +128,11 @@ export function readProgramSaveSummary(
 ): ProgramSaveSummary | null {
   const run = loadRun(storage, params);
   if (!run) return null;
-  const entries = run.ledger.entries;
-  const last = entries.length > 0 ? entries[entries.length - 1]! : null;
+  const { entryCount, lastResult } = summarizeLedger(run.ledger);
   return {
     authoredArcDigest: params.authoredArcDigest,
-    ledgerEntryCount: entries.length,
-    lastResult: last ? { challengeName: last.challengeName, outcome: last.outcome } : null,
+    ledgerEntryCount: entryCount,
+    lastResult,
     openingChoice: run.openingChoice ?? null,
   };
 }
