@@ -47,7 +47,10 @@ export function ProgramIdentityStrip({ world }: { world: ArcWorld }): JSX.Elemen
         display: "flex",
         alignItems: "center",
         gap: 8,
-        padding: "4px 12px",
+        // Topmost shell chrome under viewport-fit=cover: consume the top safe-area
+        // inset here so the identity text clears a notch/status bar. The header
+        // below must NOT re-apply it (no double inset).
+        padding: "calc(env(safe-area-inset-top, 0px) + 4px) 12px 4px",
         borderBottom: "1px solid #2a2620",
         background: "rgba(11,10,8,0.96)",
         font: `10px/1.4 ${mono}`,

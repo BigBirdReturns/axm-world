@@ -326,7 +326,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
           flexWrap: "wrap",
           alignItems: "center",
           gap: 10,
-          padding: "calc(env(safe-area-inset-top, 0px) + 8px) 12px 8px",
+          padding: "8px 12px",
           borderBottom: "1px solid #2a2620",
           background: "rgba(15,13,9,0.92)",
         }}
