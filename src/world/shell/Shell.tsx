@@ -101,7 +101,7 @@ function EquipFlash(props: { event: NonNullable<ArcWorld["lastEquip"]> }): JSX.E
   );
 }
 
-function RecordModal(props: { lastReport: NonNullable<ArcWorld["lastReport"]>; onClose: () => void }): JSX.Element {
+function RecordModal(props: { record: NonNullable<ArcWorld["lastRecord"]>; onClose: () => void }): JSX.Element {
   return (
     <div
       data-testid="record-history-modal"
@@ -114,7 +114,7 @@ function RecordModal(props: { lastReport: NonNullable<ArcWorld["lastReport"]>; o
           <button onClick={props.onClose} aria-label={t("shell.closeRecordedOutcome")} style={{ background: "transparent", border: "1px solid #4a4238", color: "#a59c8b", cursor: "pointer", font: "12px monospace" }}>×</button>
         </div>
         <div onClick={(e) => e.stopPropagation()}>
-          <ReportRegion lastReport={props.lastReport} />
+          <ReportRegion record={props.record} />
         </div>
       </Card>
     </div>
@@ -483,7 +483,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
           onLeave={onExit}
         />
       )}
-      {showHistory && world.lastReport && <RecordModal lastReport={world.lastReport} onClose={() => setShowHistory(false)} />}
+      {showHistory && world.lastRecord && <RecordModal record={world.lastRecord} onClose={() => setShowHistory(false)} />}
       {encounterOverlay}
       {encounterOpen && ix.selectedId && (
         <EncounterShell
