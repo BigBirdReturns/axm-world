@@ -88,8 +88,11 @@ export type MessageId =
   | "shell.identityFresh"
   // ── result / ledger clarity (post-action loop) ───────────────────────────
   | "result.outcome"
-  | "result.whatHappened"
-  | "result.whatChanged"
+  | "result.objectives"
+  | "result.rewards"
+  | "result.worldChanges"
+  | "result.changeRecorded"
+  | "result.changeUnlocked"
   | "result.recorded"
   | "result.persists"
   | "result.ledgerRecordedAt"
@@ -458,8 +461,11 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     // different axis from RECORDED (the memory state). The result names both, the
     // ledger stamps the "when".
     "result.outcome": "Outcome",
-    "result.whatHappened": "What happened",
-    "result.whatChanged": "What changed",
+    "result.objectives": "Objectives",
+    "result.rewards": "Rewards",
+    "result.worldChanges": "World changes",
+    "result.changeRecorded": (params) => `${str(params, "name")} recorded`,
+    "result.changeUnlocked": (params) => `${str(params, "name")} unlocked`,
     "result.recorded": "Recorded to the ledger",
     "result.persists": "Written to the Program 001 ledger — this result persists.",
     "result.ledgerRecordedAt": (params) => `Cycle ${String(num(params, "cycle")).padStart(2, "0")}`,
@@ -823,8 +829,11 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.identityFresh": "尚無執行記錄",
 
     "result.outcome": "結果",
-    "result.whatHappened": "發生了什麼",
-    "result.whatChanged": "帶來的改變",
+    "result.objectives": "目標",
+    "result.rewards": "獎勵",
+    "result.worldChanges": "世界變化",
+    "result.changeRecorded": (params) => `${str(params, "name")} 已記錄`,
+    "result.changeUnlocked": (params) => `${str(params, "name")} 已解鎖`,
     "result.recorded": "已記錄至帳本",
     "result.persists": "已寫入 Program 001 帳本 — 此結果將保留。",
     "result.ledgerRecordedAt": (params) => `週期 ${String(num(params, "cycle")).padStart(2, "0")}`,

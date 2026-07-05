@@ -24,7 +24,7 @@ import { buildWorldLayout, DEFAULT_WORLD_CONFIG, type WorldLayout, type WorldNod
 import { applyAgentDowntime, type DowntimeAction } from "./agent-management.js";
 import { FIRST_CHARTER_CARTRIDGE, type AuthoredEffect, type AuthoredOpening, type Cartridge } from "./cartridge.js";
 import { cartridgeIdentity } from "./cartridge-identity.js";
-import { appendResult, emptyLedger, type Ledger } from "./ledger.js";
+import { appendResult, emptyLedger, type Ledger, type LedgerEntry } from "./ledger.js";
 import { buildConsequence, newlyAvailableContracts } from "./consequence.js";
 import { loadRun, saveRun } from "./save.js";
 import {
@@ -158,6 +158,12 @@ export interface ArcWorld {
   /** Last reward equip, kept only to stage the immediate after-equip rail transition. */
   lastEquip: LastEquipEvent | null;
   lastReport: PlayReportView | null;
+  /** The full ledger entry for the last resolved run THIS SESSION — the SAME record
+   *  the ledger persists (challengeName + outcome + cycle + seq + the structured
+   *  consequence). Surfaced so the result overlay and revisit modal render stored
+   *  facts, not a re-interpretation, and mirror the ledger's own shape. Null after
+   *  reload (gated by lastReport); the ledger holds the persisted history. */
+  lastRecord: LedgerEntry | null;
   /** Difficulty modes the cartridge authors (empty for most arcs). The shell
    * only renders a mode picker when this is non-empty. */
   difficultyModes: Arc["difficultyModes"];
@@ -485,6 +491,12 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     [cartridge, org, openingChoice, clearedCount, totalNodes, ledger],
   );
 
+  // The last resolved run's full ledger entry, THIS SESSION: gated by lastReport
+  // (which is set together with the ledger append at resolve, and cleared on
+  // reload), it is the freshly-appended entry — the same record the ledger holds,
+  // with the structured consequence + its cycle/order.
+  const lastRecord: LedgerEntry | null = lastReport ? ledger.entries[ledger.entries.length - 1] ?? null : null;
+
   return {
     cartridge,
     arc,
@@ -514,6 +526,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     claimLoot,
     lastEquip,
     lastReport,
+    lastRecord,
     difficultyModes: arc.difficultyModes,
     difficultyModeId,
     setDifficultyModeId,

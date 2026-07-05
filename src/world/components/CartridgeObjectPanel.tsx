@@ -4,10 +4,11 @@
 // that produces the custody object (manifest + arc + run state) as a file. Custody as
 // an object action.
 
-import { type CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import type { CartridgeManifest } from "../cartridge.js";
 import { RodohRuntimeMark } from "../brand/RodohRuntimeMark.js";
 import { PixelButton, PixelIcon } from "../pixel-ui/index.js";
+import { ConsequenceReport } from "./ConsequenceReport.js";
 import { t } from "../i18n/index.js";
 import type { MessageId } from "../i18n/messages.js";
 import type { CustodyObject } from "../useArcWorld.js";
@@ -79,6 +80,10 @@ function row(label: string, value: string): JSX.Element {
 
 export function CartridgeObjectPanel({ manifest, digest, ledger, openingChoice, cycle, clearedCount, totalNodes, onExport, onClose, onLeave }: Props): JSX.Element {
   const progressPct = totalNodes > 0 ? Math.round((clearedCount / totalNodes) * 100) : 0;
+  // One ledger entry can be expanded at a time to read its full structured
+  // consequence (Objectives / Rewards / World changes) — a simple detail over the
+  // stored record, no tabs/filters/timestamps.
+  const [openSeq, setOpenSeq] = useState<number | null>(null);
   const handleExport = () => {
     const data = onExport();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -154,26 +159,52 @@ export function CartridgeObjectPanel({ manifest, digest, ledger, openingChoice, 
         ) : (
           <>
             <div data-testid="cartridge-ledger" style={{ display: "grid", gap: 3 }}>
-              {ledger.entries.map((entry) => (
-                <div
-                  key={entry.seq}
-                  data-testid="ledger-entry"
-                  style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, alignItems: "baseline" }}
-                >
-                  <span style={{ display: "flex", gap: 8, minWidth: 0, alignItems: "baseline" }}>
-                    {/* Recording order (seq + 1) — reads the ledger as an ordered log,
-                        not an unordered set. Append index, never a wall clock. */}
-                    <span data-testid="ledger-entry-seq" style={{ color: "#6b6050", fontSize: 10, fontVariantNumeric: "tabular-nums", flex: "none" }}>{String(entry.seq + 1).padStart(2, "0")}</span>
-                    <span style={{ color: "#d8cfbd", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.challengeName}</span>
-                  </span>
-                  {/* When it was recorded (the run's cycle — deterministic, not a wall clock)
-                      beside the outcome grade: memory that says what happened AND when. */}
-                  <span style={{ display: "flex", gap: 8, flex: "none", alignItems: "baseline" }}>
-                    <span data-testid="ledger-entry-when" style={{ color: "#6b6050", fontSize: 10 }}>{t("result.ledgerRecordedAt", { cycle: entry.cycle })}</span>
-                    <span style={{ color: OUTCOME_COLOR[entry.outcome] ?? "#a59c8b" }}>{t(OUTCOME_LABEL_ID[entry.outcome])}</span>
-                  </span>
-                </div>
-              ))}
+              {ledger.entries.map((entry) => {
+                const isOpen = openSeq === entry.seq;
+                const rewardCount = entry.consequence.rewards.length;
+                const unlockCount = entry.consequence.worldChanges.filter((w) => w.kind === "unlocked").length;
+                return (
+                  <div key={entry.seq} data-testid="ledger-entry" style={{ fontSize: 12 }}>
+                    {/* The row is a toggle to the stored record's structured detail. Order,
+                        title, cycle, grade + a short reward/unlock summary read at a glance. */}
+                    <button
+                      type="button"
+                      data-testid="ledger-entry-toggle"
+                      aria-expanded={isOpen}
+                      onClick={() => setOpenSeq(isOpen ? null : entry.seq)}
+                      style={{ width: "100%", background: "none", border: "none", padding: "2px 0", cursor: "pointer", color: "inherit", font: "inherit", display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline", textAlign: "left" }}
+                    >
+                      <span style={{ display: "flex", gap: 8, minWidth: 0, alignItems: "baseline" }}>
+                        <span aria-hidden="true" style={{ color: "#6b6050", fontSize: 9, flex: "none", display: "inline-block", transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 0.12s" }}>▸</span>
+                        {/* Recording order (seq + 1) — reads the ledger as an ordered log. */}
+                        <span data-testid="ledger-entry-seq" style={{ color: "#6b6050", fontSize: 10, fontVariantNumeric: "tabular-nums", flex: "none" }}>{String(entry.seq + 1).padStart(2, "0")}</span>
+                        <span style={{ color: "#d8cfbd", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.challengeName}</span>
+                      </span>
+                      {/* A short consequence summary (locale-neutral counts), the cycle
+                          (deterministic, not a wall clock), and the grade. */}
+                      <span style={{ display: "flex", gap: 8, flex: "none", alignItems: "baseline" }}>
+                        {rewardCount > 0 && (
+                          <span data-testid="ledger-entry-rewards" style={{ color: "#8b8172", fontSize: 10, display: "inline-flex", alignItems: "center", gap: 2 }}>
+                            <PixelIcon name="lootAvailable" />{rewardCount}
+                          </span>
+                        )}
+                        {unlockCount > 0 && (
+                          <span data-testid="ledger-entry-unlocks" style={{ color: "#74ad77", fontSize: 10, display: "inline-flex", alignItems: "center", gap: 2 }}>
+                            <PixelIcon name="available" />{unlockCount}
+                          </span>
+                        )}
+                        <span data-testid="ledger-entry-when" style={{ color: "#6b6050", fontSize: 10 }}>{t("result.ledgerRecordedAt", { cycle: entry.cycle })}</span>
+                        <span style={{ color: OUTCOME_COLOR[entry.outcome] ?? "#a59c8b" }}>{t(OUTCOME_LABEL_ID[entry.outcome])}</span>
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <div data-testid="ledger-entry-detail" style={{ padding: "4px 0 8px 22px" }}>
+                        <ConsequenceReport consequence={entry.consequence} tone="dark" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             {/* Provenance (not a cryptographic seal): every entry above carries the same
                 authored digest as the ledger (see appendResult) — recorded under the
