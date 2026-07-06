@@ -25,7 +25,8 @@ import { buildWorldLayout, DEFAULT_WORLD_CONFIG, type WorldLayout, type WorldNod
 import { applyAgentDowntime, type DowntimeAction } from "./agent-management.js";
 import { FIRST_CHARTER_CARTRIDGE, type AuthoredEffect, type AuthoredOpening, type Cartridge } from "./cartridge.js";
 import { cartridgeIdentity } from "./cartridge-identity.js";
-import { appendResult, emptyLedger, type Ledger } from "./ledger.js";
+import { appendResult, emptyLedger, type Ledger, type LedgerEntry } from "./ledger.js";
+import { buildConsequence, newlyAvailableContracts } from "./consequence.js";
 import { loadRun, saveRun } from "./save.js";
 import {
   describeContract as describeContractReq,
@@ -89,7 +90,7 @@ export interface LastEquipEvent {
 }
 
 export interface CustodyObject {
-  format: "axm-cartridge-run/v1";
+  format: "axm-cartridge-run/v2";
   manifest: Cartridge["manifest"];
   arc: Arc;
   runState: {
@@ -99,6 +100,10 @@ export interface CustodyObject {
     totalNodes: number;
     roster: Array<{ name: string; morale: number; stress: number }>;
   };
+  /** The full run ledger — every resolved contract with its structured
+   *  consequence record — so the durable truth travels with the exported run
+   *  (v2). Older exports (v1) carried only the runState summary. */
+  ledger: Ledger;
 }
 
 export interface ArcWorld {
@@ -154,6 +159,12 @@ export interface ArcWorld {
   /** Last reward equip, kept only to stage the immediate after-equip rail transition. */
   lastEquip: LastEquipEvent | null;
   lastReport: PlayReportView | null;
+  /** The full ledger entry for the last resolved run THIS SESSION — the SAME record
+   *  the ledger persists (challengeName + outcome + cycle + seq + the structured
+   *  consequence). Surfaced so the result overlay and revisit modal render stored
+   *  facts, not a re-interpretation, and mirror the ledger's own shape. Null after
+   *  reload (gated by lastReport); the ledger holds the persisted history. */
+  lastRecord: LedgerEntry | null;
   /** Difficulty modes the cartridge authors (empty for most arcs). The shell
    * only renders a mode picker when this is non-empty. */
   difficultyModes: Arc["difficultyModes"];
@@ -359,14 +370,35 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
       setPendingRewardChoices(result.pendingRewardChoices);
       const report: RunReport | undefined = result.reports[0];
       const agentName = (id: string): string => result.org.agents[id]?.name ?? org.agents[id]?.name ?? id;
-      setLastReport(report ? summarizeReport(report, arc, agentName) : null);
-      if (report) {
+      const view = report ? summarizeReport(report, arc, agentName) : null;
+      setLastReport(view);
+      if (report && view) {
+        // The HONEST post-run unlock delta: contracts available AFTER this run that
+        // were not available BEFORE (real access state, not the brief's aspirational
+        // hint — so a clear that only partially satisfies a gate opens nothing here).
+        const newlyAvailable = newlyAvailableContracts(scene.nodes, compileArcToPlayScene(arc, result.org).nodes);
+        // Build the structured, durable consequence record from THIS run's report
+        // (see consequence.ts) and stamp it onto the ledger entry that proves the
+        // run happened — one resolved run → one entry → one consequence.
+        const consequence = buildConsequence({
+          report,
+          challenge,
+          arc,
+          objectives: view.objectives,
+          resolveAgent: (id) => {
+            const agent = result.org.agents[id] ?? org.agents[id];
+            return agent ? { name: agent.name, role: roleName(arc, agent.role) } : { name: id };
+          },
+          resourceNames: { currency: scene.resources.currencyName, reputation: scene.resources.reputationName },
+          newlyAvailable,
+        });
         setLedger((cur) =>
           appendResult(cur, {
             challengeId: report.challengeId,
             challengeName: challenge.name,
             outcome: report.outcome,
             cycle: report.cycle,
+            consequence,
           }),
         );
       }
@@ -442,7 +474,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
 
   const buildExport = useCallback(
     (): CustodyObject => ({
-      format: "axm-cartridge-run/v1",
+      format: "axm-cartridge-run/v2",
       manifest: cartridge.manifest,
       arc: cartridge.arc,
       runState: {
@@ -456,9 +488,18 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
           stress: Math.round(a.stress),
         })),
       },
+      // The durable record travels with the exported run: the full ledger, every
+      // entry carrying its structured consequence.
+      ledger,
     }),
-    [cartridge, org, openingChoice, clearedCount, totalNodes],
+    [cartridge, org, openingChoice, clearedCount, totalNodes, ledger],
   );
+
+  // The last resolved run's full ledger entry, THIS SESSION: gated by lastReport
+  // (which is set together with the ledger append at resolve, and cleared on
+  // reload), it is the freshly-appended entry — the same record the ledger holds,
+  // with the structured consequence + its cycle/order.
+  const lastRecord: LedgerEntry | null = lastReport ? ledger.entries[ledger.entries.length - 1] ?? null : null;
 
   return {
     cartridge,
@@ -489,6 +530,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     claimLoot,
     lastEquip,
     lastReport,
+    lastRecord,
     difficultyModes: arc.difficultyModes,
     difficultyModeId,
     setDifficultyModeId,

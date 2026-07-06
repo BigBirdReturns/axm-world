@@ -1,24 +1,142 @@
 /* WorldMap — a flat 2D location map over the WorldNode projection. Neutral,
-   .wm- prefixed; inherits the active cartridge palette via the shared tokens. */
+   .wm- prefixed; inherits the active cartridge palette via the shared tokens.
+   A strategic overlay: cartridge header + progress, regions as tiers, pins as
+   contract locations carrying available / active / recorded / locked / steep /
+   next affordances — all derived from run state, none of it a new mechanic. */
 
 .wm-surface {
   position: absolute;
   inset: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   background:
-    radial-gradient(circle at 50% 0%, rgba(201, 161, 74, 0.08), transparent 45%),
-    linear-gradient(180deg, #14110b, #0b0a08 78%);
+    radial-gradient(circle at 50% 0%, rgba(201, 161, 74, 0.1), transparent 46%),
+    linear-gradient(180deg, #16130c, #0b0a08 78%);
 }
+
+/* ── Cartridge header: names the world (authored) + arc-wide recorded progress ── */
+.wm-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 12px clamp(12px, 4vw, 40px) 10px;
+  border-bottom: 1px solid rgba(201, 161, 74, 0.22);
+  background: linear-gradient(180deg, rgba(201, 161, 74, 0.06), transparent);
+}
+.wm-header-titles { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.wm-eyebrow {
+  font: 700 9px 'IBM Plex Mono', ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #8b7d6a;
+}
+.wm-world-name {
+  font: 800 18px 'Barlow Condensed', var(--px-font), sans-serif;
+  letter-spacing: 0.02em;
+  color: #ece4d4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wm-progress { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 120px; }
+.wm-progress-count {
+  font: 700 10px 'IBM Plex Mono', ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #a59c8b;
+}
+.wm-progress-track {
+  width: 100%;
+  min-width: 120px;
+  height: 5px;
+  background: rgba(74, 66, 56, 0.6);
+  border: 1px solid #3a352c;
+  overflow: hidden;
+}
+.wm-progress-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #74ad77, #93d196);
+  transition: width 0.4s ease;
+}
+
+/* ── Legend / state key: a compact, always-visible glossary tying each pin marker
+      to the word the map already prints and what it means. Static chrome — it
+      explains the map's vocabulary, it derives nothing. Each swatch mirrors the
+      marker it explains, so the key and the pins read as one system. ── */
+.wm-legend {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 7px clamp(12px, 4vw, 40px);
+  border-bottom: 1px solid rgba(201, 161, 74, 0.14);
+  background: rgba(11, 10, 8, 0.5);
+}
+.wm-legend-title {
+  flex: none;
+  font: 700 8px 'IBM Plex Mono', ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #8b7d6a;
+}
+.wm-legend-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+.wm-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.wm-legend-swatch {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  display: grid;
+  place-items: center;
+  border-left: 3px solid #4a4238;
+  background: rgba(74, 66, 56, 0.35);
+  font: 700 9px 'IBM Plex Mono', ui-monospace, monospace;
+  line-height: 1;
+}
+/* Mirror each pin marker: left-edge colour + chip tint, glyphs for the overlays. */
+.wm-legend-swatch--available { border-left-color: var(--gold-border, #a9772a); background: rgba(201, 161, 74, 0.16); }
+.wm-legend-swatch--active { border-left-color: var(--state-selected, #b01c18); background: rgba(176, 28, 24, 0.22); }
+.wm-legend-swatch--recorded { border-left-color: #3f6a41; background: rgba(63, 106, 65, 0.22); color: #74ad77; }
+.wm-legend-swatch--locked { border-left-color: #6a6154; background: rgba(90, 84, 74, 0.2); opacity: 0.6; }
+.wm-legend-swatch--next {
+  border-left-color: #d8b276;
+  background: var(--parchment-gold, #d8b276);
+  color: #1b160c;
+  box-shadow: 0 0 10px -4px rgba(216, 178, 118, 0.8);
+}
+.wm-legend-swatch--steep { border-left-color: #e0a23a; background: rgba(224, 162, 58, 0.14); color: #e0a23a; }
+.wm-legend-term {
+  font: 700 9px 'IBM Plex Mono', ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #cabb9f;
+}
+.wm-legend-gloss { font: 500 10px system-ui, sans-serif; color: #8b8272; }
+
+/* ── Scroll body ── */
 .wm-scroll {
-  position: absolute;
-  inset: 0;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding: 18px clamp(12px, 4vw, 40px);
+  padding: 16px clamp(12px, 4vw, 40px);
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
 
+/* ── Region (progression tier) ── */
 .wm-region { display: flex; flex-direction: column; gap: 8px; }
 .wm-region-head { display: flex; align-items: center; gap: 10px; }
 .wm-region-name {
@@ -27,41 +145,76 @@
   letter-spacing: 0.1em;
   color: var(--gold, #c9a14a);
 }
-.wm-region-head::after { content: ""; flex: 1; height: 1px; background: rgba(201, 161, 74, 0.25); }
+.wm-region-status {
+  font: 700 8px 'IBM Plex Mono', ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 1px 6px;
+  border: 1px solid currentColor;
+}
+.wm-region-status--locked { color: #7d7466; }
+.wm-region-status--active { color: #e0c07a; }
+.wm-region-status--complete { color: #93d196; }
+.wm-region-head::after { content: ""; flex: 1; height: 1px; background: rgba(201, 161, 74, 0.22); }
 .wm-region-count {
   font: 700 10px 'IBM Plex Mono', ui-monospace, monospace;
   color: #a59c8b;
   border: 1px solid #4a4238;
   padding: 1px 6px;
 }
+/* A finished region recedes; the open one carries the eye. */
+.wm-region--complete .wm-locations { opacity: 0.82; }
 
 .wm-locations {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
   gap: 10px;
 }
 
+/* ── Pin (contract location) ── */
 .wm-pin {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 10px;
   border: 2px solid #4a4238;
+  border-left-width: 4px;
   background: rgba(23, 21, 15, 0.72);
   cursor: pointer;
-  transition: border-color 0.12s ease, background 0.12s ease;
+  transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease;
 }
 .wm-pin:hover { background: rgba(35, 31, 22, 0.9); }
-.wm-pin--available { border-color: var(--gold-border, #a9772a); }
-.wm-pin--active { border-color: var(--state-selected, #b01c18); background: rgba(50, 24, 20, 0.7); }
-.wm-pin--recorded { border-color: #3f6a41; opacity: 0.9; }
-.wm-pin--locked { opacity: 0.55; cursor: default; }
+.wm-pin--available { border-left-color: var(--gold-border, #a9772a); }
+.wm-pin--active {
+  border-color: var(--state-selected, #b01c18);
+  background: rgba(50, 24, 20, 0.7);
+}
+.wm-pin--recorded { border-left-color: #3f6a41; opacity: 0.85; }
+.wm-pin--locked { opacity: 0.5; cursor: default; }
 .wm-pin--locked:hover { background: rgba(23, 21, 15, 0.72); }
+/* The one contract to act on next — the same node the hall's steward holds. */
+.wm-pin--next {
+  border-left-color: #d8b276;
+  box-shadow: inset 3px 0 0 0 rgba(216, 178, 118, 0.5), 0 0 16px -8px rgba(216, 178, 118, 0.7);
+}
 
 .wm-pin-motif { flex: none; width: 30px; height: 30px; display: grid; place-items: center; color: #c9a14a; }
 .wm-pin-body { flex: 1; min-width: 0; }
+.wm-pin-title-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .wm-pin-title { font: 800 13px system-ui, sans-serif; color: #e8dcc4; }
-.wm-pin-meta { display: flex; align-items: center; gap: 8px; margin-top: 2px; flex-wrap: wrap; }
+.wm-next-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font: 800 8px 'IBM Plex Mono', ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #1b160c;
+  background: var(--parchment-gold, #d8b276);
+  padding: 1px 5px;
+}
+.wm-pin-meta { display: flex; align-items: center; gap: 8px; margin-top: 3px; flex-wrap: wrap; }
 .wm-state {
   font: 700 9px 'IBM Plex Mono', ui-monospace, monospace;
   text-transform: uppercase;
@@ -73,9 +226,21 @@
 .wm-state--recorded { color: #93d196; background: rgba(63, 106, 65, 0.22); }
 .wm-state--locked { color: #8a8276; background: rgba(90, 84, 74, 0.2); }
 .wm-diff { font: 700 10px 'IBM Plex Mono', ui-monospace, monospace; color: #a59c8b; }
+.wm-steep {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font: 700 9px 'IBM Plex Mono', ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #e0a23a;
+  background: rgba(224, 162, 58, 0.14);
+  padding: 1px 5px;
+}
 
 .wm-enter {
   flex: none;
+  align-self: stretch;
   border: 1px solid var(--gold-border, #a9772a);
   background: var(--gold, #c9a14a);
   color: var(--ink, #241c14);

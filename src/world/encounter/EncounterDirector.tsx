@@ -15,6 +15,7 @@ import { PixelIcon } from "../pixel-ui/index.js";
 // used when the loaded arc IS First Charter (checked against FIRST_CHARTER_THEME.id
 // below). Any other cartridge gets the generic PixelIcon placeholder instead.
 import { CartridgeMotif } from "../themes/CartridgeMotif.js";
+import { ConsequenceReport } from "../components/ConsequenceReport.js";
 import { t } from "../i18n/index.js";
 import "./encounter.css";
 
@@ -218,6 +219,7 @@ export function useEncounterDirector(ix: ArcInteraction, world: ArcWorld): UseEn
             party={snapshot.party}
             roster={world.roster}
             lastReport={world.lastReport}
+            lastRecord={world.lastRecord}
             projectedOutcome={snapshot.projectedOutcome}
             target={snapshot.target}
             challenge={challengeFor(world, snapshot.challengeId)}
@@ -237,6 +239,10 @@ interface OverlayProps {
   party: string[];
   roster: ArcWorld["roster"];
   lastReport: ArcWorld["lastReport"];
+  /** The stored ledger record for this run — its structured consequence is rendered
+   *  (via ConsequenceReport) so the overlay shows the SAME facts the revisit modal
+   *  and the ledger show. */
+  lastRecord: ArcWorld["lastRecord"];
   projectedOutcome: ProjectedOutcome;
   target: BoardTarget;
   /** The current challenge's own data (description, authored outcome narratives).
@@ -250,7 +256,7 @@ interface OverlayProps {
   onDismiss: () => void;
 }
 
-function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOutcome, target, challenge, arcId, challengeId, onSkip, onDismiss }: OverlayProps): JSX.Element {
+function EncounterOverlay({ phase, node, party, roster, lastReport, lastRecord, projectedOutcome, target, challenge, arcId, challengeId, onSkip, onDismiss }: OverlayProps): JSX.Element {
   const flavor = locationFlavor(challenge);
   const renderMotif = (size: number): JSX.Element =>
     CartridgeMotif({ arcId, challengeId, size, className: "enc-motif-frame" })
@@ -280,6 +286,13 @@ function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOut
   const isPreResult = phase === "dispatch" || phase === "travel" || phase === "encounter" || phase === "resolve-checks";
   const isResult = phase === "result" || phase === "record";
   const result = lastReport ? outcomeLabel(lastReport.outcome, challenge?.outcomes[lastReport.outcome]?.narrative) : null;
+  // The canonical grade (Cleared / Partial / Failed) — the same axis the receipt,
+  // the revisit modal, and the ledger speak. Distinct from the memory axis
+  // ("Recorded to the ledger", below) and from the authored narrative (result.label).
+  const gradeLabelId: Record<string, "outcome.cleared" | "outcome.partial" | "outcome.failed"> = {
+    success: "outcome.cleared", partial: "outcome.partial", failure: "outcome.failed",
+  };
+  const gradeId = lastReport ? gradeLabelId[lastReport.outcome] : undefined;
   const showBoardAnchor = phase === "travel" || isResult;
 
   return (
@@ -361,19 +374,38 @@ function EncounterOverlay({ phase, node, party, roster, lastReport, projectedOut
         )}
 
         {isResult && result && (
+          // The immediate post-run moment reads the STORED record: the OUTCOME grade
+          // (Cleared / Partial / Failed) → the contract → the authored narrative
+          // (flavor) → the structured Objectives / Rewards / World changes (shared
+          // ConsequenceReport, so this mirrors the revisit modal and the ledger) → and,
+          // on its own axis, WHAT WAS RECORDED, at which cycle → then Continue. Renders
+          // only facts present in the record; no invented reward or world-change panel.
           <div className="enc-content enc-content--result" data-testid="outcome-banner">
             <div className="enc-result-glyph" style={{ color: result.color }}>{result.glyph}</div>
-            <div className="enc-phase-label">{t("encounter.recordedOnBoard")}</div>
-            <div className="enc-title">{node.title}</div>
-            <div className="enc-result-label" style={{ color: result.color }}>{result.label}</div>
-            {lastReport?.rewardSummary && <div className="enc-reward-summary">{lastReport.rewardSummary}</div>}
-            {lastReport?.lines && lastReport.lines.length > 0 && (
-              <div className="enc-result-lines">
-                {lastReport.lines.slice(0, 2).map((line, i) => (
-                  <div key={i} className="enc-result-line">{line}</div>
-                ))}
+            {gradeId && (
+              <div
+                data-testid="outcome-grade"
+                style={{ color: result.color, fontSize: 15, fontWeight: 800, letterSpacing: "0.18em", textTransform: "uppercase", fontFamily: "'IBM Plex Mono', ui-monospace, monospace" }}
+              >
+                {t(gradeId)}
               </div>
             )}
+            <div className="enc-title">{node.title}</div>
+            <div className="enc-result-label" style={{ color: result.color }}>{result.label}</div>
+            {lastRecord && (
+              <div style={{ textAlign: "left", width: "min(320px, 78vw)", marginTop: 2 }}>
+                <ConsequenceReport consequence={lastRecord.consequence} tone="dark" />
+              </div>
+            )}
+            {/* Recorded — the memory axis, never conflated with the grade above, at the
+                honest deterministic cycle. */}
+            <div
+              data-testid="outcome-recorded"
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", color: "#74ad77" }}
+            >
+              <PixelIcon name="recorded" /> <span>{t("result.recorded")}</span>
+              {lastRecord && <span style={{ opacity: 0.85 }}>· {t("result.ledgerRecordedAt", { cycle: lastRecord.cycle })}</span>}
+            </div>
             <button className="enc-dismiss-btn" onClick={onDismiss}>{t("encounter.continue")}</button>
           </div>
         )}

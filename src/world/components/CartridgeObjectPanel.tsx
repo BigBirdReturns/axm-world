@@ -4,10 +4,11 @@
 // that produces the custody object (manifest + arc + run state) as a file. Custody as
 // an object action.
 
-import { type CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import type { CartridgeManifest } from "../cartridge.js";
 import { RodohRuntimeMark } from "../brand/RodohRuntimeMark.js";
 import { PixelButton, PixelIcon } from "../pixel-ui/index.js";
+import { ConsequenceReport } from "./ConsequenceReport.js";
 import { t } from "../i18n/index.js";
 import type { MessageId } from "../i18n/messages.js";
 import type { CustodyObject } from "../useArcWorld.js";
@@ -60,10 +61,12 @@ const OUTCOME_COLOR: Record<string, string> = {
   failure: "#b01c18",
 };
 
+// The ledger speaks the one canonical grade axis (Cleared / Partial / Failed) —
+// the same labels the immediate overlay, revisit modal, and encounter receipt use.
 const OUTCOME_LABEL_ID: Record<"success" | "partial" | "failure", MessageId> = {
-  success: "cartridgePanel.outcomeSuccess",
-  partial: "cartridgePanel.outcomePartial",
-  failure: "cartridgePanel.outcomeFailure",
+  success: "outcome.cleared",
+  partial: "outcome.partial",
+  failure: "outcome.failed",
 };
 
 function row(label: string, value: string): JSX.Element {
@@ -77,6 +80,10 @@ function row(label: string, value: string): JSX.Element {
 
 export function CartridgeObjectPanel({ manifest, digest, ledger, openingChoice, cycle, clearedCount, totalNodes, onExport, onClose, onLeave }: Props): JSX.Element {
   const progressPct = totalNodes > 0 ? Math.round((clearedCount / totalNodes) * 100) : 0;
+  // One ledger entry can be expanded at a time to read its full structured
+  // consequence (Objectives / Rewards / World changes) — a simple detail over the
+  // stored record, no tabs/filters/timestamps.
+  const [openSeq, setOpenSeq] = useState<number | null>(null);
   const handleExport = () => {
     const data = onExport();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -137,22 +144,75 @@ export function CartridgeObjectPanel({ manifest, digest, ledger, openingChoice, 
         {row(t("cartridgePanel.decisionMark"), openingChoice ?? "—")}
 
         <div style={{ height: 1, background: "#2a2620", margin: "10px 0 8px" }} />
-        <div style={{ color: "#a59c8b", marginBottom: 6 }}>{t("cartridgePanel.ledger")}</div>
+        {/* Contract ledger — the program's memory: an ordered, append-only record.
+            The heading carries the cumulative count; each row its recording order;
+            and a closing line names how each entry is recorded under the authored
+            identity (provenance over existing fields, not a new trust primitive). */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, marginBottom: 6 }}>
+          <span style={{ color: "#a59c8b" }}>{t("cartridgePanel.ledger")}</span>
+          {ledger.entries.length > 0 && (
+            <span data-testid="ledger-count" style={{ color: "#6b6050", fontSize: 11, flex: "none" }}>{t("shell.identityRecorded", { count: ledger.entries.length })}</span>
+          )}
+        </div>
         {ledger.entries.length === 0 ? (
           <div data-testid="ledger-empty" style={{ color: "#6b6050", fontSize: 12 }}>{t("cartridgePanel.ledgerEmpty")}</div>
         ) : (
-          <div data-testid="cartridge-ledger" style={{ display: "grid", gap: 3 }}>
-            {ledger.entries.map((entry) => (
-              <div
-                key={entry.seq}
-                data-testid="ledger-entry"
-                style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12 }}
-              >
-                <span style={{ color: "#d8cfbd", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.challengeName}</span>
-                <span style={{ color: OUTCOME_COLOR[entry.outcome] ?? "#a59c8b", flex: "none" }}>{t(OUTCOME_LABEL_ID[entry.outcome])}</span>
-              </div>
-            ))}
-          </div>
+          <>
+            <div data-testid="cartridge-ledger" style={{ display: "grid", gap: 3 }}>
+              {ledger.entries.map((entry) => {
+                const isOpen = openSeq === entry.seq;
+                const rewardCount = entry.consequence.rewards.length;
+                const unlockCount = entry.consequence.worldChanges.filter((w) => w.kind === "unlocked").length;
+                return (
+                  <div key={entry.seq} data-testid="ledger-entry" style={{ fontSize: 12 }}>
+                    {/* The row is a toggle to the stored record's structured detail. Order,
+                        title, cycle, grade + a short reward/unlock summary read at a glance. */}
+                    <button
+                      type="button"
+                      data-testid="ledger-entry-toggle"
+                      aria-expanded={isOpen}
+                      onClick={() => setOpenSeq(isOpen ? null : entry.seq)}
+                      style={{ width: "100%", background: "none", border: "none", padding: "2px 0", cursor: "pointer", color: "inherit", font: "inherit", display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline", textAlign: "left" }}
+                    >
+                      <span style={{ display: "flex", gap: 8, minWidth: 0, alignItems: "baseline" }}>
+                        <span aria-hidden="true" style={{ color: "#6b6050", fontSize: 9, flex: "none", display: "inline-block", transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 0.12s" }}>▸</span>
+                        {/* Recording order (seq + 1) — reads the ledger as an ordered log. */}
+                        <span data-testid="ledger-entry-seq" style={{ color: "#6b6050", fontSize: 10, fontVariantNumeric: "tabular-nums", flex: "none" }}>{String(entry.seq + 1).padStart(2, "0")}</span>
+                        <span style={{ color: "#d8cfbd", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.challengeName}</span>
+                      </span>
+                      {/* A short consequence summary (locale-neutral counts), the cycle
+                          (deterministic, not a wall clock), and the grade. */}
+                      <span style={{ display: "flex", gap: 8, flex: "none", alignItems: "baseline" }}>
+                        {rewardCount > 0 && (
+                          <span data-testid="ledger-entry-rewards" style={{ color: "#8b8172", fontSize: 10, display: "inline-flex", alignItems: "center", gap: 2 }}>
+                            <PixelIcon name="lootAvailable" />{rewardCount}
+                          </span>
+                        )}
+                        {unlockCount > 0 && (
+                          <span data-testid="ledger-entry-unlocks" style={{ color: "#74ad77", fontSize: 10, display: "inline-flex", alignItems: "center", gap: 2 }}>
+                            <PixelIcon name="available" />{unlockCount}
+                          </span>
+                        )}
+                        <span data-testid="ledger-entry-when" style={{ color: "#6b6050", fontSize: 10 }}>{t("result.ledgerRecordedAt", { cycle: entry.cycle })}</span>
+                        <span style={{ color: OUTCOME_COLOR[entry.outcome] ?? "#a59c8b" }}>{t(OUTCOME_LABEL_ID[entry.outcome])}</span>
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <div data-testid="ledger-entry-detail" style={{ padding: "4px 0 8px 22px" }}>
+                        <ConsequenceReport consequence={entry.consequence} tone="dark" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {/* Provenance (not a cryptographic seal): every entry above carries the same
+                authored digest as the ledger (see appendResult) — recorded under the
+                program identity, so this record checks against it. */}
+            <div data-testid="ledger-provenance" style={{ display: "flex", gap: 6, alignItems: "flex-start", marginTop: 8, color: "#6b6050", fontSize: 10, lineHeight: 1.4 }}>
+              <PixelIcon name="recorded" /> <span>{t("cartridgePanel.ledgerProvenance")}</span>
+            </div>
+          </>
         )}
 
         <p style={{ color: "#a59c8b", fontFamily: "'Lora', Georgia, serif", fontSize: 13, lineHeight: 1.5, margin: "14px 0 16px" }}>

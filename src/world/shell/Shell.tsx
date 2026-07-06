@@ -16,6 +16,10 @@ import { cartridgePaletteScope } from "../themes/select.js";
 import "../themes/karazhan/karazhan.css";
 import "../themes/first-charter/first-charter.css";
 import { getPresentations, type Representation } from "../presentations.js";
+import { deriveNodeMarkers } from "../worldmap/derive.js";
+import { deriveHallView } from "../inhabited/hall.js";
+import { hallSteward } from "../inhabited/people.js";
+import { CartridgePortrait } from "../themes/CartridgeMotif.js";
 import { loadCostume, saveCostume, isCostumeId } from "../presentation-prefs.js";
 import { useIsMobile } from "../use-viewport.js";
 import { getEngineCoachMessage } from "./coach.js";
@@ -36,6 +40,7 @@ import {
 import { PixelButton, PixelIcon } from "../pixel-ui/index.js";
 import { DecisionPanel } from "../components/DecisionPanel.js";
 import { CartridgeObjectPanel } from "../components/CartridgeObjectPanel.js";
+import { ProgramIdentityStrip } from "./ProgramIdentityStrip.js";
 import { t, useLocale } from "../i18n/index.js";
 import type { ArcInteraction } from "../useArcInteraction.js";
 import type { ArcWorld } from "../useArcWorld.js";
@@ -99,7 +104,7 @@ function EquipFlash(props: { event: NonNullable<ArcWorld["lastEquip"]> }): JSX.E
   );
 }
 
-function RecordModal(props: { lastReport: NonNullable<ArcWorld["lastReport"]>; onClose: () => void }): JSX.Element {
+function RecordModal(props: { record: NonNullable<ArcWorld["lastRecord"]>; onClose: () => void }): JSX.Element {
   return (
     <div
       data-testid="record-history-modal"
@@ -112,7 +117,7 @@ function RecordModal(props: { lastReport: NonNullable<ArcWorld["lastReport"]>; o
           <button onClick={props.onClose} aria-label={t("shell.closeRecordedOutcome")} style={{ background: "transparent", border: "1px solid #4a4238", color: "#a59c8b", cursor: "pointer", font: "12px monospace" }}>×</button>
         </div>
         <div onClick={(e) => e.stopPropagation()}>
-          <ReportRegion lastReport={props.lastReport} />
+          <ReportRegion record={props.record} />
         </div>
       </Card>
     </div>
@@ -135,6 +140,11 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   // spatial encounter compiled from its record. Distinct from the RUN CONTRACT
   // auto-resolve (interceptedRun) — this is the "walk into it" path.
   const [encounterOpen, setEncounterOpen] = useState(false);
+  // Party to seed the encounter with. null = use the board-assembled party
+  // (ix.party) for the currently selected contract. Non-null = an explicit party
+  // for an encounter entered via onEnterEncounter (hall/map), where ix.party would
+  // otherwise be one render stale for a just-changed selection.
+  const [encounterParty, setEncounterParty] = useState<string[] | null>(null);
 
   // Scope the active cartridge's palette skin to <html> while this cartridge is
   // mounted. Cleared on unmount / cartridge switch so no arc keeps another's
@@ -171,13 +181,17 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   // the rest of the shell, exactly like the board's PLAY ENCOUNTER path.
   const enterEncounter = (challengeId: string) => {
     ix.select(challengeId);
+    // Seed with the recommended party for THIS challenge explicitly: ix.select's
+    // party reseed runs in a later effect, so ix.party can still hold the previous
+    // selection's party when EncounterShell snapshots it at mount.
+    setEncounterParty(world.recommendedParty(challengeId));
     setEncounterOpen(true);
   };
 
   const PresentationScene = active.Scene;
   const stage = (
     <div data-testid="representation-region" style={{ position: "absolute", inset: 0 }}>
-      <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} active onEnterEncounter={enterEncounter} />
+      <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} active onEnterEncounter={enterEncounter} onNavigate={choose} />
     </div>
   );
   const contextStrip = <ViewContextStrip rep={active} showPurpose={showPurpose} onDismiss={dismissPurpose} />;
@@ -250,11 +264,20 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
       onApplyFix={ix.applyFix}
     />
   );
+  // "Up next" / "Steep" for the detail panel come from the SAME shared projection the
+  // board and map read, so the world-state markers travel with the contract to the
+  // commit surface — the player never has to remember them from the previous screen.
+  const selectedMarkers = useMemo(
+    () => (ix.selectedId ? deriveNodeMarkers(world.nodes).get(ix.selectedId) ?? null : null),
+    [world.nodes, ix.selectedId],
+  );
   const contractProps = ix.selected
     ? {
         selected: ix.selected, party: ix.party, min, max, canRun: ix.canRun, onRun: interceptedRun,
         contract: ix.contract, readiness: ix.readiness, recommendation: ix.recommendation,
         fixPlan: ix.fixPlan, onApplyFix: ix.applyFix, compact: isMobile,
+        upNext: selectedMarkers?.next ?? false,
+        steep: selectedMarkers?.steep ?? false,
         difficultyModes: world.difficultyModes, difficultyModeId: world.difficultyModeId,
         onSelectDifficultyMode: world.setDifficultyModeId,
       }
@@ -268,17 +291,75 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
       variant="primary"
       data-testid="play-encounter-button"
       disabled={!ix.canRun}
-      onClick={() => setEncounterOpen(true)}
+      onClick={() => { setEncounterParty(null); setEncounterOpen(true); }}
       style={{ width: "100%", minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}
     >
       <PixelIcon name="available" /> <span>{t("encounterShell.playEncounter")}</span>
     </PixelButton>
   ) : null;
+  // One world, one route: the detail panel is the action hub, so it also routes to
+  // the OTHER surfaces of the same contract — the map (every contract is a pin) and,
+  // when this contract is the one the steward holds, the hall (take it in person).
+  // Same deriveHallView the hall and map read; same choose() the ViewSwitcher uses.
+  const hallView = useMemo(() => deriveHallView(world.nodes), [world.nodes]);
+  const selectedHeldInHall = ix.selectedId !== null && hallView.challengeId === ix.selectedId && !hallView.resolved;
+  // On mobile the representation region lives in the "board" step, so routing from
+  // the contract-detail step must also step back — otherwise the costume would
+  // switch invisibly behind the detail sheet. Desktop is a plain view switch.
+  const routeTo = (view: string) => {
+    choose(view);
+    if (isMobile) setMobileStep("board");
+  };
+  const routeRow = ix.selected ? (
+    <div data-testid="detail-route-row" style={{ display: "flex", gap: 6, marginTop: 8 }}>
+      <PixelButton
+        type="button"
+        variant="secondary"
+        data-testid="detail-see-on-map"
+        disabled={modalOpen}
+        onClick={() => routeTo("map")}
+        style={{ flex: 1, minHeight: 36, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+      >
+        <PixelIcon name="available" /> <span>{t("shell.seeOnMap")}</span>
+      </PixelButton>
+      {selectedHeldInHall && (
+        <PixelButton
+          type="button"
+          variant="secondary"
+          data-testid="detail-take-in-person"
+          disabled={modalOpen}
+          onClick={() => routeTo("hall")}
+          style={{ flex: 1, minHeight: 36, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+        >
+          <PixelIcon name="recorded" /> <span>{t("shell.takeInPerson")}</span>
+        </PixelButton>
+      )}
+    </div>
+  ) : null;
+  // Steward's note — the authored person who HOLDS this contract speaks on the
+  // commit surface: face + their authored greeting, verbatim. Gated on the same
+  // deriveHallView as the hall route, so the note can only appear for the
+  // contract the steward actually holds, and only when the cartridge authors her.
+  const steward = hallSteward(world.cartridge);
+  const stewardNote = selectedHeldInHall && steward ? (
+    <div
+      data-testid="detail-steward-note"
+      style={{ display: "flex", gap: 8, alignItems: "flex-start", marginTop: 8, padding: "8px 10px", background: "rgba(246,239,227,0.96)", border: "2px solid rgba(201,161,74,0.6)" }}
+    >
+      {CartridgePortrait({ arcId: world.arc.meta.id, personId: steward.id, size: 34 })}
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontFamily: "var(--px-font)", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#8a6d2e" }}>{t("shell.stewardNote")}</div>
+        <div style={{ fontFamily: "'Lora', Georgia, serif", fontSize: 12, lineHeight: 1.45, color: "#2a2018" }}>{steward.greeting}</div>
+      </div>
+    </div>
+  ) : null;
   const contract = contractProps ? (
     <div data-testid="contract-detail-stack">
       {world.lastEquip && <EquipFlash event={world.lastEquip} />}
       <ContractRegion {...contractProps} />
+      {stewardNote}
       {playEncounter && <div style={{ marginTop: 8 }}>{playEncounter}</div>}
+      {routeRow}
     </div>
   ) : null;
   const mobileStickyFooter: CSSProperties = {
@@ -317,6 +398,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
 
   return (
     <div data-testid="engine-shell" data-modal-open={modalOpen ? "true" : "false"} style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: "#0b0a08", overflow: "hidden", isolation: "isolate", fontFamily: "'IBM Plex Mono', ui-monospace, monospace" }}>
+      <ProgramIdentityStrip world={world} />
       <div
         style={{
           flex: "none",
@@ -324,7 +406,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
           flexWrap: "wrap",
           alignItems: "center",
           gap: 10,
-          padding: "calc(env(safe-area-inset-top, 0px) + 8px) 12px 8px",
+          padding: "8px 12px",
           borderBottom: "1px solid #2a2620",
           background: "rgba(15,13,9,0.92)",
         }}
@@ -462,14 +544,14 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
           onLeave={onExit}
         />
       )}
-      {showHistory && world.lastReport && <RecordModal lastReport={world.lastReport} onClose={() => setShowHistory(false)} />}
+      {showHistory && world.lastRecord && <RecordModal record={world.lastRecord} onClose={() => setShowHistory(false)} />}
       {encounterOverlay}
       {encounterOpen && ix.selectedId && (
         <EncounterShell
           world={world}
           challengeId={ix.selectedId}
-          party={ix.party}
-          onClose={() => setEncounterOpen(false)}
+          party={encounterParty ?? ix.party}
+          onClose={() => { setEncounterOpen(false); setEncounterParty(null); }}
         />
       )}
     </div>

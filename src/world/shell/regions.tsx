@@ -8,7 +8,8 @@
 
 import { useState, type CSSProperties, type ReactNode } from "react";
 import type { DramaCard } from "../../engine/types.js";
-import type { PlayReportView } from "../../play-pipeline/compile.js";
+import type { LedgerEntry, ConsequenceGrade } from "../ledger.js";
+import { ConsequenceReport } from "../components/ConsequenceReport.js";
 import type { PendingLootChoice, RosterMember } from "../useArcWorld.js";
 import type { WorldNode } from "../contract.js";
 import type { ContractRequirements, FixSuggestion, PartyReadiness, ProjectedOutcome } from "../readiness.js";
@@ -25,11 +26,20 @@ import {
   PixelRosterCard,
   PixelLootCard,
   PixelReadinessRow,
+  PixelStateBands,
   type PixelIconName,
   type ReadinessStatus,
   type RosterCardAttribute,
   type RosterCardGear,
 } from "../pixel-ui/index.js";
+import {
+  contractCardState,
+  squadFit,
+  squadFitKind,
+  squadFitLabelId,
+  worldStateLabelId,
+  worldStateNoteId,
+} from "../contract-board/card-axes.js";
 
 // The `panel` export is kept for Shell.tsx wrappers that set the outer chrome.
 // Gameplay content inside uses cream PixelPanel — this dark shell is system chrome only.
@@ -458,6 +468,11 @@ export interface ContractRegionProps {
   max: number;
   canRun: boolean;
   onRun: () => void;
+  /** World-state markers for the selected contract — the run's single "next" and the
+   *  arc-relative "steep" read — from the SAME shared projection the board and map read,
+   *  so they travel with the contract to the commit surface. */
+  upNext?: boolean;
+  steep?: boolean;
   contract: ContractRequirements | null;
   readiness: PartyReadiness | null;
   recommendation: string | null;
@@ -516,15 +531,59 @@ export function ContractActions(props: ContractRegionProps): JSX.Element {
 }
 
 export function ContractRegion(props: ContractRegionProps): JSX.Element {
-  const { selected, party, min, max, canRun, onRun, contract, readiness, recommendation, fixPlan, onApplyFix, compact, difficultyModes, difficultyModeId, onSelectDifficultyMode, render = "full" } = props;
+  const { selected, party, min, max, canRun, onRun, contract, readiness, recommendation, fixPlan, onApplyFix, compact, difficultyModes, difficultyModeId, onSelectDifficultyMode, upNext = false, steep = false, render = "full" } = props;
   const detailOnly = render === "detail";
+
+  // The commit surface reads on the SAME two axes as the board card, from the SAME
+  // shared card-axes projection — so the panel where the player commits speaks exactly
+  // the board's language. Display-only; the readiness math is untouched.
+  const cardState = contractCardState(selected);
+  const fit = squadFit(selected, readiness);
+  const noteId = worldStateNoteId(selected, upNext);
+  const bands = (
+    <div style={{ display: "grid", gap: 8, margin: "10px 0" }}>
+      <PixelStateBands
+        state={cardState}
+        worldStateLabel={t(worldStateLabelId(cardState))}
+        worldStateNote={noteId ? t(noteId) : undefined}
+        squadFit={fit}
+        squadFitLabel={t(squadFitLabelId(squadFitKind(selected, fit)))}
+        squadFitReason={fit === "reliable" ? t("contractBoard.recommendedReliable") : fit ? readiness?.reasons?.[0] : undefined}
+      />
+    </div>
+  );
+  // Header markers — state badge, Up next where applicable, and Difficulty — the same
+  // immediate reads the board card carries.
+  const header = (
+    <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+      <PixelBadge state={cardState} style={{ display: "inline-flex" }}>
+        {t(cardState === "locked" ? "status.locked" : cardState === "recorded" ? "status.recorded" : "status.available")}
+      </PixelBadge>
+      {upNext && (
+        <span data-testid="detail-up-next" style={{ display: "inline-flex", alignItems: "center", gap: 3, fontFamily: "var(--px-font)", fontSize: 9, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--ink)", background: "var(--parchment-gold)", border: "2px solid var(--gold-border)", padding: "1px 6px" }}>
+          <span aria-hidden="true">▸</span> {t("worldMap.nextContract")}
+        </span>
+      )}
+      {/* Steep travels with the contract to the commit surface — same amber warning the
+          board card and map pin carry (hidden once recorded, mirroring those surfaces). */}
+      {steep && cardState !== "recorded" && (
+        <span data-testid="detail-steep" aria-label={t("worldMap.steepContract")} style={{ display: "inline-flex", alignItems: "center", gap: 3, fontFamily: "var(--px-font)", fontSize: 9, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--gold-dark)", background: "rgba(212, 169, 58, 0.14)", border: "2px solid var(--gold-dark)", padding: "1px 6px" }}>
+          <span aria-hidden="true">⚠</span> {t("worldMap.steep")}
+        </span>
+      )}
+      <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "var(--px-font)", fontSize: 8, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-soft)" }}>
+        {t("contractCard.difficulty")}
+        <span style={{ display: "inline-flex", minWidth: 26, height: 22, alignItems: "center", justifyContent: "center", background: "var(--ink)", color: "var(--gold)", border: "2px solid var(--ink-soft)", fontSize: 12, fontWeight: 800 }}>{selected.difficulty}</span>
+      </span>
+    </div>
+  );
 
   // Locked contracts show only unlock requirements — no party count, no readiness math,
   // no fix plan. Party assignment is irrelevant until the node unlocks.
   if (selected.status === "locked") {
     return (
       <PixelPanel style={{ padding: "12px 14px" }}>
-        <PixelBadge state="locked" style={{ marginBottom: 8, display: "inline-flex" }}>{t("status.locked")}</PixelBadge>
+        {header}
         <div data-testid="selected-contract-title" style={{ fontFamily: "var(--px-font)", fontSize: compact ? 22 : 18, fontWeight: 800, color: "var(--ink)", marginBottom: 4 }}>
           {selected.title}
         </div>
@@ -537,6 +596,7 @@ export function ContractRegion(props: ContractRegionProps): JSX.Element {
             </ul>
           </div>
         )}
+        {bands}
         {!detailOnly && (
           <PixelButton disabled variant="disabled" style={{ width: "100%", marginTop: 14, minHeight: 44, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
             <PixelIcon name="locked" /> <span>{t("status.locked")}</span>
@@ -547,14 +607,10 @@ export function ContractRegion(props: ContractRegionProps): JSX.Element {
   }
 
   const showReadiness = selected.status === "available" && contract;
-  const contractStateBadge: "available" | "recorded" = selected.status === "cleared" ? "recorded" : "available";
-  const contractStateLabel = selected.status === "cleared" ? t("status.cleared") : t("status.available");
 
   return (
     <PixelPanel style={{ padding: "12px 14px" }}>
-      <PixelBadge state={contractStateBadge} style={{ marginBottom: 8, display: "inline-flex" }}>
-        {contractStateLabel}
-      </PixelBadge>
+      {header}
       <div data-testid="selected-contract-title" style={{ fontFamily: "var(--px-font)", fontSize: compact ? 22 : 18, fontWeight: 800, letterSpacing: "0.02em", color: "var(--ink)", marginBottom: 4 }}>
         {selected.title}
       </div>
@@ -569,6 +625,8 @@ export function ContractRegion(props: ContractRegionProps): JSX.Element {
       <div data-testid="party-count" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: party.length >= min && party.length <= max ? "var(--teal-dark)" : "var(--gold-dark)", marginBottom: 8, fontFamily: "var(--px-font)" }}>
         {t("shell.partyCount", { count: party.length, min, max })}
       </div>
+
+      {bands}
 
       {showReadiness && <ReadinessPanel contract={contract} readiness={readiness} />}
 
@@ -602,7 +660,7 @@ function RunButton(props: { selected: WorldNode; min: number; max: number; canRu
   const label = selected.status === "locked"
     ? t("status.locked")
     : selected.status === "cleared"
-    ? t("status.cleared")
+    ? t("status.recorded")
     : !countOk
     ? t("shell.assignRange", { min, max })
     : riskRun
@@ -818,25 +876,52 @@ export function LootRegion(props: { loot: PendingLootChoice[]; onClaimLoot: (cho
 
 // ── Report · Coach · Dispatches · Complete ──────────────────────────────────────────────────
 
-export function ReportRegion(props: { lastReport: PlayReportView }): JSX.Element {
-  const { lastReport } = props;
-  const outcomeState: Record<string, "reliable" | "risky" | "failing"> = {
-    success: "reliable", partial: "risky", failure: "failing",
-  };
-  const outcomeLabelId: Record<string, "shell.outcomeSuccess" | "shell.outcomePartial" | "shell.outcomeFailed"> = {
-    success: "shell.outcomeSuccess", partial: "shell.outcomePartial", failure: "shell.outcomeFailed",
-  };
-  const labelId = outcomeLabelId[lastReport.outcome];
+// The result moment as a reading of the STORED record (the ledger entry's structured
+// consequence), so revisiting a result renders the same facts the immediate overlay
+// showed and the ledger holds — never a re-interpretation. Outcome grade (its own
+// axis) → Objectives / Rewards / World changes (shared ConsequenceReport) → a distinct
+// RECORDED statement with the honest cycle. Renders only facts present in the record.
+const GRADE_BADGE: Record<ConsequenceGrade, "reliable" | "risky" | "failing"> = {
+  cleared: "reliable", partial: "risky", failed: "failing",
+};
+const GRADE_LABEL_ID: Record<ConsequenceGrade, "outcome.cleared" | "outcome.partial" | "outcome.failed"> = {
+  cleared: "outcome.cleared", partial: "outcome.partial", failed: "outcome.failed",
+};
+
+export function ReportRegion(props: { record: LedgerEntry }): JSX.Element {
+  const { record } = props;
+  const c = record.consequence;
+  const grade = c.outcome.grade;
+  const sectionTitle: CSSProperties = { fontFamily: "var(--px-font)", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-muted)", marginBottom: 3 };
   return (
-    <PixelPanel data-testid="outcome-region" style={{ padding: "12px 14px" }}>
-      <div className="pixel-panel__title">{t("shell.contractOutcome")}</div>
-      <div style={{ marginBottom: 8 }}>
-        <PixelBadge state={outcomeState[lastReport.outcome] ?? "recorded"}>
-          {labelId ? t(labelId) : lastReport.outcome}
-        </PixelBadge>
+    <PixelPanel data-testid="outcome-region" style={{ padding: "12px 14px", display: "grid", gap: 10 }}>
+      {/* Outcome — the grade of this run. Its own axis, never conflated with "recorded". */}
+      <div>
+        <div style={sectionTitle}>{t("result.outcome")}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <PixelBadge state={GRADE_BADGE[grade]} data-testid="result-outcome-grade">
+            {t(GRADE_LABEL_ID[grade])}
+          </PixelBadge>
+          <span style={{ fontFamily: "var(--px-font)", fontSize: 14, fontWeight: 800, color: "var(--ink)" }}>{c.contract.title}</span>
+        </div>
       </div>
-      <div style={{ fontFamily: "var(--px-font)", fontSize: 14, fontWeight: 800, color: "var(--ink)", marginBottom: 4 }}>{lastReport.challengeName}</div>
-      <div style={{ color: "var(--ink-muted)", fontSize: 12, fontFamily: "var(--px-font)" }}>{lastReport.rewardSummary}</div>
+
+      {/* Objectives / Rewards / World changes — the structured record, mirrored with
+          the immediate overlay via the shared ConsequenceReport. */}
+      <ConsequenceReport consequence={c} tone="light" />
+
+      {/* Recorded — a DIFFERENT axis from the grade: the run is now memory on the
+          Program 001 ledger, at the honest deterministic cycle. This is what persists. */}
+      <div data-testid="result-recorded" style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 10px", background: "rgba(116,196,118,0.12)", borderLeft: "3px solid var(--teal)" }}>
+        <PixelIcon name="recorded" />
+        <div>
+          <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
+            <span style={{ fontFamily: "var(--px-font)", fontSize: 11, fontWeight: 800, color: "var(--teal-dark)" }}>{t("result.recorded")}</span>
+            <span data-testid="result-recorded-when" style={{ fontFamily: "var(--px-font)", fontSize: 10, color: "var(--ink-muted)" }}>{t("result.ledgerRecordedAt", { cycle: record.cycle })}</span>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--ink-muted)", lineHeight: 1.35 }}>{t("result.persists")}</div>
+        </div>
+      </div>
     </PixelPanel>
   );
 }
@@ -868,7 +953,7 @@ export function CompleteBanner(props: { arcName: string }): JSX.Element {
     <PixelPanel style={{ padding: "16px 20px", textAlign: "center" }}>
       <PixelBadge state="reliable" style={{ marginBottom: 8, display: "inline-flex" }}>{t("shell.complete", { name: props.arcName })}</PixelBadge>
       <div style={{ fontFamily: "var(--px-font)", fontSize: 16, fontWeight: 800, color: "var(--teal-dark)" }}>
-        {t("shell.everyContractCleared")}
+        {t("shell.everyContractRecorded")}
       </div>
     </PixelPanel>
   );

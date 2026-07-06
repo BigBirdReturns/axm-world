@@ -6,6 +6,7 @@
 import { lazy, Suspense } from "react";
 import { ContractBoardScene } from "./contract-board/ContractBoard.js";
 import { WorldMapScene } from "./worldmap/WorldMap.js";
+import { HallScene } from "./inhabited/HallScene.js";
 import type { CostumeId } from "./presentation-prefs.js";
 import type { ArcInteraction } from "./useArcInteraction.js";
 import type { ArcWorld } from "./useArcWorld.js";
@@ -21,6 +22,11 @@ export interface SceneProps {
   /** Open the compiled encounter for a challenge directly from a surface (the world
    *  map's ENTER ENCOUNTER). Optional: surfaces that don't offer it omit it. */
   onEnterEncounter?: (challengeId: string) => void;
+  /** Route to another representation of the SAME world state (board/map/hall/…).
+   *  This is what makes the surfaces one navigable place instead of three tabs:
+   *  a scene can hand the player to the surface where the next action lives.
+   *  Same switch the ViewSwitcher uses — no new state, just unified routing. */
+  onNavigate?: (view: CostumeId) => void;
 }
 
 export interface LegendEntry {
@@ -114,6 +120,15 @@ export function getPresentations(): Representation[] {
       controlsHint: t("presentations.map.controlsHint"),
       purpose: t("presentations.map.purpose"),
       legend,
+    },
+    {
+      id: "hall",
+      label: t("presentations.hall.label"),
+      blurb: t("presentations.hall.blurb"),
+      Scene: HallScene,
+      controlsHint: t("presentations.hall.controlsHint"),
+      purpose: t("presentations.hall.purpose"),
+      legend: [],
     },
     {
       id: "globe",

@@ -8,6 +8,8 @@ import type { CheckStatus, PartyReadiness } from "../readiness.js";
 import { attrIcon, roleIcon, itemIcon } from "../theme-icons.js";
 import { CartridgeMotif } from "../themes/CartridgeMotif.js";
 import { cartridgePaletteScope } from "../themes/select.js";
+import { deriveNodeMarkers } from "../worldmap/derive.js";
+import { contractCardState, squadFit, squadFitKind, squadFitLabelId, worldStateLabelId, worldStateNoteId } from "./card-axes.js";
 import { t } from "../i18n/index.js";
 import { unlockEdges } from "./adjacency.js";
 import "./contract-board.css";
@@ -17,20 +19,6 @@ export interface ContractBoardSceneProps {
   interaction: ArcInteraction;
   modalOpen?: boolean;
   active?: boolean;
-}
-
-function outcomeState(readiness: PartyReadiness | null): "reliable" | "risky" | "failing" | "available" {
-  if (!readiness || readiness.projectedOutcome === "none") return "available";
-  if (readiness.projectedOutcome === "success") return "reliable";
-  if (readiness.projectedOutcome === "partial") return "risky";
-  return "failing";
-}
-
-function nodeState(node: WorldNode, selected: boolean, readiness: PartyReadiness | null): ContractCardState {
-  if (selected) return "selected";
-  if (node.status === "locked") return "locked";
-  if (node.status === "cleared") return "recorded";
-  return outcomeState(readiness);
 }
 
 function scoreText(value: number | undefined): string {
@@ -92,17 +80,34 @@ function ContractLocationCard(props: {
   node: WorldNode;
   world: ArcWorld;
   selected: boolean;
+  /** The map's overlay markers for this node, projected upstream by the shared
+   *  deriveNodeMarkers — display-only, never recomputed here. */
+  upNext: boolean;
+  steep: boolean;
   onSelect: (id: string) => void;
 }): JSX.Element {
-  const { node, world, selected, onSelect } = props;
+  const { node, world, selected, upNext, steep, onSelect } = props;
   const challenge = challengeFor(world, node.challengeId);
   const recommended = node.status === "available" ? world.recommendedParty(node.challengeId) : [];
   const readiness = node.status === "available" ? world.evaluateParty(node.challengeId, recommended) : null;
   const contract = world.describeContract(node.challengeId);
-  const state = nodeState(node, selected, readiness);
+  // Two separate axes, each from existing derivation: the contract's world STATE, and
+  // (independently) the current party's SQUAD FIT read off the readiness projection.
+  const state = contractCardState(node);
+  const fit = squadFit(node, readiness);
   const rewards = rewardPreview(challenge, world);
   const weak = strongestWeakness(readiness);
   const req = challenge?.rosterRequirements;
+
+  // World-state band copy — plain state line + a note reusing the map's own words.
+  const worldStateLabel = t(worldStateLabelId(state));
+  const noteId = worldStateNoteId(node, upNext);
+  const worldStateNote = noteId ? t(noteId) : undefined;
+
+  // Squad-fit band copy — the verdict label, and the readiness reason where the squad
+  // has actually been evaluated (reliable → the reassurance; risky/failing → the gap).
+  const squadFitLabel = t(squadFitLabelId(squadFitKind(node, fit)));
+  const squadFitReason = fit === "reliable" ? t("contractBoard.recommendedReliable") : weak ?? undefined;
 
   const requirements = node.status === "locked" ? null : (
     <>
@@ -119,7 +124,12 @@ function ContractLocationCard(props: {
     <PixelContractCard
       data-testid={`contract-board-card-${node.challengeId}`}
       state={state}
+      squadFit={fit}
       selected={selected}
+      upNext={upNext}
+      // A recorded contract is done, so its steep read recedes — mirroring the map,
+      // where the steep tag hides once a pin reads recorded.
+      steep={steep && node.status !== "cleared"}
       difficulty={node.difficulty}
       title={node.title}
       titleMotif={
@@ -134,8 +144,10 @@ function ContractLocationCard(props: {
       description={shortDescription(node.description)}
       unlockRequirements={node.requirements}
       requirements={requirements}
-      riskNote={weak ? <><PixelIcon name={state === "failing" ? "failing" : "risky"} /> {weak}</> : undefined}
-      readyNote={readiness?.projectedOutcome === "success" ? <><PixelIcon name="reliable" /> {t("contractBoard.recommendedReliable")}</> : undefined}
+      worldStateLabel={worldStateLabel}
+      worldStateNote={worldStateNote}
+      squadFitLabel={squadFitLabel}
+      squadFitReason={squadFitReason}
       footerLeft={req ? t("contractBoard.partyRange", { min: req.minAgents, max: req.maxAgents }) : t("contractBoard.party")}
       footerRight={rewards.length > 0 ? rewards.map((item) => <PixelIcon key={item.name} name={item.icon} label={item.name} />) : undefined}
       onClick={() => onSelect(node.challengeId)}
@@ -210,6 +222,9 @@ export function ContractBoardScene({ world, interaction, modalOpen = false }: Co
   // Locked to unlocking adjacency, derived from the engine's own milestone links.
   const edges = useMemo(() => unlockEdges(world.nodes, world.arc.challenges), [world.nodes, world.arc.challenges]);
   const statusById = useMemo(() => new Map(world.nodes.map((n) => [n.challengeId, n.status])), [world.nodes]);
+  // "Up next" / "Steep" markers, from the SAME pure projection the World-map reads —
+  // one definition, so a card and its map pin can never disagree.
+  const markers = useMemo(() => deriveNodeMarkers(world.nodes), [world.nodes]);
 
   const boardRef = useRef<HTMLDivElement | null>(null);
   const cardEls = useRef(new Map<string, HTMLDivElement>());
@@ -304,6 +319,8 @@ export function ContractBoardScene({ world, interaction, modalOpen = false }: Co
                       node={node}
                       world={world}
                       selected={interaction.selectedId === node.challengeId}
+                      upNext={markers.get(node.challengeId)?.next ?? false}
+                      steep={markers.get(node.challengeId)?.steep ?? false}
                       onSelect={(id) => interaction.select(interaction.selectedId === id ? null : id)}
                     />
                   </div>

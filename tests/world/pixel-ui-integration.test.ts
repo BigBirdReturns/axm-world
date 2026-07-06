@@ -64,6 +64,62 @@ describe("Rodoh pixel-ui integration", () => {
     expect(regions).toContain('selected.status === "locked"');
   });
 
+  it("PixelContractCard labels its difficulty through t(), not as a bare number", () => {
+    const contractCard = read("src/world/pixel-ui/PixelContractCard.tsx");
+    // The card's difficulty carries the "Difficulty" label (chrome via t()) beside
+    // the value, so the number reads as what it is — matching the map pin and the
+    // encounter shell rather than showing a context-free integer.
+    expect(contractCard).toContain('t("contractCard.difficulty")');
+    expect(contractCard).toContain("pixel-contract-card__difficulty-value");
+    // The number itself still flows verbatim as authored content, never catalogued.
+    expect(contractCard).toContain("{difficulty}");
+  });
+
+  it("board cards carry the map's 'Up next' / 'Steep' markers from the shared projection", () => {
+    const board = read("src/world/contract-board/ContractBoard.tsx");
+    // The board reads the SAME pure helper the World-map uses — no second definition
+    // of next/steep, no coupling to the map's React components.
+    expect(board).toContain("deriveNodeMarkers");
+    expect(board).toContain("upNext=");
+    expect(board).toContain("steep=");
+
+    const card = read("src/world/pixel-ui/PixelContractCard.tsx");
+    // …and the card prints the map's own "Up next" / "Steep" chrome (reused ids), as a
+    // display-only overlay flagged for tests via data-upnext / data-steep.
+    expect(card).toContain('t("worldMap.nextContract")');
+    expect(card).toContain('t("worldMap.steep")');
+    expect(card).toContain("data-upnext");
+  });
+
+  it("world state and squad fit render as two separate named bands, shared by every surface", () => {
+    // The two named bands live in one shared component, so the board card and the
+    // detail panel render them identically and can never drift.
+    const bands = read("src/world/pixel-ui/PixelStateBands.tsx");
+    expect(bands).toContain('t("contractCard.worldState")');
+    expect(bands).toContain('t("contractCard.squadFit")');
+    expect(bands).toContain("contract-card-world-band");
+    expect(bands).toContain("contract-card-squad-band");
+    // The board card renders the shared bands, fed from separate pure axes.
+    expect(read("src/world/pixel-ui/PixelContractCard.tsx")).toContain("PixelStateBands");
+    const board = read("src/world/contract-board/ContractBoard.tsx");
+    expect(board).toContain("contractCardState(node)");
+    expect(board).toContain("squadFit(node, readiness)");
+  });
+
+  it("the detail panel (commit surface) speaks the same two-axis language as the board", () => {
+    const regions = read("src/world/shell/regions.tsx");
+    // Same shared bands, fed from the same card-axes projection — one language.
+    expect(regions).toContain("PixelStateBands");
+    expect(regions).toContain("contractCardState(selected)");
+    expect(regions).toContain("squadFit(selected, readiness)");
+    // World-state markers travel to the commit surface: state badge + up next + steep.
+    expect(regions).toContain("detail-up-next");
+    expect(regions).toContain("detail-steep");
+    // Shell feeds up next / steep from the shared node-marker projection.
+    const shell = read("src/world/shell/Shell.tsx");
+    expect(shell).toContain("deriveNodeMarkers(world.nodes)");
+  });
+
   it("ContractBoard renders PixelContractCard, not bespoke card markup", () => {
     const contractBoard = read("src/world/contract-board/ContractBoard.tsx");
     expect(contractBoard).toContain("PixelContractCard");

@@ -70,11 +70,8 @@ export type MessageId =
   | "shell.projectedFail"
   | "shell.assignParty"
   | "shell.equipArrow"
-  | "shell.outcomeSuccess"
-  | "shell.outcomePartial"
-  | "shell.outcomeFailed"
   | "shell.engineLoop"
-  | "shell.everyContractCleared"
+  | "shell.everyContractRecorded"
   | "shell.complete"
   | "shell.equipped"
   | "shell.rewardMomentTitle"
@@ -85,6 +82,27 @@ export type MessageId =
   | "shell.recordedOutcomeTitle"
   | "shell.dismissViewNote"
   | "shell.closeRecordedOutcome"
+  // ── in-shell program identity strip ──────────────────────────────────────
+  | "shell.runtimeName"
+  | "shell.identityRecorded"
+  | "shell.identityFresh"
+  // ── result / ledger clarity (post-action loop) ───────────────────────────
+  | "result.outcome"
+  | "result.objectives"
+  | "result.rewards"
+  | "result.worldChanges"
+  | "result.changeRecorded"
+  | "result.changeUnlocked"
+  | "result.recorded"
+  | "result.persists"
+  | "result.ledgerRecordedAt"
+  // ── canonical outcome grade axis (Cleared / Partial / Failed) — the one
+  //    grade vocabulary spoken by the immediate overlay, the revisit modal,
+  //    the encounter receipt, and the ledger. NOT the memory axis ("recorded"),
+  //    and NOT the authored per-outcome narrative ("encounter.outcome*"). ─────
+  | "outcome.cleared"
+  | "outcome.partial"
+  | "outcome.failed"
   // ── shared status vocabulary (roster/contract/readiness states) ────────
   | "status.selected"
   | "status.available"
@@ -93,7 +111,6 @@ export type MessageId =
   | "status.failing"
   | "status.locked"
   | "status.recorded"
-  | "status.cleared"
   | "status.assigned"
   | "status.down"
   // ── readiness (src/world/readiness.ts) ──────────────────────────────────
@@ -117,6 +134,14 @@ export type MessageId =
   // ── PixelContractCard ───────────────────────────────────────────────────
   | "contractCard.needs"
   | "contractCard.clearEarlier"
+  | "contractCard.difficulty"
+  | "contractCard.worldState"
+  | "contractCard.squadFit"
+  | "contractCard.worldAvailable"
+  | "contractCard.worldNextNote"
+  | "contractCard.squadNotEvaluated"
+  | "contractCard.squadNoParty"
+  | "contractCard.squadNotRelevant"
   // ── PixelGearSlot ────────────────────────────────────────────────────────
   | "gearSlot.noGear"
   // ── PixelRosterCard ──────────────────────────────────────────────────────
@@ -147,7 +172,6 @@ export type MessageId =
   | "encounter.travelingToBoard"
   | "encounter.travelNote"
   | "encounter.resolving"
-  | "encounter.recordedOnBoard"
   | "encounter.continue"
   | "encounter.clickToSkip"
   | "encounter.partyMovesOut"
@@ -192,6 +216,8 @@ export type MessageId =
   | "encounterShell.committed"
   | "encounterShell.reserve"
   | "encounterShell.projected"
+  | "encounterShell.staging"
+  | "encounterShell.goingIn"
   | "encounterShell.minNeeded"
   | "encounterShell.projReliable"
   | "encounterShell.projRisky"
@@ -212,12 +238,52 @@ export type MessageId =
   | "presentations.map.blurb"
   | "presentations.map.controlsHint"
   | "presentations.map.purpose"
+  // ── inhabited hall (presentation + scene chrome) ─────────────────────────
+  | "presentations.hall.label"
+  | "presentations.hall.blurb"
+  | "presentations.hall.controlsHint"
+  | "presentations.hall.purpose"
+  | "hall.you"
+  | "hall.steward"
+  | "hall.offering"
+  | "hall.fulfilled"
+  | "hall.talk"
+  | "hall.viewOnBoard"
+  | "hall.accept"
+  | "hall.leave"
+  | "hall.recordedNote"
+  | "hall.worldChanged"
+  | "hall.lastRecorded"
+  | "hall.claimFirst"
+  | "hall.threshold"
+  | "hall.approach"
+  | "hall.enterEncounter"
   | "worldMap.difficulty"
   | "worldMap.enterEncounter"
+  | "worldMap.talkToSteward"
+  // ── one world, one route (cross-surface navigation) ──────────────────────
+  | "shell.seeOnMap"
+  | "shell.takeInPerson"
+  | "shell.stewardNote"
   | "worldMap.stateLocked"
   | "worldMap.stateAvailable"
   | "worldMap.stateActive"
   | "worldMap.stateRecorded"
+  | "worldMap.contractMap"
+  | "worldMap.recordedOf"
+  | "worldMap.regionLocked"
+  | "worldMap.regionOpen"
+  | "worldMap.regionComplete"
+  | "worldMap.nextContract"
+  | "worldMap.steep"
+  | "worldMap.steepContract"
+  | "worldMap.legendTitle"
+  | "worldMap.legendNext"
+  | "worldMap.legendAvailable"
+  | "worldMap.legendActive"
+  | "worldMap.legendSteep"
+  | "worldMap.legendRecorded"
+  | "worldMap.legendLocked"
   | "presentations.globe.label"
   | "presentations.globe.blurb"
   | "presentations.globe.controlsHint"
@@ -257,9 +323,7 @@ export type MessageId =
   | "cartridgePanel.identity"
   | "cartridgePanel.ledger"
   | "cartridgePanel.ledgerEmpty"
-  | "cartridgePanel.outcomeSuccess"
-  | "cartridgePanel.outcomePartial"
-  | "cartridgePanel.outcomeFailure"
+  | "cartridgePanel.ledgerProvenance"
   // ── boot screen (cartridge bay) ──────────────────────────────────────────
   | "boot.openCartridge"
   | "boot.remove"
@@ -277,7 +341,23 @@ export type MessageId =
   | "pipeline.partyShare"
   | "pipeline.flex"
   | "pipeline.rewardSummary"
-  | "pipeline.loot";
+  | "pipeline.loot"
+  // ── boot screen: program-of-record plaque ────────────────────────────────
+  | "boot.programOfRecord"
+  | "boot.identity"
+  | "boot.freshProgram"
+  | "boot.contractsRecorded"
+  | "boot.resumable"
+  | "boot.enter"
+  | "boot.resume"
+  // ── boot screen: chrome copy (swept from bare literals) ──────────────────
+  | "boot.runtimeEyebrow"
+  | "boot.heroTitle"
+  | "boot.heroBody"
+  | "boot.footerNote"
+  | "boot.holdTheLoop"
+  | "boot.loadingNamed"
+  | "boot.cartridgeMeta";
 
 /**
  * Ids intentionally left out of the zh-Hant catalog. Documented, not
@@ -292,9 +372,6 @@ export const EN_ONLY_IDS: MessageId[] = [
   "cartridgePanel.identity",
   "cartridgePanel.ledger",
   "cartridgePanel.ledgerEmpty",
-  "cartridgePanel.outcomeSuccess",
-  "cartridgePanel.outcomePartial",
-  "cartridgePanel.outcomeFailure",
 ];
 
 function num(params: MessageParams, key: string): number {
@@ -376,11 +453,8 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.projectedFail": "Projected to Fail",
     "shell.assignParty": "Assign a party",
     "shell.equipArrow": (params) => `Equip → ${str(params, "name")}`,
-    "shell.outcomeSuccess": "Outcome: Success",
-    "shell.outcomePartial": "Outcome: Partial",
-    "shell.outcomeFailed": "Outcome: Failed",
     "shell.engineLoop": "Engine loop",
-    "shell.everyContractCleared": "Every contract cleared",
+    "shell.everyContractRecorded": "Every contract recorded",
     "shell.complete": (params) => `${str(params, "name")} — Complete`,
     "shell.equipped": "Equipped:",
     "shell.rewardMomentTitle": "Reward moment.",
@@ -391,6 +465,28 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.recordedOutcomeTitle": "Recorded outcome",
     "shell.dismissViewNote": "Dismiss view note",
     "shell.closeRecordedOutcome": "Close recorded outcome",
+    // "RODOH" is the runtime wordmark shown as chrome (a brand token, kept as a
+    // key so the localization guard applies and there is one place to change it);
+    // its value is the same in every locale.
+    "shell.runtimeName": "RODOH",
+    "shell.identityRecorded": (params) => `${num(params, "count")} recorded`,
+    "shell.identityFresh": "No runs recorded",
+
+    // The post-action loop, made legible: the OUTCOME grade (what happened) is a
+    // different axis from RECORDED (the memory state). The result names both, the
+    // ledger stamps the "when".
+    "result.outcome": "Outcome",
+    "result.objectives": "Objectives",
+    "result.rewards": "Rewards",
+    "result.worldChanges": "World changes",
+    "result.changeRecorded": (params) => `${str(params, "name")} recorded`,
+    "result.changeUnlocked": (params) => `${str(params, "name")} unlocked`,
+    "result.recorded": "Recorded to the ledger",
+    "result.persists": "Written to the Program 001 ledger — this result persists.",
+    "result.ledgerRecordedAt": (params) => `Cycle ${String(num(params, "cycle")).padStart(2, "0")}`,
+    "outcome.cleared": "Cleared",
+    "outcome.partial": "Partial",
+    "outcome.failed": "Failed",
 
     "status.selected": "Selected",
     "status.available": "Available",
@@ -399,7 +495,6 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "status.failing": "Failing",
     "status.locked": "Locked",
     "status.recorded": "Recorded",
-    "status.cleared": "Cleared",
     "status.assigned": "Assigned",
     "status.down": "Down",
 
@@ -454,6 +549,16 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
 
     "contractCard.needs": "Needs",
     "contractCard.clearEarlier": "Clear earlier contracts",
+    "contractCard.difficulty": "Difficulty",
+    // The two card axes, named. World-state band vs squad-fit band — a player reads
+    // "what the world says" and "how my squad measures up" as different truths.
+    "contractCard.worldState": "World state",
+    "contractCard.squadFit": "Squad fit",
+    "contractCard.worldAvailable": "Available now",
+    "contractCard.worldNextNote": "Steward's next contract",
+    "contractCard.squadNotEvaluated": "Not evaluated until available",
+    "contractCard.squadNoParty": "Assign a party",
+    "contractCard.squadNotRelevant": "No longer relevant",
 
     "gearSlot.noGear": "No gear equipped",
 
@@ -468,7 +573,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
 
     "contractBoard.title": "Contract Board",
     "contractBoard.heading": "Choose the next place",
-    "contractBoard.explainer": "Cards show what is available, what is locked, what is risky, and what the cartridge has recorded. Lines show which cleared place opens which locked one.",
+    "contractBoard.explainer": "Cards show what is available, what is locked, what is risky, and what the cartridge has recorded. Lines show which recorded place opens which locked one.",
     "contractBoard.party": "Party",
     "contractBoard.partyRange": (params) => {
       const min = num(params, "min");
@@ -488,7 +593,6 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounter.travelingToBoard": "Traveling to board position",
     "encounter.travelNote": "The committed party is moving toward the selected contract card.",
     "encounter.resolving": "Resolving…",
-    "encounter.recordedOnBoard": "Recorded on board",
     "encounter.continue": "Continue →",
     "encounter.clickToSkip": "click anywhere to skip",
     "encounter.partyMovesOut": "The party moves out.",
@@ -536,6 +640,8 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounterShell.committed": "In the room",
     "encounterShell.reserve": "Reserve",
     "encounterShell.projected": "Projected",
+    "encounterShell.staging": "Staging",
+    "encounterShell.goingIn": (params) => `${num(params, "n")} going in`,
     "encounterShell.minNeeded": (params) => `Commit at least ${num(params, "n")}`,
     "encounterShell.projReliable": "Reliable",
     "encounterShell.projRisky": "Risky",
@@ -556,12 +662,53 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.map.blurb": "2D world map — the same contracts as locations, by region, with state and an enter-encounter action",
     "presentations.map.controlsHint": "pick a location, or enter its encounter",
     "presentations.map.purpose": "The cartridge's contracts as world locations, grouped by region: see what's available, active, or recorded, and walk into an encounter.",
+    "presentations.hall.label": "Hall",
+    "presentations.hall.blurb": "Inhabited hall — meet the steward and take a contract in person",
+    "presentations.hall.controlsHint": "talk to the steward to take a contract",
+    "presentations.hall.purpose": "The cartridge's founding hall, inhabited: meet the steward, accept a contract in person, and watch the world change — the same contract and ledger as every other surface.",
+    "hall.you": "You",
+    "hall.steward": "The Steward",
+    "hall.offering": "Has a contract for you",
+    "hall.fulfilled": "Contract fulfilled",
+    "hall.talk": "Talk",
+    "hall.viewOnBoard": "View on board",
+    "hall.accept": "Accept & resolve",
+    "hall.leave": "Leave",
+    "hall.recordedNote": "This contract is recorded in the world.",
+    "hall.worldChanged": "The charter has begun — the world remembers.",
+    "hall.lastRecorded": (params) => `Last recorded: ${str(params, "name")} · ${num(params, "count")} in the ledger.`,
+    "hall.claimFirst": "Claim your reward before taking another contract.",
+    "hall.threshold": "Encounter threshold",
+    "hall.approach": "Approach",
+    "hall.enterEncounter": "Enter encounter",
     "worldMap.difficulty": "Difficulty",
     "worldMap.enterEncounter": "Enter Encounter",
+    "worldMap.talkToSteward": "Talk to the steward",
+    "shell.seeOnMap": "See on map",
+    "shell.takeInPerson": "Take in person",
+    "shell.stewardNote": "Steward's note",
     "worldMap.stateLocked": "Locked",
     "worldMap.stateAvailable": "Available",
     "worldMap.stateActive": "Active",
     "worldMap.stateRecorded": "Recorded",
+    "worldMap.contractMap": "Contract Map",
+    "worldMap.recordedOf": (params) => `${num(params, "recorded")}/${num(params, "total")} recorded`,
+    "worldMap.regionLocked": "Locked",
+    "worldMap.regionOpen": "Open",
+    "worldMap.regionComplete": "Complete",
+    "worldMap.nextContract": "Up next",
+    "worldMap.steep": "Steep",
+    "worldMap.steepContract": "Steep contract — high authored difficulty",
+    // Legend / state key — a compact glossary tying every pin marker to the word
+    // the map already prints and what it means. The terms reuse the existing state
+    // labels above; only these one-line glosses are new chrome.
+    "worldMap.legendTitle": "Map key",
+    "worldMap.legendNext": "The steward's held contract",
+    "worldMap.legendAvailable": "Open — enter now",
+    "worldMap.legendActive": "The pin you selected",
+    "worldMap.legendSteep": "High authored difficulty",
+    "worldMap.legendRecorded": "Result written to the ledger",
+    "worldMap.legendLocked": "Clear earlier contracts first",
     "presentations.globe.label": "Planet",
     "presentations.globe.blurb": "3D world — optional spatial renderer",
     "presentations.globe.controlsHint": "drag to orbit · scroll to zoom · right-drag to pan · click a ◆ contract",
@@ -593,7 +740,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "cartridgePanel.cycle": "Cycle",
     "cartridgePanel.recordedNodes": "Recorded nodes",
     "cartridgePanel.decisionMark": "Decision mark",
-    "cartridgePanel.body": "Rodoh held the loop. This cartridge now carries engine marks — decisions, cleared nodes, cycle count, and roster state — that survive representation changes.",
+    "cartridgePanel.body": "Rodoh held the loop. This cartridge now carries engine marks — decisions, recorded nodes, cycle count, and roster state — that survive representation changes.",
     "cartridgePanel.exportRun": "Export run",
     "cartridgePanel.resume": "Resume",
     "cartridgePanel.leave": "Leave",
@@ -601,9 +748,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "cartridgePanel.identity": "Authored identity",
     "cartridgePanel.ledger": "Contract ledger",
     "cartridgePanel.ledgerEmpty": "No contracts recorded yet.",
-    "cartridgePanel.outcomeSuccess": "Cleared",
-    "cartridgePanel.outcomePartial": "Partial",
-    "cartridgePanel.outcomeFailure": "Failed",
+    "cartridgePanel.ledgerProvenance": "Each result is recorded under the authored identity above. This ledger checks against the program.",
 
     "boot.openCartridge": "Open cartridge…",
     "boot.remove": "Remove",
@@ -613,7 +758,6 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "boot.trustImportedUnsigned": "Imported (unsigned)",
     "boot.trustVerified": "Verified",
     "boot.trustQuarantined": "Quarantined",
-
     "pipeline.agentsRange": (params) => `${num(params, "min")}-${num(params, "max")} agents`,
     "pipeline.requires": (params) => `requires ${str(params, "name")}`,
     "pipeline.attunement": (params) => `attunement: ${str(params, "chain")} (${str(params, "share")})`,
@@ -622,6 +766,28 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "pipeline.flex": "Flex",
     "pipeline.rewardSummary": (params) => `+${num(params, "currency")} currency, +${num(params, "reputation")} reputation`,
     "pipeline.loot": (params) => `Loot: ${str(params, "list")}`,
+    "boot.programOfRecord": "Program of record",
+    "boot.identity": "Authored identity",
+    "boot.freshProgram": "New program — no runs recorded yet",
+    "boot.contractsRecorded": (params) => {
+      const count = num(params, "count");
+      return `${count} contract${count === 1 ? "" : "s"} recorded`;
+    },
+    "boot.resumable": "Resumable",
+    "boot.enter": "Enter",
+    "boot.resume": "Resume",
+    "boot.runtimeEyebrow": "AXM-WORLD runtime shell",
+    "boot.heroTitle": "Cartridge worlds that remember.",
+    "boot.heroBody": "Pick up a cartridge. Hold the loop. Mark what happened. Keep going.",
+    "boot.footerNote": "Rodoh records the run. AXM-WORLD renders the shell. The cartridge stays yours.",
+    "boot.holdTheLoop": "Hold the loop.",
+    "boot.loadingNamed": (params) => `Loading ${str(params, "name")}`,
+    // domain / engine version / count flow verbatim as content params; only the
+    // "engine" and "contracts" words are chrome.
+    "boot.cartridgeMeta": (params) => {
+      const count = num(params, "count");
+      return `${str(params, "domain")} · engine ${str(params, "engine")} · ${count} contract${count === 1 ? "" : "s"}`;
+    },
   },
   "zh-Hant": {
     "coach.arcComplete": "卡匣已標記為完成。離開前請檢視或匯出本次執行狀態。",
@@ -686,11 +852,8 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.projectedFail": "預測：將失敗",
     "shell.assignParty": "請指派隊伍",
     "shell.equipArrow": (params) => `裝備 → ${str(params, "name")}`,
-    "shell.outcomeSuccess": "結果：成功",
-    "shell.outcomePartial": "結果：部分成功",
-    "shell.outcomeFailed": "結果：失敗",
     "shell.engineLoop": "引擎循環",
-    "shell.everyContractCleared": "所有契約皆已完成",
+    "shell.everyContractRecorded": "所有契約皆已記錄",
     "shell.complete": (params) => `${str(params, "name")} — 已完成`,
     "shell.equipped": "已裝備：",
     "shell.rewardMomentTitle": "獎勵時刻。",
@@ -701,6 +864,22 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.recordedOutcomeTitle": "已記錄的結果",
     "shell.dismissViewNote": "關閉檢視說明",
     "shell.closeRecordedOutcome": "關閉已記錄的結果",
+    "shell.runtimeName": "RODOH",
+    "shell.identityRecorded": (params) => `已記錄 ${num(params, "count")}`,
+    "shell.identityFresh": "尚無執行記錄",
+
+    "result.outcome": "結果",
+    "result.objectives": "目標",
+    "result.rewards": "獎勵",
+    "result.worldChanges": "世界變化",
+    "result.changeRecorded": (params) => `${str(params, "name")} 已記錄`,
+    "result.changeUnlocked": (params) => `${str(params, "name")} 已解鎖`,
+    "result.recorded": "已記錄至帳本",
+    "result.persists": "已寫入 Program 001 帳本 — 此結果將保留。",
+    "result.ledgerRecordedAt": (params) => `週期 ${String(num(params, "cycle")).padStart(2, "0")}`,
+    "outcome.cleared": "達成",
+    "outcome.partial": "部分",
+    "outcome.failed": "失敗",
 
     "status.selected": "已選取",
     "status.available": "可承接",
@@ -709,7 +888,6 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "status.failing": "將失敗",
     "status.locked": "鎖定",
     "status.recorded": "已記錄",
-    "status.cleared": "已完成",
     "status.assigned": "已指派",
     "status.down": "倒下",
 
@@ -754,6 +932,14 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
 
     "contractCard.needs": "需要",
     "contractCard.clearEarlier": "請先完成較早的契約",
+    "contractCard.difficulty": "難度",
+    "contractCard.worldState": "世界狀態",
+    "contractCard.squadFit": "隊伍契合",
+    "contractCard.worldAvailable": "現可承接",
+    "contractCard.worldNextNote": "管事的下一份契約",
+    "contractCard.squadNotEvaluated": "開放後才會評估",
+    "contractCard.squadNoParty": "請指派隊伍",
+    "contractCard.squadNotRelevant": "已無關聯",
 
     "gearSlot.noGear": "尚未裝備",
 
@@ -768,7 +954,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
 
     "contractBoard.title": "契約板",
     "contractBoard.heading": "選擇下一個地點",
-    "contractBoard.explainer": "卡片顯示哪些契約可承接、哪些鎖定、哪些有風險，以及卡匣已記錄的結果。連線顯示已完成的地點解鎖了哪個鎖定地點。",
+    "contractBoard.explainer": "卡片顯示哪些契約可承接、哪些鎖定、哪些有風險，以及卡匣已記錄的結果。連線顯示已記錄的地點解鎖了哪個鎖定地點。",
     "contractBoard.party": "隊伍",
     "contractBoard.partyRange": (params) => {
       const min = num(params, "min");
@@ -788,7 +974,6 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounter.travelingToBoard": "前往契約板位置",
     "encounter.travelNote": "已指派的隊伍正前往所選契約卡片。",
     "encounter.resolving": "結算中…",
-    "encounter.recordedOnBoard": "已記錄於契約板",
     "encounter.continue": "繼續 →",
     "encounter.clickToSkip": "點擊任意處以跳過",
     "encounter.partyMovesOut": "隊伍出發了。",
@@ -836,6 +1021,8 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounterShell.committed": "已進場",
     "encounterShell.reserve": "後備",
     "encounterShell.projected": "預估",
+    "encounterShell.staging": "對陣",
+    "encounterShell.goingIn": (params) => `${num(params, "n")} 人出戰`,
     "encounterShell.minNeeded": (params) => `至少投入 ${num(params, "n")} 名`,
     "encounterShell.projReliable": "穩妥",
     "encounterShell.projRisky": "有風險",
@@ -856,12 +1043,50 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.map.blurb": "2D 世界地圖 — 相同契約化為地點，依地區分組，顯示狀態並可進入遭遇",
     "presentations.map.controlsHint": "選擇地點，或進入其遭遇",
     "presentations.map.purpose": "將卡匣的契約呈現為世界地點，依地區分組：查看可用、進行中或已記錄的狀態，並走入遭遇。",
+    "presentations.hall.label": "契約堂",
+    "presentations.hall.blurb": "有人的契約堂 — 與管事會面，親自承接契約",
+    "presentations.hall.controlsHint": "與管事對話以承接契約",
+    "presentations.hall.purpose": "卡匣的創立之堂，有人居住：與管事會面、親自承接契約，並看著世界改變 — 與其他所有介面相同的契約與帳本。",
+    "hall.you": "你",
+    "hall.steward": "管事",
+    "hall.offering": "有一份契約給你",
+    "hall.fulfilled": "契約已履行",
+    "hall.talk": "對話",
+    "hall.viewOnBoard": "在契約板上查看",
+    "hall.accept": "承接並結算",
+    "hall.leave": "離開",
+    "hall.recordedNote": "此契約已記錄於世界中。",
+    "hall.worldChanged": "憲章已然開始 — 世界記得。",
+    "hall.lastRecorded": (params) => `最近記錄：${str(params, "name")} · 帳本中共 ${num(params, "count")} 筆。`,
+    "hall.claimFirst": "領取獎勵後才能承接下一份契約。",
+    "hall.threshold": "遭遇入口",
+    "hall.approach": "靠近",
+    "hall.enterEncounter": "進入遭遇",
     "worldMap.difficulty": "難度",
     "worldMap.enterEncounter": "進入遭遇",
+    "worldMap.talkToSteward": "與管事對話",
+    "shell.seeOnMap": "在地圖上查看",
+    "shell.takeInPerson": "親自承接",
+    "shell.stewardNote": "管事的備註",
     "worldMap.stateLocked": "鎖定",
     "worldMap.stateAvailable": "可用",
     "worldMap.stateActive": "進行中",
     "worldMap.stateRecorded": "已記錄",
+    "worldMap.contractMap": "契約地圖",
+    "worldMap.recordedOf": (params) => `已記錄 ${num(params, "recorded")}/${num(params, "total")}`,
+    "worldMap.regionLocked": "鎖定",
+    "worldMap.regionOpen": "開放",
+    "worldMap.regionComplete": "完成",
+    "worldMap.nextContract": "接下來",
+    "worldMap.steep": "險峻",
+    "worldMap.steepContract": "險峻契約 — 作者設定的高難度",
+    "worldMap.legendTitle": "地圖圖例",
+    "worldMap.legendNext": "管事持有的契約",
+    "worldMap.legendAvailable": "開放 — 立即進入",
+    "worldMap.legendActive": "你選取的地點",
+    "worldMap.legendSteep": "作者設定的高難度",
+    "worldMap.legendRecorded": "結果已寫入帳本",
+    "worldMap.legendLocked": "請先完成較早的契約",
     "presentations.globe.label": "星球",
     "presentations.globe.blurb": "3D 世界 — 選用的空間化渲染器",
     "presentations.globe.controlsHint": "拖曳以環繞 · 滾動以縮放 · 按右鍵拖曳以平移 · 點選 ◆ 契約",
@@ -893,11 +1118,12 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "cartridgePanel.cycle": "週期",
     "cartridgePanel.recordedNodes": "已記錄節點",
     "cartridgePanel.decisionMark": "決策標記",
-    "cartridgePanel.body": "Rodoh 持續維護此循環。此卡匣現在帶有引擎標記 — 決策、已完成節點、週期數與名冊狀態 — 在切換呈現方式後依然保留。",
+    "cartridgePanel.body": "Rodoh 持續維護此循環。此卡匣現在帶有引擎標記 — 決策、已記錄節點、週期數與名冊狀態 — 在切換呈現方式後依然保留。",
     "cartridgePanel.exportRun": "匯出執行",
     "cartridgePanel.resume": "繼續",
     "cartridgePanel.leave": "離開卡匣",
     "cartridgePanel.trust": "信任等級",
+    "cartridgePanel.ledgerProvenance": "每筆結果皆記錄於上方的作者身分之下。此帳本可對照程式核對。",
 
     "boot.openCartridge": "開啟卡匣…",
     "boot.remove": "移除",
@@ -907,7 +1133,6 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "boot.trustImportedUnsigned": "已匯入（未簽署）",
     "boot.trustVerified": "已驗證",
     "boot.trustQuarantined": "已隔離",
-
     "pipeline.agentsRange": (params) => `${num(params, "min")}-${num(params, "max")} 人`,
     "pipeline.requires": (params) => `需要 ${str(params, "name")}`,
     "pipeline.attunement": (params) => `共鳴：${str(params, "chain")}（${str(params, "share")}）`,
@@ -916,6 +1141,20 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "pipeline.flex": "機動",
     "pipeline.rewardSummary": (params) => `+${num(params, "currency")} 通貨、+${num(params, "reputation")} 聲望`,
     "pipeline.loot": (params) => `戰利品：${str(params, "list")}`,
+    "boot.programOfRecord": "正式記錄程式",
+    "boot.identity": "作者識別碼",
+    "boot.freshProgram": "全新程式 — 尚無執行記錄",
+    "boot.contractsRecorded": (params) => `已記錄 ${num(params, "count")} 份契約`,
+    "boot.resumable": "可繼續",
+    "boot.enter": "進入",
+    "boot.resume": "繼續",
+    "boot.runtimeEyebrow": "AXM-WORLD 執行環境外殼",
+    "boot.heroTitle": "會記憶的卡匣世界。",
+    "boot.heroBody": "拿起一張卡匣。維持循環。記下發生的事。繼續前進。",
+    "boot.footerNote": "Rodoh 記錄執行。AXM-WORLD 呈現外殼。卡匣仍歸你所有。",
+    "boot.holdTheLoop": "維持循環。",
+    "boot.loadingNamed": (params) => `載入 ${str(params, "name")} 中`,
+    "boot.cartridgeMeta": (params) => `${str(params, "domain")} · 引擎 ${str(params, "engine")} · ${num(params, "count")} 份契約`,
   },
 };
 

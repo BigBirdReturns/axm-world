@@ -20,7 +20,7 @@ import type { ArcWorld } from "../useArcWorld.js";
 import type { ProjectedOutcome } from "../readiness.js";
 import type { EncounterObjective, MarkerKind } from "./compile-encounter.js";
 import { spendOffer, spendWasUsed } from "./spend.js";
-import { PixelButton } from "../pixel-ui/index.js";
+import { PixelButton, PixelSprite, spriteForRole } from "../pixel-ui/index.js";
 import { t } from "../i18n/index.js";
 import "./encounter-shell.css";
 
@@ -50,11 +50,21 @@ const OUTCOME_COLOR: Record<string, string> = {
 };
 
 // Outcome banner reuses the encounter-director's existing outcome chrome keys, so
-// no new localized strings are minted for what's already translated.
+// no new localized strings are minted for what's already translated. This is the
+// authored NARRATIVE ("Contract fulfilled." …) — the "what happened" line.
 const OUTCOME_KEY = {
   success: "encounter.outcomeFulfilled",
   partial: "encounter.outcomePartial",
   failure: "encounter.outcomeFailure",
+} as const;
+
+// The canonical grade axis (Cleared / Partial / Failed) — the same grade the
+// immediate overlay, the revisit modal, and the ledger speak. Sits above the
+// narrative so the receipt states the grade AND what happened.
+const GRADE_KEY = {
+  success: "outcome.cleared",
+  partial: "outcome.partial",
+  failure: "outcome.failed",
 } as const;
 
 interface Props {
@@ -123,10 +133,16 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
 
   const committedSet = new Set(committed);
   const countOk = committed.length >= spec.minAgents && committed.length <= spec.maxAgents;
-  const projection = PROJECTION[readiness?.projectedOutcome ?? "none"];
+  const projectedOutcome = readiness?.projectedOutcome ?? "none";
+  const projection = PROJECTION[projectedOutcome];
   // The single most useful "why" line for the current squad (missing role, thin
   // check), so the projection is explained, not just colored.
   const projectionReason = readiness?.reasons[0] ?? null;
+  // Staging: the committed squad as bodies, and the fit projection as the tone of the
+  // space between them and the threat. Reuses the SAME projection the deploy control
+  // reads — the confrontation is felt, not recalculated.
+  const stagedParty = world.roster.filter((m) => committedSet.has(m.id));
+  const stagingTone = OUTCOME_COLOR[projectedOutcome] ?? "#8b7d6a";
 
   const toggle = (id: string) => {
     setCommitted((cur) => {
@@ -172,6 +188,52 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
           <div className="encs-brief" data-testid="encs-brief">
             <p className="encs-approach">{spec.location.approach}</p>
             <p className="encs-provenance">{t("encounterShell.derivedNote")}</p>
+
+            {/* Staging — the confrontation, embodied: THIS squad, going into THIS
+                situation. The committed party (bodies) faces the site's threat (body),
+                and the SAME live readiness projection colors the space between them —
+                the fit felt, not recalculated. Existing data only: committed roster,
+                spec, readiness. No combat, positioning, enemy mechanics, or new art. */}
+            <div className="encs-section" data-testid="encs-staging" data-projected={projectedOutcome}>
+              <div className="encs-section-label">{t("encounterShell.staging")}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {/* Who is going in — the committed squad as bodies. */}
+                <div data-testid="encs-staging-party" style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 9, letterSpacing: "0.06em", textTransform: "uppercase", color: "#8b7d6a", marginBottom: 5 }}>
+                    {t("encounterShell.goingIn", { n: committed.length })}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-end" }}>
+                    {stagedParty.map((m) => (
+                      <span key={m.id} data-testid={`encs-staging-body-${m.id}`} title={`${m.name} · ${m.role}`} style={{ display: "grid", justifyItems: "center", gap: 3, width: 42 }}>
+                        {/* The member's ROLE as a standing body — same honest keying
+                            as the roster's face. */}
+                        <PixelSprite name={spriteForRole(m.role)} size={34} />
+                        <span style={{ fontSize: 8, color: "#cdd8c2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 42 }}>{m.name}</span>
+                      </span>
+                    ))}
+                    {committed.length === 0 && <span style={{ fontSize: 10, color: "#8b7d6a" }}>{t("encounterShell.projNone")}</span>}
+                  </div>
+                </div>
+                {/* The fit, embodied — the tension between squad and threat (same
+                    projection the deploy control reads; hover for the why). */}
+                <div data-testid="encs-staging-fit" title={projectionReason ?? undefined} style={{ flex: "none", display: "grid", justifyItems: "center", gap: 2, color: stagingTone, padding: "0 2px" }}>
+                  <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1 }}>►</span>
+                  <strong style={{ fontSize: 9, letterSpacing: "0.06em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{t(projection.key)}</strong>
+                </div>
+                {/* What they are facing — the site as a threat body. */}
+                <div data-testid="encs-staging-threat" style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
+                  <div style={{ fontSize: 9, letterSpacing: "0.06em", textTransform: "uppercase", color: "#8b7d6a", marginBottom: 5 }}>
+                    {t("encounterShell.difficulty")} {spec.difficulty}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "flex-end", gap: 8 }}>
+                    <span style={{ fontSize: 10, color: "#e0d6c2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{spec.location.site}</span>
+                    {/* The site's danger, embodied — abstract on purpose (no invented
+                        named enemy), scaled up so the threat LOOMS over the squad. */}
+                    <PixelSprite name="threat" size={40} data-testid="encs-staging-threat-body" />
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Posture choice — the second agency type. Rendered ONLY when the
                 cartridge authors difficulty modes; picking one recompiles the
@@ -342,6 +404,12 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
         {report && (
           <div className="encs-receipt" data-testid="encs-receipt" data-outcome={report.outcome}>
             <div className="encs-outcome-banner" style={{ borderColor: outcomeColor, color: outcomeColor }}>
+              <span
+                data-testid="encs-outcome-grade"
+                style={{ display: "block", fontSize: "0.72em", fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", opacity: 0.85, marginBottom: 2 }}
+              >
+                {t(GRADE_KEY[report.outcome])}
+              </span>
               {t(OUTCOME_KEY[report.outcome])}
             </div>
             {modes.length > 0 && (
