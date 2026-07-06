@@ -6,7 +6,7 @@
 
 import * as FirstCharter from "./first-charter/motif-icons.js";
 import * as Karazhan from "./karazhan/motif-icons.js";
-import { PersonPortraitIcon } from "./first-charter/portrait-icons.js";
+import { PersonPortraitIcon, PersonSpriteIcon } from "./first-charter/portrait-icons.js";
 import { FIRST_CHARTER_THEME } from "./first-charter/theme.js";
 import { KARAZHAN_THEME } from "./karazhan/theme.js";
 
@@ -34,6 +34,15 @@ export function CartridgeMotif({ arcId, challengeId, size = 20, className = "" }
 export function CartridgePortrait({ arcId, personId, size = 32, className = "" }: { arcId: string; personId: string; size?: number; className?: string }): JSX.Element | null {
   if (arcId === FIRST_CHARTER_THEME.id) {
     return <PersonPortraitIcon personId={personId} size={size} className={className} />;
+  }
+  return null;
+}
+
+/** An AUTHORED person's standing BODY for staged scenes — same honesty rule as
+ *  CartridgePortrait: authored people only, null otherwise. */
+export function CartridgeSprite({ arcId, personId, size = 44, className = "" }: { arcId: string; personId: string; size?: number; className?: string }): JSX.Element | null {
+  if (arcId === FIRST_CHARTER_THEME.id) {
+    return <PersonSpriteIcon personId={personId} size={size} className={className} />;
   }
   return null;
 }
