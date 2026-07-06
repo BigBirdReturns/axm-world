@@ -97,3 +97,22 @@ describe("spot checks on converted chrome ids", () => {
     expect(formatMessage("zh-Hant", "contractBoard.waitingCycles", { n: 3 })).toBe("已等待 3 個週期");
   });
 });
+
+describe("pipeline labels + signed margins (regressions)", () => {
+  it("compiled requirement chips translate", () => {
+    expect(formatMessage("en", "pipeline.agentsRange", { min: 6, max: 10 })).toBe("6-10 agents");
+    expect(formatMessage("zh-Hant", "pipeline.agentsRange", { min: 6, max: 10 })).toBe("6-10 人");
+  });
+
+  it("thin-status margins never render '+-' (negative margin branches wording)", () => {
+    expect(formatMessage("en", "readiness.checkPassingBy", { name: "X", margin: -3, shortBy: 8 }))
+      .toBe("X: behind by 3 under risk — needs +8 more buffer to be reliable.");
+    expect(formatMessage("zh-Hant", "readiness.checkPassingBy", { name: "X", margin: -3, shortBy: 8 }))
+      .toBe("X：風險下落後 3 — 還需要 +8 緩衝才能可靠。");
+    expect(formatMessage("zh-Hant", "readinessRow.passingBy", { margin: -2.8, shortBy: 7.8 }))
+      .toBe("風險下落後 2.8 · 還需 +7.8 緩衝才能達到可靠。");
+    // positive path unchanged
+    expect(formatMessage("zh-Hant", "readiness.checkPassingBy", { name: "X", margin: 3, shortBy: 8 }))
+      .toBe("X：領先 +3 — 還需要 +8 緩衝才能可靠。");
+  });
+});

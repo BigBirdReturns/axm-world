@@ -1,6 +1,11 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { execSync } from 'node:child_process';
+import { readFileSync, readdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const configDir = dirname(fileURLToPath(import.meta.url));
 
 let buildSha = 'dev';
 try {
@@ -28,6 +33,36 @@ const variant = rawVariant;
 // for a different host (e.g. a custom domain → '/game/').
 const base = process.env.VITE_BASE ?? '/axm-world/game/';
 
+// Emits sw.js at the root of the bundle with the precache list filled in
+// from the actual hashed asset filenames of this build (plus the shell,
+// manifest, icons and self-hosted fonts, which live in public/ and are
+// copied verbatim). The template lives in scripts/sw.template.js.
+function swPrecache(): Plugin {
+  return {
+    name: 'sw-precache',
+    apply: 'build',
+    generateBundle(_options, bundle) {
+      const hashed = Object.keys(bundle).map((f) => './' + f);
+      const shell = [
+        './',
+        './manifest.webmanifest',
+        './fonts.css',
+        './icons/icon-192.png',
+        './icons/icon-512.png',
+        ...readdirSync(join(configDir, 'public/fonts')).map((f) => './fonts/' + f),
+      ];
+      // replaceAll, not replace: the tokens must be substituted wherever they
+      // appear — a single .replace() once hit a mention in the template's
+      // header comment and left the real code with an undefined identifier,
+      // which made the service worker throw on evaluation (no offline at all).
+      const sw = readFileSync(join(configDir, 'scripts/sw.template.js'), 'utf8')
+        .replaceAll('__CACHE_VERSION__', `${buildSha}-${Date.now().toString(36)}`)
+        .replaceAll('__PRECACHE__', JSON.stringify([...shell, ...hashed]));
+      this.emitFile({ type: 'asset', fileName: 'sw.js', source: sw });
+    },
+  };
+}
+
 export default defineConfig({
   base,
   define: {
@@ -38,5 +73,5 @@ export default defineConfig({
     outDir: 'docs/game',
     emptyOutDir: true,
   },
-  plugins: [react()],
+  plugins: [react(), swPrecache()],
 });

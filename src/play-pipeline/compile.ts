@@ -1,6 +1,7 @@
 import type { Agent, Arc, Challenge, Organization, RunReport } from "../engine/types.js";
 import type { ChallengeAssignment } from "../engine/cycle.js";
 import { challengeAccess, requiredAttunementChains } from "../engine/access.js";
+import { t } from "../world/i18n/index.js";
 
 export type PlayNodeStatus = "available" | "locked" | "cleared";
 
@@ -147,13 +148,13 @@ function tierIndexForChallenge(arc: Arc, challengeId: string): number {
 
 function requirementLabels(challenge: Challenge, arc: Arc): string[] {
   const labels: string[] = [];
-  labels.push(`${challenge.rosterRequirements.minAgents}-${challenge.rosterRequirements.maxAgents} agents`);
+  labels.push(t("pipeline.agentsRange", { min: challenge.rosterRequirements.minAgents, max: challenge.rosterRequirements.maxAgents }));
   for (const req of challenge.rosterRequirements.roleRequirements) {
     const role = arc.roles.find((r) => r.id === req.roleId)?.name ?? req.roleId;
     labels.push(`${req.count} ${role}`);
   }
   for (const milestone of challenge.accessRequirements.orgMilestones) {
-    labels.push(`requires ${milestone}`);
+    labels.push(t("pipeline.requires", { name: milestone }));
   }
   // Attunement gates: a chain's grantsAccessTo and the challenge's own
   // agentAttunements are one gate (engine/access.ts). Label with the authored
@@ -161,8 +162,8 @@ function requirementLabels(challenge: Challenge, arc: Arc): string[] {
   for (const chainId of requiredAttunementChains(challenge, arc)) {
     const chain = arc.attunementChains.find((c) => c.id === chainId);
     const threshold = challenge.accessRequirements.attunementThreshold ?? 1;
-    const share = threshold >= 1 ? "full party" : `${Math.round(threshold * 100)}% of party`;
-    labels.push(`attunement: ${chain?.name ?? chainId} (${share})`);
+    const share = threshold >= 1 ? t("pipeline.fullParty") : t("pipeline.partyShare", { pct: Math.round(threshold * 100) });
+    labels.push(t("pipeline.attunement", { chain: chain?.name ?? chainId, share }));
   }
   return labels;
 }
@@ -206,7 +207,7 @@ export function compileArcToPlayScene(arc: Arc, org: Organization): PlayScene {
   }
 
   const agents = Object.values(org.agents).map((agent, index) => {
-    const role = arc.roles.find((r) => r.id === agent.role)?.name ?? agent.role ?? "Flex";
+    const role = arc.roles.find((r) => r.id === agent.role)?.name ?? agent.role ?? t("pipeline.flex");
     return {
       id: agent.id,
       name: agent.name,
@@ -350,8 +351,8 @@ export function summarizeReport(
     lines,
     rewardSummary: [
       outcome?.narrative,
-      report.rewardsGranted ? `+${report.rewardsGranted.currency} currency, +${report.rewardsGranted.reputation} reputation` : null,
-      itemNames.length > 0 ? `Loot: ${itemNames.join(", ")}` : null,
+      report.rewardsGranted ? t("pipeline.rewardSummary", { currency: report.rewardsGranted.currency, reputation: report.rewardsGranted.reputation }) : null,
+      itemNames.length > 0 ? t("pipeline.loot", { list: itemNames.join(", ") }) : null,
     ].filter(Boolean).join(" "),
   };
 }

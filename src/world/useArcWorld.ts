@@ -13,6 +13,7 @@ import { applyDifficultyMode } from "../engine/difficulty.js";
 import { awardItem } from "../engine/rewards.js";
 import { resolveDramaCard } from "../engine/drama.js";
 import { bootstrapOrg } from "../spoke/bootstrap.js";
+import { useLocale } from "./i18n/index.js";
 import {
   compileArcToPlayScene,
   recommendAgentsForChallenge,
@@ -218,7 +219,10 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   const [lastEquip, setLastEquip] = useState<LastEquipEvent | null>(null);
   const [openingChoice, setOpeningChoice] = useState<string | null>(() => restored?.openingChoice ?? null);
 
-  const scene = useMemo(() => compileArcToPlayScene(arc, org), [arc, org]);
+  // locale is a dependency: the compiled scene bakes t() chrome labels
+  // (pipeline.* ids), so a language switch must recompile it.
+  const [locale] = useLocale();
+  const scene = useMemo(() => compileArcToPlayScene(arc, org), [arc, org, locale]);
   const layout = useMemo(() => buildWorldLayout(scene, DEFAULT_WORLD_CONFIG), [scene]);
 
   const roster = useMemo<RosterMember[]>(

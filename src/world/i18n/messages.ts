@@ -268,7 +268,16 @@ export type MessageId =
   | "boot.trustBundled"
   | "boot.trustImportedUnsigned"
   | "boot.trustVerified"
-  | "boot.trustQuarantined";
+  | "boot.trustQuarantined"
+  // ── play-pipeline compiled labels (chrome around cartridge data) ────────
+  | "pipeline.agentsRange"
+  | "pipeline.requires"
+  | "pipeline.attunement"
+  | "pipeline.fullParty"
+  | "pipeline.partyShare"
+  | "pipeline.flex"
+  | "pipeline.rewardSummary"
+  | "pipeline.loot";
 
 /**
  * Ids intentionally left out of the zh-Hant catalog. Documented, not
@@ -406,8 +415,13 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     },
     "readiness.checkFailingBy": (params) =>
       `${str(params, "name")}: failing by ${num(params, "margin")} — needs +${num(params, "shortBy")} to become reliable.`,
-    "readiness.checkPassingBy": (params) =>
-      `${str(params, "name")}: passing by +${num(params, "margin")} — needs +${num(params, "shortBy")} more buffer to be reliable.`,
+    "readiness.checkPassingBy": (params) => {
+      // A "thin" check can carry a NEGATIVE margin (risk-adjusted pass, raw
+      // shortfall) — branch the wording so it never renders "passing by +-3".
+      const m = num(params, "margin");
+      const lead = m >= 0 ? `passing by +${m}` : `behind by ${Math.abs(m)} under risk`;
+      return `${str(params, "name")}: ${lead} — needs +${num(params, "shortBy")} more buffer to be reliable.`;
+    },
     "readiness.addsRequired": (params) => `Adds required ${str(params, "roleName")}.`,
     "readiness.improves": (params) => {
       const attrNames = str(params, "attrNames");
@@ -429,7 +443,11 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     },
     "readiness.checkedAttributesFallback": "the checked attributes",
 
-    "readinessRow.passingBy": (params) => `Passing by +${num(params, "margin")} · needs +${num(params, "shortBy")} more buffer to become reliable.`,
+    "readinessRow.passingBy": (params) => {
+      const m = num(params, "margin");
+      const lead = m >= 0 ? `Passing by +${m}` : `Behind by ${Math.abs(m)} under risk`;
+      return `${lead} · needs +${num(params, "shortBy")} more buffer to become reliable.`;
+    },
     "readinessRow.failingBy": (params) => `Failing by ${num(params, "margin")} · needs +${num(params, "shortBy")} to become reliable.`,
     "readinessRow.reliableBufferReached": "Reliable buffer reached.",
     "readinessRow.top": (params) => `Top: ${str(params, "list")}`,
@@ -506,7 +524,10 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounterShell.best": (params) => `Best: ${str(params, "name")} — ${num(params, "score")} vs target ${num(params, "target")}.`,
     "encounterShell.coverageAll": (params) => `All ${num(params, "count")} assigned agents contributed.`,
     "encounterShell.coveragePartial": (params) => `${num(params, "passed")} of ${num(params, "total")} cleared it.`,
-    "encounterShell.agentPassedBy": (params) => `${str(params, "name")}: ${num(params, "score")} vs target ${num(params, "target")}, passed by +${num(params, "margin")}`,
+    "encounterShell.agentPassedBy": (params) => {
+      const m = num(params, "margin");
+      return `${str(params, "name")}: ${num(params, "score")} vs target ${num(params, "target")}, ${m >= 0 ? `passed by +${m}` : `short by ${Math.abs(m)}`}`;
+    },
     "encounterShell.agentShortBy": (params) => `${str(params, "name")}: ${num(params, "score")} vs target ${num(params, "target")}, short by ${num(params, "margin")}`,
     "encounterShell.unlocks": "Unlocks",
     "encounterShell.worldChanges": "World changes",
@@ -592,6 +613,15 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "boot.trustImportedUnsigned": "Imported (unsigned)",
     "boot.trustVerified": "Verified",
     "boot.trustQuarantined": "Quarantined",
+
+    "pipeline.agentsRange": (params) => `${num(params, "min")}-${num(params, "max")} agents`,
+    "pipeline.requires": (params) => `requires ${str(params, "name")}`,
+    "pipeline.attunement": (params) => `attunement: ${str(params, "chain")} (${str(params, "share")})`,
+    "pipeline.fullParty": "full party",
+    "pipeline.partyShare": (params) => `${num(params, "pct")}% of party`,
+    "pipeline.flex": "Flex",
+    "pipeline.rewardSummary": (params) => `+${num(params, "currency")} currency, +${num(params, "reputation")} reputation`,
+    "pipeline.loot": (params) => `Loot: ${str(params, "list")}`,
   },
   "zh-Hant": {
     "coach.arcComplete": "卡匣已標記為完成。離開前請檢視或匯出本次執行狀態。",
@@ -687,7 +717,11 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "readiness.tooMany": (params) => `指派人數過多 — 上限 ${num(params, "max")} 人（目前 ${num(params, "have")} 人）。`,
     "readiness.missingRole": (params) => `缺少 ${num(params, "need")} 名${str(params, "roleName")} — 請先補齊該職位，再信任預測結果。`,
     "readiness.checkFailingBy": (params) => `${str(params, "name")}：落後 ${num(params, "margin")} — 需要 +${num(params, "shortBy")} 才能達到可靠。`,
-    "readiness.checkPassingBy": (params) => `${str(params, "name")}：領先 +${num(params, "margin")} — 還需要 +${num(params, "shortBy")} 緩衝才能可靠。`,
+    "readiness.checkPassingBy": (params) => {
+      const m = num(params, "margin");
+      const lead = m >= 0 ? `領先 +${m}` : `風險下落後 ${Math.abs(m)}`;
+      return `${str(params, "name")}：${lead} — 還需要 +${num(params, "shortBy")} 緩衝才能可靠。`;
+    },
     "readiness.addsRequired": (params) => `補齊所需的${str(params, "roleName")}。`,
     "readiness.improves": (params) => {
       const attrNames = str(params, "attrNames");
@@ -709,7 +743,11 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     },
     "readiness.checkedAttributesFallback": "檢定所需的屬性",
 
-    "readinessRow.passingBy": (params) => `領先 +${num(params, "margin")} · 還需 +${num(params, "shortBy")} 緩衝才能達到可靠。`,
+    "readinessRow.passingBy": (params) => {
+      const m = num(params, "margin");
+      const lead = m >= 0 ? `領先 +${m}` : `風險下落後 ${Math.abs(m)}`;
+      return `${lead} · 還需 +${num(params, "shortBy")} 緩衝才能達到可靠。`;
+    },
     "readinessRow.failingBy": (params) => `落後 ${num(params, "margin")} · 需要 +${num(params, "shortBy")} 才能達到可靠。`,
     "readinessRow.reliableBufferReached": "已達到可靠緩衝。",
     "readinessRow.top": (params) => `最佳：${str(params, "list")}`,
@@ -786,7 +824,10 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "encounterShell.best": (params) => `最佳：${str(params, "name")} — ${num(params, "score")}，目標 ${num(params, "target")}。`,
     "encounterShell.coverageAll": (params) => `全部 ${num(params, "count")} 名指派人員皆有貢獻。`,
     "encounterShell.coveragePartial": (params) => `${num(params, "total")} 名中有 ${num(params, "passed")} 名通過。`,
-    "encounterShell.agentPassedBy": (params) => `${str(params, "name")}：${num(params, "score")}，目標 ${num(params, "target")}，超出 +${num(params, "margin")}`,
+    "encounterShell.agentPassedBy": (params) => {
+      const m = num(params, "margin");
+      return `${str(params, "name")}：${num(params, "score")}，目標 ${num(params, "target")}，${m >= 0 ? `超出 +${m}` : `差 ${Math.abs(m)}`}`;
+    },
     "encounterShell.agentShortBy": (params) => `${str(params, "name")}：${num(params, "score")}，目標 ${num(params, "target")}，不足 ${num(params, "margin")}`,
     "encounterShell.unlocks": "解鎖",
     "encounterShell.worldChanges": "世界變化",
@@ -866,6 +907,15 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "boot.trustImportedUnsigned": "已匯入（未簽署）",
     "boot.trustVerified": "已驗證",
     "boot.trustQuarantined": "已隔離",
+
+    "pipeline.agentsRange": (params) => `${num(params, "min")}-${num(params, "max")} 人`,
+    "pipeline.requires": (params) => `需要 ${str(params, "name")}`,
+    "pipeline.attunement": (params) => `共鳴：${str(params, "chain")}（${str(params, "share")}）`,
+    "pipeline.fullParty": "全隊",
+    "pipeline.partyShare": (params) => `隊伍的 ${num(params, "pct")}%`,
+    "pipeline.flex": "機動",
+    "pipeline.rewardSummary": (params) => `+${num(params, "currency")} 通貨、+${num(params, "reputation")} 聲望`,
+    "pipeline.loot": (params) => `戰利品：${str(params, "list")}`,
   },
 };
 
