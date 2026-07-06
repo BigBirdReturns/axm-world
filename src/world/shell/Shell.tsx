@@ -301,6 +301,13 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   // Same deriveHallView the hall and map read; same choose() the ViewSwitcher uses.
   const hallView = useMemo(() => deriveHallView(world.nodes), [world.nodes]);
   const selectedHeldInHall = ix.selectedId !== null && hallView.challengeId === ix.selectedId && !hallView.resolved;
+  // On mobile the representation region lives in the "board" step, so routing from
+  // the contract-detail step must also step back — otherwise the costume would
+  // switch invisibly behind the detail sheet. Desktop is a plain view switch.
+  const routeTo = (view: string) => {
+    choose(view);
+    if (isMobile) setMobileStep("board");
+  };
   const routeRow = ix.selected ? (
     <div data-testid="detail-route-row" style={{ display: "flex", gap: 6, marginTop: 8 }}>
       <PixelButton
@@ -308,7 +315,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
         variant="secondary"
         data-testid="detail-see-on-map"
         disabled={modalOpen}
-        onClick={() => choose("map")}
+        onClick={() => routeTo("map")}
         style={{ flex: 1, minHeight: 36, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
       >
         <PixelIcon name="available" /> <span>{t("shell.seeOnMap")}</span>
@@ -319,7 +326,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
           variant="secondary"
           data-testid="detail-take-in-person"
           disabled={modalOpen}
-          onClick={() => choose("hall")}
+          onClick={() => routeTo("hall")}
           style={{ flex: 1, minHeight: 36, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
         >
           <PixelIcon name="recorded" /> <span>{t("shell.takeInPerson")}</span>
