@@ -46,15 +46,71 @@ const MAREN_VOS: PortraitSpec = {
   },
 };
 
+// Maren's standing BODY for the staged hall scene — sprite in the scene, portrait
+// in the close-ups (dialogue, steward's note): the classic tactics-game split.
+const MAREN_VOS_BODY: PortraitSpec = {
+  grid: [
+    ".....ooooo.oo...",
+    "....ohhhhhoho...",
+    "....ohssshho....",
+    ".....osso.......",
+    "....otttto......",
+    "...occcccco.....",
+    "...occcccco.....",
+    "...occcccco.....",
+    "...occcccco.....",
+    "...occcccco.....",
+    "...occcccco.....",
+    "...occcccco.....",
+    "...occcccco.....",
+    "...occcccco.....",
+    "...oooooooo.....",
+    "...d.......d....",
+  ],
+  palette: {
+    o: "#1b1b1b",
+    s: "#e8c39a",
+    d: "#3a352c",
+    h: "#b9b2a4",
+    c: "#7a4a3d",
+    t: "#c9a14a",
+    w: "#f6efe3",
+  },
+};
+
 const PEOPLE: Record<string, PortraitSpec> = {
   // Keyed by the person's AUTHORED id (cartridge.people[].id), not their name.
   "charter-keeper": MAREN_VOS,
+};
+
+const PEOPLE_BODIES: Record<string, PortraitSpec> = {
+  "charter-keeper": MAREN_VOS_BODY,
 };
 
 /** The authored portrait for a First Charter person id, or null when that person
  *  has no authored face (callers keep their existing figure/fallback). */
 export function personPortrait(personId: string): PortraitSpec | null {
   return PEOPLE[personId] ?? null;
+}
+
+/** The authored standing body for a First Charter person id, or null. */
+export function personSprite(personId: string): PortraitSpec | null {
+  return PEOPLE_BODIES[personId] ?? null;
+}
+
+export function PersonSpriteIcon({ personId, size = 44, className = "" }: { personId: string; size?: number; className?: string }): JSX.Element | null {
+  const spec = personSprite(personId);
+  if (!spec) return null;
+  return (
+    <span
+      className={`fc-person-sprite ${className}`.trim()}
+      data-testid={`person-sprite-${personId}`}
+      aria-hidden="true"
+      style={{ width: size, height: size, display: "inline-block", flex: "none" }}
+    >
+      <PixelPortraitGlyph spec={spec} />
+    </span>
+  );
 }
 
 export function PersonPortraitIcon({ personId, size = 32, className = "" }: { personId: string; size?: number; className?: string }): JSX.Element | null {

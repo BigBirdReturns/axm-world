@@ -3,6 +3,7 @@ export * from "./PixelBadge.js";
 export * from "./PixelButton.js";
 export * from "./PixelIcon.js";
 export * from "./PixelPortrait.js";
+export * from "./PixelSprite.js";
 export * from "./PixelMeter.js";
 export * from "./PixelPanel.js";
 export * from "./PixelRoleBadge.js";

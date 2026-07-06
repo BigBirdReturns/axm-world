@@ -129,6 +129,7 @@ describe("asset standard: provenance headers", () => {
   const files = [
     "src/world/pixel-ui/PixelIcon.tsx",
     "src/world/pixel-ui/PixelPortrait.tsx",
+    "src/world/pixel-ui/PixelSprite.tsx",
     "src/world/themes/first-charter/motif-icons.tsx",
     "src/world/themes/first-charter/portrait-icons.tsx",
     "src/world/brand/RodohRuntimeMark.tsx",

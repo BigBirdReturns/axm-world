@@ -20,7 +20,7 @@ import type { ArcWorld } from "../useArcWorld.js";
 import type { ProjectedOutcome } from "../readiness.js";
 import type { EncounterObjective, MarkerKind } from "./compile-encounter.js";
 import { spendOffer, spendWasUsed } from "./spend.js";
-import { PixelButton } from "../pixel-ui/index.js";
+import { PixelButton, PixelSprite, spriteForRole } from "../pixel-ui/index.js";
 import { t } from "../i18n/index.js";
 import "./encounter-shell.css";
 
@@ -205,7 +205,9 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-end" }}>
                     {stagedParty.map((m) => (
                       <span key={m.id} data-testid={`encs-staging-body-${m.id}`} title={`${m.name} · ${m.role}`} style={{ display: "grid", justifyItems: "center", gap: 3, width: 42 }}>
-                        <span aria-hidden="true" style={{ width: 15, height: 25, borderRadius: "7px 7px 3px 3px", background: "#6f8f57", boxShadow: "0 3px 8px -3px rgba(0,0,0,0.7)" }} />
+                        {/* The member's ROLE as a standing body — same honest keying
+                            as the roster's face. */}
+                        <PixelSprite name={spriteForRole(m.role)} size={34} />
                         <span style={{ fontSize: 8, color: "#cdd8c2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 42 }}>{m.name}</span>
                       </span>
                     ))}
@@ -225,7 +227,9 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
                   </div>
                   <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "flex-end", gap: 8 }}>
                     <span style={{ fontSize: 10, color: "#e0d6c2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{spec.location.site}</span>
-                    <span aria-hidden="true" style={{ width: 17, height: 27, borderRadius: "8px 8px 3px 3px", background: "#8a4a3d", boxShadow: "0 3px 8px -3px rgba(0,0,0,0.7)", flex: "none" }} />
+                    {/* The site's danger, embodied — abstract on purpose (no invented
+                        named enemy), scaled up so the threat LOOMS over the squad. */}
+                    <PixelSprite name="threat" size={40} data-testid="encs-staging-threat-body" />
                   </div>
                 </div>
               </div>

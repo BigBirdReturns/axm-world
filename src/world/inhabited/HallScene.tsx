@@ -18,7 +18,8 @@ import { deriveHallView, canTakeContract } from "./hall.js";
 import { hallSteward } from "./people.js";
 import { regionNameForTier } from "../progression.js";
 import { summarizeLedger } from "../ledger.js";
-import { CartridgePortrait } from "../themes/CartridgeMotif.js";
+import { CartridgePortrait, CartridgeSprite } from "../themes/CartridgeMotif.js";
+import { PixelSprite, spriteForRole } from "../pixel-ui/index.js";
 import { t } from "../i18n/index.js";
 
 // Projected-outcome chrome for the steward's held contract — the same catalog ids
@@ -150,6 +151,14 @@ export function HallScene({ world, interaction, modalOpen = false, onEnterEncoun
     onNavigate?.("board");
   };
 
+  // The squad standing WITH you in the hall — the same recommended party the
+  // steward's quick-accept resolves with and heldReadiness projects over. Bodies
+  // for names the run already has; nothing invented.
+  const heldPartyIds = view.challengeId && !view.resolved ? world.recommendedParty(view.challengeId) : [];
+  const heldParty = heldPartyIds
+    .map((id) => world.roster.find((m) => m.id === id))
+    .filter((m): m is NonNullable<typeof m> => Boolean(m));
+
   const accept = (): void => {
     if (!canTake || !view.challengeId) return;
     world.runChallenge(view.challengeId, world.recommendedParty(view.challengeId));
@@ -190,15 +199,37 @@ export function HallScene({ world, interaction, modalOpen = false, onEnterEncoun
 
       {/* The hall floor: presence marker, the steward (quick resolve), and the
           encounter threshold (walk in and play it out). */}
-      <div style={{ flex: 1, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-around", gap: 16, padding: "12px 20px", minHeight: 0 }}>
-        {/* Presence marker — walks toward the threshold on approach. */}
-        <div style={{ flex: "none", transition: "transform 0.5s ease", transform: walked ? "translateX(22vw)" : "translateX(0)" }}>
-          <Figure color="#6f8f57" label={t("hall.you")} testid="hall-you" />
+      <div style={{ flex: 1, position: "relative", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-around", gap: 16, padding: "12px 20px", minHeight: 0 }}>
+        {/* The GROUND — the hall rendered as a place to stand: plank floor rising
+            behind the figures. Pure CSS pattern (no image assets), display-only. */}
+        <div
+          data-testid="hall-floor"
+          aria-hidden="true"
+          style={{
+            position: "absolute", left: 0, right: 0, bottom: 0, height: "44%",
+            background: "repeating-linear-gradient(90deg, rgba(96,74,44,0.30) 0 30px, rgba(74,58,36,0.30) 30px 60px)",
+            borderTop: "2px solid rgba(107,89,53,0.55)",
+            boxShadow: "inset 0 10px 22px -12px rgba(0,0,0,0.7)",
+          }}
+        />
+        {/* Presence marker — you and your squad, standing as bodies; walks toward
+            the threshold on approach. */}
+        <div style={{ flex: "none", position: "relative", transition: "transform 0.5s ease", transform: walked ? "translateX(22vw)" : "translateX(0)" }}>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 2 }}>
+            <Figure color="#6f8f57" label={t("hall.you")} testid="hall-you" face={<PixelSprite name="person" size={44} />} />
+            {heldParty.length > 0 && (
+              <div data-testid="hall-party-bodies" style={{ display: "flex", alignItems: "flex-end", marginBottom: 18 }}>
+                {heldParty.map((m) => (
+                  <PixelSprite key={m.id} name={spriteForRole(m.role)} size={30} label={m.name} title={`${m.name} · ${m.role}`} style={{ marginLeft: -6 }} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* The steward — an authored person when the cartridge names one, else a
             generic runtime steward. Take the contract in person (quick resolve). */}
-        <div style={groupStyle}>
+        <div style={{ ...groupStyle, position: "relative" }}>
           {/* The authored line, SPOKEN in the scene — a face and words from a person,
               not a status row. Same authored text the dialogue shows, verbatim. */}
           {person && (
@@ -214,7 +245,10 @@ export function HallScene({ world, interaction, modalOpen = false, onEnterEncoun
             label={person ? person.name : t("hall.steward")}
             testid="hall-npc"
             resolved={view.resolved}
-            face={person ? CartridgePortrait({ arcId: world.arc.meta.id, personId: person.id, size: 44 }) : null}
+            face={person
+              ? CartridgeSprite({ arcId: world.arc.meta.id, personId: person.id, size: 52 })
+                ?? CartridgePortrait({ arcId: world.arc.meta.id, personId: person.id, size: 44 })
+              : null}
           />
           {person && (
             <span data-testid="hall-npc-role" style={{ fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8b7d6a" }}>{person.role}</span>
@@ -253,7 +287,7 @@ export function HallScene({ world, interaction, modalOpen = false, onEnterEncoun
         </div>
 
         {/* The encounter threshold — walk in and play it out via the shared shell. */}
-        <div style={groupStyle}>
+        <div style={{ ...groupStyle, position: "relative" }}>
           <div
             data-testid="hall-threshold"
             aria-hidden="true"

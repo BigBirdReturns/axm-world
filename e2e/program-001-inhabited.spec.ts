@@ -44,10 +44,16 @@ test("the hall presents the cartridge as an inhabited scene: a steward holding a
   await expect(page.getByTestId("hall-npc")).toContainText(/Maren Vos/);
   await expect(page.getByTestId("hall-npc-role")).toContainText(/Charter-Keeper/i);
 
-  // #72: she has an authored FACE (keyed by her authored id) and SPEAKS her
-  // authored greeting in the scene, verbatim — a person, not a status row.
-  await expect(page.getByTestId("hall-npc").getByTestId("person-portrait-charter-keeper")).toBeVisible();
+  // #72: she has an authored face and SPEAKS her authored greeting in the scene,
+  // verbatim — a person, not a status row. #73: in the SCENE she stands as her
+  // authored BODY (sprite in the scene; the portrait stays in the close-ups).
+  await expect(page.getByTestId("hall-npc").getByTestId("person-sprite-charter-keeper")).toBeVisible();
   await expect(page.getByTestId("hall-speech")).toContainText(/Take the contract when you're ready/i);
+
+  // #73: the hall is a PLACE — a floor to stand on, and your squad standing with
+  // you as role-keyed bodies (the same recommended party the steward resolves with).
+  await expect(page.getByTestId("hall-floor")).toBeVisible();
+  await expect(page.getByTestId("hall-party-bodies")).toBeVisible();
 
   // Talk: the dialogue presents the authored person, their spoken line, and the
   // authored contract name (cold-start focus, "The Cellar").
