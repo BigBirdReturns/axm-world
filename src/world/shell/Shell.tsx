@@ -18,6 +18,8 @@ import "../themes/first-charter/first-charter.css";
 import { getPresentations, type Representation } from "../presentations.js";
 import { deriveNodeMarkers } from "../worldmap/derive.js";
 import { deriveHallView } from "../inhabited/hall.js";
+import { hallSteward } from "../inhabited/people.js";
+import { CartridgePortrait } from "../themes/CartridgeMotif.js";
 import { loadCostume, saveCostume, isCostumeId } from "../presentation-prefs.js";
 import { useIsMobile } from "../use-viewport.js";
 import { getEngineCoachMessage } from "./coach.js";
@@ -334,10 +336,28 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
       )}
     </div>
   ) : null;
+  // Steward's note — the authored person who HOLDS this contract speaks on the
+  // commit surface: face + their authored greeting, verbatim. Gated on the same
+  // deriveHallView as the hall route, so the note can only appear for the
+  // contract the steward actually holds, and only when the cartridge authors her.
+  const steward = hallSteward(world.cartridge);
+  const stewardNote = selectedHeldInHall && steward ? (
+    <div
+      data-testid="detail-steward-note"
+      style={{ display: "flex", gap: 8, alignItems: "flex-start", marginTop: 8, padding: "8px 10px", background: "rgba(246,239,227,0.96)", border: "2px solid rgba(201,161,74,0.6)" }}
+    >
+      {CartridgePortrait({ arcId: world.arc.meta.id, personId: steward.id, size: 34 })}
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontFamily: "var(--px-font)", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#8a6d2e" }}>{t("shell.stewardNote")}</div>
+        <div style={{ fontFamily: "'Lora', Georgia, serif", fontSize: 12, lineHeight: 1.45, color: "#2a2018" }}>{steward.greeting}</div>
+      </div>
+    </div>
+  ) : null;
   const contract = contractProps ? (
     <div data-testid="contract-detail-stack">
       {world.lastEquip && <EquipFlash event={world.lastEquip} />}
       <ContractRegion {...contractProps} />
+      {stewardNote}
       {playEncounter && <div style={{ marginTop: 8 }}>{playEncounter}</div>}
       {routeRow}
     </div>

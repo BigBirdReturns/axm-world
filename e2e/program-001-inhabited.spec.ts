@@ -44,6 +44,11 @@ test("the hall presents the cartridge as an inhabited scene: a steward holding a
   await expect(page.getByTestId("hall-npc")).toContainText(/Maren Vos/);
   await expect(page.getByTestId("hall-npc-role")).toContainText(/Charter-Keeper/i);
 
+  // #72: she has an authored FACE (keyed by her authored id) and SPEAKS her
+  // authored greeting in the scene, verbatim — a person, not a status row.
+  await expect(page.getByTestId("hall-npc").getByTestId("person-portrait-charter-keeper")).toBeVisible();
+  await expect(page.getByTestId("hall-speech")).toContainText(/Take the contract when you're ready/i);
+
   // Talk: the dialogue presents the authored person, their spoken line, and the
   // authored contract name (cold-start focus, "The Cellar").
   await page.getByTestId("hall-talk").click();

@@ -18,6 +18,7 @@ import { deriveHallView, canTakeContract } from "./hall.js";
 import { hallSteward } from "./people.js";
 import { regionNameForTier } from "../progression.js";
 import { summarizeLedger } from "../ledger.js";
+import { CartridgePortrait } from "../themes/CartridgeMotif.js";
 import { t } from "../i18n/index.js";
 
 // Projected-outcome chrome for the steward's held contract — the same catalog ids
@@ -95,10 +96,14 @@ function ContractPlace(props: { regionName: string; isNext: boolean; testid: str
   );
 }
 
-function Figure(props: { color: string; label: string; testid?: string; resolved?: boolean }): JSX.Element {
+function Figure(props: { color: string; label: string; testid?: string; resolved?: boolean; face?: JSX.Element | null }): JSX.Element {
   return (
     <div style={figureBase} data-testid={props.testid} data-resolved={props.resolved === undefined ? undefined : props.resolved ? "true" : "false"}>
-      <span aria-hidden="true" style={{ width: 26, height: 40, borderRadius: "13px 13px 5px 5px", background: props.color, boxShadow: "0 6px 14px -6px rgba(0,0,0,0.8)" }} />
+      {/* An authored face when the cartridge names this person; the neutral
+          capsule body otherwise — presence is authored, never invented. */}
+      {props.face ?? (
+        <span aria-hidden="true" style={{ width: 26, height: 40, borderRadius: "13px 13px 5px 5px", background: props.color, boxShadow: "0 6px 14px -6px rgba(0,0,0,0.8)" }} />
+      )}
       <span style={{ color: "#a59c8b" }}>{props.label}</span>
     </div>
   );
@@ -194,7 +199,23 @@ export function HallScene({ world, interaction, modalOpen = false, onEnterEncoun
         {/* The steward — an authored person when the cartridge names one, else a
             generic runtime steward. Take the contract in person (quick resolve). */}
         <div style={groupStyle}>
-          <Figure color={view.resolved ? "#74ad77" : "#c9a14a"} label={person ? person.name : t("hall.steward")} testid="hall-npc" resolved={view.resolved} />
+          {/* The authored line, SPOKEN in the scene — a face and words from a person,
+              not a status row. Same authored text the dialogue shows, verbatim. */}
+          {person && (
+            <div
+              data-testid="hall-speech"
+              style={{ maxWidth: 220, padding: "8px 10px", background: "rgba(246,239,227,0.96)", border: "2px solid #4a4238", borderRadius: 6, color: "#2a2018", fontFamily: "'Lora', Georgia, serif", fontSize: 12, lineHeight: 1.45, textTransform: "none", letterSpacing: "normal" }}
+            >
+              {view.resolved ? person.fulfilledLine : person.greeting}
+            </div>
+          )}
+          <Figure
+            color={view.resolved ? "#74ad77" : "#c9a14a"}
+            label={person ? person.name : t("hall.steward")}
+            testid="hall-npc"
+            resolved={view.resolved}
+            face={person ? CartridgePortrait({ arcId: world.arc.meta.id, personId: person.id, size: 44 }) : null}
+          />
           {person && (
             <span data-testid="hall-npc-role" style={{ fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8b7d6a" }}>{person.role}</span>
           )}
@@ -262,7 +283,9 @@ export function HallScene({ world, interaction, modalOpen = false, onEnterEncoun
           data-testid="hall-dialogue"
           style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "14px 16px", borderTop: "1px solid #4a4238", background: "rgba(23,21,15,0.98)", display: "grid", gap: 10 }}
         >
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* The speaker's authored face beside their name — dialogue from a person. */}
+            {person && CartridgePortrait({ arcId: world.arc.meta.id, personId: person.id, size: 30 })}
             <strong data-testid="hall-dialogue-speaker" style={{ color: "#c9a14a", fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase" }}>{person ? person.name : t("hall.steward")}</strong>
             {person && <span style={{ color: "#8b7d6a", fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase" }}>{person.role}</span>}
           </div>
