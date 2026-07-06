@@ -50,3 +50,13 @@ the contract that keeps hub and spoke from drifting (changes to the shared
 surface land in `axm-arc` first; `npm run engine:sync` re-vendors, and CI fails
 on silent divergence). Next step: a cartridge loader (open an arc from a
 file/URL instead of the bundled default).
+
+## Localization
+
+Chrome is translated (en / zh-Hant) via `src/world/i18n/` — the family's
+reference implementation. The one rule: **chrome is the app's to translate;
+arc data flows verbatim** (a cartridge's own vocabulary always wins). A
+coverage-guard test (`tests/world/locale.test.ts`) keeps the catalog honest:
+every English id is translated or explicitly listed EN-only. Normative
+doctrine + adaptation guidance for other stacks lives in
+[axm-genesis `docs/LOCALIZATION.md`](https://github.com/BigBirdReturns/axm-genesis/blob/main/docs/LOCALIZATION.md).
