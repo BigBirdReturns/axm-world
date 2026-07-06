@@ -264,6 +264,7 @@ export type MessageId =
   // ── one world, one route (cross-surface navigation) ──────────────────────
   | "shell.seeOnMap"
   | "shell.takeInPerson"
+  | "shell.stewardNote"
   | "worldMap.stateLocked"
   | "worldMap.stateAvailable"
   | "worldMap.stateActive"
@@ -664,6 +665,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "worldMap.talkToSteward": "Talk to the steward",
     "shell.seeOnMap": "See on map",
     "shell.takeInPerson": "Take in person",
+    "shell.stewardNote": "Steward's note",
     "worldMap.stateLocked": "Locked",
     "worldMap.stateAvailable": "Available",
     "worldMap.stateActive": "Active",
@@ -1025,6 +1027,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "worldMap.talkToSteward": "與管事對話",
     "shell.seeOnMap": "在地圖上查看",
     "shell.takeInPerson": "親自承接",
+    "shell.stewardNote": "管事的備註",
     "worldMap.stateLocked": "鎖定",
     "worldMap.stateAvailable": "可用",
     "worldMap.stateActive": "進行中",

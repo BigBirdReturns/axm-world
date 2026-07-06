@@ -1,5 +1,6 @@
 import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 import { PixelIcon, type PixelIconName } from "./PixelIcon.js";
+import { PixelPortrait, portraitForRole } from "./PixelPortrait.js";
 import { PixelMeter } from "./PixelMeter.js";
 import { PixelPanel } from "./PixelPanel.js";
 import { PixelRoleBadge } from "./PixelRoleBadge.js";
@@ -77,6 +78,9 @@ export function PixelRosterCard(props: PixelRosterCardProps): JSX.Element {
         style={{ cursor: downed || !selectable ? "default" : "pointer" }}
       >
         <div className="pixel-roster-card__header">
+          {/* A face for the body: the member's ROLE (real run data) keyed to its
+              pixel portrait — presence, not a new identity claim. */}
+          <PixelPortrait name={portraitForRole(role)} size={30} data-testid="roster-card-face" style={{ marginRight: 8 }} />
           <div className="pixel-roster-card__identity">
             <strong className="pixel-roster-card__name">{name}</strong>
             <div className="pixel-roster-card__badges">
