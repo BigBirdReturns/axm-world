@@ -16,7 +16,7 @@ import type { ContractRequirements, FixSuggestion, PartyReadiness, ProjectedOutc
 import { DOWNTIME_ACTIONS, downtimeActionLabel } from "../agent-management.js";
 import { attrIcon, roleIcon, itemIcon } from "../theme-icons.js";
 import { CartridgeEmblem } from "../themes/CartridgeMotif.js";
-import { t, useLocale, type Locale } from "../i18n/index.js";
+import { t } from "../i18n/index.js";
 import "../pixel-ui/pixel-ui.css";
 import {
   PixelBadge,
@@ -99,37 +99,11 @@ export function StatusRegion(props: {
 }
 
 // ── Locale switcher ──────────────────────────────────────────────────────
-// A compact EN / zh-Hant toggle, styled to match ViewSwitcher. The option
-// labels themselves come from the catalog (not hardcoded here) so the lone
-// non-ASCII glyph (the zh-Hant option's own label) stays inside
-// i18n/messages.ts per the asset-standard glyph allowlist test, which only
-// exempts pixel-ui/themes/brand/dev/i18n.
+// Lives in components/LocaleSwitcher.tsx so the BOOT surface can mount it
+// without pulling this whole module into the cartridge-select bundle;
+// re-exported here so shell call sites are unchanged.
 
-export function LocaleSwitcher(): JSX.Element {
-  const [locale, setLocale] = useLocale();
-  const options: Array<{ id: Locale; labelId: "locale.enLabel" | "locale.zhHantLabel" }> = [
-    { id: "en", labelId: "locale.enLabel" },
-    { id: "zh-Hant", labelId: "locale.zhHantLabel" },
-  ];
-  return (
-    <div data-testid="locale-switcher" style={{ display: "flex", gap: 4, padding: 4, background: "rgba(23,21,15,0.82)", border: "1px solid #4a4238", pointerEvents: "auto" }}>
-      {options.map((opt) => {
-        const on = opt.id === locale;
-        return (
-          <button
-            key={opt.id}
-            onClick={() => setLocale(opt.id)}
-            data-testid={`locale-option-${opt.id}`}
-            aria-pressed={on}
-            style={{ cursor: "pointer", padding: "5px 11px", border: "none", background: on ? "var(--gold)" : "transparent", color: on ? "var(--ink)" : "#a59c8b", fontFamily: "var(--px-font)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase" }}
-          >
-            {t(opt.labelId)}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+export { LocaleSwitcher } from "../components/LocaleSwitcher.js";
 
 // ── View switcher ────────────────────────────────────────────────────────
 
