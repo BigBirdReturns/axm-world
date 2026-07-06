@@ -7,6 +7,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+      /* The document itself wears the runtime's ink. The boot/shell surfaces are
+         viewport-sized absolute boxes; when their content scrolls past the first
+         viewport, the overflow sits on <body> — which must not flash white. */
+      html, body { margin: 0; background: #0b0a08; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
