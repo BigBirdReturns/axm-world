@@ -22,6 +22,11 @@ export interface SceneProps {
   /** Open the compiled encounter for a challenge directly from a surface (the world
    *  map's ENTER ENCOUNTER). Optional: surfaces that don't offer it omit it. */
   onEnterEncounter?: (challengeId: string) => void;
+  /** Route to another representation of the SAME world state (board/map/hall/…).
+   *  This is what makes the surfaces one navigable place instead of three tabs:
+   *  a scene can hand the player to the surface where the next action lives.
+   *  Same switch the ViewSwitcher uses — no new state, just unified routing. */
+  onNavigate?: (view: CostumeId) => void;
 }
 
 export interface LegendEntry {

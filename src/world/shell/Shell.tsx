@@ -17,6 +17,7 @@ import "../themes/karazhan/karazhan.css";
 import "../themes/first-charter/first-charter.css";
 import { getPresentations, type Representation } from "../presentations.js";
 import { deriveNodeMarkers } from "../worldmap/derive.js";
+import { deriveHallView } from "../inhabited/hall.js";
 import { loadCostume, saveCostume, isCostumeId } from "../presentation-prefs.js";
 import { useIsMobile } from "../use-viewport.js";
 import { getEngineCoachMessage } from "./coach.js";
@@ -188,7 +189,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   const PresentationScene = active.Scene;
   const stage = (
     <div data-testid="representation-region" style={{ position: "absolute", inset: 0 }}>
-      <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} active onEnterEncounter={enterEncounter} />
+      <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} active onEnterEncounter={enterEncounter} onNavigate={choose} />
     </div>
   );
   const contextStrip = <ViewContextStrip rep={active} showPurpose={showPurpose} onDismiss={dismissPurpose} />;
@@ -294,11 +295,51 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
       <PixelIcon name="available" /> <span>{t("encounterShell.playEncounter")}</span>
     </PixelButton>
   ) : null;
+  // One world, one route: the detail panel is the action hub, so it also routes to
+  // the OTHER surfaces of the same contract — the map (every contract is a pin) and,
+  // when this contract is the one the steward holds, the hall (take it in person).
+  // Same deriveHallView the hall and map read; same choose() the ViewSwitcher uses.
+  const hallView = useMemo(() => deriveHallView(world.nodes), [world.nodes]);
+  const selectedHeldInHall = ix.selectedId !== null && hallView.challengeId === ix.selectedId && !hallView.resolved;
+  // On mobile the representation region lives in the "board" step, so routing from
+  // the contract-detail step must also step back — otherwise the costume would
+  // switch invisibly behind the detail sheet. Desktop is a plain view switch.
+  const routeTo = (view: string) => {
+    choose(view);
+    if (isMobile) setMobileStep("board");
+  };
+  const routeRow = ix.selected ? (
+    <div data-testid="detail-route-row" style={{ display: "flex", gap: 6, marginTop: 8 }}>
+      <PixelButton
+        type="button"
+        variant="secondary"
+        data-testid="detail-see-on-map"
+        disabled={modalOpen}
+        onClick={() => routeTo("map")}
+        style={{ flex: 1, minHeight: 36, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+      >
+        <PixelIcon name="available" /> <span>{t("shell.seeOnMap")}</span>
+      </PixelButton>
+      {selectedHeldInHall && (
+        <PixelButton
+          type="button"
+          variant="secondary"
+          data-testid="detail-take-in-person"
+          disabled={modalOpen}
+          onClick={() => routeTo("hall")}
+          style={{ flex: 1, minHeight: 36, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+        >
+          <PixelIcon name="recorded" /> <span>{t("shell.takeInPerson")}</span>
+        </PixelButton>
+      )}
+    </div>
+  ) : null;
   const contract = contractProps ? (
     <div data-testid="contract-detail-stack">
       {world.lastEquip && <EquipFlash event={world.lastEquip} />}
       <ContractRegion {...contractProps} />
       {playEncounter && <div style={{ marginTop: 8 }}>{playEncounter}</div>}
+      {routeRow}
     </div>
   ) : null;
   const mobileStickyFooter: CSSProperties = {

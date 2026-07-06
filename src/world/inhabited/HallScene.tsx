@@ -20,6 +20,22 @@ import { regionNameForTier } from "../progression.js";
 import { summarizeLedger } from "../ledger.js";
 import { t } from "../i18n/index.js";
 
+// Projected-outcome chrome for the steward's held contract — the same catalog ids
+// and tones the encounter's deploy control uses, so the hall speaks the board's
+// squad-fit language rather than minting a new verdict vocabulary.
+const PROJ_LABEL: Record<string, "encounterShell.projReliable" | "encounterShell.projRisky" | "encounterShell.projFailing" | "encounterShell.projNone"> = {
+  success: "encounterShell.projReliable",
+  partial: "encounterShell.projRisky",
+  failure: "encounterShell.projFailing",
+  none: "encounterShell.projNone",
+};
+const PROJ_COLOR: Record<string, string> = {
+  success: "#74ad77",
+  partial: "#c9a14a",
+  failure: "#b01c18",
+  none: "#8b7d6a",
+};
+
 const wrap: CSSProperties = {
   position: "absolute",
   inset: 0,
@@ -88,7 +104,7 @@ function Figure(props: { color: string; label: string; testid?: string; resolved
   );
 }
 
-export function HallScene({ world, modalOpen = false, onEnterEncounter }: SceneProps): JSX.Element {
+export function HallScene({ world, interaction, modalOpen = false, onEnterEncounter, onNavigate }: SceneProps): JSX.Element {
   const [open, setOpen] = useState(false);
   const [atThreshold, setAtThreshold] = useState(false);
   const view = deriveHallView(world.nodes);
@@ -114,6 +130,20 @@ export function HallScene({ world, modalOpen = false, onEnterEncounter }: SceneP
   const lootPending = world.pendingLoot.length > 0;
   const canTake = canTakeContract(view, world.pendingLoot.length);
   const walked = canTake && atThreshold;
+  // Party status for the steward's contract — the SAME resolver-faithful projection
+  // the board and encounter read (evaluateParty over the recommended party), so the
+  // hall's verdict can never disagree with the other surfaces. Display-only.
+  const heldReadiness = view.challengeId && !view.resolved
+    ? world.evaluateParty(view.challengeId, world.recommendedParty(view.challengeId))
+    : null;
+
+  // Route to the board with the steward's contract selected: the same interaction
+  // selection + view switch the shell already owns — one place, one route into play.
+  const viewOnBoard = (): void => {
+    if (!view.challengeId) return;
+    interaction.select(view.challengeId);
+    onNavigate?.("board");
+  };
 
   const accept = (): void => {
     if (!canTake || !view.challengeId) return;
@@ -176,9 +206,27 @@ export function HallScene({ world, modalOpen = false, onEnterEncounter }: SceneP
           {view.challengeId && regionName && (
             <ContractPlace regionName={regionName} isNext={!view.resolved} testid="hall-contract-region" />
           )}
+          {/* Party status for the held contract — the same projection the board reads
+              (evaluateParty over the recommended party), so surfaces agree. */}
+          {heldReadiness && (
+            <span
+              data-testid="hall-party-status"
+              data-projected={heldReadiness.projectedOutcome}
+              style={{ fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", color: PROJ_COLOR[heldReadiness.projectedOutcome] ?? "#8b7d6a" }}
+            >
+              {t("encounterShell.projected")}: {t(PROJ_LABEL[heldReadiness.projectedOutcome] ?? "encounterShell.projNone")}
+            </span>
+          )}
           {view.challengeId && (
             <button type="button" data-testid="hall-talk" disabled={modalOpen} onClick={() => setOpen(true)} style={{ ...btnGhost, cursor: modalOpen ? "not-allowed" : "pointer" }}>
               {t("hall.talk")}
+            </button>
+          )}
+          {/* One route into play: the hall hands the player to the board with THIS
+              contract selected — same selection + view switch the shell owns. */}
+          {view.challengeId && onNavigate && (
+            <button type="button" data-testid="hall-view-on-board" disabled={modalOpen} onClick={viewOnBoard} style={{ ...btnGhost, cursor: modalOpen ? "not-allowed" : "pointer" }}>
+              {t("hall.viewOnBoard")}
             </button>
           )}
         </div>
