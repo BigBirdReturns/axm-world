@@ -248,6 +248,7 @@ export type MessageId =
   | "hall.offering"
   | "hall.fulfilled"
   | "hall.talk"
+  | "hall.viewOnBoard"
   | "hall.accept"
   | "hall.leave"
   | "hall.recordedNote"
@@ -259,6 +260,10 @@ export type MessageId =
   | "hall.enterEncounter"
   | "worldMap.difficulty"
   | "worldMap.enterEncounter"
+  | "worldMap.talkToSteward"
+  // ── one world, one route (cross-surface navigation) ──────────────────────
+  | "shell.seeOnMap"
+  | "shell.takeInPerson"
   | "worldMap.stateLocked"
   | "worldMap.stateAvailable"
   | "worldMap.stateActive"
@@ -644,6 +649,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "hall.offering": "Has a contract for you",
     "hall.fulfilled": "Contract fulfilled",
     "hall.talk": "Talk",
+    "hall.viewOnBoard": "View on board",
     "hall.accept": "Accept & resolve",
     "hall.leave": "Leave",
     "hall.recordedNote": "This contract is recorded in the world.",
@@ -655,6 +661,9 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "hall.enterEncounter": "Enter encounter",
     "worldMap.difficulty": "Difficulty",
     "worldMap.enterEncounter": "Enter Encounter",
+    "worldMap.talkToSteward": "Talk to the steward",
+    "shell.seeOnMap": "See on map",
+    "shell.takeInPerson": "Take in person",
     "worldMap.stateLocked": "Locked",
     "worldMap.stateAvailable": "Available",
     "worldMap.stateActive": "Active",
@@ -1001,6 +1010,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "hall.offering": "有一份契約給你",
     "hall.fulfilled": "契約已履行",
     "hall.talk": "對話",
+    "hall.viewOnBoard": "在契約板上查看",
     "hall.accept": "承接並結算",
     "hall.leave": "離開",
     "hall.recordedNote": "此契約已記錄於世界中。",
@@ -1012,6 +1022,9 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "hall.enterEncounter": "進入遭遇",
     "worldMap.difficulty": "難度",
     "worldMap.enterEncounter": "進入遭遇",
+    "worldMap.talkToSteward": "與管事對話",
+    "shell.seeOnMap": "在地圖上查看",
+    "shell.takeInPerson": "親自承接",
     "worldMap.stateLocked": "鎖定",
     "worldMap.stateAvailable": "可用",
     "worldMap.stateActive": "進行中",

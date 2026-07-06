@@ -35,13 +35,23 @@ const REGION_STATUS_LABEL: Record<RegionStatus, "worldMap.regionLocked" | "world
   complete: "worldMap.regionComplete",
 };
 
-export function WorldMapScene({ world, interaction: ix, onEnterEncounter }: SceneProps): JSX.Element {
+export function WorldMapScene({ world, interaction: ix, onEnterEncounter, onNavigate }: SceneProps): JSX.Element {
   const map = deriveWorldMap(world.nodes, world.cartridge.arc, ix.selectedId);
   const arcId = world.arc.meta.id;
   // Authored cartridge content — the world's own name — flows verbatim; it frames
   // the map as this cartridge's world rather than a generic node graph.
   const worldName = world.cartridge.manifest.name;
   const pct = map.total > 0 ? Math.round((map.recorded / map.total) * 100) : 0;
+  // World-state roll-up: how many contracts sit in each state, counted from the SAME
+  // derived pins the map renders (the one "next" counts as its own bucket). Numbers
+  // over the legend's vocabulary — a summary of what is already on screen, no new state.
+  const pins = map.regions.flatMap((r) => r.locations);
+  const counts = {
+    next: pins.filter((p) => p.next).length,
+    available: pins.filter((p) => p.state === "available" && !p.next).length,
+    locked: pins.filter((p) => p.state === "locked").length,
+    recorded: pins.filter((p) => p.state === "recorded").length,
+  };
 
   return (
     <div className="wm-surface" data-testid="world-map">
@@ -54,6 +64,14 @@ export function WorldMapScene({ world, interaction: ix, onEnterEncounter }: Scen
           <span className="wm-progress-count">{t("worldMap.recordedOf", { recorded: map.recorded, total: map.total })}</span>
           <span className="wm-progress-track" aria-hidden="true">
             <span className="wm-progress-fill" style={{ width: `${pct}%` }} />
+          </span>
+          {/* State roll-up in the legend's own vocabulary — counts of what the pins
+              below already show, so the world reads at a glance. */}
+          <span data-testid="wm-state-summary" style={{ display: "inline-flex", gap: 8, flexWrap: "wrap", fontSize: 10, color: "#8b8172" }}>
+            {counts.next > 0 && <span data-testid="wm-count-next" data-count={counts.next}>{counts.next} {t("worldMap.nextContract")}</span>}
+            {counts.available > 0 && <span data-testid="wm-count-available" data-count={counts.available}>{counts.available} {t("worldMap.stateAvailable")}</span>}
+            {counts.locked > 0 && <span data-testid="wm-count-locked" data-count={counts.locked}>{counts.locked} {t("worldMap.stateLocked")}</span>}
+            {counts.recorded > 0 && <span data-testid="wm-count-recorded" data-count={counts.recorded}>{counts.recorded} {t("worldMap.stateRecorded")}</span>}
           </span>
         </div>
       </header>
@@ -150,6 +168,22 @@ export function WorldMapScene({ world, interaction: ix, onEnterEncounter }: Scen
                       }}
                     >
                       {t("worldMap.enterEncounter")}
+                    </button>
+                  )}
+                  {/* The map's ONE next contract is the same one the steward holds
+                      (shared derivation) — so the pin routes to the hall, where it
+                      can be taken in person. One place, one route into play. */}
+                  {loc.next && onNavigate && (
+                    <button
+                      type="button"
+                      className="wm-enter"
+                      data-testid={`wm-go-hall-${loc.challengeId}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onNavigate("hall");
+                      }}
+                    >
+                      {t("worldMap.talkToSteward")}
                     </button>
                   )}
                   {loc.state === "recorded" && <span className="wm-recorded-mark" data-testid={`wm-recorded-${loc.challengeId}`} aria-hidden="true">✓</span>}
