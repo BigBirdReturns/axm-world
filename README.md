@@ -48,8 +48,11 @@ Early. The engine, tutorial arc, and engine tests are vendored from `axm-arc`
 and pinned to an exact commit — see [RECONCILIATION.md](RECONCILIATION.md) for
 the contract that keeps hub and spoke from drifting (changes to the shared
 surface land in `axm-arc` first; `npm run engine:sync` re-vendors, and CI fails
-on silent divergence). Next step: a cartridge loader (open an arc from a
-file/URL instead of the bundled default).
+on silent divergence). The boot screen imports any `.arc.json` cartridge —
+validated by the same vendored seam, with a per-cartridge save ledger keyed
+by content digest (`cart1_…`). The full authorship-to-play pipeline is
+family doctrine:
+[axm-genesis `docs/CARTRIDGE_LIFECYCLE.md`](https://github.com/BigBirdReturns/axm-genesis/blob/main/docs/CARTRIDGE_LIFECYCLE.md).
 
 ## Localization
 
