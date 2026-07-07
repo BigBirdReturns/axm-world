@@ -1,0 +1,54 @@
+import { test, expect } from "@playwright/test";
+import { fileURLToPath } from "node:url";
+
+// PR 010 — the appliance capstone receipt: first-lockout, authored in axm-arc,
+// imported into world through the real boot importer, boots in the embodied
+// client and renders the SAME computed cart1_ digest that arc pins. This is the
+// two-client model proven end-to-end in the running UI: one cartridge, two
+// expressions (arc's management surface, world's appliance), one identity.
+//
+// Authored receipt — runs via `npm run test:e2e`, intentionally NOT CI-gated
+// (see playwright.config.ts). The digest-identity and encounter/ledger logic are
+// proven in vitest (tests/world/appliance-*.test.ts); this drives the real app.
+
+// The pin arc's conformance test fixes (axm-arc tests/cartridges/first-lockout.test.ts)
+// and the file imported here is the same artifact (src/world/appliance).
+const FIRST_LOCKOUT_DIGEST =
+  "cart1_3cc60c051cc5a6834cbdaa60756563669850a0e7b8f4d22f947a71dd645f95c5";
+const CARTRIDGE_FILE = fileURLToPath(
+  new URL("../src/world/appliance/first-lockout.arc.json", import.meta.url),
+);
+
+test("first-lockout imports and boots in the appliance client under arc's digest", async ({ page }, testInfo) => {
+  await page.goto("/axm-world/game/");
+
+  // Import through the real appliance seam — the visually-hidden boot file input.
+  await page.setInputFiles('[data-testid="open-cartridge"]', CARTRIDGE_FILE);
+
+  // It lands in the bay as an imported cartridge, under its own authored name.
+  const entry = page.getByTestId("cartridge-entry-first-lockout");
+  await expect(entry).toBeVisible();
+  await expect(entry).toContainText(/First Lockout/i);
+
+  // Enter it. An imported cartridge carries no authored opening, so we land
+  // straight in the embodied shell — no opening decision to resolve.
+  await page.getByTestId("play-cartridge-first-lockout").click();
+
+  // The embodied shell loaded, carrying first-lockout's own authored name.
+  const strip = page.getByTestId("program-identity-strip");
+  await expect(strip).toBeVisible();
+  await expect(strip).toContainText(/First Lockout/i);
+
+  // THE PROOF: the in-shell identity is the exact computed digest arc pins —
+  // same content, same identity, a different client (the two-client model, live).
+  await expect(page.getByTestId("strip-digest")).toHaveAttribute("title", FIRST_LOCKOUT_DIGEST);
+
+  // Honesty check: first-lockout is imported, NOT world's program of record, so
+  // the "PROGRAM 001 / program of record" framing must not attach to it.
+  await expect(page.getByTestId("strip-program")).toHaveCount(0);
+
+  await page.screenshot({
+    path: testInfo.outputPath("first-lockout-appliance.png"),
+    fullPage: true,
+  });
+});
