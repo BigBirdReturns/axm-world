@@ -15,10 +15,11 @@ import {
 import { programForCartridge } from "./program-of-record.js";
 import { readProgramSaveSummary } from "./save.js";
 import { CartridgeBayCard } from "./components/CartridgeBayCard.js";
+import { LocaleSwitcher } from "./components/LocaleSwitcher.js";
 import { RodohRuntimeMark } from "./brand/RodohRuntimeMark.js";
 import "./themes/karazhan/karazhan.css";
 import { PixelButton, PixelIcon } from "./pixel-ui/index.js";
-import { t } from "./i18n/index.js";
+import { t, useLocale } from "./i18n/index.js";
 
 // Lazy: the world pulls in three.js / R3F (~1MB). Keep it out of the entry bundle so
 // the cartridge-select screen is instant; three only loads when a cartridge is played.
@@ -54,6 +55,9 @@ const visuallyHidden: CSSProperties = {
 };
 
 export function Player(): JSX.Element {
+  // Subscribe the boot surface to the locale so its copy re-translates the moment
+  // the toggle below is used (the persisted choice otherwise only reads at load).
+  useLocale();
   const [cartridge, setCartridge] = useState<Cartridge | null>(null);
   const [entries, setEntries] = useState<CartridgeBayEntry[]>(() => ensureBundledCartridges());
   const [importErrors, setImportErrors] = useState<string[] | null>(null);
@@ -110,8 +114,12 @@ export function Player(): JSX.Element {
   return (
     <div style={screen}>
       <div style={{ width: "min(560px, 92vw)" }}>
-        <div style={{ marginBottom: 18 }}>
+        {/* The runtime mark, with the language toggle beside it — the boot surface
+            must offer the same EN / zh-Hant switch the shell has, or a persisted
+            choice locks the player out of the other language before they enter. */}
+        <div style={{ marginBottom: 18, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
           <RodohRuntimeMark variant="boot" label="RODOH RUNTIME v1.0" caption={t("boot.holdTheLoop")} />
+          <LocaleSwitcher />
         </div>
         <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase", color: "#6f8f57" }}>
           {t("boot.runtimeEyebrow")}

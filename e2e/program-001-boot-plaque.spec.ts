@@ -76,3 +76,19 @@ test("after one contract, the same plaque reads resumable, counts the ledger, an
   await expect(page.getByTestId("ledger-entry")).toHaveCount(1);
   await expect(page.getByTestId("ledger-entry").first()).toContainText(/Cellar/i);
 });
+
+test("the boot surface carries the language toggle: a persisted zh-Hant choice never locks the bay", async ({ page }) => {
+  await gotoBay(page);
+
+  // The same EN / zh-Hant switch the shell has, available BEFORE entering — so a
+  // choice persisted inside a cartridge can always be changed from the bay.
+  await expect(page.getByTestId("locale-switcher")).toBeVisible();
+  await page.getByTestId("locale-option-zh-Hant").click();
+  await expect(page.locator("h1")).toContainText("會記憶的卡匣世界");
+
+  // The choice persists across reload — and the bay still offers the way back.
+  await page.reload();
+  await expect(page.locator("h1")).toContainText("會記憶的卡匣世界");
+  await page.getByTestId("locale-option-en").click();
+  await expect(page.locator("h1")).toContainText(/Cartridge worlds that remember/i);
+});

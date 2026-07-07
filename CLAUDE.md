@@ -1,38 +1,89 @@
-# axm-world — notes for Claude sessions
+# AXM-WORLD / RODOH — read this before you build
 
-Start with `README.md` and `RECONCILIATION.md`, then **axm-genesis
-`docs/CONTINUITY.md`** (the family's laws and operating doctrine — read
-it before designing anything).
+The mission is to make games fun again. Fun, here, is not juice or gacha — it is
+**consequence and memory**: a world that honestly remembers what you did. The
+runtime records the run; the cartridge stays yours. Everything below exists to
+protect that.
 
-## Ground rules
+For the family-level laws and how they're amended — the succession document that
+governs all AXM repos, not just this one — read **axm-genesis
+`docs/CONTINUITY.md`** before designing anything that crosses repo boundaries.
+The vendored-surface discipline below is one of its laws; the constitution here
+is world's local expression of the rest.
 
-- **NEVER edit the vendored surface in place**: `src/engine`,
-  `src/arcs`, `tests/engine`, `tests/fixtures` are vendored from axm-arc,
-  pinned in `src/engine/VENDORED_FROM`, and the `engine-drift` CI job
-  fails on any divergence. Engine changes land in axm-arc FIRST, then
-  `scripts/sync-engine.sh <ref>` re-vendors and moves the pin. If you
-  find a bug in a vendored file, fix it in arc.
-- **NOT vendored** (world-owned): `src/world/`, `src/play-pipeline/`,
-  `cartridges/`, `tests/world/`. The boot importer
-  (`src/world/cartridge-bay.ts`) validates through the same vendored
-  seam; per-cartridge saves are keyed by content digest (`cart1_…`).
-- **The grammar rule:** chrome is translated via `src/world/i18n/` (the
-  family's reference implementation; typed catalog, en + zh-Hant,
-  coverage-guard test `tests/world/locale.test.ts`); cartridge data flows
-  verbatim. Compiled pipeline labels are chrome — they're catalogued
-  (`pipeline.*`) and the scene memo depends on locale.
-- **Determinism:** codepoint compare, never `localeCompare`; no
-  locale-sensitive behavior in engine paths. This was a real shipped bug
-  once (host-locale collation in `orderedAgentIds`); don't reintroduce it.
-- **PWA:** the service worker is emitted by an inline Vite plugin from
-  `scripts/sw.template.js` — token substitution MUST use `replaceAll`
-  (a single `.replace()` once hit the token's mention in the template's
-  own header comment and shipped a SW that threw on evaluation).
+## The constitution
 
-## Testing
+`docs/adr/0002-platform-constitution.md` — six durable choices, guard-enforced
+(`tests/world/constitution.test.ts`). Short form:
 
-Purge tsc emits before every run (stale `.js` shadows `.ts` under
-vitest): `find src tests \( -name "*.js" -o -name "*.js.map" -o -name "*.d.ts" \) -delete && rm -f tsconfig.tsbuildinfo`.
-Then `npm run typecheck`, `npm test`, `npm run build` (emits
-`docs/game`, which deploys). Offline/import behavior gets headless
-drills — scripts and solved gotchas in axm-arc `docs/drills/`.
+1. The cartridge belongs to its holder — playing never requires a server.
+2. Identity is computed, not claimed — trust is a layer, never a gate.
+3. Memory belongs to the run — the ledger exports with it, old records migrate.
+4. The dev kit is free and the dev kit is the product.
+5. Old cartridges always boot.
+6. The runtime may not claim what it cannot prove.
+
+A PR that weakens an article must amend the ADR explicitly. Deleting a guard is
+amending the constitution.
+
+## Working discipline (proven over #59–#76)
+
+- **Honest layers, in order:** make the current truth readable → make it
+  embodied → only then record richer truth. Never render a fact the engine or a
+  stored record can't back (no invented rewards, no aspirational unlocks, no
+  prose stored as truth, no wall-clock where the schema has none).
+- **Scope walls:** display PRs never touch schema/resolver/save; schema PRs
+  never touch UI. Engine data values (e.g. `node.status "cleared"`) are never
+  renamed — only chrome changes. Authored cartridge content flows verbatim.
+- **One pure helper, two surfaces:** any state two surfaces show must come from
+  one shared derivation (`deriveHallView`, `deriveWorldMap`, `card-axes`,
+  `summarizeLedger`, `evaluateParty`) so surfaces can never disagree.
+- **Two axes never blur:** the outcome grade (Cleared / Partial / Failed) and
+  the memory state (Recorded) are different facts.
+- **i18n:** all runtime chrome routes through `t()` (en + zh-Hant). Guards:
+  `locale.test.ts`, `i18n-coverage.test.ts` (allowlist), `EN_ONLY_IDS` for
+  deliberate exceptions.
+- **Asset standard:** pixel art is hand-authored character grids with
+  `Source:/Grid:/Encoding:` provenance headers, tiny declared alphabets, and
+  per-module palettes — only under `pixel-ui/`, `themes/`, `brand/`. Guarded by
+  `asset-standard.test.ts`, `faces.test.ts`, `places.test.ts`. No image-file
+  dependencies in runtime scenes; no emoji glyphs outside the allowlist.
+- **Ship discipline:** branch fresh from main → `npm run check` green → e2e
+  receipts for what you touched (`npx playwright test <spec> --project=desktop`
+  and `--project=mobile`) → preview screenshots before merge for anything
+  visual → PR → CI green + review threads resolved → squash-merge → confirm
+  main's `test.yml` green on the merge commit. If the automated reviewer is
+  unavailable, run an adversarial self-review — it has caught real bugs.
+
+## Commands
+
+- `npm run check` — typecheck + vitest (CI gate).
+- `npm run test:e2e` — Playwright receipts (desktop + mobile; NOT CI-gated).
+- `npm run dev` / `npm run build` — Vite; Pages deploys `docs/game` on main push.
+
+## Where things live
+
+- `src/engine/` — vendored resolver/state (drift-checked against axm-arc; don't
+  hand-edit shared surface).
+- `src/world/` — the runtime shell: `useArcWorld` (state), `ledger.ts` +
+  `consequence.ts` (memory), `shell/` (regions), `worldmap/`, `inhabited/`
+  (hall), `encounter/`, `pixel-ui/` (kit), `themes/` (per-cartridge seam:
+  motifs, portraits, sprites via `CartridgeMotif.tsx` dispatchers).
+- `docs/adr/` — decisions. `docs/design/` — specs and the visual contract.
+
+## Where the road goes next (decision owner: the human)
+
+Program 001 feels good (#59–#73). The platform lanes, in their stated order:
+
+1. **Dignity pass** — Karazhan (the second cartridge) made first-class; proves
+   the runtime generalizes. Open call: whether Karazhan gets authored people.
+2. **Library screen** — the bay grows into a real library (emblems, save
+   summaries, import/update/remove).
+3. **Creator packaging** — author → validate → digest → export `.cart`; closes
+   the creator round trip (Article 4 made real).
+4. **Alive-world models** — calendar, settlement (Prosperity/Trust/Safety),
+   board economy: each is a schema decision the human specs first (#69-style),
+   never faked in UI.
+
+Whoever you are — human or model — the bar is the same: the world must never
+lie about what happened in it. That's the fun.
