@@ -19,7 +19,25 @@
 //             surface, world's embodied appliance). Guarded below and in
 //             tests/world/appliance-first-lockout.test.ts.
 
+import type { Arc } from "../../engine/types.js";
 import firstLockoutArc from "./first-lockout.arc.json";
+
+/**
+ * The roster size an appliance boot needs to actually field this cartridge's
+ * encounters: the largest party any of its challenges asks for. A raid boss
+ * that wants 8–10 agents cannot be fielded from the hall bootstrap's default
+ * of 6 — so the appliance reads the requirement from the cartridge rather than
+ * assuming a size. Falls back to `undefined` (bootstrap's own default) when a
+ * cartridge declares no roster requirements.
+ */
+export function applianceRosterSize(arc: Arc): number | undefined {
+  let max = 0;
+  for (const challenge of arc.challenges) {
+    const req = challenge.rosterRequirements;
+    if (req?.maxAgents) max = Math.max(max, req.maxAgents);
+  }
+  return max > 0 ? max : undefined;
+}
 
 /**
  * The digest first-lockout must resolve to in world, pinned from arc's
