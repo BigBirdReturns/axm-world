@@ -130,3 +130,46 @@ describe("bay memory: a committed ledger for an imported cartridge surfaces the 
     // into "render nothing" — this test proves the DATA behind that guard.
   });
 });
+
+describe("PR 057 — classic-row save-state indicator (bay-save-state)", () => {
+  const card = read("src/world/components/CartridgeBayCard.tsx");
+
+  it("ClassicRow renders a save-state line, reusing the same `save` prop as MemoryLine", () => {
+    expect(card).toContain('data-testid="bay-save-state"');
+    expect(card).toContain("function SaveStateLine({ save }: { save: ProgramSaveSummary | null })");
+    // Same documented semantics the ProgramPlaque already uses: `save !== null`
+    // ⇒ resumable. No second derivation invented for the classic row.
+    expect(card).toContain("const resumable = save !== null;");
+    expect(card).toContain("<SaveStateLine save={save} />");
+  });
+
+  it("uses the honest wording pair: reuses boot.resumable, but a neutral boot.freshEntry (not boot.freshProgram)", () => {
+    // boot.freshProgram says "program" — true of the ProgramPlaque, a lie on a
+    // classic row (an imported cartridge, or Karazhan, are never "a program").
+    // SaveStateLine must not reach for that copy.
+    const saveStateFn = card.slice(card.indexOf("function SaveStateLine"), card.indexOf("function ClassicRow"));
+    expect(saveStateFn).toContain('t("boot.resumable")');
+    expect(saveStateFn).toContain('t("boot.freshEntry")');
+    expect(saveStateFn).not.toContain('t("boot.freshProgram")');
+  });
+
+  it("the underlying save-presence facts drive resumable vs fresh exactly as documented", () => {
+    // Logic-level proof of the same `save !== null` decision SaveStateLine
+    // renders: a never-played cartridge has no save slot (fresh); a played one
+    // (committed through the real persistence seam) does (resumable).
+    const cartridge = bootFirstLockout();
+    const digest = cartridgeIdentity(cartridge);
+    const storage = fakeStorage();
+
+    const freshSave = readProgramSaveSummary(storage, { arc: cartridge.arc, authoredArcDigest: digest });
+    expect(freshSave).toBeNull(); // fresh: no save slot exists yet
+
+    let ledger = emptyLedger(digest);
+    ledger = appendResult(ledger, { challengeId: "the-gate-warden", challengeName: "The Gate-Warden", outcome: "success", cycle: 1 });
+    const org = bootstrapOrg(cartridge.arc);
+    saveRun(storage, { arc: cartridge.arc, authoredArcDigest: digest, state: { org, ledger } });
+
+    const resumableSave = readProgramSaveSummary(storage, { arc: cartridge.arc, authoredArcDigest: digest });
+    expect(resumableSave).not.toBeNull(); // resumable: a genuine save slot now exists
+  });
+});

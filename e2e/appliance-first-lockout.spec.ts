@@ -134,12 +134,28 @@ test("first-lockout imports and boots in the appliance client under arc's digest
   await expect(memory).toContainText(/1 recorded/i);
   await expect(memory).toContainText(/The Gate-Warden/);
 
+  // PR 057 — save summaries in the bay: the classic row's missing piece vs.
+  // the ProgramPlaque, resumable/fresh, read from the SAME `save` prop as the
+  // memory line above (no new derivation). The played entry now has a genuine
+  // save slot (the run was committed and saved on resolve), so it reads
+  // resumable — the exact same fact the ProgramPlaque would show for a
+  // program of record.
+  const saveState = returnedEntry.getByTestId("bay-save-state");
+  await expect(saveState).toBeVisible();
+  await expect(saveState).toContainText(/resumable/i);
+
   // Honesty check the other way: a bundled cartridge that was NEVER played
   // this session (Karazhan) has no ledger to speak of, so its bay entry
   // surfaces nothing here — omission, not a fabricated "fresh" claim.
   const karazhanEntry = page.getByTestId("cartridge-entry-karazhan");
   await expect(karazhanEntry).toBeVisible();
   await expect(karazhanEntry.getByTestId("bay-memory")).toHaveCount(0);
+
+  // Karazhan was never played, so it has no save slot — honestly fresh, not
+  // "resumable". This is the same `save !== null` fact, just the other side.
+  const karazhanSaveState = karazhanEntry.getByTestId("bay-save-state");
+  await expect(karazhanSaveState).toBeVisible();
+  await expect(karazhanSaveState).toContainText(/fresh/i);
 
   await page.screenshot({
     path: testInfo.outputPath("first-lockout-bay-memory.png"),

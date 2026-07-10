@@ -227,6 +227,27 @@ function MemoryLine({ save }: { save: ProgramSaveSummary | null }): JSX.Element 
   );
 }
 
+/** RFC PR 057 — save summaries in the bay. The classic row's missing piece
+ *  vs. the ProgramPlaque: resumable/fresh, read the same way the plaque reads
+ *  it — `save !== null` (see save.ts's `ProgramSaveSummary` doc: "Present ⇒
+ *  the run is genuinely resumable"). No new derivation, no wall-clock: this is
+ *  the exact same `save` prop `MemoryLine` already renders, just naming the
+ *  other honest fact it carries. "boot.freshProgram" says "program", which
+ *  would lie on a classic row (an imported cartridge, or Karazhan, are never
+ *  "a program") — so fresh uses the neutral "boot.freshEntry" pair added for
+ *  this PR, while "boot.resumable" carries no such claim and is reused as-is. */
+function SaveStateLine({ save }: { save: ProgramSaveSummary | null }): JSX.Element {
+  const resumable = save !== null;
+  return (
+    <div
+      data-testid="bay-save-state"
+      style={{ fontFamily: mono, fontSize: 10, color: resumable ? "#74ad77" : "#8b8172", marginTop: 2 }}
+    >
+      {resumable ? t("boot.resumable") : t("boot.freshEntry")}
+    </div>
+  );
+}
+
 /** The plain bay row every cartridge had before the plaque: name, meta, trust,
  *  and Enter. Used for any cartridge that is not a program of record. */
 function ClassicRow({ entry, cartridge, digest, save, onEnter, onRemove }: Omit<Props, "program">): JSX.Element {
@@ -257,6 +278,7 @@ function ClassicRow({ entry, cartridge, digest, save, onEnter, onRemove }: Omit<
             {t("boot.cartridgeMeta", { domain: c.manifest.domain, engine: c.manifest.engineVersion, count: c.arc.challenges.length })}
           </div>
           <DigestLine digest={digest} />
+          <SaveStateLine save={save} />
           <MemoryLine save={save} />
         </div>
       </div>
