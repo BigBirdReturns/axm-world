@@ -30,6 +30,9 @@ interface Props {
   /** A summary of this program's save slot, or null when fresh / not a program
    *  of record. Present ⇒ the run is genuinely resumable. */
   save: ProgramSaveSummary | null;
+  /** This entry's computed content-identity digest (`cartridgeIdentity` of the
+   *  resolved cartridge) — shown verbatim, never a claimed manifest value. */
+  digest: string;
   onEnter: () => void;
   onRemove: () => void;
 }
@@ -89,8 +92,29 @@ function RemoveButton({ entry, onRemove }: { entry: CartridgeBayEntry; onRemove:
   );
 }
 
+/** Content-identity digest line (arc-072 parity): short form visible, full
+ *  digest carried verbatim in `title` and `aria-label` — the one honest
+ *  identity fact every bay entry names, computed on read, never invented. */
+function DigestLine({ digest }: { digest: string }): JSX.Element {
+  const short = `${digest.slice(0, 12)}…`;
+  return (
+    <div style={{ fontFamily: mono, fontSize: 10, color: "#8b8172", marginTop: 2, display: "flex", alignItems: "baseline", gap: 4 }}>
+      <span style={{ color: "#6b6050" }}>{t("boot.identity")}</span>
+      <span
+        data-testid="bay-digest"
+        className="bay-digest"
+        title={digest}
+        aria-label={`${t("boot.identity")}: ${digest}`}
+        style={{ color: "#8b8172", wordBreak: "break-all" }}
+      >
+        {short}
+      </span>
+    </div>
+  );
+}
+
 /** The program-of-record plaque: an elevated, single-object bay entry. */
-function ProgramPlaque({ entry, cartridge, program, save, onEnter }: Omit<Props, "onRemove">): JSX.Element {
+function ProgramPlaque({ entry, cartridge, program, save, digest, onEnter }: Omit<Props, "onRemove">): JSX.Element {
   const c = cartridge;
   const resumable = save !== null;
   const last = save?.lastResult ?? null;
@@ -133,10 +157,12 @@ function ProgramPlaque({ entry, cartridge, program, save, onEnter }: Omit<Props,
         <span style={{ fontFamily: mono, fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", color: "#a59c8b", flex: "none" }}>{t("boot.identity")}</span>
         <span
           data-testid={`bay-cartridge-digest-${entry.arc.meta.id}`}
-          title={program!.authoredArcDigest}
+          className="bay-digest"
+          title={digest}
+          aria-label={`${t("boot.identity")}: ${digest}`}
           style={{ fontFamily: mono, fontSize: 10, lineHeight: 1.4, color: "#d8cfbd", textAlign: "right", wordBreak: "break-all" }}
         >
-          {program!.authoredArcDigest}
+          {digest}
         </span>
       </div>
 
@@ -179,7 +205,7 @@ function ProgramPlaque({ entry, cartridge, program, save, onEnter }: Omit<Props,
 
 /** The plain bay row every cartridge had before the plaque: name, meta, trust,
  *  and Enter. Used for any cartridge that is not a program of record. */
-function ClassicRow({ entry, cartridge, onEnter, onRemove }: Omit<Props, "program" | "save">): JSX.Element {
+function ClassicRow({ entry, cartridge, digest, onEnter, onRemove }: Omit<Props, "program" | "save">): JSX.Element {
   const c = cartridge;
   const isKarazhan = entry.arc.meta.id === "karazhan";
   return (
@@ -206,6 +232,7 @@ function ClassicRow({ entry, cartridge, onEnter, onRemove }: Omit<Props, "progra
           <div style={{ fontFamily: mono, fontSize: 11, color: "#a59c8b", marginTop: 2 }}>
             {t("boot.cartridgeMeta", { domain: c.manifest.domain, engine: c.manifest.engineVersion, count: c.arc.challenges.length })}
           </div>
+          <DigestLine digest={digest} />
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -228,7 +255,7 @@ export function CartridgeBayCard(props: Props): JSX.Element {
   if (props.program) {
     return (
       <div style={{ display: "grid", gap: props.entry.source === "file" ? 6 : 0 }}>
-        <ProgramPlaque entry={props.entry} cartridge={props.cartridge} program={props.program} save={props.save} onEnter={props.onEnter} />
+        <ProgramPlaque entry={props.entry} cartridge={props.cartridge} program={props.program} save={props.save} digest={props.digest} onEnter={props.onEnter} />
         {props.entry.source === "file" && (
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <RemoveButton entry={props.entry} onRemove={props.onRemove} />
@@ -237,5 +264,5 @@ export function CartridgeBayCard(props: Props): JSX.Element {
       </div>
     );
   }
-  return <ClassicRow entry={props.entry} cartridge={props.cartridge} onEnter={props.onEnter} onRemove={props.onRemove} />;
+  return <ClassicRow entry={props.entry} cartridge={props.cartridge} digest={props.digest} onEnter={props.onEnter} onRemove={props.onRemove} />;
 }

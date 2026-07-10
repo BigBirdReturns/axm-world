@@ -2,7 +2,7 @@
 // in a costume. No designer, no library, no embedded hub game — those belong to
 // axm-arc. Boot -> cartridge select -> world (costume + HUD) -> exit back to select.
 
-import { Suspense, lazy, useRef, useState, type CSSProperties } from "react";
+import { Suspense, lazy, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { Cartridge } from "./cartridge.js";
 import {
   cartridgeForEntry,
@@ -12,6 +12,7 @@ import {
   removeCartridge,
   type CartridgeBayEntry,
 } from "./cartridge-bay.js";
+import { cartridgeIdentity } from "./cartridge-identity.js";
 import { programForCartridge } from "./program-of-record.js";
 import { readProgramSaveSummary } from "./save.js";
 import { CartridgeBayCard } from "./components/CartridgeBayCard.js";
@@ -63,6 +64,14 @@ export function Player(): JSX.Element {
   const [importErrors, setImportErrors] = useState<string[] | null>(null);
   const [importedMsg, setImportedMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Every bay entry's content-identity digest (arc-072 parity) — computed once
+  // per entries change, not per render, since it hashes the whole canonical
+  // arc. Keyed by id+source to match the entries' own dedup key below.
+  const digests = useMemo(
+    () => new Map(entries.map((e) => [`${e.arc.meta.id}:${e.source}`, cartridgeIdentity(cartridgeForEntry(e))])),
+    [entries],
+  );
 
   // Base-path agnostic: the app deploys under /axm-world/game/ on GitHub Pages
   // but at root in local dev, so match on suffix rather than exact pathname.
@@ -139,6 +148,7 @@ export function Player(): JSX.Element {
             // slot so the plaque can show fresh-vs-resumable and what it remembers.
             const program = programForCartridge(c);
             const save = program ? readProgramSaveSummary(localStorage, { arc: c.arc, authoredArcDigest: program.authoredArcDigest }) : null;
+            const digest = digests.get(`${entry.arc.meta.id}:${entry.source}`)!;
             return (
               <CartridgeBayCard
                 key={`${entry.arc.meta.id}:${entry.source}`}
@@ -146,6 +156,7 @@ export function Player(): JSX.Element {
                 cartridge={c}
                 program={program}
                 save={save}
+                digest={digest}
                 onEnter={() => setCartridge(c)}
                 onRemove={() => handleRemove(entry)}
               />
