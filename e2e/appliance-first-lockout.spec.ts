@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { fileURLToPath } from "node:url";
+import { runSelectedContract } from "./helpers";
 
 // PR 010 — the appliance capstone receipt: first-lockout, authored in axm-arc,
 // imported into world through the real boot importer, boots in the embodied
@@ -20,6 +21,12 @@ const CARTRIDGE_FILE = fileURLToPath(
 );
 
 test("first-lockout imports and boots in the appliance client under arc's digest", async ({ page }, testInfo) => {
+  // first-lockout's 8-10 agent roster means resolving even one contract can
+  // enqueue a long chain of relationship-tension drama cards afterward (the
+  // engine's ordinary post-run simulation, scaled up by the larger party this
+  // cartridge itself authors) — slower than the fixed-roster Program 001 loop
+  // specs this project's `test.slow()` idiom was written for.
+  test.slow();
   await page.goto("/axm-world/game/");
 
   // Import through the real appliance seam — the visually-hidden boot file input.
@@ -97,6 +104,45 @@ test("first-lockout imports and boots in the appliance client under arc's digest
 
   await page.screenshot({
     path: testInfo.outputPath("first-lockout-appliance.png"),
+    fullPage: true,
+  });
+
+  // PR 056 — per-cartridge memory, listed: the bay surfaces what the digest-keyed
+  // ledger remembers for THIS entry too, not only a program of record. Resolve
+  // the auto-seeded party's contract for real (the shared helper every other
+  // loop spec uses) — the run is committed (and saved, via useArcWorld's
+  // save-on-change effect) at that point, regardless of whatever drama cards
+  // the engine enqueues afterward.
+  await runSelectedContract(page);
+
+  // Return to the bay by reloading the boot route, not the in-shell "Leave"
+  // button: first-lockout's large roster can chain an open-ended run of
+  // relationship-tension decisions after a resolve (a `decision-backdrop`
+  // that keeps intercepting clicks), which is the engine's own simulation,
+  // not anything this PR touches — reloading reads the SAME persisted save
+  // slot a real "Leave" would land on, without depending on that chain ending.
+  await page.goto("/axm-world/game/");
+
+  // Back in the bay: the entry now names what its own ledger remembers — the
+  // SAME summarizeLedger-derived facts (via readProgramSaveSummary) the
+  // program-of-record plaque already showed, just read for an ordinary
+  // imported cartridge this time.
+  const returnedEntry = page.getByTestId("cartridge-entry-first-lockout");
+  await expect(returnedEntry).toBeVisible();
+  const memory = returnedEntry.getByTestId("bay-memory");
+  await expect(memory).toBeVisible();
+  await expect(memory).toContainText(/1 recorded/i);
+  await expect(memory).toContainText(/The Gate-Warden/);
+
+  // Honesty check the other way: a bundled cartridge that was NEVER played
+  // this session (Karazhan) has no ledger to speak of, so its bay entry
+  // surfaces nothing here — omission, not a fabricated "fresh" claim.
+  const karazhanEntry = page.getByTestId("cartridge-entry-karazhan");
+  await expect(karazhanEntry).toBeVisible();
+  await expect(karazhanEntry.getByTestId("bay-memory")).toHaveCount(0);
+
+  await page.screenshot({
+    path: testInfo.outputPath("first-lockout-bay-memory.png"),
     fullPage: true,
   });
 });

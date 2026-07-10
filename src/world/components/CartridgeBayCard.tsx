@@ -203,9 +203,33 @@ function ProgramPlaque({ entry, cartridge, program, save, digest, onEnter }: Omi
   );
 }
 
+/** RFC PR 056 — per-cartridge memory, listed. The compact "what the ledger
+ *  remembers" line: entryCount + the last recorded result, read verbatim from
+ *  `save` (`readProgramSaveSummary`, which is itself built from the ONE
+ *  `summarizeLedger` helper — see save.ts). Rendered only when there is a
+ *  genuinely recorded run: entryCount 0 means nothing has been resolved yet,
+ *  so nothing is claimed here (honest omission, not a fabricated "fresh"
+ *  line — that framing belongs to the program plaque's own resumable state). */
+function MemoryLine({ save }: { save: ProgramSaveSummary | null }): JSX.Element | null {
+  if (!save || save.ledgerEntryCount === 0) return null;
+  const last = save.lastResult;
+  return (
+    <div data-testid="bay-memory" style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+      <span
+        aria-hidden="true"
+        style={{ width: 6, height: 6, borderRadius: 999, flex: "none", background: last ? OUTCOME_COLOR[last.outcome] : "#4a4238" }}
+      />
+      <span style={{ fontFamily: mono, fontSize: 10, color: "#a59c8b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {t("shell.identityRecorded", { count: save.ledgerEntryCount })}
+        {last ? ` · ${last.challengeName}` : ""}
+      </span>
+    </div>
+  );
+}
+
 /** The plain bay row every cartridge had before the plaque: name, meta, trust,
  *  and Enter. Used for any cartridge that is not a program of record. */
-function ClassicRow({ entry, cartridge, digest, onEnter, onRemove }: Omit<Props, "program" | "save">): JSX.Element {
+function ClassicRow({ entry, cartridge, digest, save, onEnter, onRemove }: Omit<Props, "program">): JSX.Element {
   const c = cartridge;
   const isKarazhan = entry.arc.meta.id === "karazhan";
   return (
@@ -233,6 +257,7 @@ function ClassicRow({ entry, cartridge, digest, onEnter, onRemove }: Omit<Props,
             {t("boot.cartridgeMeta", { domain: c.manifest.domain, engine: c.manifest.engineVersion, count: c.arc.challenges.length })}
           </div>
           <DigestLine digest={digest} />
+          <MemoryLine save={save} />
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -264,5 +289,5 @@ export function CartridgeBayCard(props: Props): JSX.Element {
       </div>
     );
   }
-  return <ClassicRow entry={props.entry} cartridge={props.cartridge} digest={props.digest} onEnter={props.onEnter} onRemove={props.onRemove} />;
+  return <ClassicRow entry={props.entry} cartridge={props.cartridge} digest={props.digest} save={props.save} onEnter={props.onEnter} onRemove={props.onRemove} />;
 }

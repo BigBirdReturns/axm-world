@@ -155,12 +155,18 @@ export function Player(): JSX.Element {
         <div style={{ display: "grid", gap: 10 }}>
           {entries.map((entry) => {
             const c = cartridgeForEntry(entry);
-            // A program of record is matched by the cartridge's COMPUTED authored
-            // identity (never a manifest claim); only then do we read its save
-            // slot so the plaque can show fresh-vs-resumable and what it remembers.
-            const program = programForCartridge(c);
-            const save = program ? readProgramSaveSummary(localStorage, { arc: c.arc, authoredArcDigest: program.authoredArcDigest }) : null;
             const digest = digests.get(`${entry.arc.meta.id}:${entry.source}`)!;
+            // A program of record is matched by the cartridge's COMPUTED authored
+            // identity (never a manifest claim); its plaque route keeps its own
+            // fresh-vs-resumable framing built from the same summary below.
+            const program = programForCartridge(c);
+            // Every bay entry's save slot is read the SAME way, keyed by its own
+            // computed digest (RFC PR 056: per-cartridge memory, listed) — a
+            // program of record and an ordinary imported cartridge share the
+            // identical persistence seam (save.ts), so there is no second read
+            // path to keep in sync, and an entry never played has no slot to
+            // read (readProgramSaveSummary returns null: honest omission).
+            const save = readProgramSaveSummary(localStorage, { arc: c.arc, authoredArcDigest: digest });
             return (
               <CartridgeBayCard
                 key={`${entry.arc.meta.id}:${entry.source}`}
