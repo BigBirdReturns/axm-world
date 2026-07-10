@@ -30,6 +30,16 @@ test("first-lockout imports and boots in the appliance client under arc's digest
   await expect(entry).toBeVisible();
   await expect(entry).toContainText(/First Lockout/i);
 
+  // PR 052 — bay custody honesty: even an ordinary (non-program-of-record) bay
+  // entry names its content digest. Short form visible, full digest carried
+  // verbatim in title and aria-label — same computed value arc pins, never
+  // invented chrome.
+  const bayDigest = entry.getByTestId("bay-digest");
+  await expect(bayDigest).toBeVisible();
+  await expect(bayDigest).toHaveText(new RegExp(FIRST_LOCKOUT_DIGEST.slice(0, 12)));
+  await expect(bayDigest).toHaveAttribute("title", FIRST_LOCKOUT_DIGEST);
+  await expect(bayDigest).toHaveAttribute("aria-label", new RegExp(FIRST_LOCKOUT_DIGEST));
+
   // Enter it. An imported cartridge carries no authored opening, so we land
   // straight in the embodied shell — no opening decision to resolve.
   await page.getByTestId("play-cartridge-first-lockout").click();
