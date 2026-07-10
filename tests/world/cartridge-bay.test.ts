@@ -5,6 +5,7 @@ import { bootstrapOrg } from "../../src/spoke/bootstrap.js";
 import { compileArcToPlayScene } from "../../src/play-pipeline/compile.js";
 import type { Arc } from "../../src/engine/types.js";
 import {
+  bayImportPreflight,
   cartridgeForEntry,
   ensureBundledCartridges,
   importCartridgeFromJson,
@@ -192,6 +193,100 @@ describe("cartridge bay: behavioral — an imported cartridge with a wholly diff
     expect(titles).toContain("Intake Audit");
     expect(titles).toContain("Handoff Report");
     expect(titles).not.toContain("The Cellar"); // first-charter's own vocabulary must not leak in
+  });
+});
+
+describe("cartridge bay: import preflight (PR 053, arc-073 parity)", () => {
+  it("rejects invalid JSON without mutating the bay, same errors the write path would give", () => {
+    const bundled = ensureBundledCartridges();
+    const result = bayImportPreflight("{ this is not json", bundled);
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("expected failure");
+    expect(result.errors[0]).toMatch(/JSON parse error/);
+    // Purity: preflight never touches storage.
+    expect(loadCartridgeBay()).toEqual(bundled);
+  });
+
+  it("rejects schema-invalid arcs and surfaces validation errors, same as the write path", () => {
+    const bundled = ensureBundledCartridges();
+    const result = bayImportPreflight(invalidArcJson(), bundled);
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("expected failure");
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it("reports 'new' for a cartridge id never seen in the bay", () => {
+    const bundled = ensureBundledCartridges();
+    const arc = dummyOpsArc();
+    const result = bayImportPreflight(JSON.stringify(arc), bundled);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected ok");
+    expect(result.action).toBe("new");
+    expect(result.existing).toBeNull();
+    expect(result.sameIdBundled).toBeNull();
+    expect(result.digest).toMatch(/^cart1_[0-9a-f]{64}$/);
+
+    // Purity: entries passed in are untouched, and nothing was persisted.
+    expect(bundled.length).toBe(ensureBundledCartridges().length);
+    expect(loadCartridgeBay().some((e) => e.arc.meta.id === "operations-lab-demo")).toBe(false);
+  });
+
+  it("reports 'duplicate' when re-importing byte-identical content already in the bay", () => {
+    const arc = dummyOpsArc();
+    importCartridgeFromJson(JSON.stringify(arc));
+    const entries = listCartridges();
+
+    const result = bayImportPreflight(JSON.stringify(arc), entries);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected ok");
+    expect(result.action).toBe("duplicate");
+    expect(result.existing).not.toBeNull();
+    expect(result.existing!.source).toBe("file");
+    expect(result.existing!.digest).toBe(result.digest);
+  });
+
+  it("reports 'update' for a same-id, different-content re-import — verified against what the write path ACTUALLY does: it replaces the sole file entry with that id", () => {
+    const arc = dummyOpsArc();
+    importCartridgeFromJson(JSON.stringify(arc));
+    const entries = listCartridges();
+    const changed = { ...arc, meta: { ...arc.meta, name: "Operations Lab Demo v2" } };
+
+    const result = bayImportPreflight(JSON.stringify(changed), entries);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected ok");
+    expect(result.action).toBe("update");
+    expect(result.existing).not.toBeNull();
+    expect(result.existing!.source).toBe("file");
+    expect(result.existing!.digest).not.toBe(result.digest);
+
+    // Verify the write path actually does what the report claims: after the
+    // real import, there is still exactly one file entry under this id, now
+    // carrying the new content — an update, not a second entry.
+    importCartridgeFromJson(JSON.stringify(changed));
+    const stored = loadCartridgeBay().filter((e) => e.arc.meta.id === "operations-lab-demo");
+    expect(stored).toHaveLength(1);
+    expect(stored[0]!.arc.meta.name).toBe("Operations Lab Demo v2");
+  });
+
+  it("reports sameIdBundled whenever the incoming id matches a bundled entry, independent of action", () => {
+    const bundled = ensureBundledCartridges();
+    // Same id as the bundled entry, different content — action is "new" (no
+    // FILE entry shares this id yet), but sameIdBundled must still fire: the
+    // write path never touches the bundled entry for this id either way.
+    const shadow: Arc = { ...FIRST_CHARTER, meta: { ...FIRST_CHARTER.meta, name: "Imported Shadow Charter" } };
+    const result = bayImportPreflight(JSON.stringify(shadow), bundled);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected ok");
+    expect(result.action).toBe("new");
+    expect(result.sameIdBundled).not.toBeNull();
+    expect(result.sameIdBundled!.digest).not.toBe(result.digest);
+  });
+
+  it("never mutates the entries array it's given", () => {
+    const entries = ensureBundledCartridges();
+    const snapshot = JSON.stringify(entries);
+    bayImportPreflight(JSON.stringify(dummyOpsArc()), entries);
+    expect(JSON.stringify(entries)).toBe(snapshot);
   });
 });
 

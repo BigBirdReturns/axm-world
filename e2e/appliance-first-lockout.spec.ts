@@ -40,6 +40,19 @@ test("first-lockout imports and boots in the appliance client under arc's digest
   await expect(bayDigest).toHaveAttribute("title", FIRST_LOCKOUT_DIGEST);
   await expect(bayDigest).toHaveAttribute("aria-label", new RegExp(FIRST_LOCKOUT_DIGEST));
 
+  // PR 053 — import preflight honesty: the boot screen reports what the
+  // import just did (new / update / duplicate) at the one import seam,
+  // computed before/alongside the write, never a different story than the
+  // bay entry itself now shows. This is a first-time import of a cartridge
+  // never seen in this bay before, so the action is "new".
+  const preflight = page.getByTestId("bay-import-preflight");
+  await expect(preflight).toBeVisible();
+  const preflightDigest = page.getByTestId("bay-import-preflight-digest");
+  await expect(preflightDigest).toHaveText(new RegExp(FIRST_LOCKOUT_DIGEST.slice(0, 12)));
+  await expect(preflightDigest).toHaveAttribute("title", FIRST_LOCKOUT_DIGEST);
+  await expect(preflightDigest).toHaveAttribute("aria-label", new RegExp(FIRST_LOCKOUT_DIGEST));
+  await expect(page.getByTestId("bay-import-preflight-action")).toContainText(/new/i);
+
   // Enter it. An imported cartridge carries no authored opening, so we land
   // straight in the embodied shell — no opening decision to resolve.
   await page.getByTestId("play-cartridge-first-lockout").click();
