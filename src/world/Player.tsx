@@ -5,11 +5,13 @@
 import { Suspense, lazy, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { Cartridge } from "./cartridge.js";
 import {
+  bayImportPreflight,
   cartridgeForEntry,
   ensureBundledCartridges,
   importCartridgeFromJson,
   listCartridges,
   removeCartridge,
+  type BayImportPreflight,
   type CartridgeBayEntry,
 } from "./cartridge-bay.js";
 import { cartridgeIdentity } from "./cartridge-identity.js";
@@ -63,6 +65,7 @@ export function Player(): JSX.Element {
   const [entries, setEntries] = useState<CartridgeBayEntry[]>(() => ensureBundledCartridges());
   const [importErrors, setImportErrors] = useState<string[] | null>(null);
   const [importedMsg, setImportedMsg] = useState<string | null>(null);
+  const [importPreflight, setImportPreflight] = useState<BayImportPreflight | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Every bay entry's content-identity digest (arc-072 parity) — computed once
@@ -104,16 +107,25 @@ export function Player(): JSX.Element {
     e.target.value = ""; // allow re-selecting the same filename later
     if (!file) return;
     const text = await file.text();
+    // Preflight is computed against the bay's state BEFORE this import writes
+    // anything — a pure, additive report that reuses the same validator the
+    // write path uses. It never changes what importCartridgeFromJson does.
+    const report = bayImportPreflight(text, entries);
     const result = importCartridgeFromJson(text);
     if (!result.ok) {
       setImportErrors(result.errors);
       setImportedMsg(null);
+      setImportPreflight(null);
       return;
     }
     setImportErrors(null);
     setImportedMsg(t("boot.importedNamed", { name: result.entry.arc.meta.name }));
+    setImportPreflight(report.ok ? report : null);
     setEntries(listCartridges());
   };
+
+  const preflightActionMessage = (action: "new" | "update" | "duplicate") =>
+    action === "new" ? t("boot.preflightNew") : action === "update" ? t("boot.preflightUpdate") : t("boot.preflightDuplicate");
 
   const handleRemove = (entry: CartridgeBayEntry) => {
     removeCartridge(entry.arc.meta.id);
@@ -200,6 +212,28 @@ export function Player(): JSX.Element {
         {importedMsg && (
           <div style={{ marginTop: 12, color: "#74ad77", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11 }} data-testid="import-success">
             {importedMsg}
+          </div>
+        )}
+        {importPreflight && importPreflight.ok && (
+          <div
+            data-testid="bay-import-preflight"
+            style={{ marginTop: 6, color: "#a59c8b", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, display: "grid", gap: 2 }}
+          >
+            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+              <span style={{ color: "#6b6050" }}>{t("boot.identity")}</span>
+              <span
+                data-testid="bay-import-preflight-digest"
+                title={importPreflight.digest}
+                aria-label={`${t("boot.identity")}: ${importPreflight.digest}`}
+                style={{ wordBreak: "break-all" }}
+              >
+                {`${importPreflight.digest.slice(0, 12)}…`}
+              </span>
+            </div>
+            <div data-testid="bay-import-preflight-action">{preflightActionMessage(importPreflight.action)}</div>
+            {importPreflight.sameIdBundled && (
+              <div data-testid="bay-import-preflight-bundled-note">{t("boot.preflightSameIdBundled")}</div>
+            )}
           </div>
         )}
 

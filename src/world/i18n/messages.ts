@@ -329,6 +329,10 @@ export type MessageId =
   | "boot.remove"
   | "boot.importedNamed"
   | "boot.importFailedHeading"
+  | "boot.preflightNew"
+  | "boot.preflightUpdate"
+  | "boot.preflightDuplicate"
+  | "boot.preflightSameIdBundled"
   | "boot.trustBundled"
   | "boot.trustImportedUnsigned"
   | "boot.trustVerified"
@@ -733,6 +737,10 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "boot.remove": "Remove",
     "boot.importedNamed": (params) => `Imported "${str(params, "name")}".`,
     "boot.importFailedHeading": "Import failed:",
+    "boot.preflightNew": "New — not seen in this bay before.",
+    "boot.preflightUpdate": "Update — replaces the existing imported cartridge with this id.",
+    "boot.preflightDuplicate": "Duplicate — this exact cartridge is already in the bay.",
+    "boot.preflightSameIdBundled": "A bundled cartridge shares this id and stays untouched.",
     "boot.trustBundled": "Bundled",
     "boot.trustImportedUnsigned": "Imported (unsigned)",
     "boot.trustVerified": "Verified",
@@ -1089,6 +1097,10 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "boot.remove": "移除",
     "boot.importedNamed": (params) => `已匯入「${str(params, "name")}」。`,
     "boot.importFailedHeading": "匯入失敗：",
+    "boot.preflightNew": "全新 — 此貯放槽尚未有此卡匣。",
+    "boot.preflightUpdate": "更新 — 將取代此貯放槽中相同識別碼的已匯入卡匣。",
+    "boot.preflightDuplicate": "重複 — 此貯放槽中已有內容完全相同的卡匣。",
+    "boot.preflightSameIdBundled": "有一張內建卡匣使用相同識別碼，該內建項目維持不變。",
     "boot.trustBundled": "內建",
     "boot.trustImportedUnsigned": "已匯入（未簽署）",
     "boot.trustVerified": "已驗證",

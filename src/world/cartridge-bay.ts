@@ -20,6 +20,7 @@
 
 import type { Arc } from "../engine/types.js";
 import { validateArc } from "../engine/schema.js";
+import { cartridgeDigest } from "../engine/cartridge-digest.js";
 import { BUNDLED_CARTRIDGES, parseCartridge, type Cartridge, type TrustLevel } from "./cartridge.js";
 
 export interface CartridgeBayEntry {
@@ -94,20 +95,19 @@ export type ImportCartridgeResult =
   | { ok: true; entry: CartridgeBayEntry }
   | { ok: false; errors: string[] };
 
-// Validate a JSON string and, on success, add it to the bay as an imported,
-// unsigned cartridge. Never throws — validation errors come back as strings so
-// callers (the boot screen) can render them without a half-loaded cartridge
-// ever reaching the player.
-export function importCartridgeFromJson(json: string): ImportCartridgeResult {
+// Parse + validate a JSON string against the arc schema, without touching the
+// bay. This is the validate-only half of importCartridgeFromJson, factored
+// out (arc-library.ts's validateArcJson pattern) so the write path and the
+// read-only preflight report below share one validator — never two.
+function validateCartridgeJson(json: string): { ok: true; arc: Arc } | { ok: false; errors: string[] } {
   let parsed: unknown;
   try {
     parsed = JSON.parse(json);
   } catch (e) {
     return { ok: false, errors: [`JSON parse error: ${(e as Error).message}`] };
   }
-  let arc: Arc;
   try {
-    arc = validateArc(parsed);
+    return { ok: true, arc: validateArc(parsed) };
   } catch (e) {
     const msg = (e as Error).message;
     // validateArc throws "Invalid arc:\n[path] msg\n[path] msg" — split it into
@@ -115,6 +115,16 @@ export function importCartridgeFromJson(json: string): ImportCartridgeResult {
     const lines = msg.split("\n").slice(1).filter((s) => s.length > 0);
     return { ok: false, errors: lines.length > 0 ? lines : [msg] };
   }
+}
+
+// Validate a JSON string and, on success, add it to the bay as an imported,
+// unsigned cartridge. Never throws — validation errors come back as strings so
+// callers (the boot screen) can render them without a half-loaded cartridge
+// ever reaching the player.
+export function importCartridgeFromJson(json: string): ImportCartridgeResult {
+  const validated = validateCartridgeJson(json);
+  if (!validated.ok) return validated;
+  const arc = validated.arc;
 
   const entries = loadCartridgeBay();
   // Re-importing the same id updates the existing file-sourced entry; a
@@ -129,6 +139,78 @@ export function importCartridgeFromJson(json: string): ImportCartridgeResult {
   filtered.push(entry);
   saveCartridgeBay(filtered);
   return { ok: true, entry };
+}
+
+// Import preflight: an honest custody report computed BEFORE anything
+// persists (arc-073 parity, adapted to the bay's (id, source) keying). It
+// reuses `validateCartridgeJson` verbatim — no second validator — and never
+// mutates the entries it reads: every lookup below is a `find`, not a filter
+// assignment, and the function returns without calling `saveCartridgeBay`.
+//
+// It reports what `importCartridgeFromJson` will ACTUALLY do, never a
+// different story: that function always replaces any existing file-sourced
+// entry sharing the incoming id (see the `filtered` line above) and never
+// touches a same-id bundled entry. So here:
+//   - "duplicate": some held entry (bundled or file) already has this exact
+//     content digest — the write would be a byte-identical re-import.
+//   - "update": a FILE entry shares this id with different content — the
+//     write replaces it, mirroring `filtered`'s same-id/source==="file" test.
+//   - "new": neither of the above — the write adds a fresh entry.
+// `sameIdBundled` is reported independent of the action above: a bundled
+// entry sharing the incoming id is never overwritten by import, no matter
+// what action fires, and that fact is worth surfacing whenever it's true.
+export type BayImportPreflight =
+  | { ok: false; errors: string[] }
+  | {
+      ok: true;
+      digest: string; // cartridgeDigest of the incoming arc
+      action: "new" | "update" | "duplicate";
+      existing: { digest: string; version: string; source: "bundled" | "file" } | null;
+      sameIdBundled: { digest: string; version: string } | null;
+    };
+
+export function bayImportPreflight(json: string, entries: CartridgeBayEntry[]): BayImportPreflight {
+  const validated = validateCartridgeJson(json);
+  if (!validated.ok) return validated;
+  const arc = validated.arc;
+  const digest = cartridgeDigest(arc);
+
+  const sameIdBundledEntry = entries.find((e) => e.source === "bundled" && e.arc.meta.id === arc.meta.id);
+  const sameIdBundled = sameIdBundledEntry
+    ? { digest: cartridgeDigest(sameIdBundledEntry.arc), version: sameIdBundledEntry.arc.meta.version }
+    : null;
+
+  const sameDigestEntry = entries.find((e) => cartridgeDigest(e.arc) === digest);
+  if (sameDigestEntry) {
+    return {
+      ok: true,
+      digest,
+      action: "duplicate",
+      existing: {
+        digest: cartridgeDigest(sameDigestEntry.arc),
+        version: sameDigestEntry.arc.meta.version,
+        source: sameDigestEntry.source,
+      },
+      sameIdBundled,
+    };
+  }
+
+  const sameIdFileEntry = entries.find((e) => e.source === "file" && e.arc.meta.id === arc.meta.id);
+  if (sameIdFileEntry) {
+    return {
+      ok: true,
+      digest,
+      action: "update",
+      existing: {
+        digest: cartridgeDigest(sameIdFileEntry.arc),
+        version: sameIdFileEntry.arc.meta.version,
+        source: sameIdFileEntry.source,
+      },
+      sameIdBundled,
+    };
+  }
+
+  return { ok: true, digest, action: "new", existing: null, sameIdBundled };
 }
 
 // Only file-sourced entries can be removed. Bundled entries are the floor
