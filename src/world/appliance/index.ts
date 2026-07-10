@@ -20,6 +20,7 @@
 //             tests/world/appliance-first-lockout.test.ts.
 
 import type { Arc } from "../../engine/types.js";
+import type { BootstrapOptions } from "../../spoke/bootstrap.js";
 import firstLockoutArc from "./first-lockout.arc.json";
 
 /**
@@ -37,6 +38,21 @@ export function applianceRosterSize(arc: Arc): number | undefined {
     if (req?.maxAgents) max = Math.max(max, req.maxAgents);
   }
   return max > 0 ? max : undefined;
+}
+
+/**
+ * The `bootstrapOrg` options a fresh appliance boot should use for this
+ * cartridge — the one seam PR 054 wires into the runtime. `rosterSize` comes
+ * straight from `applianceRosterSize`; when a cartridge declares no roster
+ * requirements this is `{ rosterSize: undefined }`, which `bootstrapOrg`
+ * treats identically to omitting the option (its `?? 6` default applies), so
+ * a requirement-less cartridge boots byte-identically to before this PR
+ * (Article 5: old cartridges always boot). Pulled out as its own pure
+ * function so the boot decision is unit-testable without rendering
+ * `useArcWorld` itself.
+ */
+export function applianceBootOptions(arc: Arc): BootstrapOptions {
+  return { rosterSize: applianceRosterSize(arc) };
 }
 
 /**
