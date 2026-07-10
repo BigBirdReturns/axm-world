@@ -133,7 +133,7 @@ export function Player(): JSX.Element {
   };
 
   return (
-    <div style={screen}>
+    <div style={screen} role="region" aria-label={t("boot.heroTitle")}>
       <div style={{ width: "min(560px, 92vw)" }}>
         {/* The runtime mark, with the language toggle beside it — the boot surface
             must offer the same EN / zh-Hant switch the shell has, or a persisted
@@ -206,7 +206,11 @@ export function Player(): JSX.Element {
         </div>
 
         {importErrors && (
-          <div style={{ marginTop: 12, color: "#e6a5a2", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11 }} data-testid="import-errors">
+          <div
+            style={{ marginTop: 12, color: "#e6a5a2", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11 }}
+            data-testid="import-errors"
+            role="alert"
+          >
             <strong>{t("boot.importFailedHeading")}</strong>
             <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
               {importErrors.map((err, i) => (
@@ -216,13 +220,18 @@ export function Player(): JSX.Element {
           </div>
         )}
         {importedMsg && (
-          <div style={{ marginTop: 12, color: "#74ad77", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11 }} data-testid="import-success">
+          <div
+            style={{ marginTop: 12, color: "#74ad77", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11 }}
+            data-testid="import-success"
+            role="status"
+          >
             {importedMsg}
           </div>
         )}
         {importPreflight && importPreflight.ok && (
           <div
             data-testid="bay-import-preflight"
+            role="status"
             style={{ marginTop: 6, color: "#a59c8b", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, display: "grid", gap: 2 }}
           >
             <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>

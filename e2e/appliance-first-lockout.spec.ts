@@ -29,6 +29,12 @@ test("first-lockout imports and boots in the appliance client under arc's digest
   test.slow();
   await page.goto("/axm-world/game/");
 
+  // PR 058 — a11y pass (arc 078/068 parity): the bay screen is a named landmark
+  // region, not a mute full-bleed div — the same fact its visible heading
+  // already carries, just exposed to assistive tech.
+  const bayRegion = page.getByRole("region", { name: /Cartridge worlds that remember/i });
+  await expect(bayRegion).toBeVisible();
+
   // Import through the real appliance seam — the visually-hidden boot file input.
   await page.setInputFiles('[data-testid="open-cartridge"]', CARTRIDGE_FILE);
 
@@ -54,6 +60,10 @@ test("first-lockout imports and boots in the appliance client under arc's digest
   // never seen in this bay before, so the action is "new".
   const preflight = page.getByTestId("bay-import-preflight");
   await expect(preflight).toBeVisible();
+  // PR 058 — the preflight report is a post-action announcement (arc parity):
+  // role="status" so assistive tech hears the new/update/duplicate verdict
+  // without the player having to go looking for it.
+  await expect(preflight).toHaveAttribute("role", "status");
   const preflightDigest = page.getByTestId("bay-import-preflight-digest");
   await expect(preflightDigest).toHaveText(new RegExp(FIRST_LOCKOUT_DIGEST.slice(0, 12)));
   await expect(preflightDigest).toHaveAttribute("title", FIRST_LOCKOUT_DIGEST);

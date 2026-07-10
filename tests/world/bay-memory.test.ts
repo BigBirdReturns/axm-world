@@ -131,6 +131,23 @@ describe("bay memory: a committed ledger for an imported cartridge surfaces the 
   });
 });
 
+describe("PR 058 — a11y pass: bay root region + live regions on the import flow (arc 078/068 parity)", () => {
+  const player = read("src/world/Player.tsx");
+
+  it("the bay screen root is a named landmark region, reusing the visible heading key", () => {
+    // No new i18n key: the region's accessible name is the SAME key the
+    // screen's own <h1> already renders (boot.heroTitle) — one fact, not a
+    // second string to keep in sync.
+    expect(player).toContain('role="region" aria-label={t("boot.heroTitle")}');
+  });
+
+  it("the import error display is a role=alert, the preflight/success reports are role=status", () => {
+    expect(player).toMatch(/data-testid="import-errors"[\s\S]{0,80}role="alert"/);
+    expect(player).toMatch(/data-testid="import-success"[\s\S]{0,80}role="status"/);
+    expect(player).toMatch(/data-testid="bay-import-preflight"[\s\S]{0,80}role="status"/);
+  });
+});
+
 describe("PR 057 — classic-row save-state indicator (bay-save-state)", () => {
   const card = read("src/world/components/CartridgeBayCard.tsx");
 
