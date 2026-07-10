@@ -78,3 +78,14 @@ and confirms `test.yml` on main afterward.
 2. **The capstone cartridge** is `severed-march` (arc-authored, never named in
    world's source) — chosen precisely because nothing in world knows it.
 3. **Numbering kept**: 051–060, closing the train's world slot.
+
+4. **(054) FIRST_CHARTER's fresh boot sizes to its own declaration.** The
+   generic path changes Program 001's fresh-boot roster from 6 to 8 — an
+   observable pacing change to the shipped game. Ruling: proceed. The 6 was
+   never authored (it is `bootstrapOrg`'s engine default); the 8 IS authored
+   (`maxAgents` in FIRST_CHARTER's own challenges). The runtime obeying the
+   cartridge's declaration over an engine default is the honest direction,
+   and exempting the program of record would reintroduce exactly the pin this
+   RFC's one rule forbids. Saved runs are untouched (restore short-circuits
+   before bootstrap). Flagged here for the owner's audit; an owner amendment
+   can exempt it later if the pacing matters more than the rule.

@@ -70,6 +70,24 @@ test("first-lockout imports and boots in the appliance client under arc's digest
   // the "PROGRAM 001 / program of record" framing must not attach to it.
   await expect(page.getByTestId("strip-program")).toHaveCount(0);
 
+  // PR 054 — the generic appliance boot: first-lockout's own encounters all
+  // need an 8-10 agent party (bootstrap's flat default of 6 could never field
+  // one). The cold-start selection auto-seeds the party with the engine's own
+  // recommendation, so the shell landing here — no extra clicks — is itself
+  // the receipt that the fresh-booted org was sized from the cartridge's real
+  // requirement, not a fixed constant.
+  const partyCount = page.getByTestId("party-count");
+  await expect(partyCount).toBeVisible();
+  await expect(partyCount).toContainText(/need 8–10/);
+  const partyCountText = await partyCount.innerText();
+  const fielded = Number(partyCountText.match(/Party (\d+)/)?.[1] ?? 0);
+  expect(fielded).toBeGreaterThanOrEqual(8);
+
+  // The run button honestly reflects that the party fits the requirement: it
+  // is enabled (not stuck on "ASSIGN 8–10"), i.e. the encounter is actually
+  // attemptable from a fresh boot — the thing the old flat default broke.
+  await expect(page.getByTestId("run-contract-button")).toBeEnabled();
+
   await page.screenshot({
     path: testInfo.outputPath("first-lockout-appliance.png"),
     fullPage: true,

@@ -13,6 +13,7 @@ import { applyDifficultyMode } from "../engine/difficulty.js";
 import { awardItem } from "../engine/rewards.js";
 import { resolveDramaCard } from "../engine/drama.js";
 import { bootstrapOrg } from "../spoke/bootstrap.js";
+import { applianceBootOptions } from "./appliance/index.js";
 import {
   compileArcToPlayScene,
   recommendAgentsForChallenge,
@@ -218,7 +219,11 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   );
   const [org, setOrg] = useState<Organization>(() => {
     if (restored) return restored.org;
-    const base = bootstrapOrg(arc);
+    // Fresh boot only (a restored save keeps its own org above — never
+    // resized): size the roster from what this cartridge's own encounters
+    // ask for, so any cartridge — not just the ones world happens to know by
+    // name — can field its own party on first boot (RFC 054).
+    const base = bootstrapOrg(arc, applianceBootOptions(arc));
     if (!cartridge.opening) return base;
     return { ...base, dramaQueue: [buildOpeningCard(cartridge.opening, base), ...base.dramaQueue] };
   });
