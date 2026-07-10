@@ -88,6 +88,13 @@ test("first-lockout imports and boots in the appliance client under arc's digest
   // attemptable from a fresh boot — the thing the old flat default broke.
   await expect(page.getByTestId("run-contract-button")).toBeEnabled();
 
+  // PR 055 — the neutral-skin default, live: first-lockout is unknown to the
+  // theme seam (src/world/themes/select.ts), so Shell's palette-scope effect
+  // never sets <html data-cartridge>. Absence of the attribute IS the neutral
+  // skin — first-lockout must never render wearing Karazhan's or First
+  // Charter's clothes.
+  await expect(page.locator("html")).not.toHaveAttribute("data-cartridge");
+
   await page.screenshot({
     path: testInfo.outputPath("first-lockout-appliance.png"),
     fullPage: true,
