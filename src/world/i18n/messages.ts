@@ -352,7 +352,13 @@ export type MessageId =
   | "boot.footerNote"
   | "boot.holdTheLoop"
   | "boot.loadingNamed"
-  | "boot.cartridgeMeta";
+  | "boot.cartridgeMeta"
+  // ── boot screen: classic-row save state (PR 057) ──────────────────────────
+  // "boot.freshProgram" says "program" — honest on the program-of-record
+  // plaque, but a lie on a classic row (an imported cartridge, or Karazhan,
+  // are never "a program"). "boot.resumable" carries no such claim and is
+  // reused verbatim. This is the one neutral pair PR 057 adds.
+  | "boot.freshEntry";
 
 /**
  * Ids intentionally left out of the zh-Hant catalog. Documented, not
@@ -761,6 +767,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "boot.footerNote": "Rodoh records the run. AXM-WORLD renders the shell. The cartridge stays yours.",
     "boot.holdTheLoop": "Hold the loop.",
     "boot.loadingNamed": (params) => `Loading ${str(params, "name")}`,
+    "boot.freshEntry": "Fresh — no runs recorded yet",
     // domain / engine version / count flow verbatim as content params; only the
     // "engine" and "contracts" words are chrome.
     "boot.cartridgeMeta": (params) => {
@@ -1118,6 +1125,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "boot.footerNote": "Rodoh 記錄執行。AXM-WORLD 呈現外殼。卡匣仍歸你所有。",
     "boot.holdTheLoop": "維持循環。",
     "boot.loadingNamed": (params) => `載入 ${str(params, "name")} 中`,
+    "boot.freshEntry": "全新 — 尚無執行記錄",
     "boot.cartridgeMeta": (params) => `${str(params, "domain")} · 引擎 ${str(params, "engine")} · ${num(params, "count")} 份契約`,
   },
 };
