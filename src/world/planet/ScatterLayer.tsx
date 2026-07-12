@@ -52,7 +52,7 @@ function useInstanced(
   }, [items, kind, geometry, material, yOffset]);
 }
 
-export function Scatter(props: ScatterProps): JSX.Element {
+export function ScatterLayer(props: ScatterProps): JSX.Element {
   const { items } = props;
 
   // Shared geometries / materials (memoized once).

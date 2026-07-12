@@ -12,7 +12,7 @@ import { OrbitControls, Stars } from "@react-three/drei";
 import { DEFAULT_WORLD_CONFIG, type WorldNode } from "./contract.js";
 import { generatePlanet, makeColliderBVH } from "./planet/generatePlanet.js";
 import { scatterOnPlanet } from "./planet/scatter.js";
-import { Scatter } from "./planet/Scatter.js";
+import { ScatterLayer } from "./planet/ScatterLayer.js";
 import { NodeMarkers } from "./components/NodeMarkers.js";
 import type { ArcInteraction } from "./useArcInteraction.js";
 import type { ArcWorld } from "./useArcWorld.js";
@@ -68,7 +68,7 @@ export function PlanetScene({ world, interaction: ix, modalOpen = false, active 
       <mesh ref={setColliderRef} geometry={geometry}>
         <meshStandardMaterial vertexColors flatShading roughness={0.95} metalness={0} />
       </mesh>
-      <Scatter items={scatterItems} />
+      <ScatterLayer items={scatterItems} />
       <NodeMarkers nodes={placedNodes} selectedId={ix.selectedId} onSelect={ix.select} labelsEnabled={!modalOpen} occluder={collider} selectedRisk={ix.readiness?.projectedOutcome ?? "none"} />
 
       <OrbitControls

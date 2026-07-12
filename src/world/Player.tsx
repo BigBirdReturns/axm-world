@@ -23,6 +23,13 @@ import { RodohRuntimeMark } from "./brand/RodohRuntimeMark.js";
 import "./themes/karazhan/karazhan.css";
 import { PixelButton, PixelIcon } from "./pixel-ui/index.js";
 import { t, useLocale } from "./i18n/index.js";
+import { EnterpriseHost } from "./EnterpriseHost.js";
+import {
+  importEnterpriseCartridgeFromJson,
+  isEnterpriseCartridgeJson,
+  loadEnterpriseBay,
+  type EnterpriseCartridge,
+} from "./enterprise-cartridge.js";
 
 // Lazy: the world pulls in three.js / R3F (~1MB). Keep it out of the entry bundle so
 // the cartridge-select screen is instant; three only loads when a cartridge is played.
@@ -62,6 +69,8 @@ export function Player(): JSX.Element {
   // the toggle below is used (the persisted choice otherwise only reads at load).
   useLocale();
   const [cartridge, setCartridge] = useState<Cartridge | null>(null);
+  const [enterpriseCartridge, setEnterpriseCartridge] = useState<EnterpriseCartridge | null>(null);
+  const [enterpriseEntries, setEnterpriseEntries] = useState(() => loadEnterpriseBay(localStorage));
   const [entries, setEntries] = useState<CartridgeBayEntry[]>(() => ensureBundledCartridges());
   const [importErrors, setImportErrors] = useState<string[] | null>(null);
   const [importedMsg, setImportedMsg] = useState<string | null>(null);
@@ -102,11 +111,27 @@ export function Player(): JSX.Element {
     );
   }
 
+  if (enterpriseCartridge) {
+    return <EnterpriseHost cartridge={enterpriseCartridge} onExit={() => setEnterpriseCartridge(null)} />;
+  }
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = ""; // allow re-selecting the same filename later
     if (!file) return;
     const text = await file.text();
+    if (isEnterpriseCartridgeJson(text)) {
+      const result = importEnterpriseCartridgeFromJson(text, localStorage);
+      if (!result.ok) {
+        setImportErrors(result.errors);
+        setImportedMsg(null);
+        return;
+      }
+      setEnterpriseEntries(loadEnterpriseBay(localStorage));
+      setImportErrors(null);
+      setImportedMsg(`Imported ${result.entry.cartridge.name}`);
+      return;
+    }
     // Preflight is computed against the bay's state BEFORE this import writes
     // anything — a pure, additive report that reuses the same validator the
     // write path uses. It never changes what importCartridgeFromJson does.
@@ -153,6 +178,15 @@ export function Player(): JSX.Element {
         </p>
 
         <div style={{ display: "grid", gap: 10 }}>
+          {enterpriseEntries.map((entry) => (
+            <div key={entry.cartridge.id} data-testid={`enterprise-cartridge-${entry.cartridge.id}`} style={{ border: "1px solid #4f5965", padding: 14, background: "#15191f" }}>
+              <strong>{entry.cartridge.name}</strong>
+              <div style={{ color: "#a59c8b", fontSize: 12 }}>{entry.cartridge.contract.title}</div>
+              <button type="button" onClick={() => setEnterpriseCartridge(entry.cartridge)} data-testid={`play-enterprise-${entry.cartridge.id}`}>
+                {entry.cartridge.vocabulary.contract}
+              </button>
+            </div>
+          ))}
           {entries.map((entry) => {
             const c = cartridgeForEntry(entry);
             const digest = digests.get(`${entry.arc.meta.id}:${entry.source}`)!;

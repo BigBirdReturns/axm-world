@@ -9,3 +9,7 @@ ReactDOM.createRoot(root).render(
     <Player />
   </React.StrictMode>,
 );
+
+if ("serviceWorker" in navigator) {
+  void navigator.serviceWorker.register("./sw.js");
+}

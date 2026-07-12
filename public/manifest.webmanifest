@@ -1,0 +1,8 @@
+{
+  "name": "Rodoh Runtime",
+  "short_name": "Rodoh",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b0a08",
+  "theme_color": "#0b0a08"
+}

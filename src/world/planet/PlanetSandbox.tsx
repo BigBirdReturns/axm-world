@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { Planet } from "./Planet.js";
-import { Scatter } from "./Scatter.js";
+import { ScatterLayer } from "./ScatterLayer.js";
 import { generatePlanet } from "./generatePlanet.js";
 import { scatterOnPlanet } from "./scatter.js";
 
@@ -25,7 +25,7 @@ export function PlanetSandbox(): JSX.Element {
       <ambientLight intensity={0.6} />
       <directionalLight position={[15, 20, 10]} intensity={1.4} castShadow />
       <Planet radius={RADIUS} seed={SEED} detail={DETAIL} />
-      <Scatter items={items} />
+      <ScatterLayer items={items} />
       <OrbitControls enablePan enableZoom enableRotate />
     </Canvas>
   );
