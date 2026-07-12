@@ -24,35 +24,63 @@ import type { BootstrapOptions } from "../../spoke/bootstrap.js";
 import firstLockoutArc from "./first-lockout.arc.json";
 
 /**
+ * The minimum roster composition an appliance boot needs to field this
+ * cartridge's encounters: for each role, the largest count any single
+ * challenge asks of it. Challenges are played from the same roster one at a
+ * time, so the per-role demand is the max across challenges (and the headcount
+ * must cover their sum — see `applianceRosterSize`). Empty when no challenge
+ * declares role requirements. (issue #93)
+ */
+export function applianceRoleFloor(arc: Arc): Record<string, number> {
+  const floor: Record<string, number> = {};
+  for (const challenge of arc.challenges) {
+    for (const req of challenge.rosterRequirements?.roleRequirements ?? []) {
+      floor[req.roleId] = Math.max(floor[req.roleId] ?? 0, req.count);
+    }
+  }
+  return floor;
+}
+
+/**
  * The roster size an appliance boot needs to actually field this cartridge's
- * encounters: the largest party any of its challenges asks for. A raid boss
- * that wants 8–10 agents cannot be fielded from the hall bootstrap's default
- * of 6 — so the appliance reads the requirement from the cartridge rather than
- * assuming a size. Falls back to `undefined` (bootstrap's own default) when a
- * cartridge declares no roster requirements.
+ * encounters. Two demands: the largest single party any challenge asks for
+ * (`maxAgents`), and enough distinct bodies to cover the whole role
+ * composition (the sum of the per-role floor — a warden cannot double as the
+ * mender a different fight needs). A raid boss that wants 8–10 agents cannot be
+ * fielded from the hall bootstrap's default of 6, so the appliance reads the
+ * requirement from the cartridge rather than assuming a size. Falls back to
+ * `undefined` (bootstrap's own default) when a cartridge declares no roster
+ * requirements. (issue #93)
  */
 export function applianceRosterSize(arc: Arc): number | undefined {
-  let max = 0;
+  let maxParty = 0;
   for (const challenge of arc.challenges) {
     const req = challenge.rosterRequirements;
-    if (req?.maxAgents) max = Math.max(max, req.maxAgents);
+    if (req?.maxAgents) maxParty = Math.max(maxParty, req.maxAgents);
   }
-  return max > 0 ? max : undefined;
+  const composition = Object.values(applianceRoleFloor(arc)).reduce((s, n) => s + n, 0);
+  const size = Math.max(maxParty, composition);
+  return size > 0 ? size : undefined;
 }
 
 /**
  * The `bootstrapOrg` options a fresh appliance boot should use for this
- * cartridge — the one seam PR 054 wires into the runtime. `rosterSize` comes
- * straight from `applianceRosterSize`; when a cartridge declares no roster
- * requirements this is `{ rosterSize: undefined }`, which `bootstrapOrg`
- * treats identically to omitting the option (its `?? 6` default applies), so
- * a requirement-less cartridge boots byte-identically to before this PR
- * (Article 5: old cartridges always boot). Pulled out as its own pure
- * function so the boot decision is unit-testable without rendering
- * `useArcWorld` itself.
+ * cartridge — the one seam PR 054 wires into the runtime. `rosterSize` and
+ * `roleFloor` come straight from `applianceRosterSize`/`applianceRoleFloor`;
+ * when a cartridge declares no roster requirements both are omitted
+ * (`{ rosterSize: undefined, roleFloor: undefined }`), which `bootstrapOrg`
+ * treats identically to omitting the options (its `?? 6` default and the
+ * round-robin role fallback apply), so a requirement-less cartridge boots
+ * byte-identically to before this seam existed (Article 5: old cartridges
+ * always boot). Pulled out as its own pure function so the boot decision is
+ * unit-testable without rendering `useArcWorld` itself. (issue #93)
  */
 export function applianceBootOptions(arc: Arc): BootstrapOptions {
-  return { rosterSize: applianceRosterSize(arc) };
+  const floor = applianceRoleFloor(arc);
+  return {
+    rosterSize: applianceRosterSize(arc),
+    roleFloor: Object.keys(floor).length > 0 ? floor : undefined,
+  };
 }
 
 /**

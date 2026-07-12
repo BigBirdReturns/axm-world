@@ -84,6 +84,27 @@ describe("applianceBootOptions — the runtime's fresh-boot sizing decision", ()
     expect(Object.keys(org.agents).length).toBeGreaterThanOrEqual(10);
   });
 
+  it("seats a role composition round-robin alone cannot produce (issue #93)", () => {
+    // A challenge that demands 5 agents of one role at a party cap of 6. Naive
+    // round-robin over MINI_ARC's two roles yields only 3 strikers — a roster
+    // that structurally cannot field this composition. applianceBootOptions
+    // must size AND compose the boot so the roster can actually field it.
+    const compArc: Arc = JSON.parse(JSON.stringify(MINI_ARC));
+    compArc.challenges[0]!.rosterRequirements = {
+      minAgents: 5,
+      maxAgents: 6,
+      roleRequirements: [{ roleId: "striker", count: 5 }],
+    };
+
+    const opts = applianceBootOptions(compArc);
+    expect(opts.rosterSize).toBe(6);
+    expect(opts.roleFloor).toEqual({ striker: 5 });
+
+    const org = bootstrapOrg(compArc, opts);
+    const strikers = Object.values(org.agents).filter((a) => a.role === "striker").length;
+    expect(strikers).toBeGreaterThanOrEqual(5);
+  });
+
   it("falls back to bootstrapOrg's own default for a cartridge that declares no roster requirements", () => {
     // A cartridge with no challenges at all declares no roster requirement —
     // applianceRosterSize returns undefined (its own documented fallback).
