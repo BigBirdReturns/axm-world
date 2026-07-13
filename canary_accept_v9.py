@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 root = Path(__file__).resolve().parent
-existing = root / "canary_scope" / "opaque-seed.dat"
+existing = root / "canary_scope" / "opaque-seed.txt"
 created = root / "canary_scope" / "generated" / "result.txt"
 escaped = root / "outside_v9.txt"
 
