@@ -6,6 +6,7 @@ import {
   squadFit,
   squadFitKind,
   squadFitLabelId,
+  squadFitReason,
   worldStateLabelId,
   worldStateNoteId,
 } from "../../src/world/contract-board/card-axes.js";
@@ -88,5 +89,18 @@ describe("board card: world state and squad fit are separate axes", () => {
     expect(worldStateNoteId(node("locked"), false)).toBe("worldMap.legendLocked");
     expect(worldStateNoteId(node("available"), true)).toBe("contractCard.worldNextNote");
     expect(worldStateNoteId(node("available"), false)).toBeNull();
+  });
+
+  it("derives one shared squad-fit reason for the board and commit surface", () => {
+    const readiness = {
+      countOk: true,
+      rolesOk: true,
+      reasons: ["A different generic reason"],
+      checks: [{ name: "Cellar Sweep", status: "short", shortBy: 12.3 }],
+      projectedOutcome: "failure",
+    } as unknown as PartyReadiness;
+    expect(squadFitReason("failing", readiness)).toBe("Cellar Sweep needs +12.3 to recover.");
+    expect(squadFitReason("reliable", readiness)).toBe("Recommended party is reliable.");
+    expect(squadFitReason(null, readiness)).toBeUndefined();
   });
 });

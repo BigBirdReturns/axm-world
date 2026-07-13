@@ -103,7 +103,7 @@ test("first-lockout imports and boots in the appliance client under arc's digest
   // The run button honestly reflects that the party fits the requirement: it
   // is enabled (not stuck on "ASSIGN 8–10"), i.e. the encounter is actually
   // attemptable from a fresh boot — the thing the old flat default broke.
-  await expect(page.getByTestId("run-contract-button")).toBeEnabled();
+  await expect(page.getByTestId("play-encounter-button")).toBeEnabled();
 
   // PR 055 — the neutral-skin default, live: first-lockout is unknown to the
   // theme seam (src/world/themes/select.ts), so Shell's palette-scope effect

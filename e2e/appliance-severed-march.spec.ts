@@ -106,7 +106,7 @@ test("severed-march (never named in world's source) imports, boots, plays, and r
 
   // The run button honestly reflects that the party fits the requirement: it
   // is enabled — the encounter is genuinely attemptable from a fresh boot.
-  await expect(page.getByTestId("run-contract-button")).toBeEnabled();
+  await expect(page.getByTestId("play-encounter-button")).toBeEnabled();
 
   await page.screenshot({
     path: testInfo.outputPath("severed-march-appliance.png"),

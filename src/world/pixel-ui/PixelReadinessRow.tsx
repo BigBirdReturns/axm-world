@@ -48,7 +48,7 @@ export function PixelReadinessRow(props: PixelReadinessRowProps): JSX.Element {
           <PixelIcon name={STATUS_MARK[status]} /> {name}
         </span>
         <span style={{ fontWeight: 700, fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
-          {scoreText(projected)} / {Math.round(threshold)}
+          {t("readinessRow.scoreAgainstTarget", { score: scoreText(projected), target: Math.round(threshold) })}
         </span>
       </div>
 

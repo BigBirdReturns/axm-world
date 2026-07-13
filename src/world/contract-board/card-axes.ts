@@ -11,9 +11,9 @@
 // They are different truths and never collapse into one badge. Neither touches the
 // readiness MATH; squad fit is a pure read of the existing projection.
 
-import type { MessageId } from "../i18n/index.js";
+import { t, type MessageId } from "../i18n/index.js";
 import type { WorldNode } from "../contract.js";
-import type { PartyReadiness } from "../readiness.js";
+import type { CheckStatus, PartyReadiness } from "../readiness.js";
 import type { ContractCardState, SquadFit } from "../pixel-ui/PixelContractCard.js";
 
 /** The WORLD/CONTRACT-STATE axis — what the contract IS in the run: its engine
@@ -88,4 +88,26 @@ export function squadFitLabelId(kind: SquadFitKind): MessageId {
     case "no-party":
       return "contractCard.squadNoParty"; // "Assign a party"
   }
+}
+
+function scoreText(value: number | undefined): string {
+  if (value === undefined) return "";
+  return String(Math.round(value * 10) / 10);
+}
+
+/** One shared explanation for the squad-fit verdict. Both the board card and the
+ * detail/commit surface call this helper so the same party cannot receive two
+ * different answers to "why?". */
+export function squadFitReason(fit: SquadFit | null, readiness: PartyReadiness | null): string | undefined {
+  if (!fit || !readiness) return undefined;
+  if (fit === "reliable") return t("contractBoard.recommendedReliable");
+  if (!readiness.countOk) return readiness.reasons[0] ?? t("contractBoard.countNeedsWork");
+  if (!readiness.rolesOk) return readiness.reasons[0] ?? t("contractBoard.roleMissing");
+  const weak = [...readiness.checks].sort((a, b) => {
+    const severity = (status: CheckStatus) => status === "short" ? 2 : status === "thin" ? 1 : 0;
+    return severity(b.status) - severity(a.status) || b.shortBy - a.shortBy;
+  })[0];
+  if (!weak || weak.status === "ready") return readiness.reasons[0];
+  if (weak.status === "thin") return t("contractBoard.needsBuffer", { name: weak.name, n: scoreText(weak.shortBy) });
+  return t("contractBoard.needsRecover", { name: weak.name, n: scoreText(weak.shortBy) });
 }

@@ -39,6 +39,7 @@ import {
   squadFit,
   squadFitKind,
   squadFitLabelId,
+  squadFitReason,
   worldStateLabelId,
   worldStateNoteId,
 } from "../contract-board/card-axes.js";
@@ -431,7 +432,7 @@ function DowntimeFixButton(props: { fix: DowntimeFix; onClick: () => void }): JS
       data-testid="roster-downtime-fix"
       onClick={onClick}
       title={fix.reason}
-      style={{ padding: "8px 10px", minHeight: 44, fontSize: 12, lineHeight: 1.3, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%", whiteSpace: "normal", textAlign: "left" }}
+      style={{ padding: "8px 10px", minHeight: 44, fontSize: 12, lineHeight: 1.3, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%", whiteSpace: "normal", textAlign: "left" }}
     >
       <span style={{ fontWeight: 800, display: "flex", alignItems: "center", gap: 5, flex: "0 1 auto", minWidth: 0 }}>
         <PixelIcon name={DOWNTIME_ICON[fix.action]} /> {label}
@@ -448,8 +449,6 @@ export interface ContractRegionProps {
   party: string[];
   min: number;
   max: number;
-  canRun: boolean;
-  onRun: () => void;
   /** World-state markers for the selected contract — the run's single "next" and the
    *  arc-relative "steep" read — from the SAME shared projection the board and map read,
    *  so they travel with the contract to the commit surface. */
@@ -471,18 +470,10 @@ export interface ContractRegionProps {
   render?: "full" | "detail";
 }
 
-/** The decision surface: difficulty picker, fix actions, and the RUN CONTRACT
- *  CTA. Split out from ContractRegion so mobile can pin it to a sticky footer
- *  (fix actions stacked immediately above the CTA) while the detail scrolls. */
+/** The setup surface: difficulty and roster-fix controls. Committing the work is
+ * deliberately outside this region: the shell exposes one Play Encounter action. */
 export function ContractActions(props: ContractRegionProps): JSX.Element {
-  const { selected, min, max, canRun, onRun, contract, readiness, fixPlan, onApplyFix, recommendation, compact, difficultyModes, difficultyModeId, onSelectDifficultyMode } = props;
-  if (selected.status === "locked") {
-    return (
-      <PixelButton disabled variant="disabled" style={{ width: "100%", minHeight: 44, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-        <PixelIcon name="locked" /> <span>{t("status.locked")}</span>
-      </PixelButton>
-    );
-  }
+  const { selected, contract, readiness, fixPlan, onApplyFix, recommendation, compact, difficultyModes, difficultyModeId, onSelectDifficultyMode } = props;
   const showReadiness = selected.status === "available" && contract;
   return (
     <>
@@ -504,7 +495,6 @@ export function ContractActions(props: ContractRegionProps): JSX.Element {
           ))}
         </div>
       )}
-      <RunButton selected={selected} min={min} max={max} canRun={canRun} readiness={readiness} onRun={onRun} />
       {showReadiness && recommendation && (
         <div style={{ marginTop: 8, fontSize: 10, lineHeight: 1.4, color: "var(--stone)", fontStyle: "italic", fontFamily: "var(--px-font)" }}>{recommendation}</div>
       )}
@@ -513,7 +503,7 @@ export function ContractActions(props: ContractRegionProps): JSX.Element {
 }
 
 export function ContractRegion(props: ContractRegionProps): JSX.Element {
-  const { selected, party, min, max, canRun, onRun, contract, readiness, recommendation, fixPlan, onApplyFix, compact, difficultyModes, difficultyModeId, onSelectDifficultyMode, upNext = false, steep = false, render = "full" } = props;
+  const { selected, party, min, max, contract, readiness, compact, upNext = false, steep = false, render = "full" } = props;
   const detailOnly = render === "detail";
 
   // The commit surface reads on the SAME two axes as the board card, from the SAME
@@ -530,7 +520,7 @@ export function ContractRegion(props: ContractRegionProps): JSX.Element {
         worldStateNote={noteId ? t(noteId) : undefined}
         squadFit={fit}
         squadFitLabel={t(squadFitLabelId(squadFitKind(selected, fit)))}
-        squadFitReason={fit === "reliable" ? t("contractBoard.recommendedReliable") : fit ? readiness?.reasons?.[0] : undefined}
+        squadFitReason={squadFitReason(fit, readiness)}
       />
     </div>
   );
@@ -619,57 +609,6 @@ export function ContractRegion(props: ContractRegionProps): JSX.Element {
   );
 }
 
-// One icon per run-button state, so the label can stay short without losing
-// meaning — the icon carries reliable/risky/failing/locked/recorded state,
-// the label carries the verb. Fixes the "jammed text" complaint: a single
-// long uppercase phrase (e.g. "RUN WITH RISK") no longer has to fit alone.
-function runButtonIcon(selected: WorldNode, countOk: boolean, riskRun: boolean, thinRun: boolean): PixelIconName {
-  if (selected.status === "locked") return "locked";
-  if (selected.status === "cleared") return "recorded";
-  if (!countOk) return "available";
-  if (riskRun) return "failing";
-  if (thinRun) return "risky";
-  return "reliable";
-}
-
-function RunButton(props: { selected: WorldNode; min: number; max: number; canRun: boolean; readiness: PartyReadiness | null; onRun: () => void }): JSX.Element {
-  const { selected, min, max, canRun, readiness, onRun } = props;
-  const outcome = readiness?.projectedOutcome ?? "none";
-  const countOk = readiness?.countOk ?? canRun;
-  const riskRun = canRun && outcome === "failure";
-  const thinRun = canRun && outcome === "partial";
-  const disabled = !canRun;
-  const label = selected.status === "locked"
-    ? t("status.locked")
-    : selected.status === "cleared"
-    ? t("status.recorded")
-    : !countOk
-    ? t("shell.assignRange", { min, max })
-    : riskRun
-    ? t("shell.riskRun")
-    : thinRun
-    ? t("shell.runWithRisk")
-    : t("shell.runContract");
-  const variant = disabled ? "disabled" : riskRun ? "danger" : thinRun ? "primary" : "confirm";
-  const icon = runButtonIcon(selected, countOk, riskRun, thinRun);
-  return (
-    <div style={{ marginTop: 12, display: "grid", gap: 6 }}>
-      <PixelButton
-        onClick={onRun}
-        disabled={disabled}
-        data-testid="run-contract-button"
-        variant={variant}
-        className="pixel-button--cta"
-        style={{ minWidth: "100%", lineHeight: 1.25, whiteSpace: "normal", wordBreak: "keep-all", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, textAlign: "center" }}
-      >
-        <PixelIcon name={icon} /> <span>{label}</span>
-      </PixelButton>
-      {riskRun && <div style={{ color: "var(--danger)", fontSize: 11, fontFamily: "var(--px-font)" }}>{t("shell.riskWarning")}</div>}
-      {thinRun && <div style={{ color: "var(--gold-dark)", fontSize: 11, fontFamily: "var(--px-font)" }}>{t("shell.thinWarning")}</div>}
-    </div>
-  );
-}
-
 function FixPlanPanel(props: { fixes: FixSuggestion[]; onApplyFix: (fix: FixSuggestion) => void; compact?: boolean }): JSX.Element {
   const { fixes, onApplyFix, compact } = props;
   const primary = compact ? fixes.slice(0, 2) : fixes;
@@ -722,7 +661,7 @@ function FixButton(props: { label: string; fix: FixSuggestion; onClick: () => vo
       onClick={props.onClick}
       // Fix actions are secondary controls — the "action" tier reads clearly as
       // a button (heavy border + pressable shadow) but never wears the gold CTA
-      // fill, so RUN CONTRACT stays the single dominant action in the panel.
+      // fill, so the shell's Play Encounter action remains dominant.
       variant="action"
       style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 12px", fontSize: 13, lineHeight: 1.3 }}
     >

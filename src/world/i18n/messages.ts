@@ -127,6 +127,7 @@ export type MessageId =
   | "readiness.recommendationRationale"
   | "readiness.checkedAttributesFallback"
   // ── PixelReadinessRow ────────────────────────────────────────────────────
+  | "readinessRow.scoreAgainstTarget"
   | "readinessRow.passingBy"
   | "readinessRow.failingBy"
   | "readinessRow.reliableBufferReached"
@@ -542,10 +543,11 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     },
     "readiness.checkedAttributesFallback": "the checked attributes",
 
-    "readinessRow.passingBy": (params) => `Passing by +${num(params, "margin")} · needs +${num(params, "shortBy")} more buffer to become reliable.`,
-    "readinessRow.failingBy": (params) => `Failing by ${num(params, "margin")} · needs +${num(params, "shortBy")} to become reliable.`,
-    "readinessRow.reliableBufferReached": "Reliable buffer reached.",
-    "readinessRow.top": (params) => `Top: ${str(params, "list")}`,
+    "readinessRow.scoreAgainstTarget": (params) => `Squad ${str(params, "score")} · Need ${num(params, "target")}`,
+    "readinessRow.passingBy": (params) => `Above the requirement by +${num(params, "margin")} · add +${num(params, "shortBy")} for a reliable projection.`,
+    "readinessRow.failingBy": (params) => `Below the requirement by ${num(params, "margin")} · add +${num(params, "shortBy")} for a reliable projection.`,
+    "readinessRow.reliableBufferReached": "Comfortably above the requirement.",
+    "readinessRow.top": (params) => `Strongest contributors: ${str(params, "list")}`,
 
     "contractCard.needs": "Needs",
     "contractCard.clearEarlier": "Clear earlier contracts",
@@ -919,10 +921,11 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     },
     "readiness.checkedAttributesFallback": "檢定所需的屬性",
 
-    "readinessRow.passingBy": (params) => `領先 +${num(params, "margin")} · 還需 +${num(params, "shortBy")} 緩衝才能達到可靠。`,
-    "readinessRow.failingBy": (params) => `落後 ${num(params, "margin")} · 需要 +${num(params, "shortBy")} 才能達到可靠。`,
-    "readinessRow.reliableBufferReached": "已達到可靠緩衝。",
-    "readinessRow.top": (params) => `最佳：${str(params, "list")}`,
+    "readinessRow.scoreAgainstTarget": (params) => `隊伍 ${str(params, "score")} · 需要 ${num(params, "target")}`,
+    "readinessRow.passingBy": (params) => `高於需求 +${num(params, "margin")} · 再增加 +${num(params, "shortBy")} 即可達到可靠預測。`,
+    "readinessRow.failingBy": (params) => `低於需求 ${num(params, "margin")} · 增加 +${num(params, "shortBy")} 即可達到可靠預測。`,
+    "readinessRow.reliableBufferReached": "已明顯高於需求。",
+    "readinessRow.top": (params) => `主要貢獻者：${str(params, "list")}`,
 
     "contractCard.needs": "需要",
     "contractCard.clearEarlier": "請先完成較早的契約",

@@ -121,6 +121,28 @@ describe("Rodoh pixel-ui integration", () => {
     // Shell feeds up next / steep from the shared node-marker projection.
     const shell = read("src/world/shell/Shell.tsx");
     expect(shell).toContain("deriveNodeMarkers(world.nodes)");
+    // Both surfaces also derive the explanatory line from one helper; the verdict
+    // cannot agree while the reason silently diverges.
+    expect(read("src/world/contract-board/ContractBoard.tsx")).toContain("squadFitReason(fit, readiness)");
+    expect(regions).toContain("squadFitReason(fit, readiness)");
+  });
+
+  it("the player shell exposes one encounter commit and labels readiness arithmetic", () => {
+    const shell = read("src/world/shell/Shell.tsx");
+    expect(shell).toContain('data-testid="play-encounter-button"');
+    expect(shell).not.toContain("useEncounterDirector");
+    expect(read("src/world/shell/regions.tsx")).not.toContain('data-testid="run-contract-button"');
+
+    const row = read("src/world/pixel-ui/PixelReadinessRow.tsx");
+    expect(row).toContain('t("readinessRow.scoreAgainstTarget"');
+    expect(row).not.toContain("{scoreText(projected)} / {Math.round(threshold)}");
+  });
+
+  it("roster repair actions use the card width instead of three cramped columns", () => {
+    const css = read("src/world/pixel-ui/pixel-ui.css");
+    const actions = css.slice(css.indexOf(".pixel-roster-card__actions"), css.indexOf("/* ── PIXEL CONTRACT CARD"));
+    expect(actions).toContain("grid-template-columns: minmax(0,1fr)");
+    expect(actions).not.toContain("repeat(3");
   });
 
   it("ContractBoard renders PixelContractCard, not bespoke card markup", () => {

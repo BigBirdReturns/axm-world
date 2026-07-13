@@ -98,7 +98,7 @@
   box-shadow: 1px 1px 0 var(--ink);
 }
 
-/* The dominant CTA (e.g. RUN CONTRACT): the single largest, highest-contrast
+/* The dominant CTA (e.g. PLAY ENCOUNTER): the single largest, highest-contrast
    action in its panel. Bigger label survives the squint test at thumbnail
    scale; only this tier should carry a fully-saturated fill. */
 .pixel-button--cta {
@@ -439,7 +439,7 @@
 }
 .pixel-roster-card__actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0,1fr));
+  grid-template-columns: minmax(0,1fr);
   gap: 4px;
   margin-top: 8px;
   border-top: 1px solid var(--cream-border);

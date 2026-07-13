@@ -19,22 +19,17 @@ export async function resolveOpeningDecision(page: Page): Promise<void> {
   await expect(page.getByTestId("pending-decision-card")).toHaveCount(0);
 }
 
-/** Run the currently-selected contract to resolution. Clicking Run hands off to the
- *  EncounterDirector overlay, whose phase machine stalls at its result phase (result
- *  has no auto-advance timer). Escape skips the pre-result animation: it commits the
- *  run (world.runChallenge) and auto-dismisses the overlay. Leaves any post-run
- *  decision for the caller to resolve. */
+/** Play the currently selected contract through the one player-facing commit path.
+ * The compiled encounter resolves through world.runChallenge and leaves any
+ * post-run decision for the caller. */
 export async function runSelectedContract(page: Page): Promise<void> {
-  await page.getByTestId("run-contract-button").click();
-  const overlay = page.getByTestId("encounter-overlay");
-  await expect(overlay).toBeVisible();
-  // The phase machine auto-advances (dispatch → travel → encounter → resolve-checks),
-  // committing world.runChallenge at resolve-checks, then STALLS at its result phase
-  // (result has no auto-advance timer) showing the outcome banner. Escape at the
-  // result phase dismisses the overlay back to the shell.
-  await expect(page.getByTestId("outcome-banner")).toBeVisible({ timeout: 15_000 });
-  await page.keyboard.press("Escape");
-  await expect(overlay).toHaveCount(0);
+  await page.getByTestId("play-encounter-button").click();
+  const encounter = page.getByTestId("encounter-shell");
+  await expect(encounter).toBeVisible();
+  await page.getByTestId("encs-resolve").click();
+  await expect(page.getByTestId("encs-receipt")).toBeVisible();
+  await page.getByTestId("encs-leave").click();
+  await expect(encounter).toHaveCount(0);
 }
 
 /** Clear any pending decisions (e.g. a drama card the engine enqueues after a run).
@@ -42,9 +37,20 @@ export async function runSelectedContract(page: Page): Promise<void> {
  *  must resolve them before switching representations. */
 export async function resolvePendingDecisions(page: Page): Promise<void> {
   const card = page.getByTestId("pending-decision-card");
-  for (let i = 0; i < 5 && (await card.count()) > 0; i++) {
-    await card.getByRole("button").first().click();
-    await card.getByRole("button", { name: /continue/i }).click();
-    await expect(card).toHaveCount(0);
+  // One engine cycle can queue several authored relationship/drama decisions.
+  // A new card may replace the response immediately, so waiting for count=0 after
+  // every Continue is incorrect; wait for the current card text to change instead.
+  for (let i = 0; i < 20 && (await card.count()) > 0; i++) {
+    const before = await card.textContent();
+    const continueButton = card.getByRole("button", { name: /continue/i });
+    if (await continueButton.count()) {
+      await continueButton.click();
+    } else {
+      const choices = card.getByRole("button");
+      expect(await choices.count()).toBeGreaterThan(0);
+      await choices.first().click();
+    }
+    await expect.poll(async () => (await card.count()) === 0 ? null : card.textContent()).not.toBe(before);
   }
+  await expect(card).toHaveCount(0);
 }

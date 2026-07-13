@@ -10,7 +10,6 @@
 //   mobile  → same top bar + a bottom flex dock that stacks the same regions by flow.
 
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { useEncounterDirector } from "../encounter/EncounterDirector.js";
 import { EncounterShell } from "../encounter/EncounterShell.js";
 import { cartridgePaletteScope, themeForArc } from "../themes/select.js";
 import "../themes/karazhan/karazhan.css";
@@ -29,7 +28,6 @@ import {
   LocaleSwitcher,
   RosterRegion,
   ContractRegion,
-  ContractActions,
   ReportRegion,
   LootRegion,
   CoachRegion,
@@ -127,7 +125,6 @@ function RecordModal(props: { record: NonNullable<ArcWorld["lastRecord"]>; onClo
 }
 
 export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Element {
-  const { interceptedRun, overlay: encounterOverlay } = useEncounterDirector(ix, world);
   const isMobile = useIsMobile();
   const [locale] = useLocale();
   const [costumeId, setCostumeId] = useState<string>(() => loadCostume(world.cartridge.arc));
@@ -139,8 +136,8 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   // clearing the selection returns to Board. Desktop ignores this entirely.
   const [mobileStep, setMobileStep] = useState<"board" | "contract" | "party">("board");
   // The playable-encounter surface: the same selected contract, entered as a
-  // spatial encounter compiled from its record. Distinct from the RUN CONTRACT
-  // auto-resolve (interceptedRun) — this is the "walk into it" path.
+  // spatial encounter compiled from its record. This is the shell's one commit
+  // path on desktop and mobile; the player never chooses between two verbs.
   const [encounterOpen, setEncounterOpen] = useState(false);
   // Party to seed the encounter with. null = use the board-assembled party
   // (ix.party) for the currently selected contract. Non-null = an explicit party
@@ -242,7 +239,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   ) : null;
   const cartridgeButton = (
     // Global mode object — deliberately quiet chrome (ghost), so it never
-    // competes with the in-loop game actions (RUN CONTRACT, fix actions).
+    // competes with the in-loop game actions (Play Encounter, fix actions).
     <PixelButton
       type="button"
       variant="ghost"
@@ -285,7 +282,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   );
   const contractProps = ix.selected && selectionVisible
     ? {
-        selected: ix.selected, party: ix.party, min, max, canRun: ix.canRun, onRun: interceptedRun,
+        selected: ix.selected, party: ix.party, min, max,
         contract: ix.contract, readiness: ix.readiness, recommendation: ix.recommendation,
         fixPlan: ix.fixPlan, onApplyFix: ix.applyFix, compact: isMobile,
         upNext: selectedMarkers?.next ?? false,
@@ -445,7 +442,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
 
       {isMobile ? (
         // Staged turn flow — ONE panel at a time (Board -> Contract -> Party),
-        // with a sticky RUN CONTRACT footer so the loop stays completable at
+        // with a sticky Play Encounter footer so the loop stays completable at
         // phone width without horizontal scroll, zoom, or multi-panel reading.
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
           {mobileStep !== "board" && (
@@ -571,7 +568,6 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
         />
       )}
       {showHistory && world.lastRecord && <RecordModal record={world.lastRecord} onClose={() => setShowHistory(false)} />}
-      {encounterOverlay}
       {encounterOpen && ix.selectedId && (
         <EncounterShell
           world={world}
