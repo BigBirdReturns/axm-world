@@ -1,9 +1,12 @@
 import fs from "node:fs";
 
-const expected = "ISOLATION_OK_9F3A6C\n";
 const actual = fs.readFileSync("canary.txt", "utf8");
+const accepted = new Set([
+  "ISOLATION_OK_9F3A6C\n",
+  "ISOLATION_OK_9F3A6C\r\n",
+]);
 
-if (actual !== expected) {
+if (!accepted.has(actual)) {
   console.error(`canary.txt mismatch: ${JSON.stringify(actual)}`);
   process.exit(1);
 }
