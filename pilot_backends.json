@@ -10,12 +10,12 @@
   "tool_versions": {
     "claude_code": "2.1.207 (Claude Code)",
     "claude_help_sha256": "05207b52bfc601e9c3dda7b3fa0793366adbaeca0d094d5b66e9b293ed0182fe",
-    "tier_claude_adapter": "8"
+    "tier_claude_adapter": "9"
   },
   "prompt_templates": {
     "hands": {
-      "path": ".tier/hands.prompt.txt",
-      "sha256": "c2ba92cff0c46b14f2a23719087d3e71d41a0790cb80b563c748fc0b9cba1111"
+      "path": ".tier/canary-v9.prompt.txt",
+      "sha256": "b8fdee83cc6d864b81e71a0711d8ecdc88b5d8cfe52aeaf1bb553a5d01b1dc06"
     }
   },
   "arms": {
@@ -57,7 +57,7 @@
           "--claude-help-sha256",
           "05207b52bfc601e9c3dda7b3fa0793366adbaeca0d094d5b66e9b293ed0182fe",
           "--adapter-version",
-          "8",
+          "9",
           "--cost-basis",
           "subscription-derived"
         ]
