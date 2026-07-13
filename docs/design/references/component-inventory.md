@@ -18,7 +18,7 @@ tests in `tests/world/asset-standard.test.ts` enforce them mechanically.
     `src/world/pixel-ui/PixelIcon.tsx` behind `PixelIconName`.
   - `MotifIcon` — 16x16 `viewBox` hand-authored SVG per theme, under
     `src/world/themes/<theme>/` (e.g. `src/world/themes/first-charter/motif-icons.tsx`).
-  - Brand mark (`RodohRuntimeMark`) — 14x18 pixel grid, its own small
+  - Brand mark (`RodohRuntimeMark`) — governed 16x18 pixel grid, its own small
     alphabet (see the file's own header), not part of the `PixelIcon` set.
 - **Palette rule**: pixel-grid tokens map to color through a single
   `colorFor`/palette lookup per component; every token used in a grid must be
@@ -67,7 +67,7 @@ tokens, components, and a small controlled icon set" —
 | PixelRosterCard | `src/world/pixel-ui/PixelRosterCard.tsx` | `.pixel-roster-card` | Yes — RosterRegion | Redrawn derivative — `...asset_pack.png` §8 "Roster Card Frame" |
 | PixelContractCard | `src/world/pixel-ui/PixelContractCard.tsx` | `.pixel-contract-card` | Yes — ContractBoard's ContractLocationCard | Redrawn derivative — `...asset_pack.png` §8 "Selected Contract Card Frame" |
 | MotifIcon (First Charter) | `src/world/themes/first-charter/motif-icons.tsx` | `.fc-motif-icon` | Yes — EncounterDirector overlay (replaces emoji glyphs) | Redrawn derivative — `first_charter_theme_asset_pack_overview.png` §1 "Motif Icons" (per-motif breakdown below) |
-| RodohRuntimeMark | `src/world/brand/RodohRuntimeMark.tsx` | (inline styles, no CSS class prefix) | Yes — boot screen and Shell header brand mark | Redrawn derivative — 14x18 hand-authored pixel grid reproducing the "SYSTEM SOUL · DANDELION" emblem from `rodoh_platform_identity_system_guide.png` §2 "Wordmark & Emblem" (also depicted in §3 "Root Motifs") |
+| RodohRuntimeMark | `src/world/brand/RodohRuntimeMark.tsx` | (inline styles, no CSS class prefix) | Yes — boot screen, cartridge surfaces, and decisions | Governed source map — exact 16x18 `SCGPX.MAP` published by the [AXM Tools identity system](https://bigbirdreturns.github.io/axm-tools/identity/); no redraw or centering |
 
 ## PixelIcon per-icon provenance
 
@@ -124,7 +124,7 @@ also redrawn derivatives, not slices.
 
 | motif | harvested source | match quality |
 |---|---|---|
-| dandelion | `...overview.png` §1 "Motif Icons" — dandelion seed head on a stem | approximate — circular seed cluster on a stem |
+| dandelion | [AXM Tools identity system](https://bigbirdreturns.github.io/axm-tools/identity/) → `SCGPX.MAP` | exact — shared `RodohDandelionGlyph`; one governed map across brand, cartridge, and decision surfaces |
 | archiveBox | `...overview.png` §1 — wooden reinforced crate | approximate — box outline + reinforcement line |
 | coffeeMug | `...overview.png` §1 — mug with handle | close — mug body + handle |
 | crossedCalendar | `...overview.png` §1 — torn calendar page, spiral top, crossed-off | close — page + binding marks + diagonal cross |
@@ -163,6 +163,6 @@ from `axm_world_runtime_ui_asset_pack.png` by the pipeline described above
 a newly invented placeholder (every shape traces a real icon on the sheet).
 Two icons (`selected`, `lootAvailable`) are missing a minor accent that was a
 disconnected fragment in the source image; everything else is a close match.
-`MotifIcon` remains hand-authored SVG paths (not grid-extracted) — a
-reasonable choice for organic shapes like the dandelion, but a candidate for
-the same extraction treatment in a future pass if exact fidelity matters.
+Other `MotifIcon` shapes remain hand-authored SVG paths. The dandelion is the
+exception: it imports the exact governed `RodohDandelionGlyph` map so no
+surface can redraw, center, or tidy it independently.

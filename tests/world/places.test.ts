@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
-import { SPRITES, PIXEL_SPRITE_NAMES, spriteForRole, type PixelSpriteName } from "../../src/world/pixel-ui/PixelSprite.js";
+import { SPRITES, PIXEL_SPRITE_NAMES, type PixelSpriteName } from "../../src/world/pixel-ui/PixelSprite.js";
 import { personSprite } from "../../src/world/themes/first-charter/portrait-icons.js";
+import { FIRST_CHARTER_THEME } from "../../src/world/themes/first-charter/theme.js";
 import type { PortraitSpec } from "../../src/world/pixel-ui/PixelPortrait.js";
 
 // #73 — Places. The hall floor and encounter staging become staged scenes: bodies
@@ -41,10 +42,7 @@ describe("places (#73): sprite asset integrity", () => {
   });
 
   it("bodies key off the ROLE with a neutral fallback — never an invented identity", () => {
-    expect(spriteForRole("Vanguard")).toBe("vanguard");
-    expect(spriteForRole("Skirmisher")).toBe("skirmisher");
-    expect(spriteForRole("Mender")).toBe("mender");
-    expect(spriteForRole("Flex")).toBe("person");
+    expect(FIRST_CHARTER_THEME.appearancePack.roleBindings.Vanguard).toBe("rodoh:plated");
   });
 });
 
@@ -55,7 +53,7 @@ describe("places (#73): staged scenes", () => {
     expect(hall).toContain('data-testid="hall-party-bodies"');
     // The squad shown is the SAME recommended party the quick-accept resolves with.
     expect(hall).toContain("world.recommendedParty(view.challengeId)");
-    expect(hall).toContain("spriteForRole(m.role)");
+    expect(hall).toContain("resolveDollAppearance(theme, m.role)");
     // The steward stands as her authored BODY in the scene (sprite in the scene,
     // portrait in the close-ups), with honest fallbacks.
     expect(hall).toContain("CartridgeSprite({ arcId: world.arc.meta.id, personId: person.id");
@@ -63,7 +61,7 @@ describe("places (#73): staged scenes", () => {
 
   it("the encounter staging stages bodies, not rectangles", () => {
     const shell = read("src/world/encounter/EncounterShell.tsx");
-    expect(shell).toContain("<PixelSprite name={spriteForRole(m.role)}");
+    expect(shell).toContain("<PixelDoll appearance={resolveDollAppearance(theme, m.role)}");
     expect(shell).toContain('data-testid="encs-staging-threat-body"');
     // The threat stays the SITE's abstract danger — no invented named enemy.
     expect(shell).toContain('name="threat"');

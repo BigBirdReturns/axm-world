@@ -1,13 +1,9 @@
-// Source: docs/design/references/rodoh_platform_identity_system_guide.png
-// §2 "Wordmark & Emblem" (EMBLEM / PRIMARY — "SYSTEM SOUL · DANDELION. Small.
-// Stubborn. Persistent."), also depicted in §3 "Root Motifs". This 14x18 grid
-// is a redrawn derivative reproducing that emblem's shape (round puff head on
-// a stem with leaves) as hand-authored runtime code — not a traced/extracted
-// grid like PixelIcon's programmatic pipeline, and not an invented shape with
-// no reference. See docs/design/references/component-inventory.md.
-// Grid: 14x18
-// Encoding: 0=transparent p=puff-shade w=puff b=ink(eyes) m=ink(mouth)
-//           s=stem l=leaf(left) r=leaf(right)
+// Source: https://bigbirdreturns.github.io/axm-tools/identity/
+// Canonical map: identity/scg/source/scg-pixel-mark.js -> SCGPX.MAP
+// Custody: exact governed public-practice derivative of the AXM-WORLD root
+// glyph. Never redraw, center, close, or tidy the drift.
+// Grid: 16x18
+// Encoding: 0=transparent W=bone bloom o=olive stem
 import type { CSSProperties } from "react";
 
 export type RodohRuntimeMarkVariant = "boot" | "card" | "inline" | "micro";
@@ -21,42 +17,34 @@ export interface RodohRuntimeMarkProps {
   style?: CSSProperties;
 }
 
-const PUFF = "#fff7df";
-const PUFF_SHADE = "#d9d0b8";
-const INK = "#151515";
-const STEM = "#7da15c";
-const LEAF = "#4f6f36";
+const BONE = "#ECE7D8";
+const OLIVE = "#7C7F57";
 
 const PIXELS = [
-  "000000p0000000",
-  "0000p0w0p00000",
-  "000pwwwwwp0000",
-  "00pwwwwwwwp000",
-  "00wwwwwwwww000",
-  "00pwwwbbwwwp00",
-  "00wwwwmwwww000",
-  "00pwwwwwwwp000",
-  "000pwwwwwp0000",
-  "00000www000000",
-  "000000s0000000",
-  "000000s0000000",
-  "0000llsrr00000",
-  "000lllsrrrr000",
-  "00lllslrrr0000",
-  "000l00s00r0000",
-  "000000s0000000",
-  "000000s0000000",
+  "0000W00000W00000",
+  "0000000000000000",
+  "00W0000W00000WW0",
+  "0W00WW0WW00W00W0",
+  "00WWWWWWWW00W000",
+  "0WWWWWWWWWW00000",
+  "00WWWWWWWWW00000",
+  "00WWWWWWWW000000",
+  "000WWWWWW0o00000",
+  "00000WWW00000000",
+  "000000o0000000W0",
+  "000000o000000000",
+  "000o00o00o000000",
+  "00o000o00o000000",
+  "000000o000000000",
+  "00000oo000000000",
+  "00000oo000000000",
+  "000oooooo0000000",
 ];
 
 function colorFor(token: string): string | null {
   switch (token) {
-    case "w": return PUFF;
-    case "p": return PUFF_SHADE;
-    case "b": return INK;
-    case "m": return INK;
-    case "s": return STEM;
-    case "l": return LEAF;
-    case "r": return "#5f7f41";
+    case "W": return BONE;
+    case "o": return OLIVE;
     default: return null;
   }
 }
@@ -67,6 +55,19 @@ const SIZES: Record<RodohRuntimeMarkVariant, number> = {
   inline: 3,
   micro: 2,
 };
+
+/** The governed glyph without wordmark chrome. All dandelion uses import this
+ * renderer so the canonical map has one owner and cannot drift by surface. */
+export function RodohDandelionGlyph({ size = 32, bone = BONE, olive = OLIVE }: { size?: number; bone?: string; olive?: string }): JSX.Element {
+  return (
+    <svg viewBox="0 0 16 18" width={size} height={size * 18 / 16} shapeRendering="crispEdges" aria-hidden="true">
+      {PIXELS.flatMap((row, y) => row.split("").map((token, x) => {
+        if (token === "0") return null;
+        return <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill={token === "W" ? bone : olive} />;
+      }))}
+    </svg>
+  );
+}
 
 export function RodohRuntimeMark({
   variant = "inline",

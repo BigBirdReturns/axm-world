@@ -1,0 +1,123 @@
+.decision-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(11, 10, 8, 0.82);
+  pointer-events: auto;
+}
+
+.decision-panel.pixel-panel {
+  position: fixed;
+  z-index: 9001;
+  top: max(18px, env(safe-area-inset-top));
+  left: max(14px, env(safe-area-inset-left));
+  right: max(14px, env(safe-area-inset-right));
+  max-width: 760px;
+  max-height: calc(100dvh - 36px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  margin: 0 auto;
+  padding: 16px;
+  overflow: auto;
+  background: var(--cream);
+  color: var(--ink);
+  border-radius: 0;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.72);
+  pointer-events: auto;
+}
+
+.decision-panel__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--ink);
+  color: var(--coffee);
+  font-family: var(--px-font);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.decision-panel__opening-blurb {
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  border: 2px solid var(--gold-border);
+  background: rgba(216, 178, 118, 0.22);
+  color: var(--ink-soft);
+  font: 11px/1.45 var(--px-font);
+}
+
+.decision-panel__narrative {
+  margin: 12px 0 16px;
+  outline: none;
+  color: var(--ink);
+  font: 700 17px/1.4 var(--px-font);
+}
+
+.decision-panel__options {
+  display: grid;
+  gap: 10px;
+}
+
+.decision-panel__option.pixel-button {
+  display: block;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 12px;
+  text-align: left;
+  white-space: normal;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.decision-panel__option-description {
+  margin-top: 4px;
+  color: var(--ink-muted);
+  font: 11px/1.35 var(--px-font);
+}
+
+.decision-panel__option-effect {
+  margin-top: 5px;
+  color: var(--coffee);
+  font: 10px/1.35 var(--px-font);
+}
+
+.decision-panel__option-effect strong {
+  color: var(--ink-soft);
+}
+
+.decision-panel__result-title {
+  margin: 12px 0 6px;
+  color: var(--ink);
+  font: 800 20px/1.2 var(--px-font);
+}
+
+.decision-panel__result-description {
+  margin: 0 0 18px;
+  color: var(--ink-soft);
+  font: 15px/1.5 'Lora', Georgia, serif;
+}
+
+.decision-panel__continue-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.decision-panel__continue.pixel-button {
+  min-width: 140px;
+}
+
+@media (max-width: 640px) {
+  .decision-panel.pixel-panel {
+    padding: 12px;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.72);
+  }
+
+  .decision-panel__continue-row {
+    display: grid;
+  }
+
+  .decision-panel__continue.pixel-button {
+    width: 100%;
+  }
+}

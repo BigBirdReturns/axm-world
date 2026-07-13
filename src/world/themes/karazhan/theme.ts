@@ -21,6 +21,16 @@ export const KARAZHAN_THEME: RodohTheme = {
     Ranged: { icon: "skirmisher", label: "Ranged", meaning: "At distance. Interrupts and flare control." },
     Support: { icon: "mender", label: "Support", meaning: "Calls the mechanic. Owns the count." },
   },
+  appearancePack: {
+    ...RODOH_BASE_THEME.appearancePack,
+    roleBindings: {
+      Tank: "rodoh:plated",
+      Healer: "rodoh:robed",
+      Melee: "rodoh:hooded",
+      Ranged: "rodoh:hooded",
+      Support: "rodoh:robed",
+    },
+  },
   attributes: {
     power: { icon: "power", label: "Power", meaning: "Raw damage output, martial or arcane." },
     resilience: { icon: "mettle", label: "Resilience", meaning: "Absorb punishment and stay standing." },

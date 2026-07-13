@@ -25,6 +25,7 @@ export interface ControllerState {
 export interface PlanetControllerProps {
   collider: THREE.Mesh | null;
   config: ControllerConfig;
+  initialPosition?: [number, number, number];
   children?: React.ReactNode;
   onState?: (s: ControllerState) => void;
 }
@@ -33,7 +34,7 @@ const DEFAULT_MOVE_SPEED = 4;
 const DEFAULT_JUMP_SPEED = 9;
 
 export function PlanetController(props: PlanetControllerProps): JSX.Element {
-  const { collider, config, children, onState } = props;
+  const { collider, config, initialPosition, children, onState } = props;
 
   const input = useWorldInput();
   const groupRef = useRef<THREE.Group>(null);
@@ -41,7 +42,9 @@ export function PlanetController(props: PlanetControllerProps): JSX.Element {
   // --- Persistent simulation state (mutated in place across frames) ---
   const sim = useMemo(() => {
     // Start on the surface "north-ish" of the planet so the player spawns above ground.
-    const start = new THREE.Vector3(0, config.planetRadius + config.playerHeight, 0);
+    const start = initialPosition
+      ? new THREE.Vector3(...initialPosition)
+      : new THREE.Vector3(0, config.planetRadius + config.playerHeight, 0);
     return {
       position: start.clone(),
       velocity: new THREE.Vector3(0, 0, 0),
@@ -61,6 +64,7 @@ export function PlanetController(props: PlanetControllerProps): JSX.Element {
       north: new THREE.Vector3(),
       forward: new THREE.Vector3(),
       moveDir: new THREE.Vector3(),
+      impulseDir: new THREE.Vector3(),
       worldUpRef: new THREE.Vector3(0, 1, 0),
       altUpRef: new THREE.Vector3(1, 0, 0),
       // collision
@@ -136,6 +140,10 @@ export function PlanetController(props: PlanetControllerProps): JSX.Element {
     tmp.east.crossVectors(tmp.up, tmp.forward).normalize();
     tmp.moveDir.addScaledVector(tmp.east, inp.move.x);
     if (tmp.moveDir.lengthSq() > 1e-6) tmp.moveDir.normalize();
+    tmp.impulseDir.set(0, 0, 0);
+    tmp.impulseDir.addScaledVector(tmp.forward, inp.impulse.y);
+    tmp.impulseDir.addScaledVector(tmp.east, inp.impulse.x);
+    if (tmp.impulseDir.lengthSq() > 1e-6) tmp.impulseDir.normalize();
 
     // --- Velocity integration ---
     // Decompose current velocity into up (vertical) and horizontal components.
@@ -161,6 +169,9 @@ export function PlanetController(props: PlanetControllerProps): JSX.Element {
 
     // Step position.
     sim.position.addScaledVector(sim.velocity, delta);
+    // Touch/mouse taps are spatial steps, not sub-frame velocity pulses. This is
+    // consumed once by useWorldInput, so a throttled mobile renderer still moves.
+    sim.position.addScaledVector(tmp.impulseDir, 0.9);
 
     // --- Collision resolution ---
     let grounded = false;

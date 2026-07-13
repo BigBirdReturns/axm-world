@@ -290,11 +290,11 @@ export function RodohUiKitRoute(): JSX.Element {
       <Section id="loot" title="Loot / Equip" note="PixelLootCard — as rendered in LootRegion, with multiple eligible-agent equip targets." wide>
         <div className="rk-grid rk-grid--wide">
           <PixelLootCard itemName="Guard's Trophy" icon="guardCharm" slot="Trinket" bonusText="Spirit +1" flavorText="Taken from a warden who no longer needs it.">
-            <PixelButton variant="confirm" style={{ minHeight: 36, fontSize: 10, padding: "5px 10px" }}>Equip → Rook</PixelButton>
-            <PixelButton variant="secondary" style={{ minHeight: 36, fontSize: 10, padding: "5px 10px" }}>Equip → Sable</PixelButton>
+            <PixelButton variant="confirm" className="pixel-loot-card__equip-button"><PixelIcon name="guardCharm" size={18} className="pixel-loot-card__equip-icon" /> Equip → Rook</PixelButton>
+            <PixelButton variant="secondary" className="pixel-loot-card__equip-button"><PixelIcon name="guardCharm" size={18} className="pixel-loot-card__equip-icon" /> Equip → Sable</PixelButton>
           </PixelLootCard>
           <PixelLootCard itemName="Rusty Pick" icon="rustyBlade" slot="Weapon" bonusText="Power +2" flavorText="Better than fists. Barely.">
-            <PixelButton variant="confirm" style={{ minHeight: 36, fontSize: 10, padding: "5px 10px" }}>Equip → Iven</PixelButton>
+            <PixelButton variant="confirm" className="pixel-loot-card__equip-button"><PixelIcon name="rustyBlade" size={18} className="pixel-loot-card__equip-icon" /> Equip → Iven</PixelButton>
           </PixelLootCard>
         </div>
       </Section>

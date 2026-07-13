@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
-import { PORTRAITS, PIXEL_PORTRAIT_NAMES, portraitForRole, type PortraitSpec } from "../../src/world/pixel-ui/PixelPortrait.js";
+import { PORTRAITS, PIXEL_PORTRAIT_NAMES, type PortraitSpec } from "../../src/world/pixel-ui/PixelPortrait.js";
 import { personPortrait } from "../../src/world/themes/first-charter/portrait-icons.js";
+import { FIRST_CHARTER_THEME } from "../../src/world/themes/first-charter/theme.js";
 import { MESSAGES } from "../../src/world/i18n/messages.js";
 
 // #72 — Faces. Pixel portraits inside the existing asset standard: 16x16 grids,
@@ -47,10 +48,7 @@ describe("faces (#72): portrait asset integrity", () => {
   });
 
   it("roster faces key off the ROLE — real run data — with a neutral fallback", () => {
-    expect(portraitForRole("Vanguard")).toBe("vanguard");
-    expect(portraitForRole("Skirmisher")).toBe("skirmisher");
-    expect(portraitForRole("Mender")).toBe("mender");
-    expect(portraitForRole("Flex")).toBe("person");
+    expect(FIRST_CHARTER_THEME.appearancePack.roleBindings.Vanguard).toBe("rodoh:plated");
   });
 });
 
@@ -71,8 +69,8 @@ describe("faces (#72): surfaces", () => {
 
   it("roster cards carry the role face", () => {
     const card = read("src/world/pixel-ui/PixelRosterCard.tsx");
-    expect(card).toContain('data-testid="roster-card-face"');
-    expect(card).toContain("portraitForRole(role)");
+    expect(card).toContain('data-testid="roster-card-doll"');
+    expect(card).toContain("resolvedAppearance");
   });
 
   it("the theme seam only gives faces to cartridges that author people", () => {

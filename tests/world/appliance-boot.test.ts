@@ -84,6 +84,62 @@ describe("applianceBootOptions — the runtime's fresh-boot sizing decision", ()
     expect(Object.keys(org.agents).length).toBeGreaterThanOrEqual(10);
   });
 
+  it("reconciles simultaneous role floors, not only total party headcount", () => {
+    const guardian = MINI_ARC.roles.find((role) => role.id === "guardian")!;
+    const striker = MINI_ARC.roles.find((role) => role.id === "striker")!;
+    const roleHeavyArc: Arc = {
+      ...MINI_ARC,
+      roles: [
+        striker,
+        guardian,
+        { ...guardian, id: "healer", name: "Healer" },
+        { ...striker, id: "support", name: "Support" },
+      ],
+      challenges: [
+        {
+          ...MINI_ARC.challenges[0]!,
+          rosterRequirements: {
+            minAgents: 5,
+            maxAgents: 6,
+            roleRequirements: [
+              { roleId: "guardian", count: 2 },
+              { roleId: "healer", count: 2 },
+              { roleId: "striker", count: 1 },
+            ],
+          },
+        },
+      ],
+    };
+
+    // Six total bodies satisfy maxAgents but round-robin generation would yield
+    // striker 2 / guardian 2 / healer 1 / support 1. The second healer arrives
+    // in slot 7, and every authored floor must hold simultaneously.
+    const opts = applianceBootOptions(roleHeavyArc);
+    expect(opts.rosterSize).toBe(7);
+    const roster = Object.values(bootstrapOrg(roleHeavyArc, opts).agents);
+    expect(roster.map((agent) => agent.role)).toEqual([
+      "striker",
+      "guardian",
+      "healer",
+      "support",
+      "striker",
+      "guardian",
+      "healer",
+    ]);
+    const counts = new Map<string, number>();
+    for (const agent of roster) {
+      if (agent.role) counts.set(agent.role, (counts.get(agent.role) ?? 0) + 1);
+    }
+    for (const floor of roleHeavyArc.challenges[0]!.rosterRequirements.roleRequirements) {
+      expect(counts.get(floor.roleId) ?? 0, floor.roleId).toBeGreaterThanOrEqual(floor.count);
+    }
+    const requiredParty = roleHeavyArc.challenges[0]!.rosterRequirements.roleRequirements
+      .flatMap((floor) => roster.filter((agent) => agent.role === floor.roleId).slice(0, floor.count));
+    expect(requiredParty).toHaveLength(5);
+    expect(new Set(requiredParty.map((agent) => agent.id)).size).toBe(5);
+    expect(requiredParty.length).toBeLessThanOrEqual(roleHeavyArc.challenges[0]!.rosterRequirements.maxAgents);
+  });
+
   it("falls back to bootstrapOrg's own default for a cartridge that declares no roster requirements", () => {
     // A cartridge with no challenges at all declares no roster requirement —
     // applianceRosterSize returns undefined (its own documented fallback).

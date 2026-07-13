@@ -15,6 +15,11 @@ export function firstAvailableNodeId(nodes: Pick<WorldNode, "challengeId" | "sta
 export interface ArcInteraction {
   selectedId: string | null;
   select: (challengeId: string | null) => void;
+  /** The authored location currently inside the embodied world's interaction
+   * radius. This is deliberately separate from selection: a Board or Map may
+   * inspect a contract remotely, but inspection never grants physical access. */
+  nearbyId: string | null;
+  setNearbyId: (challengeId: string | null) => void;
   party: string[];
   toggleAgent: (id: string) => void;
   selected: WorldNode | null;
@@ -34,6 +39,7 @@ export interface ArcInteraction {
 
 export function useArcInteraction(world: ArcWorld): ArcInteraction {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [nearbyId, setNearbyId] = useState<string | null>(null);
   const [party, setParty] = useState<string[]>([]);
 
   const selected = selectedId ? world.nodes.find((n) => n.challengeId === selectedId) ?? null : null;
@@ -146,5 +152,5 @@ export function useArcInteraction(world: ArcWorld): ArcInteraction {
     [selectedId, party, world, locale],
   );
 
-  return { selectedId, select: setSelectedId, party, toggleAgent, selected, req, canRun, run, contract, readiness, recommendation, fixPlan, applyFix };
+  return { selectedId, select: setSelectedId, nearbyId, setNearbyId, party, toggleAgent, selected, req, canRun, run, contract, readiness, recommendation, fixPlan, applyFix };
 }

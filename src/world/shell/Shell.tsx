@@ -12,7 +12,7 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useEncounterDirector } from "../encounter/EncounterDirector.js";
 import { EncounterShell } from "../encounter/EncounterShell.js";
-import { cartridgePaletteScope } from "../themes/select.js";
+import { cartridgePaletteScope, themeForArc } from "../themes/select.js";
 import "../themes/karazhan/karazhan.css";
 import "../themes/first-charter/first-charter.css";
 import { getPresentations, type Representation } from "../presentations.js";
@@ -41,7 +41,9 @@ import { PixelButton, PixelIcon } from "../pixel-ui/index.js";
 import { DecisionPanel } from "../components/DecisionPanel.js";
 import { CartridgeObjectPanel } from "../components/CartridgeObjectPanel.js";
 import { ProgramIdentityStrip } from "./ProgramIdentityStrip.js";
+import { MobileMissionStage } from "../components/MobileMissionStage.js";
 import { t, useLocale } from "../i18n/index.js";
+import { isWorldInteractionUnlocked } from "../proximity.js";
 import type { ArcInteraction } from "../useArcInteraction.js";
 import type { ArcWorld } from "../useArcWorld.js";
 
@@ -145,6 +147,8 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   // for an encounter entered via onEnterEncounter (hall/map), where ix.party would
   // otherwise be one render stale for a just-changed selection.
   const [encounterParty, setEncounterParty] = useState<string[] | null>(null);
+  const activeTheme = useMemo(() => themeForArc(world.cartridge.arc), [world.cartridge.arc]);
+  const mayOpenMobileSelection = costumeId !== "globe" || isWorldInteractionUnlocked(ix.selectedId, ix.nearbyId);
 
   // Scope the active cartridge's palette skin to <html> while this cartridge is
   // mounted. Cleared on unmount / cartridge switch so no arc keeps another's
@@ -161,9 +165,9 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   // sheet; deselect -> back to the board. Party is a manual push from contract.
   useEffect(() => {
     if (!isMobile) return;
-    if (ix.selectedId) setMobileStep((s) => (s === "board" ? "contract" : s));
+    if (ix.selectedId && mayOpenMobileSelection) setMobileStep((s) => (s === "board" ? "contract" : s));
     else setMobileStep("board");
-  }, [isMobile, ix.selectedId]);
+  }, [isMobile, ix.selectedId, mayOpenMobileSelection]);
 
   const choose = (id: string) => {
     setCostumeId(id);
@@ -171,8 +175,15 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   };
   // Re-derived whenever locale changes so representation labels/blurbs/hints re-translate.
   const presentations = useMemo(() => getPresentations(), [locale]);
+  const playerPresentations = useMemo(
+    // Planet/world is a player surface, not developer chrome. Keep it reachable
+    // everywhere; only the dependency graph is a development-only renderer.
+    () => presentations.filter((presentation) => presentation.id !== "graph"),
+    [presentations],
+  );
   const active = useMemo(() => presentations.find((p) => p.id === costumeId) ?? presentations[0]!, [presentations, costumeId]);
-  const modalOpen = world.pendingDecision !== null;
+  const modalOpen = world.pendingDecision !== null || encounterOpen;
+  const selectionVisible = active.id !== "globe" || isWorldInteractionUnlocked(ix.selectedId, ix.nearbyId);
   const showPurpose = !dismissedPurpose[active.id] && !modalOpen;
   const dismissPurpose = () => setDismissedPurpose((p) => ({ ...p, [active.id]: true }));
 
@@ -200,10 +211,10 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   const max = ix.req?.maxAgents ?? 0;
   const coach = getEngineCoachMessage({
     pendingDecision: world.pendingDecision !== null,
-    selected: ix.selected,
+    selected: selectionVisible ? ix.selected : null,
     partyCount: ix.party.length,
     min,
-    canRun: ix.canRun,
+    canRun: selectionVisible && ix.canRun,
     lastReport: world.lastReport,
     arcComplete: world.arcComplete,
   });
@@ -212,7 +223,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     <StatusRegion title={world.arc.meta.name} arcId={world.arc.meta.id} cycle={world.cycle} resources={world.resources} progress={{ cleared: world.clearedCount, total: world.totalNodes }} />
   );
   const switcher = (
-    <ViewSwitcher costumes={presentations.map((p) => ({ id: p.id, label: p.label, blurb: p.blurb }))} activeId={active.id} onChoose={choose} disabled={modalOpen} />
+    <ViewSwitcher costumes={playerPresentations.map((p) => ({ id: p.id, label: p.label, blurb: p.blurb }))} activeId={active.id} onChoose={choose} disabled={modalOpen} />
   );
   // Chrome buttons: icon + short catalog label instead of a raw glyph (▤ / ◧) glued to
   // English text, which crammed illegibly at narrow widths and doubled as an ad-hoc
@@ -244,21 +255,22 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   );
   const localeSwitcher = <LocaleSwitcher />;
 
-  const selectionActive = ix.selected?.status === "available";
+  const selectionActive = selectionVisible && ix.selected?.status === "available";
   const recommendedIds = useMemo(
     () => (selectionActive && ix.selectedId ? world.recommendedParty(ix.selectedId) : []),
     [selectionActive, ix.selectedId, world],
   );
   const roster = (
     <RosterRegion
+      theme={activeTheme}
       roster={world.roster}
       party={ix.party}
       selectable={selectionActive}
       selectionActive={selectionActive}
       recommendedIds={recommendedIds}
-      fixPlan={ix.fixPlan}
+      fixPlan={selectionVisible ? ix.fixPlan : null}
       max={max}
-      contract={ix.contract}
+      contract={selectionVisible ? ix.contract : null}
       variant={isMobile ? "strip" : "list"}
       onToggleAgent={ix.toggleAgent}
       onApplyFix={ix.applyFix}
@@ -271,7 +283,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     () => (ix.selectedId ? deriveNodeMarkers(world.nodes).get(ix.selectedId) ?? null : null),
     [world.nodes, ix.selectedId],
   );
-  const contractProps = ix.selected
+  const contractProps = ix.selected && selectionVisible
     ? {
         selected: ix.selected, party: ix.party, min, max, canRun: ix.canRun, onRun: interceptedRun,
         contract: ix.contract, readiness: ix.readiness, recommendation: ix.recommendation,
@@ -292,10 +304,20 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
       data-testid="play-encounter-button"
       disabled={!ix.canRun}
       onClick={() => { setEncounterParty(null); setEncounterOpen(true); }}
-      style={{ width: "100%", minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}
+      style={{ width: "100%", minHeight: isMobile ? 56 : 44, fontSize: isMobile ? 14 : undefined, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
     >
       <PixelIcon name="available" /> <span>{t("encounterShell.playEncounter")}</span>
     </PixelButton>
+  ) : null;
+  const mobileMission = ix.selected ? (
+    <MobileMissionStage
+      node={ix.selected}
+      roster={world.roster}
+      party={ix.party}
+      max={max}
+      theme={activeTheme}
+      readiness={ix.readiness}
+    />
   ) : null;
   // One world, one route: the detail panel is the action hub, so it also routes to
   // the OTHER surfaces of the same contract — the map (every contract is a pin) and,
@@ -374,6 +396,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   // Mobile Party step uses full one-column cards (list), not the desktop-mobile strip.
   const mobileRosterList = (
     <RosterRegion
+      theme={activeTheme}
       roster={world.roster}
       party={ix.party}
       selectable={selectionActive}
@@ -398,7 +421,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
 
   return (
     <div data-testid="engine-shell" data-modal-open={modalOpen ? "true" : "false"} style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: "#0b0a08", overflow: "hidden", isolation: "isolate", fontFamily: "'IBM Plex Mono', ui-monospace, monospace" }}>
-      <ProgramIdentityStrip world={world} />
+      {!isMobile && <ProgramIdentityStrip world={world} />}
       <div
         style={{
           flex: "none",
@@ -411,12 +434,12 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
           background: "rgba(15,13,9,0.92)",
         }}
       >
-        <div style={{ flex: isMobile ? "1 1 100%" : "1 1 auto", minWidth: 0, order: isMobile ? 2 : 0 }}>{status}</div>
+        <div style={{ flex: isMobile ? "1 1 100%" : "1 1 auto", minWidth: 0, order: 0 }}>{status}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, order: 1, marginLeft: isMobile ? "auto" : 0 }}>
           {switcher}
           {localeSwitcher}
-          {recordButton}
-          {cartridgeButton}
+          {!isMobile && recordButton}
+          {!isMobile && cartridgeButton}
         </div>
       </div>
 
@@ -459,19 +482,22 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
                 {world.pendingLoot.length > 0 ? loot : (
                   <>
                     {world.lastEquip && <EquipFlash event={world.lastEquip} />}
-                    <ContractRegion {...contractProps} render="detail" />
-                    {selectionActive && (
-                      <PixelButton type="button" variant="secondary" data-testid="mobile-adjust-party" onClick={() => setMobileStep("party")} style={{ width: "100%", minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-                        <PixelIcon name="selected" /> <span>{t("shell.mobileAdjustParty", { count: ix.party.length, max })}</span>
-                      </PixelButton>
-                    )}
-                    {playEncounter}
+                    {mobileMission}
+                    <details data-testid="mobile-mission-details" style={{ border: "2px solid var(--ink)", background: "var(--cream)", color: "var(--ink)" }}>
+                      <summary style={{ cursor: "pointer", padding: "10px 12px", fontFamily: "var(--px-font)", fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                        {t("contractCard.squadFit")}
+                      </summary>
+                      <div style={{ padding: "0 8px 8px" }}><ContractRegion {...contractProps} render="detail" /></div>
+                    </details>
                   </>
                 )}
               </div>
-              {world.pendingLoot.length === 0 && (
+              {world.pendingLoot.length === 0 && selectionActive && (
                 <div style={mobileStickyFooter}>
-                  <ContractActions {...contractProps} />
+                  <PixelButton type="button" variant="secondary" data-testid="mobile-adjust-party" onClick={() => setMobileStep("party")} style={{ width: "100%", minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+                    <PixelIcon name="selected" /> <span>{t("shell.mobileAdjustParty", { count: ix.party.length, max })}</span>
+                  </PixelButton>
+                  {playEncounter}
                 </div>
               )}
             </>
@@ -482,9 +508,9 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
               <div data-testid="mobile-step-party" style={{ flex: 1, overflowY: "auto", padding: "8px 12px" }}>
                 {mobileRosterList}
               </div>
-              {contractProps && (
+              {contractProps && selectionActive && (
                 <div style={mobileStickyFooter}>
-                  <ContractActions {...contractProps} />
+                  {playEncounter}
                 </div>
               )}
             </>

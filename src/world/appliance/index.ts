@@ -25,17 +25,31 @@ import firstLockoutArc from "./first-lockout.arc.json";
 
 /**
  * The roster size an appliance boot needs to actually field this cartridge's
- * encounters: the largest party any of its challenges asks for. A raid boss
- * that wants 8–10 agents cannot be fielded from the hall bootstrap's default
- * of 6 — so the appliance reads the requirement from the cartridge rather than
- * assuming a size. Falls back to `undefined` (bootstrap's own default) when a
- * cartridge declares no roster requirements.
+ * encounters. This includes both the largest party a challenge accepts and the
+ * number of generated slots needed to satisfy authored role counts under
+ * `bootstrapRoster`'s deterministic round-robin role assignment. A raid boss
+ * that wants three healers must not boot with only two merely because the
+ * total roster meets `maxAgents`. Falls back to `undefined` (bootstrap's own
+ * default) when a cartridge declares no roster requirements.
  */
 export function applianceRosterSize(arc: Arc): number | undefined {
   let max = 0;
+  const roleIndex = new Map(arc.roles.map((role, index) => [role.id, index]));
+  const roleCount = arc.roles.length;
   for (const challenge of arc.challenges) {
     const req = challenge.rosterRequirements;
     if (req?.maxAgents) max = Math.max(max, req.maxAgents);
+    if (roleCount === 0) continue;
+    for (const roleReq of req?.roleRequirements ?? []) {
+      const index = roleIndex.get(roleReq.roleId);
+      if (index === undefined || roleReq.count <= 0) continue;
+      // Slots are zero-based and roles repeat every `roleCount` agents. The
+      // Nth copy of role i therefore appears at i + (N - 1) * roleCount.
+      // Every count is monotone in roster-prefix length, so the maximum bound
+      // across all requirements satisfies every authored floor simultaneously.
+      const slotsNeeded = index + 1 + (roleReq.count - 1) * roleCount;
+      max = Math.max(max, slotsNeeded);
+    }
   }
   return max > 0 ? max : undefined;
 }

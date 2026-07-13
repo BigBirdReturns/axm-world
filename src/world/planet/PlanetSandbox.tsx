@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { Planet } from "./Planet.js";
-import { Scatter } from "./Scatter.js";
+import { Scatter } from "./ScatterLayer.js";
 import { generatePlanet } from "./generatePlanet.js";
 import { scatterOnPlanet } from "./scatter.js";
 

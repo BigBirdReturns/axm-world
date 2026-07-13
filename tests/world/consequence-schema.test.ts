@@ -24,10 +24,12 @@ describe("consequence schema wiring (#69)", () => {
   });
 
   it("the exported custody object carries the full ledger, so consequences export with the run", () => {
-    const src = read("src/world/useArcWorld.ts");
-    expect(src).toContain("ledger: Ledger;");                 // CustodyObject declares it
-    expect(src).toContain('format: "axm-cartridge-run/v2"');  // shape bumped for the new field
-    expect(src).toContain("The durable record travels with the exported run"); // buildExport emits it
+    const custody = read("src/world/custody.ts");
+    const world = read("src/world/useArcWorld.ts");
+    expect(custody).toContain("ledger: Ledger;");
+    expect(custody).toContain('format: "axm-cartridge-run/v2"');
+    expect(custody).toContain("transformedLocations: deriveWorldTransformations");
+    expect(world).toContain("buildCustodyObject({ cartridge, org, openingChoice, nodes: layout.nodes, ledger })");
   });
 
   it("old saves are MIGRATED (not discarded) on load — the save version is unchanged", () => {

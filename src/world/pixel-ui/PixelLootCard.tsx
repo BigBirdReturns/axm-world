@@ -17,7 +17,7 @@ export function PixelLootCard({ itemName, icon, slot, bonusText, flavorText, chi
     <PixelPanel className={`pixel-loot-card ${className}`} data-testid="pixel-loot-card" {...props}>
       <div className="pixel-loot-card__inner">
         <div className="pixel-loot-card__icon">
-          <PixelIcon name={icon} />
+          <PixelIcon name={icon} size={32} />
         </div>
         <div className="pixel-loot-card__body">
           <div className="pixel-loot-card__name">{itemName}</div>

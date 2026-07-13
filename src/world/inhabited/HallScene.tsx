@@ -19,7 +19,9 @@ import { hallSteward } from "./people.js";
 import { regionNameForTier } from "../progression.js";
 import { summarizeLedger } from "../ledger.js";
 import { CartridgePortrait, CartridgeSprite } from "../themes/CartridgeMotif.js";
-import { PixelSprite, spriteForRole } from "../pixel-ui/index.js";
+import { PixelDoll, PixelSprite } from "../pixel-ui/index.js";
+import { resolveDollAppearance } from "../themes/appearance.js";
+import { themeForArc } from "../themes/select.js";
 import { t } from "../i18n/index.js";
 
 // Projected-outcome chrome for the steward's held contract — the same catalog ids
@@ -111,6 +113,7 @@ function Figure(props: { color: string; label: string; testid?: string; resolved
 }
 
 export function HallScene({ world, interaction, modalOpen = false, onEnterEncounter, onNavigate }: SceneProps): JSX.Element {
+  const theme = themeForArc(world.cartridge.arc);
   const [open, setOpen] = useState(false);
   const [atThreshold, setAtThreshold] = useState(false);
   const view = deriveHallView(world.nodes);
@@ -220,7 +223,7 @@ export function HallScene({ world, interaction, modalOpen = false, onEnterEncoun
             {heldParty.length > 0 && (
               <div data-testid="hall-party-bodies" style={{ display: "flex", alignItems: "flex-end", marginBottom: 18 }}>
                 {heldParty.map((m) => (
-                  <PixelSprite key={m.id} name={spriteForRole(m.role)} size={30} label={m.name} title={`${m.name} · ${m.role}`} style={{ marginLeft: -6 }} />
+                  <PixelDoll key={m.id} appearance={resolveDollAppearance(theme, m.role)} identity={m.id} state={view.resolved ? "cleared" : "idle"} size={30} label={m.name} title={`${m.name} · ${m.role}`} style={{ marginLeft: -6 }} />
                 ))}
               </div>
             )}
