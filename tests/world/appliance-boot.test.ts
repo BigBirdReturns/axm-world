@@ -111,21 +111,14 @@ describe("applianceBootOptions — the runtime's fresh-boot sizing decision", ()
       ],
     };
 
-    // Six total bodies satisfy maxAgents but round-robin generation would yield
-    // striker 2 / guardian 2 / healer 1 / support 1. The second healer arrives
-    // in slot 7, and every authored floor must hold simultaneously.
+    // Six total bodies satisfy maxAgents, but a naive round-robin roster would
+    // yield striker 2 / guardian 2 / healer 1 / support 1. The boot contract
+    // must compose the roster from authored floors so every floor holds at once.
     const opts = applianceBootOptions(roleHeavyArc);
-    expect(opts.rosterSize).toBe(7);
+    expect(opts.rosterSize).toBe(6);
+    expect(opts.roleFloor).toEqual({ guardian: 2, healer: 2, striker: 1 });
     const roster = Object.values(bootstrapOrg(roleHeavyArc, opts).agents);
-    expect(roster.map((agent) => agent.role)).toEqual([
-      "striker",
-      "guardian",
-      "healer",
-      "support",
-      "striker",
-      "guardian",
-      "healer",
-    ]);
+    expect(roster).toHaveLength(6);
     const counts = new Map<string, number>();
     for (const agent of roster) {
       if (agent.role) counts.set(agent.role, (counts.get(agent.role) ?? 0) + 1);

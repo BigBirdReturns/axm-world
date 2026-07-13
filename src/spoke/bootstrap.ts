@@ -22,6 +22,16 @@ export interface BootstrapOptions {
   /** Number of agents to seed the roster with. Defaults to 6. */
   rosterSize?: number;
   /**
+   * Minimum number of agents of each role the roster must include, keyed by
+   * roleId, so the opening org can actually field every challenge's declared
+   * `roleRequirements`. Omit (or leave a role out) to impose no floor for that
+   * role — the roster then falls back to the historical round-robin over
+   * `arc.roles`. The correction is a no-op whenever round-robin already meets
+   * the floor, so any cartridge that already booted a fieldable roster boots
+   * identically. (issue #93)
+   */
+  roleFloor?: Record<string, number>;
+  /**
    * Deterministic seed for roster generation. Omit for a stable seed derived
    * from the arc id (same cartridge → same opening every time). Pass a random
    * value if you want a fresh charter per new game.
@@ -59,10 +69,62 @@ function tiersWeakestFirst(arc: Arc) {
   return [...arc.tiers].sort((a, b) => a.statBudgetMin - b.statBudgetMin);
 }
 
+// Round-robin role assignment over the arc's roles (variety), then a minimal
+// correction so each role meets its floor — the largest count any challenge
+// asks of it. When round-robin already satisfies every floor the assignment is
+// returned untouched, so this is a no-op for every roster that was already
+// fieldable and only reshapes one that literally could not field its own
+// composition. Deterministic: no RNG, codepoint-ordered role iteration (never
+// localeCompare). (issue #93)
+function assignRolesToSlots(
+  roles: Arc["roles"],
+  size: number,
+  floor?: Record<string, number>,
+): (string | undefined)[] {
+  if (roles.length === 0) return new Array<string | undefined>(size).fill(undefined);
+
+  const assignment: string[] = [];
+  for (let i = 0; i < size; i++) assignment.push(roles[i % roles.length]!.id);
+  if (!floor) return assignment;
+
+  const counts = new Map<string, number>();
+  for (const id of assignment) counts.set(id, (counts.get(id) ?? 0) + 1);
+  const floorFor = (id: string) => floor[id] ?? 0;
+
+  const underfilled = roles
+    .map((r) => r.id)
+    .filter((id) => (counts.get(id) ?? 0) < floorFor(id))
+    .sort(); // codepoint order — determinism rule, never localeCompare
+
+  for (const roleId of underfilled) {
+    while ((counts.get(roleId) ?? 0) < floorFor(roleId)) {
+      // Donate a slot from whichever role currently sits above its own floor,
+      // scanning high-index-first so early "variety" slots survive. A donor
+      // never drops below its floor, so a satisfiable roster always converges.
+      let donor = -1;
+      for (let i = size - 1; i >= 0; i--) {
+        const r = assignment[i]!;
+        if (r === roleId) continue;
+        if ((counts.get(r) ?? 0) > floorFor(r)) {
+          donor = i;
+          break;
+        }
+      }
+      if (donor < 0) break; // roster too small to satisfy — caller sizes to avoid this
+      const from = assignment[donor]!;
+      assignment[donor] = roleId;
+      counts.set(from, (counts.get(from) ?? 0) - 1);
+      counts.set(roleId, (counts.get(roleId) ?? 0) + 1);
+    }
+  }
+  return assignment;
+}
+
 // Build a starting roster for an arbitrary arc. Every available role is
-// represented at least once (cycling through arc.roles), agents are drawn
-// mostly from the lowest tier with an occasional step up, and each agent is
-// generated with its own deterministic sub-seed so the roster is reproducible.
+// represented at least once (cycling through arc.roles), the roster satisfies
+// any declared role floor, agents are drawn mostly from the lowest tier with an
+// occasional step up, and each agent is generated with its own deterministic
+// sub-seed so the roster is reproducible.
 export function bootstrapRoster(arc: Arc, opts: BootstrapOptions = {}): Agent[] {
   const tiers = tiersWeakestFirst(arc);
   if (tiers.length === 0) return [];
@@ -73,13 +135,14 @@ export function bootstrapRoster(arc: Arc, opts: BootstrapOptions = {}): Agent[] 
   const size = Math.max(0, opts.rosterSize ?? 6);
   const seedBase = opts.seed ?? hashSeed(arc.meta.id, "bootstrap-roster");
 
+  const roleForSlot = assignRolesToSlots(roles, size, opts.roleFloor);
+
   const agents: Agent[] = [];
   for (let i = 0; i < size; i++) {
     // Every third slot reaches up a tier for variety; the rest stay at base.
     const tier = i % 3 === 2 ? stepUpTier : baseTier;
-    const preferredRoleId = roles.length > 0 ? roles[i % roles.length]!.id : undefined;
     const rng = new Rng(hashSeed(seedBase, "agent", i));
-    agents.push(generateAgent({ rng, tier, arc, cycle: 0, preferredRoleId }));
+    agents.push(generateAgent({ rng, tier, arc, cycle: 0, preferredRoleId: roleForSlot[i] }));
   }
   return agents;
 }
