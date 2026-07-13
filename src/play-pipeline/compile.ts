@@ -286,7 +286,9 @@ export function buildPlayAssignment(challenge: Challenge, org: Organization, arc
   return {
     challengeId: challenge.id,
     agentIds: recommendAgentsForChallenge(challenge, org, arc),
-    tokensSpent: org.resources.tokens > 0 ? 1 : 0,
+    // This pipeline has no human spend choice. Match useArcWorld's explicit-
+    // spend law: absence of a choice is zero, never a hidden debit.
+    tokensSpent: 0,
   };
 }
 

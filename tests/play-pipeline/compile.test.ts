@@ -48,6 +48,7 @@ describe("arc to play pipeline", () => {
     expect(selected.length).toBeGreaterThanOrEqual(challenge.rosterRequirements.minAgents);
 
     const assignment = buildPlayAssignment(challenge, org, FIRST_CHARTER);
+    expect(assignment.tokensSpent).toBe(0);
     const result = runCycle({ org, arc: FIRST_CHARTER, assignments: [assignment] });
 
     expect(result.reports).toHaveLength(1);

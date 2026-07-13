@@ -135,10 +135,11 @@ can reach several representations; it is whether a stranger can play and finish
 something memorable without being taught the architecture.
 
 **0. Correctness gate.** Do not tune or polish on state the engine miscomputes.
-The recruitment top-tier leak and ledger-less `recorded` transformation are
-closed in the current working change. Next close pay-before-gate, negative
-balances, Industrious double-application, and progression non-monotonicity with
-regression tests before claiming campaign tuning or record honesty.
+The recruitment top-tier leak, ledger-less `recorded` transformation,
+pay-before-gate debit, negative upkeep balance, and Industrious
+double-application are closed in the current working change with direct guards.
+Next close progression non-monotonicity before claiming campaign tuning or
+record honesty.
 
 **1. Cold First Charter session.** A stranger must pick up the cartridge, enter,
 make the founding choice, meet Maren, understand and resolve The Cellar, read what
