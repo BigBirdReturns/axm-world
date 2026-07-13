@@ -116,6 +116,7 @@
   border: 1px solid var(--cream-border, #cbbfa6);
   background: var(--cream, #efe7d6);
   padding: 4px 8px;
+  min-height: 48px;
   box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.2);
   cursor: pointer;
   font: inherit;
@@ -141,6 +142,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 5px 12px;
+  min-height: 48px;
   cursor: pointer;
 }
 .encs-posture-btn:hover { background: var(--cream-mid, #e4dac7); }
@@ -162,7 +164,7 @@
 /* Resource-spend control — a small stepper; the projection above reflects it. */
 .encs-spend-row { display: flex; align-items: center; gap: 8px; }
 .encs-spend-btn {
-  width: 26px; height: 26px;
+  width: 48px; height: 48px;
   border: 1px solid var(--cream-border, #cbbfa6);
   background: var(--cream, #efe7d6);
   color: #2a251e;

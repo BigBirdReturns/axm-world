@@ -14,7 +14,7 @@
 // Primitives only: markers are squares, the room is a box, party are tokens. The
 // proof is the compilation, not the fidelity.
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useMemo, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import type { ArcWorld } from "../useArcWorld.js";
 import type { ProjectedOutcome } from "../readiness.js";
@@ -24,6 +24,7 @@ import { PixelButton, PixelDoll, PixelSprite } from "../pixel-ui/index.js";
 import { resolveDollAppearance } from "../themes/appearance.js";
 import { themeForArc } from "../themes/select.js";
 import { t } from "../i18n/index.js";
+import { useDialogFocus } from "../components/use-dialog-focus.js";
 import "./encounter-shell.css";
 
 // Projected outcome → a compact deploy-time badge. The player reads the stakes of
@@ -110,6 +111,10 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
   const [spend, setSpend] = useState(0);
   // The spend actually committed at resolve, kept so the receipt reports it.
   const [resolvedSpend, setResolvedSpend] = useState(0);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const headerRef = useRef<HTMLElement | null>(null);
+  const receiptRef = useRef<HTMLDivElement | null>(null);
+  useDialogFocus(panelRef, resolved ? receiptRef : headerRef, resolved ? "receipt" : "brief");
 
   // Gate readiness (no spend) decides whether a spend control may be offered —
   // count/roles are spend-independent, so this is the honest gate.
@@ -177,8 +182,8 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
       data-encounter-state={report ? "receipt" : "brief"}
       onClick={onClose}
     >
-      <div className="encs-panel" onClick={(e) => e.stopPropagation()}>
-        <header className="encs-header">
+      <div ref={panelRef} className="encs-panel" onClick={(e) => e.stopPropagation()} tabIndex={-1}>
+        <header ref={headerRef} className="encs-header" tabIndex={-1}>
           <div className="encs-loc">
             <span className="encs-region">{spec.location.region}</span>
             <span className="encs-arrow">›</span>
@@ -406,7 +411,7 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
 
         {report && (
           <div className="encs-receipt" data-testid="encs-receipt" data-outcome={report.outcome}>
-            <div className="encs-outcome-banner" style={{ borderColor: outcomeColor, color: outcomeColor }}>
+            <div ref={receiptRef} className="encs-outcome-banner" style={{ borderColor: outcomeColor, color: outcomeColor }} tabIndex={-1}>
               <span
                 data-testid="encs-outcome-grade"
                 style={{ display: "block", fontSize: "0.72em", fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", opacity: 0.85, marginBottom: 2 }}

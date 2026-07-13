@@ -2,6 +2,7 @@
 // it, and the player's manual choice is remembered.
 
 import type { Arc } from "../engine/types.js";
+import { themeForArc } from "./themes/select.js";
 
 export type CostumeId = "board" | "map" | "globe" | "graph" | "hall";
 
@@ -11,9 +12,10 @@ export function isCostumeId(value: string | null | undefined): value is CostumeI
   return value === "board" || value === "map" || value === "globe" || value === "graph" || value === "hall";
 }
 
-/** Default costume for an arc. 2D contract board is the lightweight default. */
-export function preferredCostumeForArc(_arc: Arc): CostumeId {
-  return "board";
+/** Default costume is authored by the cartridge theme. Unknown/imported
+ * cartridges inherit Rodoh's lightweight board default. */
+export function preferredCostumeForArc(arc: Arc): CostumeId {
+  return themeForArc(arc).preferredPresentation;
 }
 
 export function loadCostume(arc: Arc): CostumeId {

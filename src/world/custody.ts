@@ -3,9 +3,11 @@ import type { Cartridge } from "./cartridge.js";
 import type { WorldNode } from "./contract.js";
 import type { Ledger } from "./ledger.js";
 import { deriveWorldTransformations, type WorldTransformation } from "./world-state.js";
+import { compatibilityReceipt, RUN_FORMAT_VERSION, type CompatibilityReceipt } from "./compatibility.js";
 
 export interface CustodyObject {
-  format: "axm-cartridge-run/v2";
+  format: typeof RUN_FORMAT_VERSION;
+  compatibility: CompatibilityReceipt;
   manifest: Cartridge["manifest"];
   arc: Arc;
   runState: {
@@ -32,7 +34,8 @@ export function buildCustodyObject(params: {
 }): CustodyObject {
   const clearedCount = params.nodes.filter((node) => node.status === "cleared").length;
   return {
-    format: "axm-cartridge-run/v2",
+    format: RUN_FORMAT_VERSION,
+    compatibility: compatibilityReceipt(params.cartridge.manifest),
     manifest: params.cartridge.manifest,
     arc: params.cartridge.arc,
     runState: {

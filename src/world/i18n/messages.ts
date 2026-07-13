@@ -320,6 +320,14 @@ export type MessageId =
   | "cartridgePanel.eyebrow"
   | "cartridgePanel.domain"
   | "cartridgePanel.engine"
+  | "cartridgePanel.compatibility"
+  | "cartridgePanel.runFormat"
+  | "cartridgePanel.transformedLocations"
+  | "cartridgePanel.compatibilityBoundary"
+  | "compatibility.compatible"
+  | "compatibility.runtime-too-old"
+  | "compatibility.migration-required"
+  | "compatibility.unknown"
   | "cartridgePanel.cycle"
   | "cartridgePanel.recordedNodes"
   | "cartridgePanel.decisionMark"
@@ -742,6 +750,14 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "cartridgePanel.eyebrow": "Cartridge",
     "cartridgePanel.domain": "Domain",
     "cartridgePanel.engine": "Engine",
+    "cartridgePanel.compatibility": "Compatibility",
+    "cartridgePanel.runFormat": "Run format",
+    "cartridgePanel.transformedLocations": "Transformed places",
+    "cartridgePanel.compatibilityBoundary": "Durable means inspectable, exportable, and reloadable inside the declared same-major engine contract. Major-version preservation requires an explicit migration.",
+    "compatibility.compatible": "Compatible",
+    "compatibility.runtime-too-old": "Runtime upgrade required",
+    "compatibility.migration-required": "Migration required",
+    "compatibility.unknown": "Compatibility unknown",
     "cartridgePanel.cycle": "Cycle",
     "cartridgePanel.recordedNodes": "Recorded nodes",
     "cartridgePanel.decisionMark": "Decision mark",
@@ -1114,6 +1130,14 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "cartridgePanel.eyebrow": "卡匣",
     "cartridgePanel.domain": "領域",
     "cartridgePanel.engine": "引擎",
+    "cartridgePanel.compatibility": "相容性",
+    "cartridgePanel.runFormat": "執行格式",
+    "cartridgePanel.transformedLocations": "已轉化地點",
+    "cartridgePanel.compatibilityBoundary": "「耐久」表示可在已宣告的同主版本引擎契約內檢查、匯出並重新載入。跨主版本保存需要明確的遷移程序。",
+    "compatibility.compatible": "相容",
+    "compatibility.runtime-too-old": "需要升級執行環境",
+    "compatibility.migration-required": "需要遷移",
+    "compatibility.unknown": "相容性未知",
     "cartridgePanel.cycle": "週期",
     "cartridgePanel.recordedNodes": "已記錄節點",
     "cartridgePanel.decisionMark": "決策標記",

@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { FIRST_CHARTER } from "../../src/arcs/index.js";
+import { FIRST_CHARTER, KARAZHAN } from "../../src/arcs/index.js";
 import { isCostumeId, preferredCostumeForArc } from "../../src/world/presentation-prefs.js";
 
 describe("costume preference", () => {
-  it("prefers the board for tiered management arcs", () => {
-    expect(preferredCostumeForArc(FIRST_CHARTER)).toBe("board");
+  it("lets each cartridge theme choose its honest first-minute representation", () => {
+    expect(preferredCostumeForArc(FIRST_CHARTER)).toBe("globe");
+    expect(preferredCostumeForArc(KARAZHAN)).toBe("board");
   });
 
   it("validates costume identifiers", () => {

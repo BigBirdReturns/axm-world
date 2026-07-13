@@ -5,6 +5,7 @@ import { MeshBVH } from "three-mesh-bvh";
 import { PlanetController } from "./PlanetController.js";
 import type { ControllerState } from "./PlanetController.js";
 import { PlayerCharacter } from "./PlayerCharacter.js";
+import { RODOH_BASE_THEME } from "../themes/rodoh.js";
 import { FollowCamera } from "./FollowCamera.js";
 
 const PLANET_RADIUS = 10;
@@ -50,7 +51,7 @@ function Scene(): JSX.Element {
           stateRef.current = s;
         }}
       >
-        <PlayerCharacter />
+        <PlayerCharacter appearance={RODOH_BASE_THEME.appearancePack.worldAvatar} motion="idle" />
       </PlanetController>
 
       <FollowCamera getState={() => stateRef.current} />

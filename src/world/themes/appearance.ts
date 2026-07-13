@@ -8,12 +8,71 @@ export interface DollAppearance {
   body: PixelSpriteName;
   portrait: PixelPortraitName;
   renderMode: "layered" | "baked";
+  /** Optional hand-authored raster states. Missing states fall back to `body`;
+   * absence is explicit and never disguised as an authored reduction. */
+  scaleBodies?: Partial<Record<DollScaleState, PixelSpriteName>>;
+}
+
+export type DollScaleState = "micro" | "field" | "card" | "close";
+export type EmbodimentMotionState = "idle" | "walk" | "airborne" | "arrived";
+
+export interface WorldAvatarAppearance {
+  id: string;
+  palette: {
+    body: string;
+    skin: string;
+    headgear: string;
+    legs: string;
+    cargo: string;
+    strap: string;
+  };
+  modules: {
+    headgear: "cap" | "hood" | "none";
+    cargo: "satchel" | "pack" | "none";
+  };
+}
+
+export interface PlaceStateAppearance {
+  color: string;
+  accent: string;
+  landmark: "crystal" | "growth" | "warning" | "sealed";
 }
 
 export interface DollAppearancePack {
   fallback: string;
   appearances: Record<string, DollAppearance>;
   roleBindings: Record<string, string>;
+  worldAvatar: WorldAvatarAppearance;
+  placeStates: {
+    available: PlaceStateAppearance;
+    locked: PlaceStateAppearance;
+    recorded: PlaceStateAppearance;
+    success: PlaceStateAppearance;
+    partial: PlaceStateAppearance;
+    failure: PlaceStateAppearance;
+  };
+}
+
+export function dollScaleState(size: number): DollScaleState {
+  if (size <= 18) return "micro";
+  if (size <= 26) return "field";
+  if (size <= 36) return "card";
+  return "close";
+}
+
+export function resolveDollBody(appearance: DollAppearance, size: number): { body: PixelSpriteName; scale: DollScaleState; authored: boolean } {
+  const scale = dollScaleState(size);
+  const authored = appearance.scaleBodies?.[scale];
+  return { body: authored ?? appearance.body, scale, authored: authored !== undefined };
+}
+
+export function resolveWorldAvatarAppearance(theme: AppearanceTheme, identity: string): WorldAvatarAppearance {
+  const base = theme.appearancePack.worldAvatar;
+  const identityColors = identityPalette(identity);
+  return {
+    ...base,
+    palette: { ...base.palette, body: identityColors.accent, headgear: identityColors.highlight },
+  };
 }
 
 export interface AppearanceTheme {

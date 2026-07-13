@@ -22,7 +22,7 @@ export function LocaleSwitcher(): JSX.Element {
             onClick={() => setLocale(opt.id)}
             data-testid={`locale-option-${opt.id}`}
             aria-pressed={on}
-            style={{ cursor: "pointer", padding: "5px 11px", border: "none", background: on ? "var(--gold)" : "transparent", color: on ? "var(--ink)" : "#a59c8b", fontFamily: "var(--px-font)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase" }}
+            style={{ cursor: "pointer", minHeight: 48, minWidth: 48, padding: "5px 11px", border: "none", background: on ? "var(--gold)" : "transparent", color: on ? "var(--ink)" : "#a59c8b", fontFamily: "var(--px-font)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase" }}
           >
             {t(opt.labelId)}
           </button>

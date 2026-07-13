@@ -126,7 +126,7 @@ export function ViewSwitcher(props: {
             disabled={props.disabled}
             data-testid={c.id === "board" ? "view-run-graph" : c.id === "globe" ? "view-planet" : `view-${c.id}`}
             title={c.blurb}
-            style={{ cursor: props.disabled ? "not-allowed" : "pointer", padding: "5px 11px", border: "none", background: on ? "var(--gold)" : "transparent", color: props.disabled ? "#5e5850" : on ? "var(--ink)" : "#a59c8b", fontFamily: "var(--px-font)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase" }}
+            style={{ cursor: props.disabled ? "not-allowed" : "pointer", minHeight: 48, minWidth: 48, padding: "5px 11px", border: "none", background: on ? "var(--gold)" : "transparent", color: props.disabled ? "#5e5850" : on ? "var(--ink)" : "#a59c8b", fontFamily: "var(--px-font)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase" }}
           >
             {c.label}
           </button>

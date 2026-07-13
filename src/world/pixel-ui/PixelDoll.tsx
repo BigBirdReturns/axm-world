@@ -1,7 +1,7 @@
 import type { HTMLAttributes } from "react";
 import { SPRITES } from "./PixelSprite.js";
 import type { DollAppearance } from "../themes/appearance.js";
-import { identityPalette } from "../themes/appearance.js";
+import { identityPalette, resolveDollBody } from "../themes/appearance.js";
 import "./pixel-ui.css";
 
 export type DollState = "idle" | "strain" | "cleared" | "downed";
@@ -36,7 +36,8 @@ function cellsFor(tokens: Set<string>, grid: string[], palette: Record<string, s
 /** Original, state-driven doll renderer. The body, clothes, ground, and status
  * overlay are separate SVG layers even when a starter appearance shares a grid. */
 export function PixelDoll({ appearance, identity, state = "idle", label, size = 40, className = "", style, ...props }: PixelDollProps): JSX.Element {
-  const spec = SPRITES[appearance.body] ?? SPRITES.person;
+  const resolvedBody = resolveDollBody(appearance, size);
+  const spec = SPRITES[resolvedBody.body] ?? SPRITES.person;
   const identityColors = identityPalette(identity);
   const palette = { ...spec.palette, t: identityColors.accent, w: identityColors.highlight };
   const bodyTransform = state === "downed"
@@ -50,6 +51,8 @@ export function PixelDoll({ appearance, identity, state = "idle", label, size = 
       className={`pixel-doll pixel-doll--${state} ${className}`.trim()}
       data-appearance={appearance.id}
       data-render-mode={appearance.renderMode}
+      data-scale-state={resolvedBody.scale}
+      data-scale-authored={resolvedBody.authored ? "true" : "false"}
       data-state={state}
       role={label ? "img" : undefined}
       aria-label={label}

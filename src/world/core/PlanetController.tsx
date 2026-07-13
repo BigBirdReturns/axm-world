@@ -4,6 +4,7 @@ import { useMemo, useRef } from "react";
 // Importing the package augments THREE.BufferGeometry with `boundsTree?: MeshBVH`.
 import "three-mesh-bvh";
 import { useWorldInput } from "./input.js";
+import type { EmbodimentMotionState } from "../themes/appearance.js";
 
 export interface ControllerConfig {
   planetRadius: number;
@@ -20,6 +21,8 @@ export interface ControllerState {
   up: THREE.Vector3;
   forward: THREE.Vector3;
   grounded: boolean;
+  speed: number;
+  motion: Exclude<EmbodimentMotionState, "arrived">;
 }
 
 export interface PlanetControllerProps {
@@ -51,6 +54,8 @@ export function PlanetController(props: PlanetControllerProps): JSX.Element {
       yaw: 0,
       wasJumpDown: false,
       grounded: false,
+      speed: 0,
+      motion: "idle",
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -95,6 +100,8 @@ export function PlanetController(props: PlanetControllerProps): JSX.Element {
       up: new THREE.Vector3(),
       forward: new THREE.Vector3(),
       grounded: false,
+      speed: 0,
+      motion: "idle",
     }),
     [],
   );
@@ -292,6 +299,8 @@ export function PlanetController(props: PlanetControllerProps): JSX.Element {
       outState.up.copy(tmp.up);
       outState.forward.copy(tmp.forward);
       outState.grounded = grounded;
+      outState.speed = tmp.vHoriz.length();
+      outState.motion = grounded ? (outState.speed > 0.05 ? "walk" : "idle") : "airborne";
       onState(outState);
     }
   });

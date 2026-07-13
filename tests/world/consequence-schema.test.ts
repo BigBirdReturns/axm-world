@@ -27,7 +27,8 @@ describe("consequence schema wiring (#69)", () => {
     const custody = read("src/world/custody.ts");
     const world = read("src/world/useArcWorld.ts");
     expect(custody).toContain("ledger: Ledger;");
-    expect(custody).toContain('format: "axm-cartridge-run/v2"');
+    expect(custody).toContain("format: typeof RUN_FORMAT_VERSION");
+    expect(custody).toContain("compatibility: CompatibilityReceipt");
     expect(custody).toContain("transformedLocations: deriveWorldTransformations");
     expect(world).toContain("buildCustodyObject({ cartridge, org, openingChoice, nodes: layout.nodes, ledger })");
   });

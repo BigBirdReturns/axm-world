@@ -98,6 +98,19 @@
   font: 15px/1.5 'Lora', Georgia, serif;
 }
 
+.decision-panel__result-effect {
+  margin: 0 0 18px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--gold-border);
+  background: rgba(216, 178, 118, 0.2);
+  color: var(--coffee);
+  font: 11px/1.45 var(--px-font);
+}
+
+.decision-panel__result-effect strong {
+  color: var(--ink-soft);
+}
+
 .decision-panel__continue-row {
   display: flex;
   justify-content: flex-end;

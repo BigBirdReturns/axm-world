@@ -7,12 +7,8 @@ import { useMemo } from "react";
 import * as THREE from "three";
 import { Html } from "@react-three/drei";
 import type { PlayNodeStatus, WorldNode } from "../contract.js";
-
-const STATUS_COLOR: Record<PlayNodeStatus, string> = {
-  available: "#c9a14a",
-  locked: "#5e5850",
-  cleared: "#74ad77",
-};
+import type { ContractOutcome } from "../ledger.js";
+import type { DollAppearancePack, PlaceStateAppearance } from "../themes/appearance.js";
 
 const STATUS_GLYPH: Record<PlayNodeStatus, string> = {
   available: "◆",
@@ -25,7 +21,6 @@ const UP = new THREE.Vector3(0, 1, 0);
 interface MarkerData {
   node: WorldNode;
   quaternion: [number, number, number, number];
-  color: string;
 }
 
 interface Props {
@@ -44,12 +39,14 @@ interface Props {
   selectedRisk?: "success" | "partial" | "failure" | "none";
   /** Most recently recorded place. Its durable cleared state is reinforced in-world. */
   changedId?: string | null;
+  placeStates: DollAppearancePack["placeStates"];
+  outcomeByChallenge?: ReadonlyMap<string, ContractOutcome>;
 }
 
 const RISK_COLOR: Record<"partial" | "failure", string> = { partial: "#e0a23a", failure: "#b01c18" };
 
 export function NodeMarkers(props: Props): JSX.Element {
-  const { nodes, selectedId, onSelect, labelsEnabled = true, occluder = null, selectedRisk = "none", changedId = null } = props;
+  const { nodes, selectedId, onSelect, labelsEnabled = true, occluder = null, selectedRisk = "none", changedId = null, placeStates, outcomeByChallenge } = props;
   const occludeRefs = useMemo(() => (occluder ? [{ current: occluder }] : undefined), [occluder]);
 
   const markers = useMemo<MarkerData[]>(() => {
@@ -57,16 +54,21 @@ export function NodeMarkers(props: Props): JSX.Element {
     return nodes.map((node) => {
       tmp.set(node.normal[0], node.normal[1], node.normal[2]).normalize();
       const q = new THREE.Quaternion().setFromUnitVectors(UP, tmp);
-      return { node, quaternion: [q.x, q.y, q.z, q.w], color: STATUS_COLOR[node.status] };
+      return { node, quaternion: [q.x, q.y, q.z, q.w] };
     });
   }, [nodes]);
 
   return (
     <group>
-      {markers.map(({ node, quaternion, color }) => {
+      {markers.map(({ node, quaternion }) => {
         const selected = node.challengeId === selectedId;
         const transformed = node.status === "cleared";
         const changed = node.challengeId === changedId && transformed;
+        const outcome = outcomeByChallenge?.get(node.challengeId);
+        const appearance: PlaceStateAppearance = transformed
+          ? (outcome ? placeStates[outcome] : placeStates.recorded)
+          : (node.status === "locked" ? placeStates.locked : placeStates.available);
+        const color = appearance.color;
         const risky = selected && (selectedRisk === "partial" || selectedRisk === "failure");
         const riskColor = risky ? RISK_COLOR[selectedRisk as "partial" | "failure"] : null;
         return (
@@ -82,7 +84,7 @@ export function NodeMarkers(props: Props): JSX.Element {
               onPointerOut={onSelect ? (() => { document.body.style.cursor = "auto"; }) : undefined}
               scale={selected ? 1.45 : 1}
             >
-              {transformed ? <sphereGeometry args={[0.4, 8, 6]} /> : <octahedronGeometry args={[0.34, 0]} />}
+              {appearance.landmark === "growth" ? <sphereGeometry args={[0.4, 8, 6]} /> : appearance.landmark === "sealed" ? <boxGeometry args={[0.5, 0.5, 0.5]} /> : <octahedronGeometry args={[0.34, 0]} />}
               <meshStandardMaterial color={color} emissive={color} emissiveIntensity={transformed ? 0.8 : selected ? 1.0 : 0.25} roughness={0.4} metalness={0.1} />
             </mesh>
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
@@ -95,17 +97,18 @@ export function NodeMarkers(props: Props): JSX.Element {
                 <meshBasicMaterial color={riskColor} transparent opacity={0.9} side={THREE.DoubleSide} />
               </mesh>
             )}
-            {transformed && (
+            {appearance.landmark === "growth" && (
               <group position={[0, 0.16, 0]}>
-                <mesh position={[-0.28, 0, 0]} rotation={[0, 0, -0.55]}><coneGeometry args={[0.12, 0.36, 6]} /><meshStandardMaterial color="#74ad77" /></mesh>
-                <mesh position={[0.28, 0, 0]} rotation={[0, 0, 0.55]}><coneGeometry args={[0.12, 0.36, 6]} /><meshStandardMaterial color="#74ad77" /></mesh>
-                <mesh position={[0, 0.07, 0.22]} rotation={[0.55, 0, 0]}><coneGeometry args={[0.11, 0.32, 6]} /><meshStandardMaterial color="#b9f6bd" /></mesh>
+                <mesh position={[-0.28, 0, 0]} rotation={[0, 0, -0.55]}><coneGeometry args={[0.12, 0.36, 6]} /><meshStandardMaterial color={appearance.color} /></mesh>
+                <mesh position={[0.28, 0, 0]} rotation={[0, 0, 0.55]}><coneGeometry args={[0.12, 0.36, 6]} /><meshStandardMaterial color={appearance.color} /></mesh>
+                <mesh position={[0, 0.07, 0.22]} rotation={[0.55, 0, 0]}><coneGeometry args={[0.11, 0.32, 6]} /><meshStandardMaterial color={appearance.accent} /></mesh>
               </group>
             )}
+            {appearance.landmark === "warning" && <mesh position={[0, 1.55, 0]}><torusGeometry args={[0.3, 0.07, 6, 12]} /><meshStandardMaterial color={appearance.accent} emissive={appearance.color} emissiveIntensity={0.6} /></mesh>}
             {changed && (
               <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]}>
                 <ringGeometry args={[0.88, 1.08, 32]} />
-                <meshBasicMaterial color="#b9f6bd" transparent opacity={0.95} side={THREE.DoubleSide} />
+                <meshBasicMaterial color={appearance.accent} transparent opacity={0.95} side={THREE.DoubleSide} />
               </mesh>
             )}
             {labelsEnabled && (

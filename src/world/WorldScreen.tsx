@@ -18,6 +18,8 @@ import { PlayerCharacter } from "./core/PlayerCharacter.js";
 import { setVirtualWorldInput } from "./core/input.js";
 import { isWorldNodeWithinRange, nearestWorldNode } from "./proximity.js";
 import { t } from "./i18n/index.js";
+import { themeForArc } from "./themes/select.js";
+import { resolveWorldAvatarAppearance, type EmbodimentMotionState } from "./themes/appearance.js";
 import "./world-screen.css";
 
 const RADIUS = DEFAULT_WORLD_CONFIG.planetRadius;
@@ -87,6 +89,7 @@ function scheduleTapMovement(input: { x?: number; y?: number; jump?: boolean }):
 export function PlanetScene({ world, interaction: ix, modalOpen = false, active = true }: SceneProps): JSX.Element {
   const [collider, setCollider] = useState<THREE.Mesh | null>(null);
   const [nearbyChallengeId, setNearbyChallengeId] = useState<string | null>(null);
+  const [avatarMotion, setAvatarMotion] = useState<EmbodimentMotionState>("idle");
   const controllerState = useRef<ControllerState | null>(null);
   const nearbyId = useRef<string | null>(null);
 
@@ -98,6 +101,14 @@ export function PlanetScene({ world, interaction: ix, modalOpen = false, active 
   const scatterItems = useMemo(() => scatterOnPlanet(geometry, RADIUS, 140, SEED), [geometry]);
   const placedNodes = useMemo(() => placeOnTerrain(world.nodes, collider), [world.nodes, collider]);
   const spawn = useMemo(() => placeSpawn(world.layout.spawn.normal, collider), [world.layout.spawn.normal, collider]);
+  const activeTheme = useMemo(() => themeForArc(world.arc), [world.arc]);
+  const avatarIdentity = world.roster[0]?.id ?? world.cartridgeDigest;
+  const avatarAppearance = useMemo(() => resolveWorldAvatarAppearance(activeTheme, avatarIdentity), [activeTheme, avatarIdentity]);
+  const outcomeByChallenge = useMemo(() => {
+    const outcomes = new Map<string, (typeof world.ledger.entries)[number]["outcome"]>();
+    for (const entry of world.ledger.entries) outcomes.set(entry.challengeId, entry.outcome);
+    return outcomes;
+  }, [world.ledger.entries]);
 
   const setColliderRef = useCallback((mesh: THREE.Mesh | null) => {
     if (mesh) setCollider((previous) => previous ?? mesh);
@@ -110,6 +121,8 @@ export function PlanetScene({ world, interaction: ix, modalOpen = false, active 
     const nearby = retained && isWorldNodeWithinRange(position, retained, INTERACTION_EXIT_RADIUS)
       ? retained
       : nearestWorldNode(position, placedNodes, INTERACTION_RADIUS);
+    const nextMotion: EmbodimentMotionState = nearby ? "arrived" : state.motion;
+    setAvatarMotion((current) => current === nextMotion ? current : nextMotion);
     if (nearby?.challengeId === nearbyId.current) return;
     const nextId = nearby?.challengeId ?? null;
     nearbyId.current = nextId;
@@ -141,9 +154,9 @@ export function PlanetScene({ world, interaction: ix, modalOpen = false, active 
           <meshStandardMaterial vertexColors flatShading roughness={0.95} metalness={0} />
         </mesh>
         <Scatter items={scatterItems} />
-        <NodeMarkers nodes={placedNodes} selectedId={ix.selectedId} labelsEnabled={!modalOpen} occluder={collider} selectedRisk={ix.readiness?.projectedOutcome ?? "none"} changedId={world.lastReport?.challengeId} />
+        <NodeMarkers nodes={placedNodes} selectedId={ix.selectedId} labelsEnabled={!modalOpen} occluder={collider} selectedRisk={ix.readiness?.projectedOutcome ?? "none"} changedId={world.lastReport?.challengeId} placeStates={activeTheme.appearancePack.placeStates} outcomeByChallenge={outcomeByChallenge} />
         <PlanetController collider={collider} config={DEFAULT_WORLD_CONFIG} initialPosition={spawn} onState={onControllerState}>
-          <PlayerCharacter />
+          <PlayerCharacter appearance={avatarAppearance} motion={avatarMotion} />
         </PlanetController>
         <FollowCamera getState={() => controllerState.current} />
       </Canvas>
@@ -158,7 +171,7 @@ export function PlanetScene({ world, interaction: ix, modalOpen = false, active 
 
       {!modalOpen && (
         <div className="world-movement-pad" data-testid="world-movement-pad" aria-label={t("world.movementControls")}>
-          <button type="button" className="world-move-forward" aria-label={t("world.walkForward")} onPointerDown={(event) => { captureControlPointer(event); setVirtualWorldInput({ y: 1 }); }} onPointerUp={(event) => { event.stopPropagation(); releaseMovement(); }} onPointerCancel={releaseMovement} onClick={() => scheduleTapMovement({ y: 1 })}>W</button>
+          <button type="button" className="world-move-forward" data-focus-default aria-label={t("world.walkForward")} onPointerDown={(event) => { captureControlPointer(event); setVirtualWorldInput({ y: 1 }); }} onPointerUp={(event) => { event.stopPropagation(); releaseMovement(); }} onPointerCancel={releaseMovement} onClick={() => scheduleTapMovement({ y: 1 })}>W</button>
           <button type="button" aria-label={t("world.strafeLeft")} onPointerDown={(event) => { captureControlPointer(event); setVirtualWorldInput({ x: -1 }); }} onPointerUp={(event) => { event.stopPropagation(); releaseMovement(); }} onPointerCancel={releaseMovement} onClick={() => scheduleTapMovement({ x: -1 })}>A</button>
           <button type="button" aria-label={t("world.walkBackward")} onPointerDown={(event) => { captureControlPointer(event); setVirtualWorldInput({ y: -1 }); }} onPointerUp={(event) => { event.stopPropagation(); releaseMovement(); }} onPointerCancel={releaseMovement} onClick={() => scheduleTapMovement({ y: -1 })}>S</button>
           <button type="button" aria-label={t("world.strafeRight")} onPointerDown={(event) => { captureControlPointer(event); setVirtualWorldInput({ x: 1 }); }} onPointerUp={(event) => { event.stopPropagation(); releaseMovement(); }} onPointerCancel={releaseMovement} onClick={() => scheduleTapMovement({ x: 1 })}>D</button>

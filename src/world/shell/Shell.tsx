@@ -9,7 +9,7 @@
 //             all in document flow, representation center.
 //   mobile  → same top bar + a bottom flex dock that stacks the same regions by flow.
 
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useEncounterDirector } from "../encounter/EncounterDirector.js";
 import { EncounterShell } from "../encounter/EncounterShell.js";
 import { cartridgePaletteScope, themeForArc } from "../themes/select.js";
@@ -183,6 +183,14 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   );
   const active = useMemo(() => presentations.find((p) => p.id === costumeId) ?? presentations[0]!, [presentations, costumeId]);
   const modalOpen = world.pendingDecision !== null || encounterOpen;
+  const underlayRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const underlay = underlayRef.current;
+    if (!underlay) return;
+    if (modalOpen) underlay.setAttribute("inert", "");
+    else underlay.removeAttribute("inert");
+    return () => underlay.removeAttribute("inert");
+  }, [modalOpen]);
   const selectionVisible = active.id !== "globe" || isWorldInteractionUnlocked(ix.selectedId, ix.nearbyId);
   const showPurpose = !dismissedPurpose[active.id] && !modalOpen;
   const dismissPurpose = () => setDismissedPurpose((p) => ({ ...p, [active.id]: true }));
@@ -421,6 +429,12 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
 
   return (
     <div data-testid="engine-shell" data-modal-open={modalOpen ? "true" : "false"} style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: "#0b0a08", overflow: "hidden", isolation: "isolate", fontFamily: "'IBM Plex Mono', ui-monospace, monospace" }}>
+      <div
+        ref={underlayRef}
+        data-testid="shell-underlay"
+        aria-hidden={modalOpen ? true : undefined}
+        style={{ display: "contents" }}
+      >
       {!isMobile && <ProgramIdentityStrip world={world} />}
       <div
         style={{
@@ -456,7 +470,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
                 if (mobileStep === "party") setMobileStep("contract");
                 else { ix.select(null); setMobileStep("board"); }
               }}
-              style={{ flex: "none", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "rgba(15,13,9,0.92)", borderBottom: "1px solid #2a2620", color: "#d8cfbd", fontFamily: "var(--px-font)", fontSize: 12, fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
+              style={{ flex: "none", minHeight: 48, display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "rgba(15,13,9,0.92)", borderBottom: "1px solid #2a2620", color: "#d8cfbd", fontFamily: "var(--px-font)", fontSize: 12, fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
             >
               ‹ {mobileStep === "party" ? t("shell.mobileBackContract") : t("shell.mobileBackBoard")}
             </button>
@@ -494,7 +508,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
               </div>
               {world.pendingLoot.length === 0 && selectionActive && (
                 <div style={mobileStickyFooter}>
-                  <PixelButton type="button" variant="secondary" data-testid="mobile-adjust-party" onClick={() => setMobileStep("party")} style={{ width: "100%", minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+                  <PixelButton type="button" variant="secondary" data-testid="mobile-adjust-party" onClick={() => setMobileStep("party")} style={{ width: "100%", minHeight: 48, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
                     <PixelIcon name="selected" /> <span>{t("shell.mobileAdjustParty", { count: ix.party.length, max })}</span>
                   </PixelButton>
                   {playEncounter}
@@ -553,7 +567,9 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
         </div>
       )}
 
-      {world.pendingDecision && (
+      </div>
+
+      {world.pendingDecision && !encounterOpen && (
         <DecisionPanel key={world.pendingDecision.id} card={world.pendingDecision} onResolve={world.resolveDecision} targetName={world.effectTargetName} />
       )}
       {showCartridge && (

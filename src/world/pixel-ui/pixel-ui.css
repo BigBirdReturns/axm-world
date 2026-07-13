@@ -70,7 +70,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
+  min-height: 48px;
   min-width: 48px;
   padding: 8px 12px;
   border: 2px solid var(--ink);
@@ -723,7 +723,7 @@
   margin-top: 10px;
 }
 .pixel-loot-card__equip-button.pixel-button {
-  min-height: 40px;
+  min-height: 48px;
   padding: 6px 10px;
   gap: 7px;
   font-size: 10px;
@@ -737,9 +737,12 @@
 
 @media (max-width: 480px) {
   .pixel-button {
-    min-height: 44px;
+    min-height: 48px;
     font-size: 11px;
     padding: 6px 8px;
+  }
+  .pixel-button--cta {
+    min-height: 52px;
   }
   .pixel-badge {
     font-size: 9px;

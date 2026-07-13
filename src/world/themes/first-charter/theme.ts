@@ -5,6 +5,8 @@ export const FIRST_CHARTER_THEME: RodohTheme = {
   id: "first-charter",
   name: "The First Charter",
   motto: "Existence is my counterattack.",
+  // Program 001 teaches its real loop spatially: arrive, act, witness change.
+  preferredPresentation: "globe",
   appearancePack: {
     ...RODOH_BASE_THEME.appearancePack,
     roleBindings: {

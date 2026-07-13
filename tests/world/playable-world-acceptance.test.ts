@@ -86,6 +86,7 @@ describe("The Cellar — complete playable-world acceptance run", () => {
       ledger: restored!.ledger,
     })));
     expect(exported.format).toBe("axm-cartridge-run/v2");
+    expect(exported.compatibility).toMatchObject({ status: "compatible", policy: "same-major" });
     expect(exported.ledger.entries).toHaveLength(1);
     expect(exported.ledger.entries[0].challengeId).toBe("cellar");
     expect(exported.runState.transformedLocations).toEqual([

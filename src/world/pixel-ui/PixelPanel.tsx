@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
 import "./pixel-ui.css";
 
 type PixelPanelProps = HTMLAttributes<HTMLDivElement> & {
@@ -6,11 +6,14 @@ type PixelPanelProps = HTMLAttributes<HTMLDivElement> & {
   title?: ReactNode;
 };
 
-export function PixelPanel({ tone = "light", title, className = "", children, ...props }: PixelPanelProps): JSX.Element {
+export const PixelPanel = forwardRef<HTMLElement, PixelPanelProps>(function PixelPanel(
+  { tone = "light", title, className = "", children, ...props },
+  ref,
+): JSX.Element {
   return (
-    <section className={`pixel-panel ${className}`} data-tone={tone === "dark" ? "dark" : undefined} {...props}>
+    <section ref={ref} className={`pixel-panel ${className}`} data-tone={tone === "dark" ? "dark" : undefined} {...props}>
       {title ? <header className="pixel-panel__title">{title}</header> : null}
       {children}
     </section>
   );
-}
+});

@@ -15,6 +15,9 @@ export interface RodohTheme {
   id: string;
   name: string;
   motto: string;
+  /** The representation that best teaches this cartridge's ordinary first
+   * minute. This is cartridge presentation data, never a shell id check. */
+  preferredPresentation: "board" | "map" | "globe" | "hall";
   states: Record<RodohRuntimeState, { icon: PixelIconName; label: string; meaning: string }>;
   roles: Record<string, { icon: PixelIconName; label: string; meaning: string }>;
   attributes: Record<string, { icon: PixelIconName; label: string; meaning: string }>;
@@ -26,6 +29,7 @@ export const RODOH_BASE_THEME: RodohTheme = {
   id: "rodoh-base",
   name: "Rodoh Runtime",
   motto: "Hold the loop.",
+  preferredPresentation: "board",
   states: {
     available: { icon: "available", label: "Available", meaning: "Can be inspected or assigned now." },
     reliable: { icon: "reliable", label: "Reliable", meaning: "Projection has enough buffer." },
@@ -57,5 +61,18 @@ export const RODOH_BASE_THEME: RodohTheme = {
     fallback: "rodoh:bare-doll",
     appearances: RODOH_DOLL_APPEARANCES,
     roleBindings: {},
+    worldAvatar: {
+      id: "rodoh:traveler",
+      palette: { body: "#3b6ea5", skin: "#e8c4a0", headgear: "#c8492f", legs: "#2a2f3a", cargo: "#7a5230", strap: "#5a3c22" },
+      modules: { headgear: "cap", cargo: "satchel" },
+    },
+    placeStates: {
+      available: { color: "#c9a14a", accent: "#f0d47a", landmark: "crystal" },
+      locked: { color: "#5e5850", accent: "#8b8172", landmark: "sealed" },
+      recorded: { color: "#74ad77", accent: "#b9f6bd", landmark: "growth" },
+      success: { color: "#74ad77", accent: "#b9f6bd", landmark: "growth" },
+      partial: { color: "#c9a14a", accent: "#f0d47a", landmark: "crystal" },
+      failure: { color: "#b01c18", accent: "#e78375", landmark: "warning" },
+    },
   },
 };

@@ -80,6 +80,7 @@ function row(label: string, value: string): JSX.Element {
 
 export function CartridgeObjectPanel({ manifest, digest, ledger, openingChoice, cycle, clearedCount, totalNodes, onExport, onClose, onLeave }: Props): JSX.Element {
   const progressPct = totalNodes > 0 ? Math.round((clearedCount / totalNodes) * 100) : 0;
+  const custodyPreview = onExport();
   // One ledger entry can be expanded at a time to read its full structured
   // consequence (Objectives / Rewards / World changes) — a simple detail over the
   // stored record, no tabs/filters/timestamps.
@@ -124,6 +125,8 @@ export function CartridgeObjectPanel({ manifest, digest, ledger, openingChoice, 
 
         {row(t("cartridgePanel.domain"), manifest.domain)}
         {row(t("cartridgePanel.engine"), manifest.engineVersion)}
+        {row(t("cartridgePanel.compatibility"), t(`compatibility.${custodyPreview.compatibility.status}` as MessageId))}
+        {row(t("cartridgePanel.runFormat"), custodyPreview.compatibility.runFormat)}
         {row(t("cartridgePanel.trust"), t(TRUST_LABEL_ID[manifest.trust]))}
         <div style={{ display: "flex", justifyContent: "space-between", gap: 18, padding: "4px 0", alignItems: "baseline" }}>
           <span style={{ color: "#a59c8b", flex: "none" }}>{t("cartridgePanel.identity")}</span>
@@ -138,10 +141,14 @@ export function CartridgeObjectPanel({ manifest, digest, ledger, openingChoice, 
         <div style={{ height: 1, background: "#2a2620", margin: "8px 0" }} />
         {row(t("cartridgePanel.cycle"), String(cycle).padStart(2, "0"))}
         {row(t("cartridgePanel.recordedNodes"), `${clearedCount} / ${totalNodes}`)}
+        {row(t("cartridgePanel.transformedLocations"), String(custodyPreview.runState.transformedLocations.length))}
         <div style={{ height: 6, background: "#2a2620", borderRadius: 999, overflow: "hidden", margin: "4px 0 8px" }}>
           <div style={{ width: `${progressPct}%`, height: "100%", background: "#74ad77" }} />
         </div>
         {row(t("cartridgePanel.decisionMark"), openingChoice ?? "—")}
+        <p data-testid="compatibility-guarantee" style={{ color: "#8b8172", fontSize: 10, lineHeight: 1.45, margin: "8px 0" }}>
+          {t("cartridgePanel.compatibilityBoundary")}
+        </p>
 
         <div style={{ height: 1, background: "#2a2620", margin: "10px 0 8px" }} />
         {/* Contract ledger — the program's memory: an ordered, append-only record.
