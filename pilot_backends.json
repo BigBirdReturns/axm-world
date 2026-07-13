@@ -1,0 +1,67 @@
+{
+  "schema": "tier-bench/pilot-backends@1",
+  "protocol_commit": "076fd1e3d97c22f7c33933c5dee4ff897d7ba4e6",
+  "isolation": {
+    "fresh_session_per_call": true,
+    "instruction_files": false,
+    "auto_memory": false,
+    "conversation_carryover": false
+  },
+  "tool_versions": {
+    "claude_code": "2.1.207 (Claude Code)",
+    "claude_help_sha256": "cb55147913e31d9725b5e5c1dc5886dcd6a1b07eb242a1597fb59615e1700f8c",
+    "tier_claude_adapter": "1"
+  },
+  "prompt_templates": {
+    "hands": {
+      "path": ".tier/hands.prompt.txt",
+      "sha256": "c2ba92cff0c46b14f2a23719087d3e71d41a0790cb80b563c748fc0b9cba1111"
+    }
+  },
+  "arms": {
+    "arm_b": {
+      "model_id": "claude-haiku-4-5-20251001",
+      "effort": "low",
+      "surface": "claude-code-subscription",
+      "cost_basis": "subscription-derived",
+      "account": "claude-code-session-max20x",
+      "tier": "cheap",
+      "prompt_template": "hands",
+      "adapter": {
+        "command": [
+          "python",
+          "-m",
+          "tier_runner.adapters.claude_code",
+          "--arm",
+          "{arm}",
+          "--dispatch",
+          "{dispatch_receipt}",
+          "--prompt",
+          "{prompt}",
+          "--result",
+          "{backend_result}",
+          "--worktree",
+          "{worktree}",
+          "--model",
+          "claude-haiku-4-5-20251001",
+          "--effort",
+          "low",
+          "--account",
+          "claude-code-session-max20x",
+          "--tier",
+          "cheap",
+          "--surface",
+          "claude-code-subscription",
+          "--claude-version",
+          "2.1.207 (Claude Code)",
+          "--claude-help-sha256",
+          "cb55147913e31d9725b5e5c1dc5886dcd6a1b07eb242a1597fb59615e1700f8c",
+          "--adapter-version",
+          "1",
+          "--cost-basis",
+          "subscription-derived"
+        ]
+      }
+    }
+  }
+}
