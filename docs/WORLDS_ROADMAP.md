@@ -138,8 +138,9 @@ something memorable without being taught the architecture.
 The recruitment top-tier leak, ledger-less `recorded` transformation,
 pay-before-gate debit, negative upkeep balance, and Industrious
 double-application are closed in the current working change with direct guards.
-Next close progression non-monotonicity before claiming campaign tuning or
-record honesty.
+Progression unlocks are now durably stamped before and after each cycle, so a
+later reputation loss cannot re-lock an earned tier. The confirmed correctness
+queue is therefore closed; keep these guards green while campaign work proceeds.
 
 **1. Cold First Charter session.** A stranger must pick up the cartridge, enter,
 make the founding choice, meet Maren, understand and resolve The Cellar, read what
