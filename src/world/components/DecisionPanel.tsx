@@ -33,7 +33,8 @@ export function DecisionPanel({ card: drama, onResolve, targetName = (id) => id 
   const isOpening = drama.id.startsWith("opening:");
   const panelRef = useRef<HTMLElement | null>(null);
   const titleRef = useRef<HTMLParagraphElement | null>(null);
-  useDialogFocus(panelRef, titleRef, `${drama.id}:${chosen?.id ?? "choice"}`);
+  const resultRef = useRef<HTMLHeadingElement | null>(null);
+  useDialogFocus(panelRef, chosen ? resultRef : titleRef, `${drama.id}:${chosen?.id ?? "choice"}`);
 
   return createPortal(
     <>
@@ -43,6 +44,7 @@ export function DecisionPanel({ card: drama, onResolve, targetName = (id) => id 
         tone="light"
         className="decision-panel"
         role="dialog"
+        tabIndex={-1}
         aria-modal="true"
         aria-labelledby="decision-title"
         data-testid="pending-decision-card"
@@ -93,7 +95,7 @@ export function DecisionPanel({ card: drama, onResolve, targetName = (id) => id 
           </>
         ) : (
           <>
-            <h2 className="decision-panel__result-title">
+            <h2 ref={resultRef} tabIndex={-1} className="decision-panel__result-title">
               {chosen.label}
             </h2>
             <p className="decision-panel__result-description">
