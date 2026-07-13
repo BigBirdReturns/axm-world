@@ -10,7 +10,7 @@
   "tool_versions": {
     "claude_code": "2.1.207 (Claude Code)",
     "claude_help_sha256": "05207b52bfc601e9c3dda7b3fa0793366adbaeca0d094d5b66e9b293ed0182fe",
-    "tier_claude_adapter": "2"
+    "tier_claude_adapter": "3"
   },
   "prompt_templates": {
     "hands": {
@@ -57,7 +57,7 @@
           "--claude-help-sha256",
           "05207b52bfc601e9c3dda7b3fa0793366adbaeca0d094d5b66e9b293ed0182fe",
           "--adapter-version",
-          "2",
+          "3",
           "--cost-basis",
           "subscription-derived"
         ]
