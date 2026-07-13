@@ -1,4 +1,5 @@
 import type { PixelIconName } from "../pixel-ui/index.js";
+import { RODOH_DOLL_APPEARANCES, type DollAppearancePack } from "./appearance.js";
 
 export type RodohRuntimeState =
   | "available"
@@ -18,6 +19,7 @@ export interface RodohTheme {
   roles: Record<string, { icon: PixelIconName; label: string; meaning: string }>;
   attributes: Record<string, { icon: PixelIconName; label: string; meaning: string }>;
   items: Record<string, { icon: PixelIconName; label: string; meaning: string }>;
+  appearancePack: DollAppearancePack;
 }
 
 export const RODOH_BASE_THEME: RodohTheme = {
@@ -50,5 +52,10 @@ export const RODOH_BASE_THEME: RodohTheme = {
     guardCharm: { icon: "guardCharm", label: "Guard Charm", meaning: "Protective trinket. Improves Mettle." },
     fieldSatchel: { icon: "fieldSatchel", label: "Field Satchel", meaning: "Carry forward. Inventory identity." },
     emptySlot: { icon: "emptySlot", label: "Empty Slot", meaning: "Gear can be earned and equipped later." },
+  },
+  appearancePack: {
+    fallback: "rodoh:bare-doll",
+    appearances: RODOH_DOLL_APPEARANCES,
+    roleBindings: {},
   },
 };

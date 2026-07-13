@@ -31,7 +31,9 @@ interface MarkerData {
 interface Props {
   nodes: WorldNode[];
   selectedId: string | null;
-  onSelect: (challengeId: string) => void;
+  /** Optional inspection handler. The embodied World intentionally omits it:
+   * its markers unlock through physical proximity, never remote clicking. */
+  onSelect?: (challengeId: string) => void;
   labelsEnabled?: boolean;
   /** The planet mesh. When given, a node's label hides while the node is on the far
    *  side of the globe, so labels stop floating over the front (representation honesty:
@@ -40,12 +42,14 @@ interface Props {
   /** Projected readiness of the selected node, so risk is flagged on the marker in
    *  place — connecting selection, party readiness, and world location in one view. */
   selectedRisk?: "success" | "partial" | "failure" | "none";
+  /** Most recently recorded place. Its durable cleared state is reinforced in-world. */
+  changedId?: string | null;
 }
 
 const RISK_COLOR: Record<"partial" | "failure", string> = { partial: "#e0a23a", failure: "#b01c18" };
 
 export function NodeMarkers(props: Props): JSX.Element {
-  const { nodes, selectedId, onSelect, labelsEnabled = true, occluder = null, selectedRisk = "none" } = props;
+  const { nodes, selectedId, onSelect, labelsEnabled = true, occluder = null, selectedRisk = "none", changedId = null } = props;
   const occludeRefs = useMemo(() => (occluder ? [{ current: occluder }] : undefined), [occluder]);
 
   const markers = useMemo<MarkerData[]>(() => {
@@ -61,6 +65,8 @@ export function NodeMarkers(props: Props): JSX.Element {
     <group>
       {markers.map(({ node, quaternion, color }) => {
         const selected = node.challengeId === selectedId;
+        const transformed = node.status === "cleared";
+        const changed = node.challengeId === changedId && transformed;
         const risky = selected && (selectedRisk === "partial" || selectedRisk === "failure");
         const riskColor = risky ? RISK_COLOR[selectedRisk as "partial" | "failure"] : null;
         return (
@@ -71,27 +77,13 @@ export function NodeMarkers(props: Props): JSX.Element {
             </mesh>
             <mesh
               position={[0, 1.15, 0]}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(node.challengeId);
-              }}
-              onPointerOver={(e) => {
-                e.stopPropagation();
-                document.body.style.cursor = "pointer";
-              }}
-              onPointerOut={() => {
-                document.body.style.cursor = "auto";
-              }}
+              onClick={onSelect ? ((e) => { e.stopPropagation(); onSelect(node.challengeId); }) : undefined}
+              onPointerOver={onSelect ? ((e) => { e.stopPropagation(); document.body.style.cursor = "pointer"; }) : undefined}
+              onPointerOut={onSelect ? (() => { document.body.style.cursor = "auto"; }) : undefined}
               scale={selected ? 1.45 : 1}
             >
-              <octahedronGeometry args={[0.34, 0]} />
-              <meshStandardMaterial
-                color={color}
-                emissive={color}
-                emissiveIntensity={selected ? 1.0 : 0.25}
-                roughness={0.4}
-                metalness={0.1}
-              />
+              {transformed ? <sphereGeometry args={[0.4, 8, 6]} /> : <octahedronGeometry args={[0.34, 0]} />}
+              <meshStandardMaterial color={color} emissive={color} emissiveIntensity={transformed ? 0.8 : selected ? 1.0 : 0.25} roughness={0.4} metalness={0.1} />
             </mesh>
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
               <ringGeometry args={[0.42, 0.58, 22]} />
@@ -101,6 +93,19 @@ export function NodeMarkers(props: Props): JSX.Element {
               <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}>
                 <ringGeometry args={[0.64, 0.82, 28]} />
                 <meshBasicMaterial color={riskColor} transparent opacity={0.9} side={THREE.DoubleSide} />
+              </mesh>
+            )}
+            {transformed && (
+              <group position={[0, 0.16, 0]}>
+                <mesh position={[-0.28, 0, 0]} rotation={[0, 0, -0.55]}><coneGeometry args={[0.12, 0.36, 6]} /><meshStandardMaterial color="#74ad77" /></mesh>
+                <mesh position={[0.28, 0, 0]} rotation={[0, 0, 0.55]}><coneGeometry args={[0.12, 0.36, 6]} /><meshStandardMaterial color="#74ad77" /></mesh>
+                <mesh position={[0, 0.07, 0.22]} rotation={[0.55, 0, 0]}><coneGeometry args={[0.11, 0.32, 6]} /><meshStandardMaterial color="#b9f6bd" /></mesh>
+              </group>
+            )}
+            {changed && (
+              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]}>
+                <ringGeometry args={[0.88, 1.08, 32]} />
+                <meshBasicMaterial color="#b9f6bd" transparent opacity={0.95} side={THREE.DoubleSide} />
               </mesh>
             )}
             {labelsEnabled && (
@@ -114,8 +119,10 @@ export function NodeMarkers(props: Props): JSX.Element {
                   onPointerDown={(event) => event.stopPropagation()}
                   onClick={(event) => {
                     event.stopPropagation();
-                    onSelect(node.challengeId);
+                    onSelect?.(node.challengeId);
                   }}
+                  disabled={!onSelect}
+                  aria-disabled={!onSelect}
                   style={{
                     font: "600 11px 'IBM Plex Mono', ui-monospace, monospace",
                     whiteSpace: "nowrap",
@@ -128,7 +135,7 @@ export function NodeMarkers(props: Props): JSX.Element {
                     minWidth: 44,
                     transform: "translateY(-2px)",
                     userSelect: "none",
-                    cursor: "pointer",
+                    cursor: onSelect ? "pointer" : "default",
                   }}
                 >
                   {risky && riskColor && <span style={{ color: riskColor }}>⚠ </span>}

@@ -119,7 +119,18 @@ export function buildWorldLayout(
     });
   });
 
-  const sn = sphericalToUnit((-14 * Math.PI) / 180, 0);
+  // Start just outside the first available place's interaction radius, on its
+  // authored approach line. The controller faces local north at yaw zero, so a
+  // short forward walk teaches movement -> arrival -> interaction immediately.
+  // This remains cartridge-agnostic: whichever node the engine makes available
+  // first becomes the approach target; an empty/fully-recorded world falls back
+  // to the neutral spawn.
+  const approachTarget = nodes.find((node) => node.status === "available") ?? nodes[0] ?? null;
+  const approachOffset = 20 * Math.PI / 180;
+  const targetLat = approachTarget ? Math.asin(approachTarget.normal[1]) : 4 * Math.PI / 180;
+  const targetLon = approachTarget ? Math.atan2(approachTarget.normal[2], approachTarget.normal[0]) : 0;
+  const spawnLat = Math.max(-Math.PI / 2 + 0.05, targetLat - approachOffset);
+  const sn = sphericalToUnit(spawnLat, targetLon);
   const spawn: WorldSpawn = {
     normal: sn,
     position: [sn[0] * config.planetRadius, sn[1] * config.planetRadius, sn[2] * config.planetRadius],

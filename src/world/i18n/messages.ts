@@ -288,6 +288,14 @@ export type MessageId =
   | "presentations.globe.blurb"
   | "presentations.globe.controlsHint"
   | "presentations.globe.purpose"
+  | "world.movementControls"
+  | "world.walkForward"
+  | "world.walkBackward"
+  | "world.strafeLeft"
+  | "world.strafeRight"
+  | "world.jump"
+  | "world.walkToInteract"
+  | "world.interactionUnlocked"
   | "presentations.graph.label"
   | "presentations.graph.blurb"
   | "presentations.graph.controlsHint"
@@ -698,10 +706,18 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "worldMap.legendSteep": "High authored difficulty",
     "worldMap.legendRecorded": "Result written to the ledger",
     "worldMap.legendLocked": "Clear earlier contracts first",
-    "presentations.globe.label": "Planet",
-    "presentations.globe.blurb": "3D world — optional spatial renderer",
-    "presentations.globe.controlsHint": "drag to orbit · scroll to zoom · right-drag to pan · click a ◆ contract",
-    "presentations.globe.purpose": "The same cartridge state placed in a 3D world. Useful only when location matters for the cartridge.",
+    "presentations.globe.label": "World",
+    "presentations.globe.blurb": "Enter the cartridge as a spatial world",
+    "presentations.globe.controlsHint": "WASD / arrows or touch pad to walk · drag to turn · Space to jump · approach a ◆ contract",
+    "presentations.globe.purpose": "The cartridge made spatial: its places, contracts, and consequences remain the same world state.",
+    "world.movementControls": "World movement controls",
+    "world.walkForward": "Walk forward",
+    "world.walkBackward": "Walk backward",
+    "world.strafeLeft": "Move left",
+    "world.strafeRight": "Move right",
+    "world.jump": "Jump",
+    "world.walkToInteract": "Walk to a contract marker to interact",
+    "world.interactionUnlocked": "Interaction unlocked",
     "presentations.graph.label": "Debug Graph",
     "presentations.graph.blurb": "Developer dependency graph",
     "presentations.graph.controlsHint": "drag to orbit · scroll to zoom · click a ◆ contract",
@@ -1062,10 +1078,18 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "worldMap.legendSteep": "作者設定的高難度",
     "worldMap.legendRecorded": "結果已寫入帳本",
     "worldMap.legendLocked": "請先完成較早的契約",
-    "presentations.globe.label": "星球",
-    "presentations.globe.blurb": "3D 世界 — 選用的空間化渲染器",
-    "presentations.globe.controlsHint": "拖曳以環繞 · 滾動以縮放 · 按右鍵拖曳以平移 · 點選 ◆ 契約",
-    "presentations.globe.purpose": "同樣的卡匣狀態，置於 3D 世界中。僅在地點對此卡匣有意義時才需要。",
+    "presentations.globe.label": "世界",
+    "presentations.globe.blurb": "進入卡匣所構成的空間世界",
+    "presentations.globe.controlsHint": "使用 WASD、方向鍵或觸控板行走 · 拖曳轉向 · 空白鍵跳躍 · 靠近 ◆ 契約",
+    "presentations.globe.purpose": "卡匣成為空間世界：其中的地點、契約與後果仍共享同一份世界狀態。",
+    "world.movementControls": "世界移動控制",
+    "world.walkForward": "向前行走",
+    "world.walkBackward": "向後行走",
+    "world.strafeLeft": "向左移動",
+    "world.strafeRight": "向右移動",
+    "world.jump": "跳躍",
+    "world.walkToInteract": "走近契約標記以進行互動",
+    "world.interactionUnlocked": "互動已解鎖",
     "presentations.graph.label": "除錯圖表",
     "presentations.graph.blurb": "開發者相依性圖表",
     "presentations.graph.controlsHint": "拖曳以環繞 · 滾動以縮放 · 點選 ◆ 契約",

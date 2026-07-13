@@ -164,10 +164,3 @@ export function PixelSprite({ name, label, size = 40, className = "", style, ...
 
 /** Map a roster member's ROLE (real run data) to its body. Unknown roles get the
  *  neutral person — never an invented identity. */
-export function spriteForRole(role: string): PixelSpriteName {
-  const lower = role.toLowerCase();
-  if (lower.includes("vanguard")) return "vanguard";
-  if (lower.includes("skirmisher")) return "skirmisher";
-  if (lower.includes("mender")) return "mender";
-  return "person";
-}

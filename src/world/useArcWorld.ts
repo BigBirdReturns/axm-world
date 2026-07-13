@@ -28,6 +28,8 @@ import { cartridgeIdentity } from "./cartridge-identity.js";
 import { appendResult, emptyLedger, type Ledger, type LedgerEntry } from "./ledger.js";
 import { buildConsequence, newlyAvailableContracts } from "./consequence.js";
 import { loadRun, saveRun } from "./save.js";
+import { buildCustodyObject, type CustodyObject } from "./custody.js";
+export type { CustodyObject } from "./custody.js";
 import {
   describeContract as describeContractReq,
   evaluateParty as evaluatePartyReq,
@@ -87,23 +89,6 @@ export interface LastEquipEvent {
   sourceChallenge: string;
   agentId: string;
   agentName: string;
-}
-
-export interface CustodyObject {
-  format: "axm-cartridge-run/v2";
-  manifest: Cartridge["manifest"];
-  arc: Arc;
-  runState: {
-    cycle: number;
-    openingChoice: string | null;
-    clearedCount: number;
-    totalNodes: number;
-    roster: Array<{ name: string; morale: number; stress: number }>;
-  };
-  /** The full run ledger — every resolved contract with its structured
-   *  consequence record — so the durable truth travels with the exported run
-   *  (v2). Older exports (v1) carried only the runState summary. */
-  ledger: Ledger;
 }
 
 export interface ArcWorld {
@@ -474,26 +459,8 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   }, [arc, cartridgeDigest, org, ledger, openingChoice]);
 
   const buildExport = useCallback(
-    (): CustodyObject => ({
-      format: "axm-cartridge-run/v2",
-      manifest: cartridge.manifest,
-      arc: cartridge.arc,
-      runState: {
-        cycle: org.cycle,
-        openingChoice,
-        clearedCount,
-        totalNodes,
-        roster: Object.values(org.agents).map((a) => ({
-          name: a.name,
-          morale: Math.round(a.morale),
-          stress: Math.round(a.stress),
-        })),
-      },
-      // The durable record travels with the exported run: the full ledger, every
-      // entry carrying its structured consequence.
-      ledger,
-    }),
-    [cartridge, org, openingChoice, clearedCount, totalNodes, ledger],
+    (): CustodyObject => buildCustodyObject({ cartridge, org, openingChoice, nodes: layout.nodes, ledger }),
+    [cartridge, org, openingChoice, layout.nodes, ledger],
   );
 
   // The last resolved run's full ledger entry, THIS SESSION: gated by lastReport

@@ -166,10 +166,3 @@ export function PixelPortrait({ name, label, size = 32, className = "", style, .
 
 /** Map a roster member's ROLE (real run data) to its face. Unknown roles get the
  *  neutral person — never an invented identity. */
-export function portraitForRole(role: string): PixelPortraitName {
-  const lower = role.toLowerCase();
-  if (lower.includes("vanguard")) return "vanguard";
-  if (lower.includes("skirmisher")) return "skirmisher";
-  if (lower.includes("mender")) return "mender";
-  return "person";
-}

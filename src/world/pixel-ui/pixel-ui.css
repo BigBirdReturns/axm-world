@@ -722,6 +722,16 @@
   flex-wrap: wrap;
   margin-top: 10px;
 }
+.pixel-loot-card__equip-button.pixel-button {
+  min-height: 40px;
+  padding: 6px 10px;
+  gap: 7px;
+  font-size: 10px;
+}
+.pixel-loot-card__equip-icon.pixel-icon {
+  color: inherit;
+  flex: 0 0 auto;
+}
 
 /* ── MOBILE RULES ────────────────────────────────────────────────────────── */
 

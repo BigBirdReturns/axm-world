@@ -8,9 +8,24 @@ function read(path: string): string {
 describe("shell regressions", () => {
   it("renders decisions through a portal above representation Html labels", () => {
     const decision = read("src/world/components/DecisionPanel.tsx");
+    const decisionCss = read("src/world/components/decision-panel.css");
     expect(decision).toContain("createPortal");
-    expect(decision).toContain("zIndex: 9001");
+    expect(decisionCss).toContain("z-index: 9001");
     expect(decision).toContain('data-testid="pending-decision-card"');
+    expect(decision).toContain("PixelPanel");
+    expect(decision).toContain('variant="danger"');
+    expect(decision).toContain('className="decision-panel"');
+    expect(decisionCss).toContain("border-radius: 0");
+    expect(decisionCss).toContain("var(--cream)");
+  });
+
+  it("uses one governed dandelion map across decisions and cartridge motifs", () => {
+    const mark = read("src/world/brand/RodohRuntimeMark.tsx");
+    const motifs = read("src/world/themes/first-charter/motif-icons.tsx");
+    const decision = read("src/world/components/DecisionPanel.tsx");
+    expect(mark).toContain("export function RodohDandelionGlyph");
+    expect(motifs).toContain("<RodohDandelionGlyph size={size} />");
+    expect(decision).toContain('<RodohRuntimeMark variant="micro" showText={false} />');
   });
 
   it("hides representation labels and disables canvas events while modal is open", () => {

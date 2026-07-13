@@ -20,7 +20,9 @@ import type { ArcWorld } from "../useArcWorld.js";
 import type { ProjectedOutcome } from "../readiness.js";
 import type { EncounterObjective, MarkerKind } from "./compile-encounter.js";
 import { spendOffer, spendWasUsed } from "./spend.js";
-import { PixelButton, PixelSprite, spriteForRole } from "../pixel-ui/index.js";
+import { PixelButton, PixelDoll, PixelSprite } from "../pixel-ui/index.js";
+import { resolveDollAppearance } from "../themes/appearance.js";
+import { themeForArc } from "../themes/select.js";
 import { t } from "../i18n/index.js";
 import "./encounter-shell.css";
 
@@ -86,6 +88,7 @@ function MarkerField({ objective }: { objective: EncounterObjective }): JSX.Elem
 }
 
 export function EncounterShell({ world, challengeId, party, onClose }: Props): JSX.Element | null {
+  const theme = themeForArc(world.cartridge.arc);
   const [resolved, setResolved] = useState(false);
   // The posture choice — only offered when the cartridge authors difficulty modes.
   // null = base ("Standard"). Recompiles the whole encounter (objectives + risk).
@@ -207,7 +210,7 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
                       <span key={m.id} data-testid={`encs-staging-body-${m.id}`} title={`${m.name} · ${m.role}`} style={{ display: "grid", justifyItems: "center", gap: 3, width: 42 }}>
                         {/* The member's ROLE as a standing body — same honest keying
                             as the roster's face. */}
-                        <PixelSprite name={spriteForRole(m.role)} size={34} />
+                        <PixelDoll appearance={resolveDollAppearance(theme, m.role)} identity={m.id} state={m.downed ? "downed" : projectedOutcome === "failure" ? "strain" : "idle"} size={34} />
                         <span style={{ fontSize: 8, color: "#cdd8c2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 42 }}>{m.name}</span>
                       </span>
                     ))}

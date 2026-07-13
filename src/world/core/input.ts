@@ -7,6 +7,8 @@ export interface WorldInputState {
   turn: number;
   /** True while a jump is requested. */
   jump: boolean;
+  /** One-shot local movement requested by a tap, consumed exactly once. */
+  impulse: { x: number; y: number };
 }
 
 export interface WorldInput {
@@ -20,6 +22,21 @@ export interface WorldInput {
 /** Sensitivity (radians of yaw per pixel of horizontal drag). */
 const TURN_SENSITIVITY = 0.005;
 
+export const VIRTUAL_WORLD_INPUT_EVENT = "axm-world:virtual-input";
+
+export interface VirtualWorldInput {
+  x?: number;
+  y?: number;
+  jump?: boolean;
+  impulse?: boolean;
+}
+
+/** Bridge accessible on-screen controls into the same controller input seam. */
+export function setVirtualWorldInput(input: VirtualWorldInput): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent<VirtualWorldInput>(VIRTUAL_WORLD_INPUT_EVENT, { detail: input }));
+}
+
 /**
  * Live keyboard + pointer/touch input for the planet controller.
  *
@@ -32,10 +49,12 @@ export function useWorldInput(): WorldInput {
     move: { x: 0, y: 0 },
     turn: 0,
     jump: false,
+    impulse: { x: 0, y: 0 },
   });
 
   // Track the raw key set so opposite keys cancel and release works correctly.
   const keysRef = useRef<Set<string>>(new Set());
+  const virtualRef = useRef({ x: 0, y: 0, jump: false });
 
   // Pointer drag tracking.
   const draggingRef = useRef<boolean>(false);
@@ -51,9 +70,9 @@ export function useWorldInput(): WorldInput {
       if (keys.has("s") || keys.has("arrowdown")) y -= 1;
       if (keys.has("d") || keys.has("arrowright")) x += 1;
       if (keys.has("a") || keys.has("arrowleft")) x -= 1;
-      stateRef.current.move.x = x;
-      stateRef.current.move.y = y;
-      stateRef.current.jump = keys.has(" ") || keys.has("space");
+      stateRef.current.move.x = Math.max(-1, Math.min(1, x + virtualRef.current.x));
+      stateRef.current.move.y = Math.max(-1, Math.min(1, y + virtualRef.current.y));
+      stateRef.current.jump = keys.has(" ") || keys.has("space") || virtualRef.current.jump;
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -78,8 +97,24 @@ export function useWorldInput(): WorldInput {
     // Lose focus -> drop all keys so the player doesn't keep walking.
     const onBlur = () => {
       keys.clear();
+      virtualRef.current = { x: 0, y: 0, jump: false };
       recomputeMove();
       draggingRef.current = false;
+    };
+
+    const onVirtualInput = (event: Event) => {
+      const detail = (event as CustomEvent<VirtualWorldInput>).detail ?? {};
+      if (detail.impulse) {
+        stateRef.current.impulse.x += detail.x ?? 0;
+        stateRef.current.impulse.y += detail.y ?? 0;
+        return;
+      }
+      virtualRef.current = {
+        x: detail.x ?? virtualRef.current.x,
+        y: detail.y ?? virtualRef.current.y,
+        jump: detail.jump ?? virtualRef.current.jump,
+      };
+      recomputeMove();
     };
 
     const startDrag = (clientX: number) => {
@@ -98,7 +133,14 @@ export function useWorldInput(): WorldInput {
 
     const onPointerDown = (e: PointerEvent) => startDrag(e.clientX);
     const onPointerMove = (e: PointerEvent) => moveDrag(e.clientX);
-    const onPointerUp = () => endDrag();
+    const releaseVirtualMovement = () => {
+      virtualRef.current = { x: 0, y: 0, jump: false };
+      recomputeMove();
+    };
+    const onPointerUp = () => {
+      endDrag();
+      releaseVirtualMovement();
+    };
 
     const onTouchStart = (e: TouchEvent) => {
       const t = e.touches[0];
@@ -108,7 +150,10 @@ export function useWorldInput(): WorldInput {
       const t = e.touches[0];
       if (t) moveDrag(t.clientX);
     };
-    const onTouchEnd = () => endDrag();
+    const onTouchEnd = () => {
+      endDrag();
+      releaseVirtualMovement();
+    };
 
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
@@ -120,6 +165,7 @@ export function useWorldInput(): WorldInput {
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove", onTouchMove, { passive: true });
     window.addEventListener("touchend", onTouchEnd);
+    window.addEventListener(VIRTUAL_WORLD_INPUT_EVENT, onVirtualInput);
 
     return () => {
       window.removeEventListener("keydown", onKeyDown);
@@ -132,6 +178,7 @@ export function useWorldInput(): WorldInput {
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener(VIRTUAL_WORLD_INPUT_EVENT, onVirtualInput);
     };
   }, []);
 
@@ -142,9 +189,12 @@ export function useWorldInput(): WorldInput {
         move: { x: s.move.x, y: s.move.y },
         turn: s.turn,
         jump: s.jump,
+        impulse: { x: s.impulse.x, y: s.impulse.y },
       };
       // Consume the accumulated yaw delta.
       s.turn = 0;
+      s.impulse.x = 0;
+      s.impulse.y = 0;
       return snapshot;
     },
   });

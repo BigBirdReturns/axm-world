@@ -16,6 +16,8 @@ import type { ContractRequirements, FixSuggestion, PartyReadiness, ProjectedOutc
 import { DOWNTIME_ACTIONS, downtimeActionLabel } from "../agent-management.js";
 import { attrIcon, roleIcon, itemIcon } from "../theme-icons.js";
 import { CartridgeEmblem } from "../themes/CartridgeMotif.js";
+import { resolveDollAppearance } from "../themes/appearance.js";
+import type { RodohTheme } from "../themes/rodoh.js";
 import { t } from "../i18n/index.js";
 import "../pixel-ui/pixel-ui.css";
 import {
@@ -144,6 +146,7 @@ export type RosterVariant = "list" | "strip";
 type DowntimeFix = Extract<FixSuggestion, { kind: "downtime" }>;
 
 export function RosterRegion(props: {
+  theme: RodohTheme;
   roster: RosterMember[];
   party: string[];
   selectable: boolean;
@@ -159,7 +162,7 @@ export function RosterRegion(props: {
   onToggleAgent: (id: string) => void;
   onApplyFix: (fix: FixSuggestion) => void;
 }): JSX.Element {
-  const { roster, party, selectable, selectionActive, recommendedIds, fixPlan, max, contract, variant, onToggleAgent, onApplyFix } = props;
+  const { theme, roster, party, selectable, selectionActive, recommendedIds, fixPlan, max, contract, variant, onToggleAgent, onApplyFix } = props;
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const strip = variant === "strip";
 
@@ -198,6 +201,7 @@ export function RosterRegion(props: {
     <RosterCard
       key={m.id}
       m={m}
+      theme={theme}
       inParty={party.includes(m.id)}
       selectable={selectable}
       contract={contract}
@@ -251,6 +255,7 @@ export function RosterRegion(props: {
             {expandedIds[m.id] && (
               <RosterCard
                 m={m}
+                theme={theme}
                 inParty={party.includes(m.id)}
                 selectable={selectable}
                 contract={contract}
@@ -355,6 +360,7 @@ function buildGear(m: RosterMember): RosterCardGear[] {
 
 function RosterCard(props: {
   m: RosterMember;
+  theme: RodohTheme;
   inParty: boolean;
   selectable: boolean;
   contract: ContractRequirements | null;
@@ -367,12 +373,14 @@ function RosterCard(props: {
   downtimeFixes: DowntimeFix[];
   onApplyFix: (fix: FixSuggestion) => void;
 }): JSX.Element {
-  const { m, inParty, selectable, contract, driverLead, variant, onToggleAgent, downtimeFixes, onApplyFix } = props;
+  const { m, theme, inParty, selectable, contract, driverLead, variant, onToggleAgent, downtimeFixes, onApplyFix } = props;
   const strip = variant === "strip";
   return (
     <PixelRosterCard
       name={m.name}
       role={m.role}
+      identity={m.id}
+      appearance={resolveDollAppearance(theme, m.role)}
       inParty={inParty}
       downed={m.downed}
       affliction={m.affliction}
@@ -827,18 +835,20 @@ export function LootRegion(props: { loot: PendingLootChoice[]; onClaimLoot: (cho
       {props.loot.map((choice) => {
         const bonus = Object.entries(choice.bonuses).map(([attr, value]) => `${attrNameLabel(attr)} +${value}`).join(" · ");
         const preferred = choice.eligibleAgents[0];
+        const itemGlyph = itemIcon(choice.itemName);
         return (
           <PixelLootCard
             key={choice.id}
             itemName={choice.itemName}
-            icon={itemIcon(choice.itemName)}
+            icon={itemGlyph}
             slot={choice.slot}
             bonusText={bonus}
             flavorText={choice.flavorText}
           >
             {choice.eligibleAgents.slice(0, 3).map((agent) => (
-              <PixelButton key={agent.id} variant={agent.id === preferred?.id ? "confirm" : "secondary"} onClick={() => props.onClaimLoot(choice.id, agent.id)} style={{ minHeight: 36, fontSize: 10, padding: "5px 10px", display: "flex", alignItems: "center", gap: 4 }}>
-                <PixelIcon name="lootAvailable" /> {t("shell.equipArrow", { name: agent.name })}
+              <PixelButton key={agent.id} variant={agent.id === preferred?.id ? "confirm" : "secondary"} className="pixel-loot-card__equip-button" onClick={() => props.onClaimLoot(choice.id, agent.id)}>
+                <PixelIcon name={itemGlyph} size={18} className="pixel-loot-card__equip-icon" />
+                <span>{t("shell.equipArrow", { name: agent.name })}</span>
               </PixelButton>
             ))}
           </PixelLootCard>

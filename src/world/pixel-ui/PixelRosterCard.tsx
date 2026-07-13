@@ -1,6 +1,8 @@
 import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 import { PixelIcon, type PixelIconName } from "./PixelIcon.js";
-import { PixelPortrait, portraitForRole } from "./PixelPortrait.js";
+import { PixelDoll, type DollState } from "./PixelDoll.js";
+import type { DollAppearance } from "../themes/appearance.js";
+import { RODOH_DOLL_APPEARANCES } from "../themes/appearance.js";
 import { PixelMeter } from "./PixelMeter.js";
 import { PixelPanel } from "./PixelPanel.js";
 import { PixelRoleBadge } from "./PixelRoleBadge.js";
@@ -31,6 +33,8 @@ export interface RosterCardGear {
 type PixelRosterCardProps = Omit<HTMLAttributes<HTMLDivElement>, "style"> & {
   name: string;
   role: string;
+  identity?: string;
+  appearance?: DollAppearance;
   inParty?: boolean;
   downed?: boolean;
   affliction?: string | null;
@@ -52,10 +56,12 @@ function meterColor(value: number, goodWhen: "high" | "low"): string {
 
 export function PixelRosterCard(props: PixelRosterCardProps): JSX.Element {
   const {
-    name, role, inParty = false, downed = false, affliction = null,
+    name, role, identity, appearance, inParty = false, downed = false, affliction = null,
     attributes, gear, stress, morale, selectable = false, onToggle,
     children, style, className = "", ...rest
   } = props;
+  const dollState: DollState = downed ? "downed" : stress >= 70 ? "strain" : "idle";
+  const resolvedAppearance = appearance ?? RODOH_DOLL_APPEARANCES["rodoh:bare-doll"]!;
 
   return (
     <PixelPanel
@@ -80,7 +86,7 @@ export function PixelRosterCard(props: PixelRosterCardProps): JSX.Element {
         <div className="pixel-roster-card__header">
           {/* A face for the body: the member's ROLE (real run data) keyed to its
               pixel portrait — presence, not a new identity claim. */}
-          <PixelPortrait name={portraitForRole(role)} size={30} data-testid="roster-card-face" style={{ marginRight: 8 }} />
+          <PixelDoll appearance={resolvedAppearance} identity={identity ?? name} state={dollState} label={`${name}, ${role}`} size={32} data-testid="roster-card-doll" style={{ marginRight: 8 }} />
           <div className="pixel-roster-card__identity">
             <strong className="pixel-roster-card__name">{name}</strong>
             <div className="pixel-roster-card__badges">

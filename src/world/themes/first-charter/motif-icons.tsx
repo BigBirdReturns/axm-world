@@ -14,6 +14,7 @@
 //           controls the rendered color.
 
 import type { HTMLAttributes } from "react";
+import { RodohDandelionGlyph } from "../../brand/RodohRuntimeMark.js";
 import "./first-charter.css";
 
 export type FirstCharterMotifName =
@@ -45,17 +46,6 @@ export function locationMotif(id: string): FirstCharterMotifName {
 
 function MotifPath({ name }: { name: FirstCharterMotifName }): JSX.Element {
   switch (name) {
-    case "dandelion":
-      return (
-        <>
-          <circle cx="8" cy="4" r="1.4" fill="currentColor" />
-          <circle cx="5" cy="3" r="1" fill="currentColor" />
-          <circle cx="11" cy="3" r="1" fill="currentColor" />
-          <circle cx="4" cy="6" r="0.8" fill="currentColor" />
-          <circle cx="12" cy="6" r="0.8" fill="currentColor" />
-          <path d="M8 5.5 L8 14" strokeWidth="1" stroke="currentColor" fill="none" />
-        </>
-      );
     case "archiveBox":
       return (
         <>
@@ -112,6 +102,13 @@ type MotifIconProps = HTMLAttributes<HTMLSpanElement> & {
 };
 
 export function MotifIcon({ name, size = 20, className = "", ...props }: MotifIconProps): JSX.Element {
+  if (name === "dandelion") {
+    return (
+      <span className={`fc-motif-icon fc-motif-icon--dandelion ${className}`} aria-hidden="true" {...props}>
+        <RodohDandelionGlyph size={size} />
+      </span>
+    );
+  }
   return (
     <span className={`fc-motif-icon fc-motif-icon--${name} ${className}`} aria-hidden="true" {...props}>
       <svg width={size} height={size} viewBox="0 0 16 16" fill="none">

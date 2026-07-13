@@ -84,25 +84,53 @@ describe("applianceBootOptions — the runtime's fresh-boot sizing decision", ()
     expect(Object.keys(org.agents).length).toBeGreaterThanOrEqual(10);
   });
 
-  it("seats a role composition round-robin alone cannot produce (issue #93)", () => {
-    // A challenge that demands 5 agents of one role at a party cap of 6. Naive
-    // round-robin over MINI_ARC's two roles yields only 3 strikers — a roster
-    // that structurally cannot field this composition. applianceBootOptions
-    // must size AND compose the boot so the roster can actually field it.
-    const compArc: Arc = JSON.parse(JSON.stringify(MINI_ARC));
-    compArc.challenges[0]!.rosterRequirements = {
-      minAgents: 5,
-      maxAgents: 6,
-      roleRequirements: [{ roleId: "striker", count: 5 }],
+  it("reconciles simultaneous role floors, not only total party headcount", () => {
+    const guardian = MINI_ARC.roles.find((role) => role.id === "guardian")!;
+    const striker = MINI_ARC.roles.find((role) => role.id === "striker")!;
+    const roleHeavyArc: Arc = {
+      ...MINI_ARC,
+      roles: [
+        striker,
+        guardian,
+        { ...guardian, id: "healer", name: "Healer" },
+        { ...striker, id: "support", name: "Support" },
+      ],
+      challenges: [
+        {
+          ...MINI_ARC.challenges[0]!,
+          rosterRequirements: {
+            minAgents: 5,
+            maxAgents: 6,
+            roleRequirements: [
+              { roleId: "guardian", count: 2 },
+              { roleId: "healer", count: 2 },
+              { roleId: "striker", count: 1 },
+            ],
+          },
+        },
+      ],
     };
 
-    const opts = applianceBootOptions(compArc);
+    // Six total bodies satisfy maxAgents, but a naive round-robin roster would
+    // yield striker 2 / guardian 2 / healer 1 / support 1. The boot contract
+    // must compose the roster from authored floors so every floor holds at once.
+    const opts = applianceBootOptions(roleHeavyArc);
     expect(opts.rosterSize).toBe(6);
-    expect(opts.roleFloor).toEqual({ striker: 5 });
-
-    const org = bootstrapOrg(compArc, opts);
-    const strikers = Object.values(org.agents).filter((a) => a.role === "striker").length;
-    expect(strikers).toBeGreaterThanOrEqual(5);
+    expect(opts.roleFloor).toEqual({ guardian: 2, healer: 2, striker: 1 });
+    const roster = Object.values(bootstrapOrg(roleHeavyArc, opts).agents);
+    expect(roster).toHaveLength(6);
+    const counts = new Map<string, number>();
+    for (const agent of roster) {
+      if (agent.role) counts.set(agent.role, (counts.get(agent.role) ?? 0) + 1);
+    }
+    for (const floor of roleHeavyArc.challenges[0]!.rosterRequirements.roleRequirements) {
+      expect(counts.get(floor.roleId) ?? 0, floor.roleId).toBeGreaterThanOrEqual(floor.count);
+    }
+    const requiredParty = roleHeavyArc.challenges[0]!.rosterRequirements.roleRequirements
+      .flatMap((floor) => roster.filter((agent) => agent.role === floor.roleId).slice(0, floor.count));
+    expect(requiredParty).toHaveLength(5);
+    expect(new Set(requiredParty.map((agent) => agent.id)).size).toBe(5);
+    expect(requiredParty.length).toBeLessThanOrEqual(roleHeavyArc.challenges[0]!.rosterRequirements.maxAgents);
   });
 
   it("falls back to bootstrapOrg's own default for a cartridge that declares no roster requirements", () => {

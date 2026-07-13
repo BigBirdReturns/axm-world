@@ -49,6 +49,9 @@ describe("Rodoh pixel-ui integration", () => {
     expect(regions).toContain("PixelReadinessRow");
     expect(regions).toContain("PixelLootCard");
     expect(regions).not.toContain("check-row check-row--${c.status}");
+    expect(regions).toContain("const itemGlyph = itemIcon(choice.itemName)");
+    expect(regions).toContain('name={itemGlyph} size={18}');
+    expect(regions).not.toContain('<PixelIcon name="lootAvailable" /> {t("shell.equipArrow"');
   });
 
   it("locked contracts show unlock requirements in both ContractBoard and Contract region", () => {

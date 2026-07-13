@@ -2,45 +2,19 @@
 // card the engine generated). This is a true modal: rendered through a document-level
 // portal so representation labels/canvas Html can never render above the decision.
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { DramaCard, DramaCardEffect } from "../../engine/types.js";
 import { RodohRuntimeMark } from "../brand/RodohRuntimeMark.js";
+import { PixelButton, PixelPanel } from "../pixel-ui/index.js";
 import { t } from "../i18n/index.js";
+import "./decision-panel.css";
 
 interface Props {
   card: DramaCard;
   onResolve: (optionId: string) => void;
   targetName?: (targetId: string) => string;
 }
-
-const backdropStyle: CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(11,10,8,0.78)",
-  backdropFilter: "blur(2px)",
-  pointerEvents: "auto",
-  zIndex: 9000,
-};
-
-const panelStyle: CSSProperties = {
-  position: "fixed",
-  zIndex: 9001,
-  top: "max(18px, env(safe-area-inset-top))",
-  left: "max(14px, env(safe-area-inset-left))",
-  right: "max(14px, env(safe-area-inset-right))",
-  maxWidth: 760,
-  margin: "0 auto",
-  maxHeight: "calc(100dvh - 36px - env(safe-area-inset-top) - env(safe-area-inset-bottom))",
-  overflow: "auto",
-  background: "rgba(23,21,15,0.98)",
-  color: "#ece4d4",
-  border: "1px solid #5e5850",
-  borderRadius: 12,
-  padding: "22px 24px",
-  boxShadow: "0 28px 90px rgba(0,0,0,0.7)",
-  pointerEvents: "auto",
-};
 
 function effectLabel(effect: DramaCardEffect, targetName: (targetId: string) => string): string {
   const sign = effect.value > 0 ? "+" : "";
@@ -64,17 +38,18 @@ export function DecisionPanel({ card: drama, onResolve, targetName = (id) => id 
 
   return createPortal(
     <>
-      <div style={backdropStyle} data-testid="decision-backdrop" />
-      <section
+      <div className="decision-backdrop" data-testid="decision-backdrop" />
+      <PixelPanel
+        tone="light"
+        className="decision-panel"
         role="dialog"
         aria-modal="true"
         aria-labelledby="decision-title"
         data-testid="pending-decision-card"
-        style={panelStyle}
         onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "#c9a14a" }}>
+        <div className="decision-panel__eyebrow">
           <RodohRuntimeMark variant="micro" showText={false} />
           {chosen ? t("decision.worldResponds") : isOpening ? t("decision.foundingHall") : t("decision.aDecision")}
         </div>
@@ -82,7 +57,7 @@ export function DecisionPanel({ card: drama, onResolve, targetName = (id) => id 
         {!chosen ? (
           <>
             {isOpening && (
-              <div style={{ margin: "10px 0 12px", padding: "10px 12px", border: "1px solid #4a4238", borderRadius: 8, background: "rgba(201,161,74,0.07)", color: "#d8cfbd", font: "12px/1.45 'IBM Plex Mono', monospace" }}>
+              <div className="decision-panel__opening-blurb">
                 {t("decision.openingBlurb")}
               </div>
             )}
@@ -90,65 +65,47 @@ export function DecisionPanel({ card: drama, onResolve, targetName = (id) => id 
               id="decision-title"
               ref={titleRef}
               tabIndex={-1}
-              style={{ fontFamily: "'Lora', Georgia, serif", fontSize: 18, lineHeight: 1.45, margin: "10px 0 18px", outline: "none" }}
+              className="decision-panel__narrative"
             >
               {drama.narrativeText}
             </p>
-            <div style={{ display: "grid", gap: 10 }}>
+            <div className="decision-panel__options">
               {drama.options.map((o) => (
-                <button
+                <PixelButton
                   key={o.id}
                   type="button"
                   onClick={() => setChosen({ id: o.id, label: o.label, description: o.description })}
-                  style={{
-                    textAlign: "left",
-                    padding: "12px 14px",
-                    minHeight: 56,
-                    borderRadius: 7,
-                    border: "1px solid #5e5850",
-                    background: "rgba(201,161,74,0.07)",
-                    color: "#ece4d4",
-                    cursor: "pointer",
-                    font: "700 15px 'Barlow Condensed', sans-serif",
-                    letterSpacing: "0.01em",
-                  }}
+                  variant="action"
+                  className="decision-panel__option"
                 >
                   <div>{o.label}</div>
-                  <div style={{ marginTop: 4, font: "11px/1.35 'IBM Plex Mono', monospace", color: "#a59c8b" }}>{o.description}</div>
-                  <div style={{ marginTop: 4, font: "10px/1.35 'IBM Plex Mono', monospace", color: "#c9a14a" }}><strong style={{ color: "#d8cfbd" }}>{t("decision.effect")}</strong> {optionPreview(o, targetName)}{isOpening ? t("decision.markDoctrine") : ""}</div>
-                </button>
+                  <div className="decision-panel__option-description">{o.description}</div>
+                  <div className="decision-panel__option-effect"><strong>{t("decision.effect")}</strong> {optionPreview(o, targetName)}{isOpening ? t("decision.markDoctrine") : ""}</div>
+                </PixelButton>
               ))}
             </div>
           </>
         ) : (
           <>
-            <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 24, fontWeight: 700, margin: "8px 0 6px" }}>
+            <h2 className="decision-panel__result-title">
               {chosen.label}
             </h2>
-            <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: 16, lineHeight: 1.5, color: "#d8cfbd", margin: "0 0 18px" }}>
+            <p className="decision-panel__result-description">
               {chosen.description}
             </p>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button
+            <div className="decision-panel__continue-row">
+              <PixelButton
                 type="button"
                 onClick={() => onResolve(chosen.id)}
-                style={{
-                  font: "700 15px 'Barlow Condensed', sans-serif",
-                  letterSpacing: "0.02em",
-                  padding: "9px 22px",
-                  borderRadius: 5,
-                  border: "none",
-                  background: "#b01c18",
-                  color: "#fff",
-                  cursor: "pointer",
-                }}
+                variant="danger"
+                className="decision-panel__continue"
               >
                 {t("decision.continue")}
-              </button>
+              </PixelButton>
             </div>
           </>
         )}
-      </section>
+      </PixelPanel>
     </>,
     document.body,
   );

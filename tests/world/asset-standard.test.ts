@@ -79,10 +79,24 @@ describe("asset standard: grid integrity", () => {
   it("RodohRuntimeMark PIXELS: every row matches row 0's length", () => {
     const rows = extractRows(markSource, "const PIXELS = [", "function colorFor");
     expect(rows.length).toBeGreaterThan(0);
+    expect(rows).toHaveLength(18);
     const expectedLength = (rows[0] ?? "").length;
+    expect(expectedLength).toBe(16);
     rows.forEach((row, i) => {
       expect(row.length, `PIXELS row ${i} ("${row}") should be ${expectedLength} chars like row 0`).toBe(expectedLength);
     });
+  });
+
+  it("RodohRuntimeMark uses the byte-exact governed AXM Tools map", () => {
+    const rows = extractRows(markSource, "const PIXELS = [", "function colorFor");
+    expect(rows).toEqual([
+      "0000W00000W00000", "0000000000000000", "00W0000W00000WW0", "0W00WW0WW00W00W0",
+      "00WWWWWWWW00W000", "0WWWWWWWWWW00000", "00WWWWWWWWW00000", "00WWWWWWWW000000",
+      "000WWWWWW0o00000", "00000WWW00000000", "000000o0000000W0", "000000o000000000",
+      "000o00o00o000000", "00o000o00o000000", "000000o000000000", "00000oo000000000",
+      "00000oo000000000", "000oooooo0000000",
+    ]);
+    expect(markSource).toContain("https://bigbirdreturns.github.io/axm-tools/identity/");
   });
 
   it("RodohRuntimeMark: every grid char is handled by colorFor and vice versa (no dead tokens)", () => {

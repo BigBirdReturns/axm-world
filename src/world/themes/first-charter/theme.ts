@@ -5,6 +5,14 @@ export const FIRST_CHARTER_THEME: RodohTheme = {
   id: "first-charter",
   name: "The First Charter",
   motto: "Existence is my counterattack.",
+  appearancePack: {
+    ...RODOH_BASE_THEME.appearancePack,
+    roleBindings: {
+      Vanguard: "rodoh:plated",
+      Skirmisher: "rodoh:hooded",
+      Mender: "rodoh:robed",
+    },
+  },
 };
 
 export const FIRST_CHARTER_MOTIFS = {
