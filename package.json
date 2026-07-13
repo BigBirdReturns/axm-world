@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "engine:sync": "bash scripts/sync-engine.sh",
     "engine:check": "bash scripts/check-engine-drift.sh",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run engine:check && npm run typecheck && npm test"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",
