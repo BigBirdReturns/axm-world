@@ -21,7 +21,6 @@ import {
 } from "../../src/world/ledger.js";
 import { bootstrapOrg } from "../../src/spoke/bootstrap.js";
 import { resolveChallenge } from "../../src/engine/resolver.js";
-import { Rng } from "../../src/engine/prng.js";
 import type { Agent, Arc, Challenge } from "../../src/engine/types.js";
 
 class MemoryStorage implements Storage {
@@ -81,7 +80,7 @@ function resolveGateWarden(arc: Arc) {
   const org = bootstrapOrg(arc, { rosterSize: applianceRosterSize(arc) });
   const challenge = arc.challenges.find((c) => c.id === "the-gate-warden")!;
   const party = legalParty(Object.values(org.agents), challenge);
-  const report = resolveChallenge({ challenge, assignedAgents: party, org, arc, rng: new Rng(7), cycle: 1 });
+  const report = resolveChallenge({ challenge, assignedAgents: party, org, arc, cycle: 1 });
   return { challenge, report };
 }
 

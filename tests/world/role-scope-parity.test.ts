@@ -7,7 +7,6 @@ import { describe, it, expect } from "vitest";
 import type { Agent, Challenge } from "../../src/engine/types.js";
 import { FIRST_CHARTER, FIRST_CHARTER_STARTING_ROSTER } from "../../src/arcs/index.js";
 import { resolveChallenge } from "../../src/engine/resolver.js";
-import { Rng } from "../../src/engine/prng.js";
 import { bootstrapOrg } from "../../src/spoke/bootstrap.js";
 import { describeContract } from "../../src/world/readiness.js";
 
@@ -30,7 +29,7 @@ function escortParty(): Agent[] {
 /** Roles the RESOLVER actually evaluated for a check = roles of agents that did NOT get
  *  the out-of-scope neutral pass (score exactly equal to the threshold, passed). */
 function rolesScoredByResolver(challenge: Challenge, party: Agent[], checkId: string): Set<string> {
-  const report = resolveChallenge({ challenge, assignedAgents: party, org: bootstrapOrg(ARC), arc: ARC, rng: new Rng(1), cycle: 1 });
+  const report = resolveChallenge({ challenge, assignedAgents: party, org: bootstrapOrg(ARC), arc: ARC, cycle: 1 });
   const check = challenge.mechanicChecks.find((c) => c.id === checkId)!;
   const inScope = new Set<string>();
   for (const ar of report.assignedAgents) {

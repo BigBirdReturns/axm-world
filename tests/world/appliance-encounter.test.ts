@@ -12,7 +12,6 @@ import { applianceRosterSize, firstLockoutCartridgeJson } from "../../src/world/
 import { bootstrapOrg } from "../../src/spoke/bootstrap.js";
 import { compileArcToPlayScene } from "../../src/play-pipeline/compile.js";
 import { resolveChallenge } from "../../src/engine/resolver.js";
-import { Rng } from "../../src/engine/prng.js";
 import type { Agent, Arc, Challenge } from "../../src/engine/types.js";
 
 class MemoryStorage implements Storage {
@@ -103,7 +102,6 @@ describe("appliance encounter: first-lockout plays through world's runtime", () 
       assignedAgents: party,
       org,
       arc,
-      rng: new Rng(7),
       cycle: 1,
     });
     // The encounter resolved to one of the engine's honest outcomes.
@@ -117,7 +115,7 @@ describe("appliance encounter: first-lockout plays through world's runtime", () 
     const party = legalParty(Object.values(org.agents), ch);
 
     const run = () =>
-      resolveChallenge({ challenge: ch, assignedAgents: party, org, arc, rng: new Rng(42), cycle: 1 });
+      resolveChallenge({ challenge: ch, assignedAgents: party, org, arc, cycle: 1 });
     expect(run().outcome).toBe(run().outcome);
   });
 });
