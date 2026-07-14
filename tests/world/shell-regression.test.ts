@@ -19,6 +19,18 @@ describe("shell regressions", () => {
     expect(decisionCss).toContain("var(--cream)");
   });
 
+  it("commits a decision before presenting the Shell-owned world response", () => {
+    const decision = read("src/world/components/DecisionPanel.tsx");
+    const shell = read("src/world/shell/Shell.tsx");
+    expect(decision).toContain("onClick={() => onResolve?.(o.id)}");
+    expect(decision).not.toContain("setChosen");
+    expect(shell).toContain("const [decisionResponse, setDecisionResponse]");
+    expect(shell).toContain("const response = world.resolveDecision(optionId)");
+    expect(shell).toContain("response={decisionResponse}");
+    expect(shell).toContain("onContinue={() => setDecisionResponse(null)}");
+    expect(shell).toContain("decisionResponse !== null");
+  });
+
   it("uses one governed dandelion map across decisions and cartridge motifs", () => {
     const mark = read("src/world/brand/RodohRuntimeMark.tsx");
     const motifs = read("src/world/themes/first-charter/motif-icons.tsx");

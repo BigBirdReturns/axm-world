@@ -44,6 +44,7 @@ import { t, useLocale } from "../i18n/index.js";
 import { isWorldInteractionUnlocked } from "../proximity.js";
 import type { ArcInteraction } from "../useArcInteraction.js";
 import type { ArcWorld } from "../useArcWorld.js";
+import type { DecisionResponse } from "../decision.js";
 
 export interface ShellProps {
   world: ArcWorld;
@@ -144,6 +145,10 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   // for an encounter entered via onEnterEncounter (hall/map), where ix.party would
   // otherwise be one render stale for a just-changed selection.
   const [encounterParty, setEncounterParty] = useState<string[] | null>(null);
+  // Session-only authoritative readback. The engine removes the resolved card
+  // immediately; Shell retains this receipt until the player acknowledges it.
+  // It is deliberately not restored, so resuming a saved run never replays it.
+  const [decisionResponse, setDecisionResponse] = useState<DecisionResponse | null>(null);
   const activeTheme = useMemo(() => themeForArc(world.cartridge.arc), [world.cartridge.arc]);
   const mayOpenMobileSelection = costumeId !== "globe" || isWorldInteractionUnlocked(ix.selectedId, ix.nearbyId);
 
@@ -179,7 +184,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     [presentations],
   );
   const active = useMemo(() => presentations.find((p) => p.id === costumeId) ?? presentations[0]!, [presentations, costumeId]);
-  const modalOpen = world.pendingDecision !== null || encounterOpen;
+  const modalOpen = world.pendingDecision !== null || decisionResponse !== null || encounterOpen;
   const selectionVisible = active.id !== "globe" || isWorldInteractionUnlocked(ix.selectedId, ix.nearbyId);
   const showPurpose = !dismissedPurpose[active.id] && !modalOpen;
   const dismissPurpose = () => setDismissedPurpose((p) => ({ ...p, [active.id]: true }));
@@ -550,9 +555,24 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
         </div>
       )}
 
-      {world.pendingDecision && (
-        <DecisionPanel key={world.pendingDecision.id} card={world.pendingDecision} onResolve={world.resolveDecision} targetName={world.effectTargetName} />
-      )}
+      {decisionResponse ? (
+        <DecisionPanel
+          key={`${decisionResponse.cardId}:${decisionResponse.optionId}`}
+          response={decisionResponse}
+          onContinue={() => setDecisionResponse(null)}
+          targetName={world.effectTargetName}
+        />
+      ) : world.pendingDecision ? (
+        <DecisionPanel
+          key={world.pendingDecision.id}
+          card={world.pendingDecision}
+          onResolve={(optionId) => {
+            const response = world.resolveDecision(optionId);
+            if (response) setDecisionResponse(response);
+          }}
+          targetName={world.effectTargetName}
+        />
+      ) : null}
       {showCartridge && (
         <CartridgeObjectPanel
           manifest={world.cartridge.manifest}
