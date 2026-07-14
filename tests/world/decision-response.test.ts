@@ -3,7 +3,8 @@ import type { DramaCard, Organization } from "../../src/engine/types.js";
 import { bootstrapOrg } from "../../src/spoke/bootstrap.js";
 import { FIRST_CHARTER_CARTRIDGE } from "../../src/world/cartridge.js";
 import { buildCustodyObject } from "../../src/world/custody.js";
-import { resolveWorldDecision } from "../../src/world/decision.js";
+import { groupDecisionEffects, resolveWorldDecision } from "../../src/world/decision.js";
+import { openingReactionTone } from "../../src/world/components/OpeningDecisionStage.js";
 import { emptyLedger } from "../../src/world/ledger.js";
 import { loadRun, saveRun, type KVStorage } from "../../src/world/save.js";
 
@@ -110,5 +111,29 @@ describe("decision commit and authoritative readback", () => {
     const org = openingOrg();
     expect(resolveWorldDecision(org, "not-an-option")).toBeNull();
     expect(org.dramaQueue).toHaveLength(1);
+  });
+
+  it("groups actual deltas for direction while retaining the exact receipt", () => {
+    const response = resolveWorldDecision(openingOrg(), "open-charter")!.response;
+    const groups = groupDecisionEffects(response.effects);
+    const agentCount = Object.keys(openingOrg().agents).length;
+    expect(groups).toEqual([
+      { type: "morale", count: agentCount, minDelta: 8, maxDelta: 8 },
+      // One agent is capped, so the summary must preserve the actual 2–3 range
+      // instead of repeating the authored +3 claim.
+      { type: "loyalty", count: agentCount, minDelta: 2, maxDelta: 3 },
+    ]);
+    expect(response.effects).toHaveLength(agentCount * 2);
+    expect(openingReactionTone(response)).toBe("lifted");
+  });
+
+  it("derives strained and steady stage direction only from proven effects", () => {
+    const base = resolveWorldDecision(openingOrg(), "open-charter")!.response;
+    expect(openingReactionTone()).toBe("waiting");
+    expect(openingReactionTone({
+      ...base,
+      effects: [{ target: "agent-1", type: "stress", before: 2, after: 7, delta: 5 }],
+    })).toBe("strained");
+    expect(openingReactionTone({ ...base, effects: [] })).toBe("steady");
   });
 });

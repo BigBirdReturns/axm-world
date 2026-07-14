@@ -89,9 +89,14 @@ test("resolving a contract in the hall writes one digest-stamped ledger entry, c
   await enterCartridge(page);
   await showHall(page, { switchCostume: true });
 
-  // Accept & resolve in person — the same engine resolution the board triggers.
-  await page.getByTestId("hall-talk").click();
-  await page.getByTestId("hall-accept").click();
+  // Enter the contract in person — the briefing hands off to the SAME playable
+  // EncounterShell the board opens (no quick resolve). Play it through to a result.
+  if (!(await page.getByTestId("hall-dialogue").count())) await page.getByTestId("hall-talk").click();
+  await page.getByTestId("hall-enter-contract").click();
+  await expect(page.getByTestId("encounter-shell")).toBeVisible();
+  await page.getByTestId("encs-resolve").click();
+  await expect(page.getByTestId("encs-receipt")).toBeVisible();
+  await page.getByTestId("encs-leave").click();
   await resolvePendingDecisions(page);
 
   // The world visibly changed, and exactly one entry was written under the same digest.
@@ -131,6 +136,9 @@ test("walk into the encounter from the hall: the same EncounterShell the board u
   await enterCartridge(page);
   await showHall(page, { switchCostume: true });
 
+  // The briefing auto-opens after the oath and suppresses the floor actions;
+  // dismiss it (Not yet) to explore the walk-to-threshold path.
+  if (await page.getByTestId("hall-dialogue").count()) await page.getByTestId("hall-not-yet").click();
   // Navigate to the in-world encounter threshold, then walk in.
   await page.getByTestId("hall-approach").click();
   await page.getByTestId("hall-enter-encounter").click();

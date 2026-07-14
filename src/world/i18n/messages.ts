@@ -259,6 +259,9 @@ export type MessageId =
   | "hall.threshold"
   | "hall.approach"
   | "hall.enterEncounter"
+  | "hall.enterNamed"
+  | "hall.notYet"
+  | "hall.squadDetails"
   | "worldMap.difficulty"
   | "worldMap.enterEncounter"
   | "worldMap.talkToSteward"
@@ -316,6 +319,8 @@ export type MessageId =
   | "decision.markDoctrine"
   | "decision.hiddenConsequence"
   | "decision.noVisibleEffect"
+  | "decision.groupChange"
+  | "decision.exactChanges"
   | "decision.continue"
   // ── cartridge object panel ──────────────────────────────────────────────
   | "cartridgePanel.eyebrow"
@@ -361,6 +366,7 @@ export type MessageId =
   | "boot.footerNote"
   | "boot.holdTheLoop"
   | "boot.loadingNamed"
+  | "boot.skipEntry"
   | "boot.cartridgeMeta"
   // ── boot screen: classic-row save state (PR 057) ──────────────────────────
   // "boot.freshProgram" says "program" — honest on the program-of-record
@@ -680,6 +686,9 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "hall.threshold": "Encounter threshold",
     "hall.approach": "Approach",
     "hall.enterEncounter": "Enter encounter",
+    "hall.enterNamed": (params) => `Enter ${str(params, "name")}`,
+    "hall.notYet": "Not yet",
+    "hall.squadDetails": "Squad details",
     "worldMap.difficulty": "Difficulty",
     "worldMap.enterEncounter": "Enter Encounter",
     "worldMap.talkToSteward": "Talk to the steward",
@@ -739,6 +748,8 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "decision.markDoctrine": " · Mark: cartridge doctrine",
     "decision.hiddenConsequence": "Hidden consequence",
     "decision.noVisibleEffect": "No immediate visible effect",
+    "decision.groupChange": (params) => `${str(params, "type")}: ${num(params, "count")} people · ${str(params, "delta")}`,
+    "decision.exactChanges": (params) => `Exact changes (${num(params, "count")})`,
     "decision.continue": "Continue",
 
     "cartridgePanel.eyebrow": "Cartridge",
@@ -785,6 +796,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "boot.footerNote": "Rodoh records the run. AXM-WORLD renders the shell. The cartridge stays yours.",
     "boot.holdTheLoop": "Hold the loop.",
     "boot.loadingNamed": (params) => `Loading ${str(params, "name")}`,
+    "boot.skipEntry": "Skip entry",
     "boot.freshEntry": "Fresh — no runs recorded yet",
     // domain / engine version / count flow verbatim as content params; only the
     // "engine" and "contracts" words are chrome.
@@ -1056,6 +1068,9 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "hall.threshold": "遭遇入口",
     "hall.approach": "靠近",
     "hall.enterEncounter": "進入遭遇",
+    "hall.enterNamed": (params) => `進入 ${str(params, "name")}`,
+    "hall.notYet": "尚未",
+    "hall.squadDetails": "隊伍細節",
     "worldMap.difficulty": "難度",
     "worldMap.enterEncounter": "進入遭遇",
     "worldMap.talkToSteward": "與管事對話",
@@ -1112,6 +1127,8 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "decision.markDoctrine": " · 標記：卡匣方針",
     "decision.hiddenConsequence": "隱藏後果",
     "decision.noVisibleEffect": "暫無明顯效果",
+    "decision.groupChange": (params) => `${str(params, "type")}：${num(params, "count")} 人 · ${str(params, "delta")}`,
+    "decision.exactChanges": (params) => `精確變化（${num(params, "count")}）`,
     "decision.continue": "繼續",
 
     "cartridgePanel.eyebrow": "卡匣",
@@ -1152,6 +1169,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "boot.footerNote": "Rodoh 記錄執行。AXM-WORLD 呈現外殼。卡匣仍歸你所有。",
     "boot.holdTheLoop": "維持循環。",
     "boot.loadingNamed": (params) => `載入 ${str(params, "name")} 中`,
+    "boot.skipEntry": "略過進場",
     "boot.freshEntry": "全新 — 尚無執行記錄",
     "boot.cartridgeMeta": (params) => `${str(params, "domain")} · 引擎 ${str(params, "engine")} · ${num(params, "count")} 份契約`,
   },

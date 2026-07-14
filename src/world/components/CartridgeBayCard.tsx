@@ -258,6 +258,7 @@ function ClassicRow({ entry, cartridge, digest, save, onEnter, onRemove }: Omit<
       data-testid={`cartridge-entry-${entry.arc.meta.id}`}
       style={{
         display: "flex",
+        flexWrap: "wrap",
         alignItems: "center",
         justifyContent: "space-between",
         gap: 16,
@@ -270,7 +271,7 @@ function ClassicRow({ entry, cartridge, digest, save, onEnter, onRemove }: Omit<
         color: "#ece4d4",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: "1 1 190px" }}>
         <CartridgeEmblem arcId={entry.arc.meta.id} size={30} />
         <div>
           <div style={{ fontFamily: condensed, fontWeight: 700, fontSize: 22 }}>{c.manifest.name}</div>
@@ -282,7 +283,7 @@ function ClassicRow({ entry, cartridge, digest, save, onEnter, onRemove }: Omit<
           <MemoryLine save={save} />
         </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ display: "flex", flex: "1 1 auto", flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center", gap: 10, marginLeft: "auto" }}>
         <RodohRuntimeMark variant="micro" showText={false} />
         <TrustChip entry={entry} />
         {entry.source === "file" && <RemoveButton entry={entry} onRemove={onRemove} />}

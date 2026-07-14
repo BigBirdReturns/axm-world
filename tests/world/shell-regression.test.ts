@@ -27,8 +27,26 @@ describe("shell regressions", () => {
     expect(shell).toContain("const [decisionResponse, setDecisionResponse]");
     expect(shell).toContain("const response = world.resolveDecision(optionId)");
     expect(shell).toContain("response={decisionResponse}");
-    expect(shell).toContain("onContinue={() => setDecisionResponse(null)}");
+    expect(shell).toContain("const closesOpening = decisionResponse.cardId.startsWith");
+    expect(shell).toContain("setDecisionResponse(null)");
     expect(shell).toContain("decisionResponse !== null");
+  });
+
+  it("directs the authored opening through Hall without persisting or replaying it", () => {
+    const player = read("src/world/Player.tsx");
+    const shell = read("src/world/shell/Shell.tsx");
+    const hall = read("src/world/inhabited/HallScene.tsx");
+    const spec = read("docs/design/TITMOUSE_PRODUCTION_SLICES.md");
+
+    expect(player).toContain("CartridgeEnterTransition");
+    expect(shell).toContain('world.pendingDecision?.id.startsWith("opening:")');
+    expect(shell).toContain('setCostumeId("hall")');
+    expect(shell).toContain('if (isMobile)');
+    expect(shell).toContain('setMobileStep("contract")');
+    expect(shell).toContain("const [openingHandoff, setOpeningHandoff]");
+    expect(hall).toContain("if (view.challengeId) setOpen(true)");
+    expect(spec).toContain("zero-explanation blind run");
+    expect(shell).not.toContain('saveCostume(world.cartridge.arc, "hall")');
   });
 
   it("uses one governed dandelion map across decisions and cartridge motifs", () => {

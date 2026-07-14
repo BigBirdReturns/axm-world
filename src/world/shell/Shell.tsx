@@ -40,6 +40,7 @@ import { DecisionPanel } from "../components/DecisionPanel.js";
 import { CartridgeObjectPanel } from "../components/CartridgeObjectPanel.js";
 import { ProgramIdentityStrip } from "./ProgramIdentityStrip.js";
 import { MobileMissionStage } from "../components/MobileMissionStage.js";
+import { OpeningDecisionStage } from "../components/OpeningDecisionStage.js";
 import { t, useLocale } from "../i18n/index.js";
 import { isWorldInteractionUnlocked } from "../proximity.js";
 import type { ArcInteraction } from "../useArcInteraction.js";
@@ -128,7 +129,11 @@ function RecordModal(props: { record: NonNullable<ArcWorld["lastRecord"]>; onClo
 export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Element {
   const isMobile = useIsMobile();
   const [locale] = useLocale();
-  const [costumeId, setCostumeId] = useState<string>(() => loadCostume(world.cartridge.arc));
+  const [costumeId, setCostumeId] = useState<string>(() => (
+    world.pendingDecision?.id.startsWith("opening:") && hallSteward(world.cartridge)
+      ? "hall"
+      : loadCostume(world.cartridge.arc)
+  ));
   const [showCartridge, setShowCartridge] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [dismissedPurpose, setDismissedPurpose] = useState<Record<string, boolean>>({});
@@ -149,6 +154,14 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   // immediately; Shell retains this receipt until the player acknowledges it.
   // It is deliberately not restored, so resuming a saved run never replays it.
   const [decisionResponse, setDecisionResponse] = useState<DecisionResponse | null>(null);
+  // A one-shot stage direction, deliberately absent from save state. Resuming a
+  // marked cartridge returns to its world without replaying the founding beat.
+  const [openingHandoff, setOpeningHandoff] = useState(false);
+  // The hall reports when its steward briefing is open; while it is, the desktop
+  // right rail suppresses its duplicated contract controls so the handoff exposes
+  // exactly one advancing action (the briefing's Enter). Hall-only by construction:
+  // the hall scene unmounts (and reports false) on leaving the hall view.
+  const [hallBriefingActive, setHallBriefingActive] = useState(false);
   const activeTheme = useMemo(() => themeForArc(world.cartridge.arc), [world.cartridge.arc]);
   const mayOpenMobileSelection = costumeId !== "globe" || isWorldInteractionUnlocked(ix.selectedId, ix.nearbyId);
 
@@ -204,7 +217,17 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   const PresentationScene = active.Scene;
   const stage = (
     <div data-testid="representation-region" style={{ position: "absolute", inset: 0 }}>
-      <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} active onEnterEncounter={enterEncounter} onNavigate={choose} />
+      <PresentationScene
+        world={world}
+        interaction={ix}
+        modalOpen={modalOpen}
+        active
+        onEnterEncounter={enterEncounter}
+        onNavigate={choose}
+        openingHandoff={openingHandoff}
+        onOpeningHandoffComplete={() => setOpeningHandoff(false)}
+        onBriefingActiveChange={setHallBriefingActive}
+      />
     </div>
   );
   const contextStrip = <ViewContextStrip rep={active} showPurpose={showPurpose} onDismiss={dismissPurpose} />;
@@ -543,7 +566,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
           <aside style={{ width: 360, flex: "none", overflowY: "auto", padding: 12, borderLeft: "1px solid #2a2620", background: "rgba(15,13,9,0.6)" }}>
             {world.pendingLoot.length > 0 ? (
               <Card>{loot}</Card>
-            ) : contract ? (
+            ) : contract && !hallBriefingActive ? (
               <Card>{contract}</Card>
             ) : (
               <>
@@ -559,13 +582,35 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
         <DecisionPanel
           key={`${decisionResponse.cardId}:${decisionResponse.optionId}`}
           response={decisionResponse}
-          onContinue={() => setDecisionResponse(null)}
+          stage={decisionResponse.cardId.startsWith("opening:")
+            ? <OpeningDecisionStage world={world} response={decisionResponse} />
+            : undefined}
+          onContinue={() => {
+            const closesOpening = decisionResponse.cardId.startsWith("opening:");
+            setDecisionResponse(null);
+            if (closesOpening && hallSteward(world.cartridge)) {
+              // This is scene direction, not a preference write: the player's saved
+              // representation remains theirs after the one-shot handoff.
+              setCostumeId("hall");
+              if (isMobile) {
+                // Mobile's governed one-panel flow already has the selected Cellar
+                // staging sheet. Land there directly; do not leave a dormant Hall
+                // dialogue cue that could fire later when the player steps back.
+                setMobileStep("contract");
+              } else {
+                setOpeningHandoff(true);
+              }
+            }
+          }}
           targetName={world.effectTargetName}
         />
       ) : world.pendingDecision ? (
         <DecisionPanel
           key={world.pendingDecision.id}
           card={world.pendingDecision}
+          stage={world.pendingDecision.id.startsWith("opening:")
+            ? <OpeningDecisionStage world={world} />
+            : undefined}
           onResolve={(optionId) => {
             const response = world.resolveDecision(optionId);
             if (response) setDecisionResponse(response);

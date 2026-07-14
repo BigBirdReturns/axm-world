@@ -1,0 +1,115 @@
+.cartridge-enter-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #0b0a08;
+  color: #ece4d4;
+  isolation: isolate;
+}
+
+.cartridge-enter-transition__doors {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  pointer-events: none;
+}
+
+.cartridge-enter-transition__doors span {
+  background:
+    repeating-linear-gradient(90deg, rgba(216, 178, 118, 0.06) 0 1px, transparent 1px 32px),
+    linear-gradient(90deg, #17130d, #0b0a08);
+  animation: cartridge-door-left 720ms cubic-bezier(0.72, 0, 0.18, 1) both;
+}
+
+.cartridge-enter-transition__doors span:last-child {
+  animation-name: cartridge-door-right;
+  background:
+    repeating-linear-gradient(90deg, rgba(216, 178, 118, 0.06) 0 1px, transparent 1px 32px),
+    linear-gradient(90deg, #0b0a08, #17130d);
+}
+
+.cartridge-enter-transition__plaque {
+  position: relative;
+  z-index: 2;
+  width: min(360px, 78vw);
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 22px 26px;
+  border: 2px solid #d8b276;
+  border-left: 5px solid #17a589;
+  background: linear-gradient(180deg, #2a2620, #17130d);
+  box-shadow: 8px 10px 0 rgba(0, 0, 0, 0.5);
+  text-align: center;
+  animation: cartridge-plaque-enter 720ms cubic-bezier(0.22, 0.76, 0.18, 1) both;
+}
+
+.cartridge-enter-transition__plaque strong {
+  font: 800 clamp(28px, 6vw, 44px)/1 "Barlow Condensed", sans-serif;
+}
+
+.cartridge-enter-transition__plaque > span:last-child {
+  color: #a59c8b;
+  font: 11px/1.4 "IBM Plex Mono", monospace;
+}
+
+.cartridge-enter-transition__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #c9a14a;
+  font: 800 9px/1 "IBM Plex Mono", monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.cartridge-enter-transition__skip {
+  position: absolute;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 3;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #6b5935;
+  background: rgba(11, 10, 8, 0.82);
+  color: #d8cfbd;
+  font: 800 10px/1 "IBM Plex Mono", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+@keyframes cartridge-plaque-enter {
+  0% { opacity: 1; transform: translateY(24vh) scale(0.82); }
+  34% { opacity: 1; transform: translateY(0) scale(1); }
+  62% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-10vh) scale(0.92); }
+}
+
+@keyframes cartridge-door-left {
+  0%, 44% { transform: translateX(0); }
+  100% { transform: translateX(-102%); }
+}
+
+@keyframes cartridge-door-right {
+  0%, 44% { transform: translateX(0); }
+  100% { transform: translateX(102%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cartridge-enter-transition__doors span,
+  .cartridge-enter-transition__plaque {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+}
+
+:root.reduce-motion .cartridge-enter-transition__doors span,
+:root.reduce-motion .cartridge-enter-transition__plaque {
+  animation-duration: 1ms;
+  animation-delay: 0ms;
+}

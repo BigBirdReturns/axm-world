@@ -27,6 +27,13 @@ export interface SceneProps {
    *  a scene can hand the player to the surface where the next action lives.
    *  Same switch the ViewSwitcher uses — no new state, just unified routing. */
   onNavigate?: (view: CostumeId) => void;
+  /** Session-only directing cue: after an opening choice is acknowledged, the Hall
+   *  may present its authored steward and next contract. It is never save state. */
+  openingHandoff?: boolean;
+  onOpeningHandoffComplete?: () => void;
+  /** A scene (the hall) reports when its briefing/dialogue is open so the shell can
+   *  suppress the duplicated right-rail contract controls during the handoff. */
+  onBriefingActiveChange?: (active: boolean) => void;
 }
 
 export interface LegendEntry {
