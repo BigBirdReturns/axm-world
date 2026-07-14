@@ -248,52 +248,69 @@ function SaveStateLine({ save }: { save: ProgramSaveSummary | null }): JSX.Eleme
   );
 }
 
-/** The plain bay row every cartridge had before the plaque: name, meta, trust,
- *  and Enter. Used for any cartridge that is not a program of record. */
+/** A cartridge that is NOT the program of record — Karazhan, or any imported
+ *  cartridge — as a first-class durable object in the Library: the same card
+ *  weight and the same four facts the plaque carries (identity, provenance,
+ *  memory, resume state), minus only the honest program-of-record badge, which
+ *  belongs to the one program that actually is one. The play action tells the
+ *  truth for these too: a cartridge with a resumable save says Resume, never
+ *  the old always-"Enter" row that lied about what the button would do. */
 function ClassicRow({ entry, cartridge, digest, save, onEnter, onRemove }: Omit<Props, "program">): JSX.Element {
   const c = cartridge;
   const isKarazhan = entry.arc.meta.id === "karazhan";
+  const resumable = save !== null;
   return (
     <div
       data-testid={`cartridge-entry-${entry.arc.meta.id}`}
       style={{
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 16,
+        display: "grid",
+        gap: 12,
         textAlign: "left",
         padding: "16px 18px",
         borderRadius: 8,
         border: isKarazhan ? "1px solid #574a7a" : "1px solid #4a4238",
-        borderLeft: isKarazhan ? "3px solid #8a79b8" : "1px solid #4a4238",
+        borderLeft: isKarazhan ? "3px solid #8a79b8" : "3px solid #6b6050",
         background: isKarazhan ? "rgba(48,36,64,0.5)" : "rgba(42,38,32,0.5)",
         color: "#ece4d4",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: "1 1 190px" }}>
-        <CartridgeEmblem arcId={entry.arc.meta.id} size={30} />
-        <div>
-          <div style={{ fontFamily: condensed, fontWeight: 700, fontSize: 22 }}>{c.manifest.name}</div>
-          <div style={{ fontFamily: mono, fontSize: 11, color: "#a59c8b", marginTop: 2 }}>
-            {t("boot.cartridgeMeta", { domain: c.manifest.domain, engine: c.manifest.engineVersion, count: c.arc.challenges.length })}
+      {/* Header: emblem + name + meta, with the RODOH mark binding it to the runtime. */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+          <CartridgeEmblem arcId={entry.arc.meta.id} size={30} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontFamily: condensed, fontWeight: 700, fontSize: 22, lineHeight: 1.05 }}>{c.manifest.name}</div>
+            <div style={{ fontFamily: mono, fontSize: 11, color: "#a59c8b", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {t("boot.cartridgeMeta", { domain: c.manifest.domain, engine: c.manifest.engineVersion, count: c.arc.challenges.length })}
+            </div>
+            <DigestLine digest={digest} />
           </div>
-          <DigestLine digest={digest} />
-          <SaveStateLine save={save} />
-          <MemoryLine save={save} />
         </div>
-      </div>
-      <div style={{ display: "flex", flex: "1 1 auto", flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center", gap: 10, marginLeft: "auto" }}>
         <RodohRuntimeMark variant="micro" showText={false} />
+      </div>
+
+      {/* Memory: the same fresh/resumable + last-recorded facts the plaque names. */}
+      <div style={{ display: "grid", gap: 2 }}>
+        <SaveStateLine save={save} />
+        <MemoryLine save={save} />
+      </div>
+
+      {/* Footer: trust provenance, optional remove, and one honest primary action. */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
         <TrustChip entry={entry} />
-        {entry.source === "file" && <RemoveButton entry={entry} onRemove={onRemove} />}
-        <button
-          data-testid={`play-cartridge-${entry.arc.meta.id}`}
-          onClick={onEnter}
-          style={{ background: "none", border: "none", cursor: "pointer", fontFamily: condensed, fontWeight: 700, fontSize: 16, color: "#b01c18", padding: 0 }}
-        >
-          {t("boot.enter")} →
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {entry.source === "file" && <RemoveButton entry={entry} onRemove={onRemove} />}
+          <PixelButton
+            type="button"
+            variant="primary"
+            data-testid={`play-cartridge-${entry.arc.meta.id}`}
+            onClick={onEnter}
+            style={{ minHeight: 40, padding: "6px 16px", display: "flex", alignItems: "center", gap: 7, fontFamily: condensed, fontWeight: 700, fontSize: 15 }}
+          >
+            <PixelIcon name={resumable ? "recorded" : "available"} />
+            <span>{resumable ? t("boot.resume") : t("boot.enter")} →</span>
+          </PixelButton>
+        </div>
       </div>
     </div>
   );

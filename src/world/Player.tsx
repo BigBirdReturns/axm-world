@@ -151,6 +151,36 @@ export function Player(): JSX.Element {
     setEntries(listCartridges());
   };
 
+  // One cartridge, rendered as a durable Library object. Every entry — a program
+  // of record, a bundled game, or a cartridge you imported — reads its identity,
+  // provenance, memory, and resume state through the SAME derivations (digest,
+  // programForCartridge, the one save summary), so a card can never claim more
+  // than the cartridge in hand backs.
+  const renderCard = (entry: CartridgeBayEntry): JSX.Element => {
+    const c = cartridgeForEntry(entry);
+    const digest = digests.get(`${entry.arc.meta.id}:${entry.source}`)!;
+    const program = programForCartridge(c);
+    const save = readProgramSaveSummary(localStorage, { arc: c.arc, authoredArcDigest: digest });
+    return (
+      <CartridgeBayCard
+        key={`${entry.arc.meta.id}:${entry.source}`}
+        entry={entry}
+        cartridge={c}
+        program={program}
+        save={save}
+        digest={digest}
+        onEnter={() => enterCartridge(c)}
+        onRemove={() => handleRemove(entry)}
+      />
+    );
+  };
+
+  // The Library is shelved by PROVENANCE, the one custody axis a holder cares
+  // about at a glance: what shipped with the runtime vs. what they imported and
+  // can remove. Order within each shelf is the bay's own (bundled-first) order.
+  const bundledEntries = entries.filter((e) => e.source === "bundled");
+  const importedEntries = entries.filter((e) => e.source === "file");
+
   return (
     <div style={screen} role="region" aria-label={t("boot.heroTitle")}>
       <div style={{ width: "min(560px, 92vw)" }}>
@@ -171,34 +201,35 @@ export function Player(): JSX.Element {
           {t("boot.heroBody")}
         </p>
 
-        <div style={{ display: "grid", gap: 10 }}>
-          {entries.map((entry) => {
-            const c = cartridgeForEntry(entry);
-            const digest = digests.get(`${entry.arc.meta.id}:${entry.source}`)!;
-            // A program of record is matched by the cartridge's COMPUTED authored
-            // identity (never a manifest claim); its plaque route keeps its own
-            // fresh-vs-resumable framing built from the same summary below.
-            const program = programForCartridge(c);
-            // Every bay entry's save slot is read the SAME way, keyed by its own
-            // computed digest (RFC PR 056: per-cartridge memory, listed) — a
-            // program of record and an ordinary imported cartridge share the
-            // identical persistence seam (save.ts), so there is no second read
-            // path to keep in sync, and an entry never played has no slot to
-            // read (readProgramSaveSummary returns null: honest omission).
-            const save = readProgramSaveSummary(localStorage, { arc: c.arc, authoredArcDigest: digest });
-            return (
-              <CartridgeBayCard
-                key={`${entry.arc.meta.id}:${entry.source}`}
-                entry={entry}
-                cartridge={c}
-                program={program}
-                save={save}
-                digest={digest}
-                onEnter={() => enterCartridge(c)}
-                onRemove={() => handleRemove(entry)}
-              />
-            );
-          })}
+        {/* The Library: the cartridges you hold, named as a collection and
+            shelved by provenance. The heading + count make it read as something
+            possessed, not a boot menu — the acceptance bar's "understand what
+            you now possess". */}
+        <div data-testid="library" role="group" aria-label={t("boot.libraryHeading")} style={{ display: "grid", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, borderBottom: "1px solid #2a2620", paddingBottom: 6 }}>
+            <h2 style={{ margin: 0, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 20, letterSpacing: "0.02em", color: "#ece4d4" }}>
+              {t("boot.libraryHeading")}
+            </h2>
+            <span data-testid="library-count" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#a59c8b" }}>
+              {t("boot.libraryCount", { count: entries.length })}
+            </span>
+          </div>
+
+          <section data-testid="library-shelf-bundled" style={{ display: "grid", gap: 8 }}>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "#6f8f57" }}>
+              {t("boot.sectionBundled")}
+            </div>
+            <div style={{ display: "grid", gap: 10 }}>{bundledEntries.map(renderCard)}</div>
+          </section>
+
+          {importedEntries.length > 0 && (
+            <section data-testid="library-shelf-imported" style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "#a59c8b" }}>
+                {t("boot.sectionImported")}
+              </div>
+              <div style={{ display: "grid", gap: 10 }}>{importedEntries.map(renderCard)}</div>
+            </section>
+          )}
         </div>
 
         <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 10 }}>

@@ -373,7 +373,12 @@ export type MessageId =
   // plaque, but a lie on a classic row (an imported cartridge, or Karazhan,
   // are never "a program"). "boot.resumable" carries no such claim and is
   // reused verbatim. This is the one neutral pair PR 057 adds.
-  | "boot.freshEntry";
+  | "boot.freshEntry"
+  // ── The Library: the bay named as a collection you hold ────────────────────
+  | "boot.libraryHeading"
+  | "boot.libraryCount"
+  | "boot.sectionBundled"
+  | "boot.sectionImported";
 
 /**
  * Ids intentionally left out of the zh-Hant catalog. Documented, not
@@ -804,6 +809,13 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
       const count = num(params, "count");
       return `${str(params, "domain")} · engine ${str(params, "engine")} · ${count} contract${count === 1 ? "" : "s"}`;
     },
+    "boot.libraryHeading": "Your library",
+    "boot.libraryCount": (params) => {
+      const count = num(params, "count");
+      return `${count} cartridge${count === 1 ? "" : "s"}`;
+    },
+    "boot.sectionBundled": "Bundled with the runtime",
+    "boot.sectionImported": "Imported by you",
   },
   "zh-Hant": {
     "coach.arcComplete": "卡匣已標記為完成。離開前請檢視或匯出本次執行狀態。",
@@ -1172,6 +1184,10 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "boot.skipEntry": "略過進場",
     "boot.freshEntry": "全新 — 尚無執行記錄",
     "boot.cartridgeMeta": (params) => `${str(params, "domain")} · 引擎 ${str(params, "engine")} · ${num(params, "count")} 份契約`,
+    "boot.libraryHeading": "你的卡匣庫",
+    "boot.libraryCount": (params) => `${num(params, "count")} 份卡匣`,
+    "boot.sectionBundled": "隨執行環境內建",
+    "boot.sectionImported": "由你匯入",
   },
 };
 
