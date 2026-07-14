@@ -190,7 +190,9 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   const [ledger, setLedger] = useState<Ledger>(() => restored?.ledger ?? emptyLedger(cartridgeDigest));
   const [lastReport, setLastReport] = useState<PlayReportView | null>(null);
   const [difficultyModeId, setDifficultyModeId] = useState<string | null>(null);
-  const [pendingRewardChoices, setPendingRewardChoices] = useState<PendingRewardChoice[]>([]);
+  const [pendingRewardChoices, setPendingRewardChoices] = useState<PendingRewardChoice[]>(
+    () => restored?.pendingRewardChoices ?? [],
+  );
   const [lastEquip, setLastEquip] = useState<LastEquipEvent | null>(null);
   const [openingChoice, setOpeningChoice] = useState<string | null>(() => restored?.openingChoice ?? null);
   const [openingChoiceId, setOpeningChoiceId] = useState<string | null>(() => restored?.openingChoiceId ?? null);
@@ -382,6 +384,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
         state: {
           org: resolution.org,
           ledger,
+          pendingRewardChoices,
           openingChoice: nextOpeningChoice,
           openingChoiceId: nextOpeningChoiceId,
         },
@@ -393,7 +396,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
       }
       return resolution.response;
     },
-    [arc, cartridgeDigest, ledger, openingChoice, openingChoiceId, org],
+    [arc, cartridgeDigest, ledger, openingChoice, openingChoiceId, org, pendingRewardChoices],
   );
 
   const applyDowntime = useCallback((agentId: string, action: DowntimeAction) => {
@@ -447,8 +450,12 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   // digest so reload restores exactly this program's state (see the guarded
   // restore above). Costume prefs persist elsewhere; this is the run itself.
   useEffect(() => {
-    saveRun(localStorage, { arc, authoredArcDigest: cartridgeDigest, state: { org, ledger, openingChoice, openingChoiceId } });
-  }, [arc, cartridgeDigest, org, ledger, openingChoice, openingChoiceId]);
+    saveRun(localStorage, {
+      arc,
+      authoredArcDigest: cartridgeDigest,
+      state: { org, ledger, pendingRewardChoices, openingChoice, openingChoiceId },
+    });
+  }, [arc, cartridgeDigest, org, ledger, pendingRewardChoices, openingChoice, openingChoiceId]);
 
   const buildExport = useCallback(
     (): CustodyObject => buildCustodyObject({ cartridge, org, openingChoice, nodes: layout.nodes, ledger, openingChoiceId }),

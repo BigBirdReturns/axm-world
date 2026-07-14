@@ -1,0 +1,15 @@
+Command:
+PW_BASE_URL=http://127.0.0.1:5179 CAPTURE_COLD_RUN=1 npx playwright test e2e/honest-opening.spec.ts --project=desktop --workers=1
+
+Result:
+Running 2 tests using 1 worker
+  PASS cold operator founds, commits an engine-honored plan, resumes it exactly, and records the consequence
+  PASS the same receiver mounts a second Arc without a World rewrite
+2 passed (8.6s)
+
+Mobile replay:
+PW_BASE_URL=http://127.0.0.1:5179 npx playwright test e2e/honest-opening.spec.ts --project=mobile --workers=1
+2 passed (9.0s)
+
+Browser: local Playwright Chromium 1228
+Date: 2026-07-14 America/Los_Angeles

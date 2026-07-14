@@ -166,12 +166,11 @@ describe("Rodoh pixel-ui integration", () => {
     expect(director).not.toContain("🏰");
   });
 
-  it("renderer switching does not reset world/interaction state", () => {
+  it("the five-beat experience receives one stable Arc world instance", () => {
     const host = read("src/world/WorldHost.tsx");
-    const shell = read("src/world/shell/Shell.tsx");
     expect(host).toContain("const world = useArcWorld(cartridge)");
-    expect(host).toContain("const interaction = useArcInteraction(world)");
-    expect(shell).not.toContain("key={costumeId}");
+    expect(host).toContain("<ExperienceHost world={world} onExit={onExit}");
+    expect(host).not.toContain("key=");
   });
 
   it("CSS uses the canonical --cream/--ink/--gold token namespace, not --rodoh-*", () => {
