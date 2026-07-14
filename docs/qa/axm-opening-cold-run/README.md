@@ -13,15 +13,30 @@ full-page reload; no state injection or direct engine fixture is used.
 3. Enter the exact presented `cellar` challenge.
 4. Commit all six Arc-founded agents and explicitly spend one authored Contract.
 5. Reload before resolution and recover the same challenge, party, and spend.
-6. Resolve through `runCycle`, observe the consequence, and inspect ledger entry 1.
-7. Reload again and recover the exact receipt.
-8. Clear storage and mount Karazhan through the same receiver without code changes.
+6. Resolve through `runCycle` and observe the descent, contact, and consequence beats.
+7. Observe founder aftermath and the required reward-carrier decision.
+8. Reload before assigning the reward and recover the unresolved choice.
+9. Assign the Rusty Blade through Arc reward law, then reload and recover the exact recipient and precedent.
+10. Return to the visibly changed hall and inspect the consequence carried into The Bridge Troll.
+11. Leave to the shelf, resume, and recover that changed hall as the first state shown.
+12. Clear storage and mount Karazhan through the same receiver without code changes.
 
 ## Captures
 
 - `01-founded-hall.png` — visible organization and sole next action after the oath.
 - `02-committed-plan.png` — exact challenge, fixed party, and engine-honored spend locked before reload.
+- `02b-cellar-action.png` — the engine result staged as a three-beat Cellar event.
+- `03a-reward-choice.png` — the required, reload-safe Arc reward assignment.
 - `03-recorded-consequence.png` — actual result and durable record after engine resolution.
-- `04-resumed-receipt.png` — the same receipt after leaving the document and re-entering from the shelf.
+- `04-resumed-receipt.png` — the same receipt and assigned reward after a full reload.
+- `05-changed-hall.png` — the hall memory, equipped founder, precedent, and next-contract carry-forward.
+
+The automated proof is intentionally separate from independent blind evidence.
+No independent operator completed the full loop in this run: one attempt reached
+plan commit, one reached the founded hall, and two were blocked before app entry.
+`INDEPENDENT_OPERATOR_ATTEMPT_1.md` through
+`INDEPENDENT_OPERATOR_ATTEMPT_4.md` preserve those boundaries without promoting
+the automated journey into a blind-run claim. `INDEPENDENT_ADJUDICATION.md`
+separately reviews what each evidence class can and cannot establish.
 
 The test command and outcome are recorded in `COLD_RUN.txt`.

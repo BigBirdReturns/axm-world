@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ArcWorld } from "../useArcWorld.js";
 import type { WorldNode } from "../contract.js";
 import type { DecisionResponse } from "../decision.js";
@@ -41,6 +41,33 @@ function outcomeLabel(outcome: "success" | "partial" | "failure"): string {
   return outcome === "success" ? "Cleared" : outcome === "partial" ? "Held, at a cost" : "The charter withdrew";
 }
 
+function playThresholdCue(): void {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  try {
+    const context = new AudioContext();
+    const gain = context.createGain();
+    const low = context.createOscillator();
+    const high = context.createOscillator();
+    low.type = "triangle";
+    high.type = "square";
+    low.frequency.setValueAtTime(82, context.currentTime);
+    high.frequency.setValueAtTime(164, context.currentTime);
+    gain.gain.setValueAtTime(0.0001, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.045, context.currentTime + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.42);
+    low.connect(gain);
+    high.connect(gain);
+    gain.connect(context.destination);
+    low.start();
+    high.start(context.currentTime + 0.08);
+    low.stop(context.currentTime + 0.44);
+    high.stop(context.currentTime + 0.3);
+    window.setTimeout(() => void context.close(), 520);
+  } catch {
+    // Audio is an enhancement; the visual action sequence remains complete.
+  }
+}
+
 export function ExperienceHost({ world, onExit }: Props): JSX.Element {
   const challengeIds = useMemo(() => new Set(world.arc.challenges.map((challenge) => challenge.id)), [world.arc]);
   const agentIds = useMemo(() => new Set(world.roster.map((agent) => agent.id)), [world.roster]);
@@ -51,6 +78,8 @@ export function ExperienceHost({ world, onExit }: Props): JSX.Element {
   const [decisionResponse, setDecisionResponse] = useState<DecisionResponse | null>(null);
   const [showRecord, setShowRecord] = useState(false);
   const [resolving, setResolving] = useState(false);
+  const [actionBeat, setActionBeat] = useState<"descent" | "clash" | "verdict">("descent");
+  const actionTimers = useRef<number[]>([]);
   const next = latestAvailable(world.nodes);
   const challenge = checkpoint.challengeId
     ? world.arc.challenges.find((candidate) => candidate.id === checkpoint.challengeId) ?? null
@@ -64,7 +93,14 @@ export function ExperienceHost({ world, onExit }: Props): JSX.Element {
   const theme = useMemo(() => themeForArc(world.arc), [world.arc]);
   const steward = world.cartridge.people?.[0] ?? null;
   const organizationName = world.arc.founding?.organization.name ?? world.arc.meta.name;
-  const capacityName = world.resources.tokenName.replace(/s$/i, "") || "Contract";
+  const cellarRecord = [...world.ledger.entries].reverse().find((entry) => entry.challengeId === "cellar") ?? null;
+  const hallState = cellarRecord ? `cellar-${cellarRecord.outcome}` : "founded";
+  const receiptLoot = record
+    ? world.pendingLoot.filter((choice) => choice.sourceChallenge === record.challengeId)
+    : [];
+  const rewardMemory = record && world.latestReward?.sourceChallenge === record.challengeId
+    ? world.latestReward
+    : null;
 
   useEffect(() => {
     document.documentElement.setAttribute("data-cartridge", world.arc.meta.id);
@@ -74,6 +110,10 @@ export function ExperienceHost({ world, onExit }: Props): JSX.Element {
   useEffect(() => {
     saveCheckpoint(localStorage, checkpoint);
   }, [checkpoint]);
+
+  useEffect(() => () => {
+    for (const timer of actionTimers.current) window.clearTimeout(timer);
+  }, []);
 
   const enterBriefing = () => {
     if (!next) return;
@@ -118,20 +158,26 @@ export function ExperienceHost({ world, onExit }: Props): JSX.Element {
   const resolveContract = () => {
     if (!challenge || resolving || checkpoint.stage !== "committed") return;
     setResolving(true);
-    window.setTimeout(() => {
-      world.runChallenge(
-        challenge.id,
-        checkpoint.partyIds,
-        checkpoint.difficultyModeId,
-        checkpoint.tokensSpent,
-      );
-      setCheckpoint((current) => ({
-        ...current,
-        stage: "receipt",
-        ledgerSeq: world.ledger.entries.length,
-      }));
-      setResolving(false);
-    }, 700);
+    setActionBeat("descent");
+    playThresholdCue();
+    world.runChallenge(
+      challenge.id,
+      checkpoint.partyIds,
+      checkpoint.difficultyModeId,
+      checkpoint.tokensSpent,
+    );
+    actionTimers.current = [
+      window.setTimeout(() => setActionBeat("clash"), 760),
+      window.setTimeout(() => setActionBeat("verdict"), 1_650),
+      window.setTimeout(() => {
+        setCheckpoint((current) => ({
+          ...current,
+          stage: "receipt",
+          ledgerSeq: world.ledger.entries.length,
+        }));
+        setResolving(false);
+      }, 2_700),
+    ];
   };
 
   const returnToHall = () => setCheckpoint(hallCheckpoint(world.cartridgeDigest));
@@ -157,12 +203,51 @@ export function ExperienceHost({ world, onExit }: Props): JSX.Element {
           <span className="axm-experience__threshold" />
         </div>
 
+        {resolving && challenge && (
+          <div
+            className="axm-action"
+            data-testid="encounter-action"
+            data-beat={actionBeat}
+            data-outcome={record?.outcome ?? "resolving"}
+            role="status"
+            aria-live="polite"
+          >
+            <div className="axm-action__vault" aria-hidden="true">
+              <div className="axm-action__party">
+                {world.roster.filter((member) => checkpoint.partyIds.includes(member.id)).map((member) => (
+                  <span key={member.id}>
+                    <PixelDoll appearance={resolveDollAppearance(theme, member.role)} identity={member.id} state="strain" size={68} />
+                    <b>{member.name.split(" ")[0]}</b>
+                  </span>
+                ))}
+              </div>
+              <div className="axm-action__rats"><i /><i /><i /><i /><i /></div>
+              <div className="axm-action__impact" />
+            </div>
+            <div className="axm-action__caption">
+              <span>{actionBeat === "descent" ? "BEAT 01 · DESCENT" : actionBeat === "clash" ? "BEAT 02 · CONTACT" : "BEAT 03 · CONSEQUENCE"}</span>
+              <h2>{actionBeat === "descent"
+                ? "Six lanterns enter the dark."
+                : actionBeat === "clash"
+                  ? challenge.mechanicChecks[0]?.name ?? "The plan meets resistance."
+                  : record ? outcomeLabel(record.outcome) : "The ledger is catching up."}</h2>
+              <p>{actionBeat === "descent"
+                ? `${checkpoint.tokensSpent > 0 ? "One capacity mark steadies the approach." : "No capacity is spent; the founders carry the uncertainty."} The committed party cannot change now.`
+                : actionBeat === "clash"
+                  ? challenge.mechanicChecks[0]?.description ?? challenge.description
+                  : record ? challenge.outcomes[record.outcome].narrative : "Arc is resolving the authored consequence."}</p>
+            </div>
+          </div>
+        )}
+
         {checkpoint.stage === "hall" && (
-          <div className="axm-beat axm-hall" data-testid="hall-scene">
-            <div className="axm-beat__eyebrow">THE HALL EXISTS NOW</div>
+          <div className="axm-beat axm-hall" data-testid="hall-scene" data-hall-state={hallState}>
+            <div className="axm-beat__eyebrow">{cellarRecord ? "THE FIRST MARK LIVES HERE" : "THE HALL EXISTS NOW"}</div>
             <h1>{organizationName}</h1>
             <p className="axm-beat__lead">
-              You are this charter's operator. {steward?.name ?? "The steward"} keeps the ledger; you choose what this organization risks next.
+              {cellarRecord
+                ? `${outcomeLabel(cellarRecord.outcome)} below the hall. The room, the people, and the next contract now carry that record.`
+                : `You are this charter's operator. ${steward?.name ?? "The steward"} keeps the ledger; you choose what this organization risks next.`}
             </p>
 
             <div className="axm-hall__table">
@@ -171,7 +256,11 @@ export function ExperienceHost({ world, onExit }: Props): JSX.Element {
                 <div>
                   <span>{steward?.role ?? "World steward"}</span>
                   <strong>{steward?.name ?? "The receiver"}</strong>
-                  <p>{steward?.greeting ?? "The cartridge has founded a runnable organization. Its first contract is waiting."}</p>
+                  <p>{cellarRecord
+                    ? cellarRecord.outcome === "success"
+                      ? "The cellar doors are rehung. I entered the names before the mud dried. The bridge petition is on your table."
+                      : "I entered what happened without polishing it. Decide whether we return below or carry the cost forward."
+                    : steward?.greeting ?? "The cartridge has founded a runnable organization. Its first contract is waiting."}</p>
                 </div>
               </div>
 
@@ -181,10 +270,20 @@ export function ExperienceHost({ world, onExit }: Props): JSX.Element {
                     <PixelDoll appearance={resolveDollAppearance(theme, member.role)} identity={member.id} state={member.downed ? "downed" : "idle"} size={42} />
                     <strong>{member.name}</strong>
                     <span>{member.role}</span>
+                    {member.gear.map((item) => <em key={item.id}>{item.name}</em>)}
                   </div>
                 ))}
               </div>
             </div>
+
+            {cellarRecord && (
+              <div className="axm-hall__memory" data-testid="changed-hall-memory">
+                <span className="axm-hall__ratmark" aria-hidden="true" />
+                <div><small>THE HALL REMEMBERS</small><strong>{cellarRecord.consequence.contract.title} · {outcomeLabel(cellarRecord.outcome)}</strong></div>
+                <div><small>VISIBLE CHANGE</small><strong>{cellarRecord.outcome === "success" ? "Cellar secured · stores reopened" : "Cellar watch maintained · supplies moved upstairs"}</strong></div>
+                {world.latestReward && <div><small>YOUR PRECEDENT</small><strong>{world.latestReward.itemName} → {world.latestReward.agentName}</strong></div>}
+              </div>
+            )}
 
             {next ? (
               <PixelPanel className="axm-contract" tone="light">
@@ -197,6 +296,13 @@ export function ExperienceHost({ world, onExit }: Props): JSX.Element {
                     : `${world.reqFor(next.challengeId).minAgents}–${world.reqFor(next.challengeId).maxAgents} founders`}</span>
                   <span>{world.arc.challenges.find((item) => item.id === next.challengeId)?.mechanicChecks.length ?? 0} objective</span>
                 </div>
+                {world.latestReward && next.challengeId !== world.latestReward.sourceChallenge && (
+                  <div className="axm-contract__carry" data-testid="carried-consequence">
+                    <span>CARRIED FORWARD</span>
+                    <strong>{world.latestReward.agentName} enters with {world.latestReward.itemName}</strong>
+                    <small>The Arc will include its bonuses and remember your {world.latestReward.decisionBasis} precedent.</small>
+                  </div>
+                )}
                 <PixelButton data-testid="hall-enter-contract" variant="action" onClick={enterBriefing}>
                   Take {next.title}
                 </PixelButton>
@@ -223,7 +329,7 @@ export function ExperienceHost({ world, onExit }: Props): JSX.Element {
                     <p>{check.description}</p>
                     <div>{check.attributeWeights.map((weight) => {
                       const attribute = world.arc.attributes.find((candidate) => candidate.id === weight.attributeId);
-                      return `${attribute?.name ?? weight.attributeId} ${Math.round(weight.weight * 100)}%`;
+                      return `Check weighting · ${attribute?.name ?? weight.attributeId} ${Math.round(weight.weight * 100)}%`;
                     }).join(" · ")}</div>
                   </article>
                 ))}
@@ -249,7 +355,10 @@ export function ExperienceHost({ world, onExit }: Props): JSX.Element {
                         data-testid={`party-${member.id}`}
                       >
                         <PixelDoll appearance={resolveDollAppearance(theme, member.role)} identity={member.id} state="idle" size={34} />
-                        <span><strong>{member.name}</strong><small>{member.role}</small></span>
+                        <span>
+                          <strong>{member.name}</strong>
+                          <small>{member.role}{member.gear.length > 0 ? ` · ${member.gear.map((item) => item.name).join(", ")}` : ""}</small>
+                        </span>
                       </button>
                     );
                   })}
@@ -264,7 +373,7 @@ export function ExperienceHost({ world, onExit }: Props): JSX.Element {
                     </label>
                     <label className={checkpoint.tokensSpent === 1 ? "is-selected" : ""}>
                       <input type="radio" name="spend" checked={checkpoint.tokensSpent === 1} onChange={() => setCheckpoint((current) => ({ ...current, tokensSpent: 1 }))} />
-                      <span><strong>Commit 1 {capacityName}</strong><small>Narrow the uncertainty. It cannot buy power or guarantee success.</small></span>
+                      <span><strong>Commit 1 capacity mark</strong><small>Spend one Contract resource to tighten roll variance. The check still uses Power; success is not guaranteed.</small></span>
                     </label>
                   </fieldset>
                 )}
@@ -307,16 +416,68 @@ export function ExperienceHost({ world, onExit }: Props): JSX.Element {
                     <ul>{record.consequence.party.members.map((member) => <li key={member.id}>{member.name}<span>{member.role}</span></li>)}</ul>
                   </PixelPanel>
                 </div>
-                {world.pendingLoot.length > 0 && (
+                <section className="axm-receipt__aftermath" data-testid="founder-aftermath">
+                  <div>
+                    <span>ARC-AUTHORED AFTERMATH</span>
+                    <p>{challenge?.outcomes[record.outcome].narrative ?? `${record.challengeName} is now part of the charter's record.`}</p>
+                  </div>
+                  <div className="axm-receipt__reactions">
+                    {record.consequence.party.members.slice(0, 3).map((member) => {
+                      const current = world.roster.find((candidate) => candidate.id === member.id);
+                      return (
+                        <article key={member.id}>
+                          <strong>{member.name}</strong>
+                          <span>{current ? `${current.morale} morale · ${current.stress} stress` : member.role}</span>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                {receiptLoot.map((choice) => (
+                  <section className="axm-reward-choice" data-testid="reward-choice" key={choice.id}>
+                    <div className="axm-reward-choice__item">
+                      <span>THE FIND CHANGES SOMEONE</span>
+                      <h2>Who carries the {choice.itemName}?</h2>
+                      <p>{choice.flavorText}</p>
+                      <strong>{Object.entries(choice.bonuses).map(([name, value]) => `+${value} ${name}`).join(" · ")}</strong>
+                      <small>Arc will equip it, record your precedent, and apply any morale consequence. This choice is required and survives reload.</small>
+                    </div>
+                    <div className="axm-reward-choice__candidates">
+                      {choice.eligibleAgents.map((candidate) => {
+                        const member = world.roster.find((entry) => entry.id === candidate.id);
+                        return (
+                          <button type="button" key={candidate.id} onClick={() => world.claimLoot(choice.id, candidate.id)} data-testid={`reward-candidate-${candidate.id}`}>
+                            <PixelDoll appearance={resolveDollAppearance(theme, candidate.role)} identity={candidate.id} state="idle" size={38} />
+                            <span><strong>{candidate.name}</strong><small>{candidate.role} · {member?.morale ?? "?"} morale</small></span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
+
+                {rewardMemory && receiptLoot.length === 0 && (
+                  <section className="axm-reward-memory" data-testid="reward-memory">
+                    <span>YOUR DECISION ENTERED THE CHARTER</span>
+                    <h2>{rewardMemory.agentName} carries {rewardMemory.itemName}.</h2>
+                    <p>Arc recorded this as a {rewardMemory.decisionBasis} precedent. The item is equipped, its bonuses are live, and the next contract will receive that changed founder.</p>
+                    {world.lastEquip?.moraleChanges.map((change) => (
+                      <small key={change.agentId}>{change.agentName}: morale {change.before} → {change.after}</small>
+                    ))}
+                  </section>
+                )}
+
+                {receiptLoot.length > 0 && (
                   <div className="axm-receipt__pending" data-testid="pending-loot-held">
-                    {world.pendingLoot.length} reward decision held in the exact save. Reloading cannot erase it.
+                    Choose a carrier before leaving. The unresolved decision is already held in the exact save.
                   </div>
                 )}
               </>
             )}
             <div className="axm-receipt__actions">
-              <PixelButton variant="action" data-testid="encs-leave" onClick={returnToHall}>Return to the changed Hall</PixelButton>
-              <PixelButton variant="secondary" onClick={onExit}>Carry this run to the cartridge shelf</PixelButton>
+              <PixelButton variant="action" data-testid="encs-leave" onClick={returnToHall} disabled={receiptLoot.length > 0}>Return to the changed Hall</PixelButton>
+              <PixelButton variant="secondary" onClick={onExit} disabled={receiptLoot.length > 0}>Carry this run to the cartridge shelf</PixelButton>
             </div>
           </div>
         )}
