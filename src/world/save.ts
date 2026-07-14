@@ -10,6 +10,7 @@
 // carries the run ledger + opening choice alongside.
 
 import type { Arc, Organization } from "../engine/types.js";
+import type { PendingRewardChoice } from "../engine/cycle.js";
 import { cartridgeDigest } from "../engine/cartridge-digest.js";
 import { serializeGame, deserializeGame } from "../engine/save.js";
 import { emptyLedger, migrateLedger, summarizeLedger, type ContractOutcome, type Ledger } from "./ledger.js";
@@ -37,6 +38,9 @@ export interface KVStorage {
 export interface ProgramRunState {
   org: Organization;
   ledger: Ledger;
+  /** Unclaimed engine-authored rewards are durable run state. Losing them on
+   * reload would preserve the receipt while deleting its unresolved choice. */
+  pendingRewardChoices?: PendingRewardChoice[];
   /** The opening decision label the player chose, persisted so the visible decision
    *  mark (and the export) survive a reload. Null until an opening choice is made;
    *  optional on input for callers that never surface an opening choice. */
@@ -70,7 +74,7 @@ export function saveRun(
   const stored: StoredSave = {
     version: SAVE_SCHEMA_VERSION,
     authoredArcDigest: params.authoredArcDigest,
-    game: serializeGame(params.state.org, params.arc),
+    game: serializeGame(params.state.org, params.arc, params.state.pendingRewardChoices ?? []),
     ledger: params.state.ledger,
     openingChoice: params.state.openingChoice ?? null,
     openingChoiceId: params.state.openingChoiceId ?? null,
@@ -102,14 +106,16 @@ export function loadRun(
   if (typeof parsed.game !== "string") return null;
   if (!ledgerMatchesAuthoredDigest(parsed.ledger, params.authoredArcDigest)) return null;
   let org: Organization;
+  let pendingRewardChoices: PendingRewardChoice[];
   try {
-    ({ org } = deserializeGame(parsed.game, params.arc));
+    ({ org, pendingRewardChoices } = deserializeGame(parsed.game, params.arc));
   } catch {
     return null; // arc mismatch / corrupt engine save
   }
   return {
     org,
     ledger: normalizeLedger(parsed.ledger, params.authoredArcDigest),
+    pendingRewardChoices,
     openingChoice: typeof parsed.openingChoice === "string" ? parsed.openingChoice : null,
     openingChoiceId: typeof parsed.openingChoiceId === "string" ? parsed.openingChoiceId : null,
   };

@@ -43,6 +43,20 @@ describe("program run persistence", () => {
     expect(loaded!.openingChoiceId).toBe("hold-line");
   });
 
+  it("round-trips an unresolved reward choice instead of deleting it on reload", () => {
+    const org = bootstrapOrg(arc);
+    const ledger = emptyLedger(DIGEST);
+    const pendingRewardChoices = [{
+      itemId: "rusty-blade",
+      eligibleAgentIds: Object.keys(org.agents),
+      sourceChallenge: "cellar",
+      cycle: org.cycle,
+    }];
+    const s = fakeStorage();
+    saveRun(s, { arc, authoredArcDigest: DIGEST, state: { org, ledger, pendingRewardChoices } });
+    expect(loadRun(s, { arc, authoredArcDigest: DIGEST })?.pendingRewardChoices).toEqual(pendingRewardChoices);
+  });
+
   it("backfills a consequence for old ledger entries saved before the record existed (#69)", () => {
     const org = bootstrapOrg(arc);
     const ledger = appendResult(emptyLedger(DIGEST), { challengeId: "c1", challengeName: "The Cellar", outcome: "success", cycle: org.cycle });

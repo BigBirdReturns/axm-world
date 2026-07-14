@@ -70,14 +70,11 @@ describe("shell regressions", () => {
     expect(markers).toContain("className=\"node-label\"");
   });
 
-  it("keeps world and interaction state above the view switcher", () => {
+  it("keeps Arc world state above the experience presentation", () => {
     const host = read("src/world/WorldHost.tsx");
-    const shell = read("src/world/shell/Shell.tsx");
 
     expect(host).toContain("const world = useArcWorld(cartridge)");
-    expect(host).toContain("const interaction = useArcInteraction(world)");
-    expect(shell).toContain("const [costumeId, setCostumeId]");
-    expect(shell).not.toContain("key={costumeId}");
-    expect(shell).toContain("data-testid=\"engine-shell\"");
+    expect(host).toContain("<ExperienceHost world={world} onExit={onExit}");
+    expect(host).not.toContain("key=");
   });
 });

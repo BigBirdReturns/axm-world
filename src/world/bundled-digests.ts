@@ -10,6 +10,6 @@
 // pass.
 
 export const EXPECTED_BUNDLED_DIGESTS: Readonly<Record<string, string>> = {
-  "first-charter": "cart1_82b89b113ad8cfe67b9a5e731bbde20a9e39624e627ad46f5674672f55ba1737",
+  "first-charter": "cart1_80564819477a58208e3c05db1c52475a252728f35c8ff11fba59cd04bce73b55",
   "karazhan": "cart1_91e91931d7102301288d27a6119f189b1a22ec0614335390d2d1ef006933e047",
 };
