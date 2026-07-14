@@ -1,11 +1,10 @@
 // The inhabited hall — the first "make it real" surface. The player stands in the
-// cartridge's founding hall as a presence marker and can either take a contract
-// from the steward in person (quick resolve) OR walk to the encounter threshold
-// and play it out. BOTH paths reach the SAME engine: the steward resolves via
-// world.runChallenge, and the threshold hands off to the SAME EncounterShell the
-// board's PLAY ENCOUNTER opens (onEnterEncounter) — no duplicate resolver. So the
-// board and inhabited paths converge on one digest-stamped ledger entry, and the
-// world visibly changes.
+// cartridge's founding hall as a presence marker. The steward's briefing and the
+// walk-to-threshold flow BOTH hand off to the SAME playable EncounterShell the
+// board's PLAY ENCOUNTER opens (onEnterEncounter) — there is no silent quick
+// resolve; resolution always happens inside the encounter. So the board and
+// inhabited paths converge on one digest-stamped ledger entry, and the world
+// visibly changes.
 //
 // This scene reads run state and calls the engine — it authors nothing. What it
 // shows is derived (deriveHallView); what it writes is the existing ledger. All
@@ -120,6 +119,7 @@ export function HallScene({
   onNavigate,
   openingHandoff = false,
   onOpeningHandoffComplete,
+  onBriefingActiveChange,
 }: SceneProps): JSX.Element {
   const theme = themeForArc(world.cartridge.arc);
   const [open, setOpen] = useState(false);
@@ -168,6 +168,13 @@ export function HallScene({
     if (open) dialogueRef.current?.focus();
   }, [open]);
 
+  // While the briefing is open the shell suppresses the duplicated right-rail
+  // contract controls, so the handoff exposes exactly one advancing action.
+  useEffect(() => {
+    onBriefingActiveChange?.(open);
+  }, [open, onBriefingActiveChange]);
+  useEffect(() => () => onBriefingActiveChange?.(false), [onBriefingActiveChange]);
+
   // Route to the board with the steward's contract selected: the same interaction
   // selection + view switch the shell already owns — one place, one route into play.
   const viewOnBoard = (): void => {
@@ -177,17 +184,20 @@ export function HallScene({
   };
 
   // The squad standing WITH you in the hall — the same recommended party the
-  // steward's quick-accept resolves with and heldReadiness projects over. Bodies
-  // for names the run already has; nothing invented.
+  // encounter deploys and heldReadiness projects over. Bodies for names the run
+  // already has; nothing invented.
   const heldPartyIds = view.challengeId && !view.resolved ? world.recommendedParty(view.challengeId) : [];
   const heldParty = heldPartyIds
     .map((id) => world.roster.find((m) => m.id === id))
     .filter((m): m is NonNullable<typeof m> => Boolean(m));
 
-  const accept = (): void => {
+  // The briefing's single advancing action: hand off to the SAME playable
+  // EncounterShell the board's PLAY ENCOUNTER opens — never a silent quick
+  // resolve. Resolution happens inside the encounter, not here.
+  const enterFromBriefing = (): void => {
     if (!canTake || !view.challengeId) return;
-    world.runChallenge(view.challengeId, world.recommendedParty(view.challengeId));
     setOpen(false);
+    onEnterEncounter?.(view.challengeId);
   };
 
   // Walk into the encounter: hand off to the SAME EncounterShell the board's PLAY
@@ -298,14 +308,14 @@ export function HallScene({
             </span>
           )}
           {view.challengeId && (
-            <button type="button" data-testid="hall-talk" disabled={modalOpen} onClick={() => setOpen(true)} style={{ ...btnGhost, cursor: modalOpen ? "not-allowed" : "pointer" }}>
+            <button type="button" data-testid="hall-talk" disabled={modalOpen || open} onClick={() => setOpen(true)} style={{ ...btnGhost, cursor: modalOpen || open ? "not-allowed" : "pointer" }}>
               {t("hall.talk")}
             </button>
           )}
           {/* One route into play: the hall hands the player to the board with THIS
               contract selected — same selection + view switch the shell owns. */}
           {view.challengeId && onNavigate && (
-            <button type="button" data-testid="hall-view-on-board" disabled={modalOpen} onClick={viewOnBoard} style={{ ...btnGhost, cursor: modalOpen ? "not-allowed" : "pointer" }}>
+            <button type="button" data-testid="hall-view-on-board" disabled={modalOpen || open} onClick={viewOnBoard} style={{ ...btnGhost, cursor: modalOpen || open ? "not-allowed" : "pointer" }}>
               {t("hall.viewOnBoard")}
             </button>
           )}
@@ -320,7 +330,7 @@ export function HallScene({
           />
           <span style={{ fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase", color: "#8b7d6a" }}>{t("hall.threshold")}</span>
           {canTake && !atThreshold && (
-            <button type="button" data-testid="hall-approach" disabled={modalOpen} onClick={() => setAtThreshold(true)} style={{ ...btnGhost, cursor: modalOpen ? "not-allowed" : "pointer" }}>
+            <button type="button" data-testid="hall-approach" disabled={modalOpen || open} onClick={() => setAtThreshold(true)} style={{ ...btnGhost, cursor: modalOpen || open ? "not-allowed" : "pointer" }}>
               {t("hall.approach")}
             </button>
           )}
@@ -335,8 +345,9 @@ export function HallScene({
         </div>
       </div>
 
-      {/* Dialogue: the steward presents the authored contract; Accept & resolve maps
-          to the existing engine (world.runChallenge) — no scene-only outcome. */}
+      {/* Briefing: the steward presents the authored contract; the single advancing
+          action enters the playable EncounterShell (onEnterEncounter) — no quick
+          resolve, so the handoff cannot bypass gameplay. */}
       {open && view.challengeId && (
         <div
           ref={dialogueRef}
@@ -368,30 +379,57 @@ export function HallScene({
           <div id="hall-dialogue-contract" data-testid="hall-dialogue-contract" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, color: "#ece4d4" }}>
             {view.challengeName}
           </div>
+          {/* First glance: the projected verdict + one short reason. The raw squad
+              math sits behind a disclosure so the payoff reads as one clear call. */}
+          {heldReadiness && !view.resolved && (
+            <div data-testid="hall-dialogue-readiness" style={{ display: "grid", gap: 4 }}>
+              <span
+                data-projected={heldReadiness.projectedOutcome}
+                style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: PROJ_COLOR[heldReadiness.projectedOutcome] ?? "#8b7d6a" }}
+              >
+                {t("encounterShell.projected")}: {t(PROJ_LABEL[heldReadiness.projectedOutcome] ?? "encounterShell.projNone")}
+              </span>
+              {heldReadiness.reasons[0] && (
+                <span style={{ fontSize: 12, color: "#c9c0ad", fontFamily: "'Lora', Georgia, serif", textTransform: "none", letterSpacing: "normal" }}>
+                  {heldReadiness.reasons[0]}
+                </span>
+              )}
+              {heldReadiness.reasons.length > 1 && (
+                <details data-testid="hall-squad-details" style={{ fontSize: 10, color: "#8b7d6a" }}>
+                  <summary style={{ cursor: "pointer", letterSpacing: "0.06em", textTransform: "uppercase" }}>{t("hall.squadDetails")}</summary>
+                  <ul style={{ margin: "4px 0 0", paddingLeft: 16, textTransform: "none", letterSpacing: "normal", fontFamily: "'Lora', Georgia, serif", color: "#a59c8b" }}>
+                    {heldReadiness.reasons.slice(1).map((r, i) => <li key={i}>{r}</li>)}
+                  </ul>
+                </details>
+              )}
+            </div>
+          )}
           {!view.resolved && lootPending && (
             <div data-testid="hall-claim-first" style={{ color: "#e0a23a", fontSize: 11, letterSpacing: "0.04em" }}>
               {t("hall.claimFirst")}
             </div>
           )}
+          {/* One advancing action: enter the playable encounter (never a quick
+              resolve). One escape: Not yet. */}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
             {!view.resolved && (
               <button
                 type="button"
-                data-testid="hall-accept"
+                data-testid="hall-enter-contract"
                 disabled={!canTake || modalOpen}
-                onClick={accept}
+                onClick={enterFromBriefing}
                 style={{ ...btnPrimary, cursor: !canTake || modalOpen ? "not-allowed" : "pointer", opacity: !canTake || modalOpen ? 0.5 : 1 }}
               >
-                {t("hall.accept")}
+                {t("hall.enterNamed", { name: view.challengeName ?? "" })}
               </button>
             )}
             <button
               type="button"
-              data-testid="hall-leave"
+              data-testid="hall-not-yet"
               onClick={() => setOpen(false)}
               style={{ cursor: "pointer", padding: "8px 16px", border: "1px solid #4a4238", background: "transparent", color: "#a59c8b", fontFamily: "var(--px-font)", fontSize: 12, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase" }}
             >
-              {t("hall.leave")}
+              {t("hall.notYet")}
             </button>
           </div>
         </div>

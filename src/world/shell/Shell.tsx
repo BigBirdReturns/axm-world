@@ -157,6 +157,11 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   // A one-shot stage direction, deliberately absent from save state. Resuming a
   // marked cartridge returns to its world without replaying the founding beat.
   const [openingHandoff, setOpeningHandoff] = useState(false);
+  // The hall reports when its steward briefing is open; while it is, the desktop
+  // right rail suppresses its duplicated contract controls so the handoff exposes
+  // exactly one advancing action (the briefing's Enter). Hall-only by construction:
+  // the hall scene unmounts (and reports false) on leaving the hall view.
+  const [hallBriefingActive, setHallBriefingActive] = useState(false);
   const activeTheme = useMemo(() => themeForArc(world.cartridge.arc), [world.cartridge.arc]);
   const mayOpenMobileSelection = costumeId !== "globe" || isWorldInteractionUnlocked(ix.selectedId, ix.nearbyId);
 
@@ -221,6 +226,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
         onNavigate={choose}
         openingHandoff={openingHandoff}
         onOpeningHandoffComplete={() => setOpeningHandoff(false)}
+        onBriefingActiveChange={setHallBriefingActive}
       />
     </div>
   );
@@ -560,7 +566,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
           <aside style={{ width: 360, flex: "none", overflowY: "auto", padding: 12, borderLeft: "1px solid #2a2620", background: "rgba(15,13,9,0.6)" }}>
             {world.pendingLoot.length > 0 ? (
               <Card>{loot}</Card>
-            ) : contract ? (
+            ) : contract && !hallBriefingActive ? (
               <Card>{contract}</Card>
             ) : (
               <>

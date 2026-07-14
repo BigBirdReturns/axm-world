@@ -259,6 +259,9 @@ export type MessageId =
   | "hall.threshold"
   | "hall.approach"
   | "hall.enterEncounter"
+  | "hall.enterNamed"
+  | "hall.notYet"
+  | "hall.squadDetails"
   | "worldMap.difficulty"
   | "worldMap.enterEncounter"
   | "worldMap.talkToSteward"
@@ -683,6 +686,9 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "hall.threshold": "Encounter threshold",
     "hall.approach": "Approach",
     "hall.enterEncounter": "Enter encounter",
+    "hall.enterNamed": (params) => `Enter ${str(params, "name")}`,
+    "hall.notYet": "Not yet",
+    "hall.squadDetails": "Squad details",
     "worldMap.difficulty": "Difficulty",
     "worldMap.enterEncounter": "Enter Encounter",
     "worldMap.talkToSteward": "Talk to the steward",
@@ -1062,6 +1068,9 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "hall.threshold": "遭遇入口",
     "hall.approach": "靠近",
     "hall.enterEncounter": "進入遭遇",
+    "hall.enterNamed": (params) => `進入 ${str(params, "name")}`,
+    "hall.notYet": "尚未",
+    "hall.squadDetails": "隊伍細節",
     "worldMap.difficulty": "難度",
     "worldMap.enterEncounter": "進入遭遇",
     "worldMap.talkToSteward": "與管事對話",

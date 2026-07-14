@@ -31,6 +31,9 @@ export interface SceneProps {
    *  may present its authored steward and next contract. It is never save state. */
   openingHandoff?: boolean;
   onOpeningHandoffComplete?: () => void;
+  /** A scene (the hall) reports when its briefing/dialogue is open so the shell can
+   *  suppress the duplicated right-rail contract controls during the handoff. */
+  onBriefingActiveChange?: (active: boolean) => void;
 }
 
 export interface LegendEntry {
