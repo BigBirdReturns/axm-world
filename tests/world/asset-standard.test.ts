@@ -146,6 +146,7 @@ describe("asset standard: provenance headers", () => {
     "src/world/pixel-ui/PixelSprite.tsx",
     "src/world/themes/first-charter/motif-icons.tsx",
     "src/world/themes/first-charter/portrait-icons.tsx",
+    "src/world/themes/karazhan/portrait-icons.tsx",
     "src/world/brand/RodohRuntimeMark.tsx",
   ];
 

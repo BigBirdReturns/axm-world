@@ -14,14 +14,32 @@ describe("hallSteward — the authored person the hall surfaces", () => {
     expect(steward!.fulfilledLine.length).toBeGreaterThan(0);
   });
 
-  it("returns null for a cartridge that authors no people (hall uses a generic steward)", () => {
-    expect(hallSteward(KARAZHAN_CARTRIDGE)).toBeNull();
+  it("returns Karazhan's authored warden — the second cartridge is now first-class, not a generic fallback", () => {
+    // Dignity pass: Karazhan authors its own steward, proving the directing
+    // primitive generalizes beyond First Charter. Different fiction, same shape.
+    const steward = hallSteward(KARAZHAN_CARTRIDGE);
+    expect(steward).not.toBeNull();
+    expect(steward!.name).toBe("Aldous Venn");
+    expect(steward!.role).toBe("Warden of the Violet Eye");
+    expect(steward!.bio.length).toBeGreaterThan(0);
+    expect(steward!.greeting.length).toBeGreaterThan(0);
+    expect(steward!.fulfilledLine.length).toBeGreaterThan(0);
+    // A genuinely DIFFERENT person, not a First Charter reskin.
+    expect(steward!.name).not.toBe(hallSteward(FIRST_CHARTER_CARTRIDGE)!.name);
+  });
+
+  it("a cartridge that authors no people falls back to a generic runtime steward (null)", () => {
+    // The fallback still exists — an imported arc with no authored envelope.
+    const bare = parseCartridge(KARAZHAN_CARTRIDGE.arc);
+    expect(hallSteward(bare)).toBeNull();
   });
 
   it("authored people are cartridge-layer data — they do NOT change the computed identity", () => {
     // Identity is cartridgeDigest(arc); the authored people ride in the envelope,
     // so a cartridge with people resolves to the same identity as its bare arc.
     expect(cartridgeIdentity(FIRST_CHARTER_CARTRIDGE)).toBe(cartridgeIdentity({ ...FIRST_CHARTER_CARTRIDGE, people: undefined }));
+    // Same invariant for Karazhan's new authored people + opening.
+    expect(cartridgeIdentity(KARAZHAN_CARTRIDGE)).toBe(cartridgeIdentity({ ...KARAZHAN_CARTRIDGE, people: undefined, opening: undefined }));
   });
 
   it("parseCartridge preserves authored people (and opening) from a full envelope", () => {

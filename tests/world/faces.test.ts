@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import { PORTRAITS, PIXEL_PORTRAIT_NAMES, type PortraitSpec } from "../../src/world/pixel-ui/PixelPortrait.js";
 import { personPortrait } from "../../src/world/themes/first-charter/portrait-icons.js";
+import {
+  personPortrait as karazhanPortrait,
+  personSprite as karazhanSprite,
+} from "../../src/world/themes/karazhan/portrait-icons.js";
 import { FIRST_CHARTER_THEME } from "../../src/world/themes/first-charter/theme.js";
 import { MESSAGES } from "../../src/world/i18n/messages.js";
 
@@ -39,6 +43,23 @@ describe("faces (#72): portrait asset integrity", () => {
     const spec = personPortrait("charter-keeper");
     expect(spec).not.toBeNull();
     assertSpecIntegrity("charter-keeper", spec!);
+  });
+
+  it("the second cartridge's authored warden meets the SAME grid standard (dignity pass)", () => {
+    // Karazhan's steward gets a real authored face + body, in the same asset
+    // standard as First Charter's — proving the faces seam generalizes.
+    const portrait = karazhanPortrait("tower-warden");
+    expect(portrait).not.toBeNull();
+    assertSpecIntegrity("tower-warden portrait", portrait!);
+    const body = karazhanSprite("tower-warden");
+    expect(body).not.toBeNull();
+    assertSpecIntegrity("tower-warden body", body!);
+  });
+
+  it("Karazhan faces are keyed by AUTHORED id too — no invented faces for unknown people", () => {
+    expect(karazhanPortrait("tower-warden")).not.toBeNull();
+    expect(karazhanPortrait("Aldous Venn")).toBeNull(); // name is not an id
+    expect(karazhanPortrait("charter-keeper")).toBeNull(); // not this cartridge's person
   });
 
   it("authored faces are keyed by AUTHORED id, and unknown people get no invented face", () => {

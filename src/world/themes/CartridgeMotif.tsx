@@ -7,6 +7,7 @@
 import * as FirstCharter from "./first-charter/motif-icons.js";
 import * as Karazhan from "./karazhan/motif-icons.js";
 import { PersonPortraitIcon, PersonSpriteIcon } from "./first-charter/portrait-icons.js";
+import * as KarazhanPeople from "./karazhan/portrait-icons.js";
 import { FIRST_CHARTER_THEME } from "./first-charter/theme.js";
 import { KARAZHAN_THEME } from "./karazhan/theme.js";
 
@@ -32,6 +33,9 @@ export function CartridgeMotif({ arcId, challengeId, size = 20, className = "" }
  *  null otherwise, so callers keep their existing neutral figure. Faces are
  *  presentation over authored identity, never generated for unnamed figures. */
 export function CartridgePortrait({ arcId, personId, size = 32, className = "" }: { arcId: string; personId: string; size?: number; className?: string }): JSX.Element | null {
+  if (arcId === KARAZHAN_THEME.id) {
+    return <KarazhanPeople.PersonPortraitIcon personId={personId} size={size} className={className} />;
+  }
   if (arcId === FIRST_CHARTER_THEME.id) {
     return <PersonPortraitIcon personId={personId} size={size} className={className} />;
   }
@@ -41,6 +45,9 @@ export function CartridgePortrait({ arcId, personId, size = 32, className = "" }
 /** An AUTHORED person's standing BODY for staged scenes — same honesty rule as
  *  CartridgePortrait: authored people only, null otherwise. */
 export function CartridgeSprite({ arcId, personId, size = 44, className = "" }: { arcId: string; personId: string; size?: number; className?: string }): JSX.Element | null {
+  if (arcId === KARAZHAN_THEME.id) {
+    return <KarazhanPeople.PersonSpriteIcon personId={personId} size={size} className={className} />;
+  }
   if (arcId === FIRST_CHARTER_THEME.id) {
     return <PersonSpriteIcon personId={personId} size={size} className={className} />;
   }
