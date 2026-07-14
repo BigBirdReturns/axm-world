@@ -7,6 +7,7 @@ import { groupDecisionEffects, resolveWorldDecision } from "../../src/world/deci
 import { openingReactionTone } from "../../src/world/components/OpeningDecisionStage.js";
 import { emptyLedger } from "../../src/world/ledger.js";
 import { loadRun, saveRun, type KVStorage } from "../../src/world/save.js";
+import { cartridgeIdentity } from "../../src/world/cartridge-identity.js";
 
 function fakeStorage(): KVStorage {
   const values = new Map<string, string>();
@@ -66,7 +67,7 @@ describe("decision commit and authoritative readback", () => {
 
   it("persists the exact option and applied state across reload and custody export", () => {
     const result = resolveWorldDecision(openingOrg(), "open-charter")!;
-    const digest = "cart1_decision_receipt";
+    const digest = cartridgeIdentity(FIRST_CHARTER_CARTRIDGE);
     const ledger = emptyLedger(digest);
     const storage = fakeStorage();
     saveRun(storage, {
@@ -119,11 +120,11 @@ describe("decision commit and authoritative readback", () => {
     const agentCount = Object.keys(openingOrg().agents).length;
     expect(groups).toEqual([
       { type: "morale", count: agentCount, minDelta: 8, maxDelta: 8 },
-      // One agent is capped, so the summary must preserve the actual 2–3 range
-      // instead of repeating the authored +3 claim.
-      { type: "loyalty", count: agentCount, minDelta: 2, maxDelta: 3 },
+      // One founder is already capped, so the response honestly omits its
+      // zero delta instead of repeating the authored +3 claim.
+      { type: "loyalty", count: agentCount - 1, minDelta: 3, maxDelta: 3 },
     ]);
-    expect(response.effects).toHaveLength(agentCount * 2);
+    expect(response.effects).toHaveLength(agentCount * 2 - 1);
     expect(openingReactionTone(response)).toBe("lifted");
   });
 

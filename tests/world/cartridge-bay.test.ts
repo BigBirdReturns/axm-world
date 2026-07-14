@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import fs from "node:fs";
 import { FIRST_CHARTER } from "../../src/arcs/index.js";
-import { bootstrapOrg } from "../../src/spoke/bootstrap.js";
+import { foundOrganization } from "../../src/engine/founding.js";
 import { compileArcToPlayScene } from "../../src/play-pipeline/compile.js";
 import type { Arc } from "../../src/engine/types.js";
 import {
@@ -49,6 +49,8 @@ function read(path: string): string {
 function dummyOpsArc(): Arc {
   return {
     ...FIRST_CHARTER,
+    opening: undefined,
+    founding: undefined,
     meta: {
       ...FIRST_CHARTER.meta,
       id: "operations-lab-demo",
@@ -81,11 +83,11 @@ describe("cartridge bay: bundled cartridges", () => {
     expect(bundled!.trust).toBe("bundled");
   });
 
-  it("cartridgeForEntry resolves the bundled entry to the real FIRST_CHARTER_CARTRIDGE, opening included", () => {
+  it("cartridgeForEntry resolves bundled Arc-owned opening law", () => {
     const [bundled] = ensureBundledCartridges();
     const cartridge = cartridgeForEntry(bundled!);
-    expect(cartridge.opening).toBeDefined();
-    expect(cartridge.opening!.triggerType).toBe("founding-oath");
+    expect(cartridge.arc.opening).toBeDefined();
+    expect(cartridge.arc.opening!.triggerType).toBe("founding-oath");
   });
 });
 
@@ -101,6 +103,56 @@ describe("cartridge bay: import", () => {
 
     const stored = loadCartridgeBay();
     expect(stored.some((e) => e.arc.meta.id === "operations-lab-demo" && e.source === "file")).toBe(true);
+  });
+
+  it("imports a full presentation envelope without accepting self-asserted trust", () => {
+    const arc = dummyOpsArc();
+    const people = [{
+      id: "ops-guide",
+      name: "Iris Vale",
+      role: "Guide",
+      bio: "Keeps the operation legible.",
+      greeting: "Ready when you are.",
+      fulfilledLine: "Recorded.",
+    }];
+    const result = importCartridgeFromJson(JSON.stringify({
+      manifest: {
+        id: "spoofed-id",
+        name: "Spoofed Name",
+        domain: "spoofed-domain",
+        engineVersion: "999.0.0",
+        trust: "verified",
+        preferredCostume: "map",
+      },
+      arc,
+      people,
+    }));
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected ok");
+
+    const cartridge = cartridgeForEntry(result.entry);
+    expect(cartridge.people).toEqual(people);
+    expect(cartridge.manifest).toMatchObject({
+      id: arc.meta.id,
+      name: arc.meta.name,
+      domain: arc.meta.domain,
+      engineVersion: arc.meta.engineVersion,
+      trust: "imported-unsigned",
+      preferredCostume: "map",
+    });
+  });
+
+  it("rejects an envelope-only executable opening through the actual import seam", () => {
+    const arc = { ...dummyOpsArc(), opening: undefined };
+    const result = importCartridgeFromJson(JSON.stringify({
+      manifest: { id: arc.meta.id },
+      arc,
+      opening: FIRST_CHARTER.opening,
+    }));
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("expected failure");
+    expect(result.errors.join(" ")).toMatch(/outside Arc identity/);
+    expect(loadCartridgeBay()).toEqual([]);
   });
 
   it("rejects invalid JSON without ever storing a half-loaded cartridge", () => {
@@ -181,10 +233,10 @@ describe("cartridge bay: behavioral — an imported cartridge with a wholly diff
     if (!result.ok) throw new Error("expected ok");
 
     const cartridge = cartridgeForEntry(result.entry);
-    // No authored opening for an imported cartridge — the boot path must not require one.
-    expect(cartridge.opening).toBeUndefined();
+    // This legacy imported Arc authors no opening; World never synthesizes one.
+    expect(cartridge.arc.opening).toBeUndefined();
 
-    const org = bootstrapOrg(cartridge.arc);
+    const org = foundOrganization(cartridge.arc);
     expect(Object.keys(org.agents).length).toBeGreaterThan(0);
 
     const scene = compileArcToPlayScene(cartridge.arc, org);

@@ -150,10 +150,11 @@ describe("PR 058 — a11y pass: bay root region + live regions on the import flo
 
 describe("PR 057 — classic-row save-state indicator (bay-save-state)", () => {
   const card = read("src/world/components/CartridgeBayCard.tsx");
+  const player = read("src/world/Player.tsx");
 
   it("ClassicRow renders a save-state line, reusing the same `save` prop as MemoryLine", () => {
     expect(card).toContain('data-testid="bay-save-state"');
-    expect(card).toContain("function SaveStateLine({ save }: { save: ProgramSaveSummary | null })");
+    expect(card).toContain("function SaveStateLine({ save }");
     // Same documented semantics the ProgramPlaque already uses: `save !== null`
     // ⇒ resumable. No second derivation invented for the classic row.
     expect(card).toContain("const resumable = save !== null;");
@@ -168,6 +169,20 @@ describe("PR 057 — classic-row save-state indicator (bay-save-state)", () => {
     expect(saveStateFn).toContain('t("boot.resumable")');
     expect(saveStateFn).toContain('t("boot.freshEntry")');
     expect(saveStateFn).not.toContain('t("boot.freshProgram")');
+  });
+
+  it("associates historical evidence only with the exact bundled revision", () => {
+    expect(player).toContain('entry.source === "bundled"');
+    expect(player).toContain("digest === EXPECTED_BUNDLED_DIGESTS[c.arc.meta.id]");
+    expect(player).toContain("LEGACY_BUNDLED_DIGESTS[c.arc.meta.id]");
+  });
+
+  it("keeps legacy evidence independent from current resumability", () => {
+    expect(card).toContain('data-testid="bay-legacy-evidence"');
+    expect(card).toContain("<LegacyEvidenceLine legacySave={legacySave} />");
+    expect(card).toContain('t("boot.legacyRunUnavailable")');
+    expect(card).toContain("const resumable = save !== null;");
+    expect(card).not.toContain("const resumable = legacySave");
   });
 
   it("the underlying save-presence facts drive resumable vs fresh exactly as documented", () => {

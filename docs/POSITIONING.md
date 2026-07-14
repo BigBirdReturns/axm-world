@@ -73,8 +73,9 @@ artifact format"**—demonstrated by a game good enough to stand on its own:
 7. Finish a run.
 8. Replay or verify that run from a hash.
 
-Steps 1–3 exist in the hub today. Step 5's machinery exists
-(`bootstrapOrg` boots any valid arc); the loader door is the gap.
+Steps 1–3 exist in the hub today. Step 5's machinery exists: the shared
+`foundOrganization` transition boots any valid Arc from identity-bound law or
+the frozen legacy fallback; the loader door is the gap.
 Step 6 has board + planet today; comic/report and novella are costumes to
 be built on the same seam. Step 8 rests on determinism today (same arc +
 seed → same run) and on Genesis signing/hashing for the full story.

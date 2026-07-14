@@ -1,8 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { bootstrapOrg } from "../../src/spoke/bootstrap";
-import { FIRST_CHARTER_CARTRIDGE } from "../../src/world/cartridge";
+import { FIRST_CHARTER_CARTRIDGE, KARAZHAN_CARTRIDGE } from "../../src/world/cartridge";
+import { cartridgeIdentity } from "../../src/world/cartridge-identity";
 import { emptyLedger, appendResult, LEDGER_SCHEMA_VERSION, type Consequence } from "../../src/world/ledger";
-import { saveRun, loadRun, clearRun, readProgramSaveSummary, SAVE_SCHEMA_VERSION, saveKeyFor, type KVStorage } from "../../src/world/save";
+import {
+  saveRun,
+  loadRun,
+  clearRun,
+  readLegacyProgramSaveSummary,
+  readProgramSaveSummary,
+  SAVE_SCHEMA_VERSION,
+  saveKeyFor,
+  type KVStorage,
+} from "../../src/world/save";
+import { LEGACY_BUNDLED_DIGESTS } from "../../src/world/legacy-revisions";
 
 function fakeStorage(): KVStorage {
   const map = new Map<string, string>();
@@ -14,7 +25,7 @@ function fakeStorage(): KVStorage {
 }
 
 const arc = FIRST_CHARTER_CARTRIDGE.arc;
-const DIGEST = "cart1_first";
+const DIGEST = cartridgeIdentity(FIRST_CHARTER_CARTRIDGE);
 
 describe("program run persistence", () => {
   it("round-trips org + ledger + opening choice for the same authored program", () => {
@@ -93,13 +104,34 @@ describe("program run persistence", () => {
     expect(loadRun(s, { arc, authoredArcDigest: "cart1_other" })).toBeNull();
   });
 
+  it("refuses to create an aliased slot or persist cross-digest ledger entries", () => {
+    const s = fakeStorage();
+    const org = bootstrapOrg(arc);
+    expect(() => saveRun(s, {
+      arc,
+      authoredArcDigest: "cart1_foreign",
+      state: { org, ledger: emptyLedger("cart1_foreign") },
+    })).toThrow(/foreign authored identity/);
+
+    const ledger = appendResult(emptyLedger(DIGEST), {
+      challengeId: "c1",
+      challengeName: "One",
+      outcome: "success",
+      cycle: 0,
+    });
+    ledger.entries[0] = { ...ledger.entries[0]!, authoredArcDigest: "cart1_foreign" };
+    expect(() => saveRun(s, { arc, authoredArcDigest: DIGEST, state: { org, ledger } }))
+      .toThrow(/ledger under a different authored identity/);
+  });
+
   it("keeps a per-program slot: a second program's save never clobbers the first", () => {
     const s = fakeStorage();
-    const other = "cart1_second";
+    const otherArc = KARAZHAN_CARTRIDGE.arc;
+    const other = cartridgeIdentity(KARAZHAN_CARTRIDGE);
     const firstLedger = appendResult(emptyLedger(DIGEST), { challengeId: "c1", challengeName: "One", outcome: "success", cycle: 0 });
     // Play the first program, then a second one saves its own fresh run.
     saveRun(s, { arc, authoredArcDigest: DIGEST, state: { org: bootstrapOrg(arc), ledger: firstLedger, openingChoice: "First choice" } });
-    saveRun(s, { arc, authoredArcDigest: other, state: { org: bootstrapOrg(arc), ledger: emptyLedger(other) } });
+    saveRun(s, { arc: otherArc, authoredArcDigest: other, state: { org: bootstrapOrg(otherArc), ledger: emptyLedger(other) } });
     // Returning to the first program still restores its own state, not fresh.
     const first = loadRun(s, { arc, authoredArcDigest: DIGEST });
     expect(first).not.toBeNull();
@@ -172,5 +204,90 @@ describe("readProgramSaveSummary (boot-plaque view)", () => {
     const s = fakeStorage();
     s.setItem(saveKeyFor(DIGEST), "{not json");
     expect(readProgramSaveSummary(s, { arc, authoredArcDigest: DIGEST })).toBeNull();
+  });
+});
+
+describe("readLegacyProgramSaveSummary (historical evidence only)", () => {
+  const OLD_DIGEST = LEGACY_BUNDLED_DIGESTS["first-charter"]!;
+
+  function writeHistoricalSlot(s: KVStorage, ledger = emptyLedger(OLD_DIGEST)): void {
+    // Build a structurally real engine save through the current writer, then
+    // place that opaque historical evidence under its old content identity.
+    // Production code has no equivalent write/move path.
+    saveRun(s, {
+      arc,
+      authoredArcDigest: DIGEST,
+      state: { org: bootstrapOrg(arc), ledger: emptyLedger(DIGEST) },
+    });
+    const currentKey = saveKeyFor(DIGEST);
+    const stored = JSON.parse(s.getItem(currentKey)!);
+    stored.authoredArcDigest = OLD_DIGEST;
+    stored.ledger = ledger;
+    s.setItem(saveKeyFor(OLD_DIGEST), JSON.stringify(stored));
+    s.removeItem(currentKey);
+  }
+
+  it("summarizes the historical slot without creating, moving, or rewriting a current slot", () => {
+    const s = fakeStorage();
+    let ledger = emptyLedger(OLD_DIGEST);
+    ledger = appendResult(ledger, {
+      challengeId: "the-cellar",
+      challengeName: "The Cellar",
+      outcome: "success",
+      cycle: 0,
+    });
+    writeHistoricalSlot(s, ledger);
+
+    const oldKey = saveKeyFor(OLD_DIGEST);
+    const currentKey = saveKeyFor(DIGEST);
+    const before = s.getItem(oldKey);
+    expect(before).not.toBeNull();
+    expect(s.getItem(currentKey)).toBeNull();
+
+    expect(readLegacyProgramSaveSummary(s, OLD_DIGEST)).toEqual({
+      authoredArcDigest: OLD_DIGEST,
+      ledgerEntryCount: 1,
+      lastResult: { challengeName: "The Cellar", outcome: "success" },
+      status: "legacy-profile-unavailable",
+    });
+
+    // Reading the historical evidence never aliases it to the new authored
+    // identity and never mutates the old blob in place.
+    expect(s.getItem(oldKey)).toBe(before);
+    expect(s.getItem(currentKey)).toBeNull();
+    expect(loadRun(s, { arc, authoredArcDigest: DIGEST })).toBeNull();
+    // Even an explicit attempt to pair the old key with today's Arc bytes is
+    // rejected by loadRun's content-identity gate.
+    expect(loadRun(s, { arc, authoredArcDigest: OLD_DIGEST })).toBeNull();
+  });
+
+  it("rejects malformed or internally cross-digest historical ledgers", () => {
+    const s = fakeStorage();
+    writeHistoricalSlot(s);
+
+    const key = saveKeyFor(OLD_DIGEST);
+    const stored = JSON.parse(s.getItem(key)!);
+    stored.ledger.authoredArcDigest = "cart1_other";
+    s.setItem(key, JSON.stringify(stored));
+    expect(readLegacyProgramSaveSummary(s, OLD_DIGEST)).toBeNull();
+
+    stored.ledger.authoredArcDigest = OLD_DIGEST;
+    stored.ledger.entries = [{
+      authoredArcDigest: "cart1_other",
+      challengeName: "The Cellar",
+      outcome: "success",
+    }];
+    s.setItem(key, JSON.stringify(stored));
+    expect(readLegacyProgramSaveSummary(s, OLD_DIGEST)).toBeNull();
+  });
+
+  it("requires an opaque engine-state blob before claiming historical evidence", () => {
+    const s = fakeStorage();
+    writeHistoricalSlot(s);
+    const key = saveKeyFor(OLD_DIGEST);
+    const stored = JSON.parse(s.getItem(key)!);
+    delete stored.game;
+    s.setItem(key, JSON.stringify(stored));
+    expect(readLegacyProgramSaveSummary(s, OLD_DIGEST)).toBeNull();
   });
 });

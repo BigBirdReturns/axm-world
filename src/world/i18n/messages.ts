@@ -357,6 +357,7 @@ export type MessageId =
   | "boot.freshProgram"
   | "boot.contractsRecorded"
   | "boot.resumable"
+  | "boot.legacyRunUnavailable"
   | "boot.enter"
   | "boot.resume"
   // ── boot screen: chrome copy (swept from bare literals) ──────────────────
@@ -788,6 +789,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
       return `${count} contract${count === 1 ? "" : "s"} recorded`;
     },
     "boot.resumable": "Resumable",
+    "boot.legacyRunUnavailable": "Legacy 1.0 run evidence preserved — replay profile unavailable",
     "boot.enter": "Enter",
     "boot.resume": "Resume",
     "boot.runtimeEyebrow": "AXM-WORLD runtime shell",
@@ -1161,6 +1163,7 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "boot.freshProgram": "全新程式 — 尚無執行記錄",
     "boot.contractsRecorded": (params) => `已記錄 ${num(params, "count")} 份契約`,
     "boot.resumable": "可繼續",
+    "boot.legacyRunUnavailable": "舊版 1.0 執行證據已保留 — 重播設定檔目前無法使用",
     "boot.enter": "進入",
     "boot.resume": "繼續",
     "boot.runtimeEyebrow": "AXM-WORLD 執行環境外殼",

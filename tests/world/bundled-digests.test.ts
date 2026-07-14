@@ -16,6 +16,7 @@ import type { Arc } from "../../src/engine/types";
 import { BUNDLED_CARTRIDGES } from "../../src/world/cartridge";
 import { cartridgeIdentity } from "../../src/world/cartridge-identity";
 import { EXPECTED_BUNDLED_DIGESTS } from "../../src/world/bundled-digests";
+import { LEGACY_BUNDLED_DIGESTS } from "../../src/world/legacy-revisions";
 
 describe("bundled cartridge golden digests", () => {
   const actual: Record<string, string> = {};
@@ -23,6 +24,13 @@ describe("bundled cartridge golden digests", () => {
 
   it("each bundled cartridge matches its expected golden digest", () => {
     expect(actual).toEqual(EXPECTED_BUNDLED_DIGESTS);
+  });
+
+  it("keeps historical locators distinct from the current identity manifest", () => {
+    expect(Object.keys(LEGACY_BUNDLED_DIGESTS).sort()).toEqual(Object.keys(EXPECTED_BUNDLED_DIGESTS).sort());
+    for (const id of Object.keys(EXPECTED_BUNDLED_DIGESTS)) {
+      expect(EXPECTED_BUNDLED_DIGESTS[id]).not.toBe(LEGACY_BUNDLED_DIGESTS[id]);
+    }
   });
 
   it("cartridge identity is the digest of the authored arc (custody-independent)", () => {

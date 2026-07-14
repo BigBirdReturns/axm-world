@@ -144,7 +144,11 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   // The playable-encounter surface: the same selected contract, entered as a
   // spatial encounter compiled from its record. This is the shell's one commit
   // path on desktop and mobile; the player never chooses between two verbs.
-  const [encounterOpen, setEncounterOpen] = useState(false);
+  // Hold the exact committed challenge, not merely an "open" flag. Hall/map
+  // entry calls ix.select asynchronously; rendering from ix.selectedId in that
+  // same turn can otherwise open the previously selected contract and remount
+  // mid-resolution when selection catches up.
+  const [encounterChallengeId, setEncounterChallengeId] = useState<string | null>(null);
   // Party to seed the encounter with. null = use the board-assembled party
   // (ix.party) for the currently selected contract. Non-null = an explicit party
   // for an encounter entered via onEnterEncounter (hall/map), where ix.party would
@@ -197,7 +201,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     [presentations],
   );
   const active = useMemo(() => presentations.find((p) => p.id === costumeId) ?? presentations[0]!, [presentations, costumeId]);
-  const modalOpen = world.pendingDecision !== null || decisionResponse !== null || encounterOpen;
+  const modalOpen = world.pendingDecision !== null || decisionResponse !== null || encounterChallengeId !== null;
   const selectionVisible = active.id !== "globe" || isWorldInteractionUnlocked(ix.selectedId, ix.nearbyId);
   const showPurpose = !dismissedPurpose[active.id] && !modalOpen;
   const dismissPurpose = () => setDismissedPurpose((p) => ({ ...p, [active.id]: true }));
@@ -211,7 +215,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     // party reseed runs in a later effect, so ix.party can still hold the previous
     // selection's party when EncounterShell snapshots it at mount.
     setEncounterParty(world.recommendedParty(challengeId));
-    setEncounterOpen(true);
+    setEncounterChallengeId(challengeId);
   };
 
   const PresentationScene = active.Scene;
@@ -328,7 +332,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
       variant="primary"
       data-testid="play-encounter-button"
       disabled={!ix.canRun}
-      onClick={() => { setEncounterParty(null); setEncounterOpen(true); }}
+      onClick={() => { setEncounterParty(null); setEncounterChallengeId(ix.selectedId); }}
       style={{ width: "100%", minHeight: isMobile ? 56 : 44, fontSize: isMobile ? 14 : undefined, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
     >
       <PixelIcon name="available" /> <span>{t("encounterShell.playEncounter")}</span>
@@ -633,12 +637,12 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
         />
       )}
       {showHistory && world.lastRecord && <RecordModal record={world.lastRecord} onClose={() => setShowHistory(false)} />}
-      {encounterOpen && ix.selectedId && (
+      {encounterChallengeId && (
         <EncounterShell
           world={world}
-          challengeId={ix.selectedId}
+          challengeId={encounterChallengeId}
           party={encounterParty ?? ix.party}
-          onClose={() => { setEncounterOpen(false); setEncounterParty(null); }}
+          onClose={() => { setEncounterChallengeId(null); setEncounterParty(null); }}
         />
       )}
     </div>

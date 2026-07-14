@@ -11,8 +11,8 @@ import { describe, expect, it } from "vitest";
 import {
   FIRST_CHARTER_CARTRIDGE,
   KARAZHAN_CARTRIDGE,
-  type AuthoredOpening,
 } from "../../src/world/cartridge";
+import type { AuthoredOpening } from "../../src/engine/types";
 import { hallSteward } from "../../src/world/inhabited/people";
 
 const EFFECT_TYPES = new Set(["morale", "stress", "loyalty"]);
@@ -39,13 +39,13 @@ function assertWellFormedOpening(label: string, opening: AuthoredOpening | undef
 
 describe("Karazhan dignity pass — the second cartridge is first-class", () => {
   it("Karazhan authors a well-formed cold-entry opening beat", () => {
-    assertWellFormedOpening("Karazhan", KARAZHAN_CARTRIDGE.opening);
+    assertWellFormedOpening("Karazhan", KARAZHAN_CARTRIDGE.arc.opening);
   });
 
   it("the opening card id derives generically from the authored trigger type", () => {
     // The runtime mints the decision id as `opening:${triggerType}` (useArcWorld),
     // which the shell keys the handoff on — no cartridge name is hardcoded.
-    expect(`opening:${KARAZHAN_CARTRIDGE.opening!.triggerType}`).toBe("opening:warding-oath");
+    expect(`opening:${KARAZHAN_CARTRIDGE.arc.opening!.triggerType}`).toBe("opening:warding-oath");
   });
 
   it("an authored steward carries the opening (not a runtime abstraction)", () => {
@@ -57,10 +57,10 @@ describe("Karazhan dignity pass — the second cartridge is first-class", () => 
   });
 
   it("BOTH bundled cartridges now meet the directing standard, in different fictions", () => {
-    assertWellFormedOpening("First Charter", FIRST_CHARTER_CARTRIDGE.opening);
-    assertWellFormedOpening("Karazhan", KARAZHAN_CARTRIDGE.opening);
+    assertWellFormedOpening("First Charter", FIRST_CHARTER_CARTRIDGE.arc.opening);
+    assertWellFormedOpening("Karazhan", KARAZHAN_CARTRIDGE.arc.opening);
     // Same shape, genuinely different content — not a reskin.
-    expect(KARAZHAN_CARTRIDGE.opening!.narrativeText).not.toBe(FIRST_CHARTER_CARTRIDGE.opening!.narrativeText);
+    expect(KARAZHAN_CARTRIDGE.arc.opening!.narrativeText).not.toBe(FIRST_CHARTER_CARTRIDGE.arc.opening!.narrativeText);
     expect(hallSteward(KARAZHAN_CARTRIDGE)!.name).not.toBe(hallSteward(FIRST_CHARTER_CARTRIDGE)!.name);
   });
 });

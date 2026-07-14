@@ -49,4 +49,10 @@ describe("hall opening handoff — one advancing action, no bypass", () => {
     expect(shell).toContain("onBriefingActiveChange={setHallBriefingActive}");
     expect(shell).toContain("contract && !hallBriefingActive");
   });
+
+  it("carries the Hall's exact challenge id into the encounter without a stale-selection remount", () => {
+    expect(shell).toContain("setEncounterChallengeId(challengeId)");
+    expect(shell).toContain("challengeId={encounterChallengeId}");
+    expect(shell).not.toContain("encounterOpen && ix.selectedId");
+  });
 });

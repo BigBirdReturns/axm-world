@@ -10,7 +10,6 @@ import {
 } from "../../src/world/cartridge-bay.js";
 import { cartridgeIdentity } from "../../src/world/cartridge-identity.js";
 import {
-  applianceRosterSize,
   FIRST_LOCKOUT_DIGEST,
   firstLockoutCartridgeJson,
 } from "../../src/world/appliance/index.js";
@@ -19,7 +18,7 @@ import {
   emptyLedger,
   summarizeLedger,
 } from "../../src/world/ledger.js";
-import { bootstrapOrg } from "../../src/spoke/bootstrap.js";
+import { foundOrganization } from "../../src/engine/founding.js";
 import { resolveChallenge } from "../../src/engine/resolver.js";
 import type { Agent, Arc, Challenge } from "../../src/engine/types.js";
 
@@ -77,7 +76,7 @@ function legalParty(agents: Agent[], challenge: Challenge): Agent[] {
 }
 
 function resolveGateWarden(arc: Arc) {
-  const org = bootstrapOrg(arc, { rosterSize: applianceRosterSize(arc) });
+  const org = foundOrganization(arc);
   const challenge = arc.challenges.find((c) => c.id === "the-gate-warden")!;
   const party = legalParty(Object.values(org.agents), challenge);
   const report = resolveChallenge({ challenge, assignedAgents: party, org, arc, cycle: 1 });

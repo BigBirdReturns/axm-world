@@ -9,6 +9,16 @@ encounters, records to the digest-keyed ledger, boots under arc's digest) and
 the cartridge bay (`src/world/cartridge-bay.ts`: load / ensureBundled / list /
 import / remove).
 
+## Convergence amendment (2026-07-14)
+
+RFC 0008 moved founding authority into the identity-bound Arc and the shared
+engine. The historical PR 054 implementation below is therefore superseded:
+World no longer computes `applianceRosterSize` or passes World-owned bootstrap
+options. Every fresh boot calls `foundOrganization(arc, input)`; an authored
+`arc.founding` law wins, and old Arcs use the engine's frozen deterministic
+fallback. The original ruling remains recorded below as history, not current
+runtime authority.
+
 ## The one rule
 
 > **The appliance path is one path. A cartridge earns its boot by what can be

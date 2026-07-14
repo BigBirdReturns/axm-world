@@ -16,7 +16,9 @@ import {
 } from "./cartridge-bay.js";
 import { cartridgeIdentity } from "./cartridge-identity.js";
 import { programForCartridge } from "./program-of-record.js";
-import { readProgramSaveSummary } from "./save.js";
+import { readLegacyProgramSaveSummary, readProgramSaveSummary } from "./save.js";
+import { LEGACY_BUNDLED_DIGESTS } from "./legacy-revisions.js";
+import { EXPECTED_BUNDLED_DIGESTS } from "./bundled-digests.js";
 import { CartridgeBayCard } from "./components/CartridgeBayCard.js";
 import { LocaleSwitcher } from "./components/LocaleSwitcher.js";
 import { CartridgeEnterTransition } from "./components/CartridgeEnterTransition.js";
@@ -186,6 +188,16 @@ export function Player(): JSX.Element {
             // path to keep in sync, and an entry never played has no slot to
             // read (readProgramSaveSummary returns null: honest omission).
             const save = readProgramSaveSummary(localStorage, { arc: c.arc, authoredArcDigest: digest });
+            // Historical identities belong only to the exact bundled revision
+            // they supersede. A file import may reuse an Arc id, but it must
+            // never inherit the bundled cartridge's legacy evidence plaque.
+            const legacyDigest = entry.source === "bundled"
+              && digest === EXPECTED_BUNDLED_DIGESTS[c.arc.meta.id]
+              ? LEGACY_BUNDLED_DIGESTS[c.arc.meta.id]
+              : undefined;
+            const legacySave = legacyDigest
+              ? readLegacyProgramSaveSummary(localStorage, legacyDigest)
+              : null;
             return (
               <CartridgeBayCard
                 key={`${entry.arc.meta.id}:${entry.source}`}
@@ -193,6 +205,7 @@ export function Player(): JSX.Element {
                 cartridge={c}
                 program={program}
                 save={save}
+                legacySave={legacySave}
                 digest={digest}
                 onEnter={() => enterCartridge(c)}
                 onRemove={() => handleRemove(entry)}

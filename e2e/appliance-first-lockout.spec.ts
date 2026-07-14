@@ -70,7 +70,7 @@ test("first-lockout imports and boots in the appliance client under arc's digest
   await expect(preflightDigest).toHaveAttribute("aria-label", new RegExp(FIRST_LOCKOUT_DIGEST));
   await expect(page.getByTestId("bay-import-preflight-action")).toContainText(/new/i);
 
-  // Enter it. An imported cartridge carries no authored opening, so we land
+  // Enter it. This Arc authors no opening, so we land
   // straight in the embodied shell — no opening decision to resolve.
   await page.getByTestId("play-cartridge-first-lockout").click();
 
@@ -87,9 +87,9 @@ test("first-lockout imports and boots in the appliance client under arc's digest
   // the "PROGRAM 001 / program of record" framing must not attach to it.
   await expect(page.getByTestId("strip-program")).toHaveCount(0);
 
-  // PR 054 — the generic appliance boot: first-lockout's own encounters all
-  // need an 8-10 agent party (bootstrap's flat default of 6 could never field
-  // one). The cold-start selection auto-seeds the party with the engine's own
+  // The shared engine's frozen legacy founding law reads first-lockout's own
+  // encounters, which need an 8-10 agent party. The cold-start selection
+  // auto-seeds the party with the engine's own
   // recommendation, so the shell landing here — no extra clicks — is itself
   // the receipt that the fresh-booted org was sized from the cartridge's real
   // requirement, not a fixed constant.
