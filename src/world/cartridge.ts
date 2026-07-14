@@ -168,13 +168,72 @@ export const FIRST_CHARTER_CARTRIDGE: Cartridge = {
   people: FIRST_CHARTER_PEOPLE,
 };
 
+/** Karazhan's opening beat — a founding posture, not a tactical one: on what terms
+ *  the raid takes the dead Guardian's tower. Same shape as the First Charter oath
+ *  (authored cartridge DATA, resolved by the ordinary engine decision path), a
+ *  different fiction — proving the opening primitive is cartridge-agnostic. */
+export const KARAZHAN_OPENING: AuthoredOpening = {
+  triggerType: "warding-oath",
+  narrativeText:
+    "The last Guardian is dead, and his tower has not gone quiet. Wards that held for a lifetime are thinning, and what they held is stirring — stables, halls, and the master's ruined court, all waking at once. The Violet Eye grants your raid the key and the tally both: clear Karazhan, and every wing you reclaim is counted against the order's name. The raiders wait at the door for your word.",
+  options: [
+    {
+      id: "sworn-to-the-eye",
+      label: "Answer to the Violet Eye",
+      description:
+        "You take the tower as the order's sanctioned raid — its key, its rules, its tally. The raiders stand a little straighter under a name worth answering to.",
+      effects: [
+        { scope: "all", type: "morale", value: 7 },
+        { scope: "all", type: "loyalty", value: 3 },
+      ],
+    },
+    {
+      id: "for-the-standing",
+      label: "Go in for the standing",
+      description:
+        "The Eye's ranks are climbed by those who clear what others cannot. You take the tower to prove the roster — drive ahead of devotion.",
+      effects: [
+        { scope: "all", type: "morale", value: 3 },
+        { scope: "all", type: "stress", value: 1 },
+      ],
+    },
+    {
+      id: "for-the-vaults",
+      label: "Strip the tower's vaults",
+      description:
+        "A dead Guardian's hoard outweighs an order's name. The raid goes in for what it can carry out — and knows it.",
+      effects: [
+        { scope: "all", type: "morale", value: -4 },
+        { scope: "all", type: "stress", value: 2 },
+      ],
+    },
+  ],
+};
+
+/** Karazhan's authored people — the warden the raid meets at the tower door.
+ *  Like Maren Vos, she is the one who RECORDS: the same honesty spine (a person
+ *  who sees the work counted) in a wholly different fiction. */
+export const KARAZHAN_PEOPLE: AuthoredPerson[] = [
+  {
+    id: "tower-warden",
+    name: "Aldous Venn",
+    role: "Warden of the Violet Eye",
+    bio: "The order's warden at the tower door. Venn keeps the Violet Eye's tally — every wing the raid reclaims, every raider it spends — and answers to the order for all of it.",
+    greeting: "The wards are thin and the next wing is waiting. Take the raid in when you're ready — the Eye will hear how it went from me.",
+    fulfilledLine: "Cleared, and counted. The Eye's tally holds what your raid did in there.",
+  },
+];
+
 /** The second bundled game: Karazhan. Structurally distinct from First Charter —
  *  raid roles, attunement gates, and (unlike First Charter) an authored Heroic
- *  difficulty mode. That authored lever is what lets its encounters offer a
- *  posture choice while First Charter's cannot. No opening beat authored. */
+ *  difficulty mode. It now authors its own opening beat and warden, so the same
+ *  self-teaching directing loop (oath → steward briefing → one advancing action)
+ *  plays over a second, genuinely different cartridge with no runtime changes. */
 export const KARAZHAN_CARTRIDGE: Cartridge = {
   manifest: manifestForArc(KARAZHAN, "bundled", "board"),
   arc: KARAZHAN,
+  opening: KARAZHAN_OPENING,
+  people: KARAZHAN_PEOPLE,
 };
 
 export const BUNDLED_CARTRIDGES: Cartridge[] = [FIRST_CHARTER_CARTRIDGE, KARAZHAN_CARTRIDGE];
