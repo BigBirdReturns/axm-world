@@ -12,16 +12,25 @@ export interface WorldTransformation {
 }
 
 export function deriveWorldTransformations(nodes: readonly WorldNode[], ledger: Ledger): WorldTransformation[] {
-  return nodes
-    .filter((node) => node.status === "cleared")
-    .map((node) => {
-      const entry = [...ledger.entries].reverse().find((candidate) => candidate.challengeId === node.challengeId);
-      return {
-        challengeId: node.challengeId,
-        title: node.title,
-        state: "recorded" as const,
-        outcome: entry?.outcome ?? null,
-        worldChanges: entry?.consequence.worldChanges.map((change) => change.label) ?? [],
-      };
-    });
+  const latestEntryByChallenge = new Map(
+    ledger.entries.map((entry) => [entry.challengeId, entry] as const),
+  );
+
+  return nodes.flatMap((node) => {
+    if (node.status !== "cleared") return [];
+
+    // "Recorded" is a ledger fact, not a synonym for engine-cleared. A stale,
+    // partial, or corrupted run may contain one without the other; in that case
+    // custody export must omit the claim rather than fabricate evidence.
+    const entry = latestEntryByChallenge.get(node.challengeId);
+    if (!entry) return [];
+
+    return [{
+      challengeId: node.challengeId,
+      title: node.title,
+      state: "recorded" as const,
+      outcome: entry.outcome,
+      worldChanges: entry.consequence.worldChanges.map((change) => change.label),
+    }];
+  });
 }

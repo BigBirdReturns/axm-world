@@ -11,6 +11,10 @@
 One line: *a cartridge platform for verifiable simulation and story games —
 author data, play anywhere, verify every run.*
 
+Rodoh is one runtime player. Its board, map, hall, globe, and report are
+representations of the same cartridge and run, not separate games or separate
+runtime players.
+
 No "killer" language externally. The claim is differentiated precisely
 because it refuses the general-game-engine category and owns the artifact.
 
@@ -36,6 +40,12 @@ So we do not compete on "anything anyone can build." We win at:
 - raid / mission / season simulators
 - interactive fiction with state
 
+Games and playable simulations are Rodoh's current proof domain, not the
+boundary of the AXM artifact family. Other spokes may eventually interpret
+testimony, educational, civic, or institutional artifacts; Rodoh does not claim
+those workflows until their evidence, identity, privacy, and authority contracts
+are specified.
+
 And the Nintendo comparison is not "we beat Mario." It is:
 
 - The cartridge feels like an object.
@@ -51,15 +61,15 @@ pretend to replace platformers, shooters, physics toys, or Roblox scripting.
 ## The killer demo
 
 The magic trick is not "look, we have a game." It is **"this is a playable
-artifact format"**:
+artifact format"**—demonstrated by a game good enough to stand on its own:
 
-1. Build or import an arc in the hub (axm-arc).
+1. Build or import a cartridge with AXM authoring tools (implemented in axm-arc).
 2. Validate it.
 3. Trust-label it.
 4. Click Play in World.
 5. World boots the cartridge.
-6. The same cartridge plays as: board · planet · comic/report ·
-   text-forward novella.
+6. Rodoh represents the same cartridge and run as board · planet · comic/report
+   · text-forward novella without changing authored law or recorded outcomes.
 7. Finish a run.
 8. Replay or verify that run from a hash.
 
@@ -153,9 +163,22 @@ contract governs them when they do.
 
 ## Current strategic priorities
 
-1. **World cartridge loader** — close the gap between *compatible* and
-   *immediate*.
-2. **Designer step 3** (hub) — make authoring writable, not just
-   inspectable.
-3. **One famous complex proof cartridge** — Karazhan, because attunements,
-   roles, gates, difficulty, loot, and progression all stress the format.
+1. **Finish The First Charter as an unaided game** — cold entry, meaningful
+   opening consequence, complete campaign, legible ending, failure recovery,
+   save/resume, and desktop/mobile craft.
+2. **Complete custody portability** — import and resume the existing changed-run
+   export; export alone is one-way custody, not a round trip.
+3. **Prove equal treatment with one compact IP-safe second cartridge** — a
+   distinct authored grammar completed end to end, not a giant unbalanced demo.
+4. **Polish spatial representation where space carries meaning** — territory,
+   adjacency, travel, or spatial memory; never 3D as a substitute for the loop.
+
+Library and Workshop are maintained foundations inside priorities 1–2: preserve
+their validation, custody, accessibility, and game-support behavior, but do not
+grow them as independent feature lanes until the reference game and changed-run
+round trip are closed.
+
+“Program of record” in current Rodoh code means a controlled playable artifact
+bound to a computed digest, declared runtime representations, and versioned save
+and ledger schemas. It is not yet a claim that Rodoh is an institutional
+system-of-record product.

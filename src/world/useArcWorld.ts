@@ -11,7 +11,6 @@ import type { ChallengeAssignment, PendingRewardChoice } from "../engine/cycle.j
 import { runCycle } from "../engine/cycle.js";
 import { applyDifficultyMode } from "../engine/difficulty.js";
 import { awardItem } from "../engine/rewards.js";
-import { resolveDramaCard } from "../engine/drama.js";
 import { bootstrapOrg } from "../spoke/bootstrap.js";
 import { applianceBootOptions } from "./appliance/index.js";
 import {
@@ -41,6 +40,7 @@ import {
 } from "./readiness.js";
 import { compileEncounter, type EncounterSpec } from "./encounter/compile-encounter.js";
 import { resolveTokensSpent } from "./encounter/spend.js";
+import { resolveWorldDecision, type DecisionResponse } from "./decision.js";
 
 export interface RosterGear {
   id: string;
@@ -121,6 +121,8 @@ export interface ArcWorld {
   pendingDecision: DramaCard | null;
   /** The opening choice the player made (label), once made. */
   openingChoice: string | null;
+  /** Stable authored option id for the opening choice. Older saves may lack it. */
+  openingChoiceId: string | null;
   reqFor: (challengeId: string) => ChallengeReq;
   recommendedParty: (challengeId: string) => string[];
   /** Structured requirements (roles, checks, thresholds) for the contract panel. */
@@ -157,7 +159,8 @@ export interface ArcWorld {
   difficultyModeId: string | null;
   setDifficultyModeId: (id: string | null) => void;
   runChallenge: (challengeId: string, agentIds: string[], difficultyModeId?: string | null, tokensSpent?: number) => void;
-  resolveDecision: (optionId: string) => void;
+  /** Commits through the engine and returns the authoritative presentation receipt. */
+  resolveDecision: (optionId: string) => DecisionResponse | null;
   applyDowntime: (agentId: string, action: DowntimeAction) => void;
   /** The portable custody object: manifest + arc + run state. */
   buildExport: () => CustodyObject;
@@ -218,6 +221,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   const [pendingRewardChoices, setPendingRewardChoices] = useState<PendingRewardChoice[]>([]);
   const [lastEquip, setLastEquip] = useState<LastEquipEvent | null>(null);
   const [openingChoice, setOpeningChoice] = useState<string | null>(() => restored?.openingChoice ?? null);
+  const [openingChoiceId, setOpeningChoiceId] = useState<string | null>(() => restored?.openingChoiceId ?? null);
 
   const scene = useMemo(() => compileArcToPlayScene(arc, org), [arc, org]);
   const layout = useMemo(() => buildWorldLayout(scene, DEFAULT_WORLD_CONFIG), [scene]);
@@ -394,14 +398,30 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
 
   const resolveDecision = useCallback(
     (optionId: string) => {
-      const card = org.dramaQueue[0];
-      if (!card) return;
-      const opt = card.options.find((o) => o.id === optionId);
-      const { org: next } = resolveDramaCard(org, card.id, optionId, org.cycle);
-      setOrg(next);
-      if (card.id.startsWith("opening:") && opt) setOpeningChoice(opt.label);
+      const resolution = resolveWorldDecision(org, optionId);
+      if (!resolution) return null;
+      const nextOpeningChoice = resolution.openingChoice?.label ?? openingChoice;
+      const nextOpeningChoiceId = resolution.openingChoice?.optionId ?? openingChoiceId;
+      // Persist the adjudicated state before returning the receipt to Shell. The
+      // response therefore cannot appear before reload-safe state exists.
+      saveRun(localStorage, {
+        arc,
+        authoredArcDigest: cartridgeDigest,
+        state: {
+          org: resolution.org,
+          ledger,
+          openingChoice: nextOpeningChoice,
+          openingChoiceId: nextOpeningChoiceId,
+        },
+      });
+      setOrg(resolution.org);
+      if (resolution.openingChoice) {
+        setOpeningChoice(resolution.openingChoice.label);
+        setOpeningChoiceId(resolution.openingChoice.optionId);
+      }
+      return resolution.response;
     },
-    [org],
+    [arc, cartridgeDigest, ledger, openingChoice, openingChoiceId, org],
   );
 
   const applyDowntime = useCallback((agentId: string, action: DowntimeAction) => {
@@ -455,12 +475,12 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   // digest so reload restores exactly this program's state (see the guarded
   // restore above). Costume prefs persist elsewhere; this is the run itself.
   useEffect(() => {
-    saveRun(localStorage, { arc, authoredArcDigest: cartridgeDigest, state: { org, ledger, openingChoice } });
-  }, [arc, cartridgeDigest, org, ledger, openingChoice]);
+    saveRun(localStorage, { arc, authoredArcDigest: cartridgeDigest, state: { org, ledger, openingChoice, openingChoiceId } });
+  }, [arc, cartridgeDigest, org, ledger, openingChoice, openingChoiceId]);
 
   const buildExport = useCallback(
-    (): CustodyObject => buildCustodyObject({ cartridge, org, openingChoice, nodes: layout.nodes, ledger }),
-    [cartridge, org, openingChoice, layout.nodes, ledger],
+    (): CustodyObject => buildCustodyObject({ cartridge, org, openingChoice, nodes: layout.nodes, ledger, openingChoiceId }),
+    [cartridge, org, openingChoice, openingChoiceId, layout.nodes, ledger],
   );
 
   // The last resolved run's full ledger entry, THIS SESSION: gated by lastReport
@@ -486,6 +506,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     dispatches: [...org.dramaQueue].reverse(),
     pendingDecision: org.dramaQueue[0] ?? null,
     openingChoice,
+    openingChoiceId,
     reqFor,
     recommendedParty,
     describeContract,

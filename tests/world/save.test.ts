@@ -21,7 +21,7 @@ describe("program run persistence", () => {
     const org = bootstrapOrg(arc);
     const ledger = appendResult(emptyLedger(DIGEST), { challengeId: "c1", challengeName: "One", outcome: "success", cycle: org.cycle });
     const s = fakeStorage();
-    saveRun(s, { arc, authoredArcDigest: DIGEST, state: { org, ledger, openingChoice: "Hold the line" } });
+    saveRun(s, { arc, authoredArcDigest: DIGEST, state: { org, ledger, openingChoice: "Hold the line", openingChoiceId: "hold-line" } });
     const loaded = loadRun(s, { arc, authoredArcDigest: DIGEST });
     expect(loaded).not.toBeNull();
     expect(loaded!.org.cycle).toBe(org.cycle);
@@ -29,6 +29,7 @@ describe("program run persistence", () => {
     expect(loaded!.ledger.entries[0]!.authoredArcDigest).toBe(DIGEST);
     // The opening decision label survives reload, so the decision mark is not lost.
     expect(loaded!.openingChoice).toBe("Hold the line");
+    expect(loaded!.openingChoiceId).toBe("hold-line");
   });
 
   it("backfills a consequence for old ledger entries saved before the record existed (#69)", () => {
@@ -82,6 +83,7 @@ describe("program run persistence", () => {
     const s = fakeStorage();
     saveRun(s, { arc, authoredArcDigest: DIGEST, state: { org: bootstrapOrg(arc), ledger: emptyLedger(DIGEST) } });
     expect(loadRun(s, { arc, authoredArcDigest: DIGEST })!.openingChoice).toBeNull();
+    expect(loadRun(s, { arc, authoredArcDigest: DIGEST })!.openingChoiceId).toBeNull();
   });
 
   it("ignores a save from a different authored program (digest guard)", () => {

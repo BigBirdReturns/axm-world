@@ -10,7 +10,6 @@
 //   mobile  → same top bar + a bottom flex dock that stacks the same regions by flow.
 
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { useEncounterDirector } from "../encounter/EncounterDirector.js";
 import { EncounterShell } from "../encounter/EncounterShell.js";
 import { cartridgePaletteScope, themeForArc } from "../themes/select.js";
 import "../themes/karazhan/karazhan.css";
@@ -29,7 +28,6 @@ import {
   LocaleSwitcher,
   RosterRegion,
   ContractRegion,
-  ContractActions,
   ReportRegion,
   LootRegion,
   CoachRegion,
@@ -46,6 +44,7 @@ import { t, useLocale } from "../i18n/index.js";
 import { isWorldInteractionUnlocked } from "../proximity.js";
 import type { ArcInteraction } from "../useArcInteraction.js";
 import type { ArcWorld } from "../useArcWorld.js";
+import type { DecisionResponse } from "../decision.js";
 
 export interface ShellProps {
   world: ArcWorld;
@@ -127,7 +126,6 @@ function RecordModal(props: { record: NonNullable<ArcWorld["lastRecord"]>; onClo
 }
 
 export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Element {
-  const { interceptedRun, overlay: encounterOverlay } = useEncounterDirector(ix, world);
   const isMobile = useIsMobile();
   const [locale] = useLocale();
   const [costumeId, setCostumeId] = useState<string>(() => loadCostume(world.cartridge.arc));
@@ -139,14 +137,18 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   // clearing the selection returns to Board. Desktop ignores this entirely.
   const [mobileStep, setMobileStep] = useState<"board" | "contract" | "party">("board");
   // The playable-encounter surface: the same selected contract, entered as a
-  // spatial encounter compiled from its record. Distinct from the RUN CONTRACT
-  // auto-resolve (interceptedRun) — this is the "walk into it" path.
+  // spatial encounter compiled from its record. This is the shell's one commit
+  // path on desktop and mobile; the player never chooses between two verbs.
   const [encounterOpen, setEncounterOpen] = useState(false);
   // Party to seed the encounter with. null = use the board-assembled party
   // (ix.party) for the currently selected contract. Non-null = an explicit party
   // for an encounter entered via onEnterEncounter (hall/map), where ix.party would
   // otherwise be one render stale for a just-changed selection.
   const [encounterParty, setEncounterParty] = useState<string[] | null>(null);
+  // Session-only authoritative readback. The engine removes the resolved card
+  // immediately; Shell retains this receipt until the player acknowledges it.
+  // It is deliberately not restored, so resuming a saved run never replays it.
+  const [decisionResponse, setDecisionResponse] = useState<DecisionResponse | null>(null);
   const activeTheme = useMemo(() => themeForArc(world.cartridge.arc), [world.cartridge.arc]);
   const mayOpenMobileSelection = costumeId !== "globe" || isWorldInteractionUnlocked(ix.selectedId, ix.nearbyId);
 
@@ -182,7 +184,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
     [presentations],
   );
   const active = useMemo(() => presentations.find((p) => p.id === costumeId) ?? presentations[0]!, [presentations, costumeId]);
-  const modalOpen = world.pendingDecision !== null || encounterOpen;
+  const modalOpen = world.pendingDecision !== null || decisionResponse !== null || encounterOpen;
   const selectionVisible = active.id !== "globe" || isWorldInteractionUnlocked(ix.selectedId, ix.nearbyId);
   const showPurpose = !dismissedPurpose[active.id] && !modalOpen;
   const dismissPurpose = () => setDismissedPurpose((p) => ({ ...p, [active.id]: true }));
@@ -242,7 +244,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   ) : null;
   const cartridgeButton = (
     // Global mode object — deliberately quiet chrome (ghost), so it never
-    // competes with the in-loop game actions (RUN CONTRACT, fix actions).
+    // competes with the in-loop game actions (Play Encounter, fix actions).
     <PixelButton
       type="button"
       variant="ghost"
@@ -285,7 +287,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   );
   const contractProps = ix.selected && selectionVisible
     ? {
-        selected: ix.selected, party: ix.party, min, max, canRun: ix.canRun, onRun: interceptedRun,
+        selected: ix.selected, party: ix.party, min, max,
         contract: ix.contract, readiness: ix.readiness, recommendation: ix.recommendation,
         fixPlan: ix.fixPlan, onApplyFix: ix.applyFix, compact: isMobile,
         upNext: selectedMarkers?.next ?? false,
@@ -445,7 +447,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
 
       {isMobile ? (
         // Staged turn flow — ONE panel at a time (Board -> Contract -> Party),
-        // with a sticky RUN CONTRACT footer so the loop stays completable at
+        // with a sticky Play Encounter footer so the loop stays completable at
         // phone width without horizontal scroll, zoom, or multi-panel reading.
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
           {mobileStep !== "board" && (
@@ -553,9 +555,24 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
         </div>
       )}
 
-      {world.pendingDecision && (
-        <DecisionPanel key={world.pendingDecision.id} card={world.pendingDecision} onResolve={world.resolveDecision} targetName={world.effectTargetName} />
-      )}
+      {decisionResponse ? (
+        <DecisionPanel
+          key={`${decisionResponse.cardId}:${decisionResponse.optionId}`}
+          response={decisionResponse}
+          onContinue={() => setDecisionResponse(null)}
+          targetName={world.effectTargetName}
+        />
+      ) : world.pendingDecision ? (
+        <DecisionPanel
+          key={world.pendingDecision.id}
+          card={world.pendingDecision}
+          onResolve={(optionId) => {
+            const response = world.resolveDecision(optionId);
+            if (response) setDecisionResponse(response);
+          }}
+          targetName={world.effectTargetName}
+        />
+      ) : null}
       {showCartridge && (
         <CartridgeObjectPanel
           manifest={world.cartridge.manifest}
@@ -571,7 +588,6 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
         />
       )}
       {showHistory && world.lastRecord && <RecordModal record={world.lastRecord} onClose={() => setShowHistory(false)} />}
-      {encounterOverlay}
       {encounterOpen && ix.selectedId && (
         <EncounterShell
           world={world}

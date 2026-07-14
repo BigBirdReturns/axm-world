@@ -1,9 +1,21 @@
 # AXM-WORLD / RODOH — read this before you build
 
+## Names and authority
+
+`VISION.md` → **Ontology** is the single source for AXM, cartridge, run, engine,
+runtime player, AXM-WORLD, Rodoh, representation, and human-role meanings. Do not
+redefine those terms here. Operationally: Rodoh owns presentation language,
+never custody or adjudication.
+
+The game remains the current shipping mandate and reference proof. Finish it as
+a game: cold onboarding, consequential agency, campaign completion, recovery,
+mobile and desktop usability, stability, and craft. Platform proof must emerge
+from play and cannot substitute for play.
+
 The mission is to make games fun again. Fun, here, is not juice or gacha — it is
 **consequence and memory**: a world that honestly remembers what you did. The
-runtime records the run; the cartridge stays yours. Everything below exists to
-protect that.
+Rodoh writes engine-backed events into the holder's run record; the cartridge
+and run stay with their holder. Everything below exists to protect that.
 
 ## The constitution
 

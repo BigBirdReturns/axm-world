@@ -330,3 +330,165 @@ describe("thresholdMode validation", () => {
     ).toThrow(/Invalid arc/);
   });
 });
+
+describe("role_specific roleIds validation", () => {
+  function arcWithRoleIds(roleIds: string[] | undefined): unknown {
+    const check: Record<string, unknown> = {
+      id: "hold-line",
+      name: "Hold the Line",
+      description: "The tank must hold.",
+      attributeWeights: [{ attributeId: "resilience", weight: 1 }],
+      difficultyThreshold: 10,
+      scope: "role_specific",
+      failureConsequence: { type: "stress", severity: 0.3 },
+    };
+    if (roleIds !== undefined) check.roleIds = roleIds;
+
+    return minimalArc({
+      roles: [
+        { id: "tank", name: "Tank", attributeWeights: { resilience: 1 } },
+        { id: "healer", name: "Healer", attributeWeights: { focus: 1 } },
+      ],
+      challenges: [
+        {
+          id: "ch1",
+          name: "Challenge 1",
+          description: "A challenge.",
+          rosterRequirements: {
+            minAgents: 2,
+            maxAgents: 4,
+            roleRequirements: [{ roleId: "tank", count: 1 }],
+          },
+          accessRequirements: { orgMilestones: [], agentAttunements: [], attunementThreshold: null },
+          difficultyRating: 40,
+          mechanicChecks: [check],
+          completionCriteria: { type: "all_mechanics_passed", parameters: {} },
+          timePressure: null,
+          outcomes: {
+            success: { rewardTable: [], narrative: "Win." },
+            partial: { rewardTable: [], narrative: "Partial." },
+            failure: { rewardTable: [], narrative: "Fail." },
+          },
+        },
+      ],
+    });
+  }
+
+  it("preserves omitted and empty roleIds as the legacy challenge-role fallback", () => {
+    const omitted = validateArc(arcWithRoleIds(undefined));
+    const empty = validateArc(arcWithRoleIds([]));
+    expect(omitted.challenges[0]!.mechanicChecks[0]!.roleIds).toBeUndefined();
+    expect(empty.challenges[0]!.mechanicChecks[0]!.roleIds).toEqual([]);
+  });
+
+  it("accepts explicit roleIds that reference declared Arc roles", () => {
+    expect(() => validateArc(arcWithRoleIds(["tank"]))).not.toThrow();
+  });
+
+  it("rejects every explicit roleId that is not declared by the Arc", () => {
+    expect(() => validateArc(arcWithRoleIds(["ghost"]))).toThrow(
+      /\[challenges\.0\.mechanicChecks\.0\.roleIds\.0\].*unknown roleId "ghost"/,
+    );
+    expect(() => validateArc(arcWithRoleIds(["tank", "ghost"]))).toThrow(
+      /\[challenges\.0\.mechanicChecks\.0\.roleIds\.1\].*unknown roleId "ghost"/,
+    );
+  });
+});
+
+describe("roster requirements validation", () => {
+  const TWO_ROLES = [
+    { id: "tank", name: "Tank", attributeWeights: { power: 1 } },
+    { id: "healer", name: "Healer", attributeWeights: { focus: 1 } },
+  ];
+
+  function arcWithRoster(rosterRequirements: unknown, roles: unknown[] = TWO_ROLES): unknown {
+    return minimalArc({
+      roles,
+      challenges: [
+        {
+          id: "ch1",
+          name: "Challenge 1",
+          description: "A challenge.",
+          rosterRequirements,
+          accessRequirements: { orgMilestones: [], agentAttunements: [], attunementThreshold: null },
+          difficultyRating: 40,
+          mechanicChecks: [
+            {
+              id: "mc1",
+              name: "Check 1",
+              description: "A check.",
+              attributeWeights: [{ attributeId: "power", weight: 1.0 }],
+              difficultyThreshold: 10,
+              scope: "per_agent",
+              failureConsequence: { type: "stress", severity: 0.3 },
+            },
+          ],
+          completionCriteria: { type: "all_mechanics_passed", parameters: {} },
+          timePressure: null,
+          outcomes: {
+            success: { rewardTable: [], narrative: "Win." },
+            partial: { rewardTable: [], narrative: "Partial." },
+            failure: { rewardTable: [], narrative: "Fail." },
+          },
+        },
+      ],
+    });
+  }
+
+  it("accepts a fieldable composition (sum of role counts within maxAgents, valid unique roles)", () => {
+    expect(() =>
+      validateArc(
+        arcWithRoster({
+          minAgents: 4,
+          maxAgents: 8,
+          roleRequirements: [
+            { roleId: "tank", count: 2 },
+            { roleId: "healer", count: 2 },
+          ],
+        }),
+      ),
+    ).not.toThrow();
+  });
+
+  it("rejects minAgents greater than maxAgents", () => {
+    expect(() =>
+      validateArc(arcWithRoster({ minAgents: 6, maxAgents: 4, roleRequirements: [] })),
+    ).toThrow(/minAgents \(6\) exceeds maxAgents \(4\)/);
+  });
+
+  it("rejects a roleRequirements entry referencing an unknown roleId", () => {
+    expect(() =>
+      validateArc(arcWithRoster({ minAgents: 1, maxAgents: 5, roleRequirements: [{ roleId: "ghost", count: 1 }] })),
+    ).toThrow(/unknown roleId "ghost"/);
+  });
+
+  it("rejects duplicate role entries within one challenge", () => {
+    expect(() =>
+      validateArc(
+        arcWithRoster({
+          minAgents: 1,
+          maxAgents: 5,
+          roleRequirements: [
+            { roleId: "tank", count: 1 },
+            { roleId: "tank", count: 2 },
+          ],
+        }),
+      ),
+    ).toThrow(/duplicate rosterRequirements entry for roleId "tank"/);
+  });
+
+  it("rejects role demands whose sum exceeds maxAgents (an unfieldable composition)", () => {
+    expect(() =>
+      validateArc(
+        arcWithRoster({
+          minAgents: 1,
+          maxAgents: 3,
+          roleRequirements: [
+            { roleId: "tank", count: 2 },
+            { roleId: "healer", count: 2 },
+          ],
+        }),
+      ),
+    ).toThrow(/demand 4 agents across roles but maxAgents is 3/);
+  });
+});

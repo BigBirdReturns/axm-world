@@ -4,8 +4,8 @@ import { formatMessage, MESSAGES } from "../../src/world/i18n/messages.js";
 
 // PR #61 — one canonical word for "done". A contract whose result has written to
 // the Program 001 ledger / world state reads "Recorded" on every runtime surface:
-// the board card, the selected-contract detail badge, the disabled run action, the
-// map pin + legend, and the cartridge/ledger panel. "Cleared" survives ONLY as
+// the board card, the selected-contract detail badge, the map pin + legend, and
+// the cartridge/ledger panel. "Cleared" survives ONLY as
 // result flavor on a DIFFERENT axis — the ledger's success grade (vs Partial /
 // Failed) and per-check pass marks — never as the completed-state label.
 
@@ -27,17 +27,16 @@ describe("completed-contract wording is unified on 'Recorded'", () => {
     expect(formatMessage("en", "status.cleared" as never)).toBe("status.cleared");
   });
 
-  it("the selected-contract detail and the disabled run action say 'Recorded', never 'Cleared'", () => {
+  it("the selected-contract detail says 'Recorded' and exposes no duplicate run action", () => {
     const regions = read("src/world/shell/regions.tsx");
     // No runtime surface may reach for the retired label.
     expect(regions).not.toContain('t("status.cleared")');
-    // The disabled RunButton for a completed contract routes through the canonical id
-    // (the engine status stays "cleared"; only the chrome changes).
-    expect(regions).toMatch(/status === "cleared"\s*\?\s*t\("status\.recorded"\)/);
+    // The old auto-resolve control is gone; completion is state, not a disabled
+    // second commit button beside Play Encounter.
+    expect(regions).not.toContain('data-testid="run-contract-button"');
     // The detail header badge + World-state band both name a completed contract
     // "Recorded" (via the shared card-axes projection), never "Cleared".
     expect(regions).toContain('cardState === "recorded" ? "status.recorded"');
-    expect((regions.match(/"status\.recorded"/g) ?? []).length).toBeGreaterThanOrEqual(2);
   });
 
   it("the board card renders the engine 'cleared' status under the 'recorded' label", () => {

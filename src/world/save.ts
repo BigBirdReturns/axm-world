@@ -40,6 +40,8 @@ export interface ProgramRunState {
    *  mark (and the export) survive a reload. Null until an opening choice is made;
    *  optional on input for callers that never surface an opening choice. */
   openingChoice?: string | null;
+  /** Stable authored option id. Additive so old v1 saves continue to load. */
+  openingChoiceId?: string | null;
 }
 
 interface StoredSave {
@@ -49,6 +51,7 @@ interface StoredSave {
   game: string;
   ledger: Ledger;
   openingChoice: string | null;
+  openingChoiceId?: string | null;
 }
 
 /** Persist a program's run state under its own authored-arc-digest slot. */
@@ -62,6 +65,7 @@ export function saveRun(
     game: serializeGame(params.state.org, params.arc),
     ledger: params.state.ledger,
     openingChoice: params.state.openingChoice ?? null,
+    openingChoiceId: params.state.openingChoiceId ?? null,
   };
   storage.setItem(saveKeyFor(params.authoredArcDigest), JSON.stringify(stored));
 }
@@ -94,6 +98,7 @@ export function loadRun(
     org,
     ledger: normalizeLedger(parsed.ledger, params.authoredArcDigest),
     openingChoice: typeof parsed.openingChoice === "string" ? parsed.openingChoice : null,
+    openingChoiceId: typeof parsed.openingChoiceId === "string" ? parsed.openingChoiceId : null,
   };
 }
 

@@ -11,6 +11,8 @@ export interface CustodyObject {
   runState: {
     cycle: number;
     openingChoice: string | null;
+    /** Stable authored option id; the label remains for human-readable custody. */
+    openingChoiceId: string | null;
     clearedCount: number;
     totalNodes: number;
     roster: Array<{ name: string; morale: number; stress: number }>;
@@ -27,6 +29,7 @@ export function buildCustodyObject(params: {
   cartridge: Cartridge;
   org: Organization;
   openingChoice: string | null;
+  openingChoiceId?: string | null;
   nodes: readonly WorldNode[];
   ledger: Ledger;
 }): CustodyObject {
@@ -38,6 +41,7 @@ export function buildCustodyObject(params: {
     runState: {
       cycle: params.org.cycle,
       openingChoice: params.openingChoice,
+      openingChoiceId: params.openingChoiceId ?? null,
       clearedCount,
       totalNodes: params.nodes.length,
       roster: Object.values(params.org.agents).map((agent) => ({

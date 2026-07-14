@@ -2,17 +2,20 @@
 // card the engine generated). This is a true modal: rendered through a document-level
 // portal so representation labels/canvas Html can never render above the decision.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { DramaCard, DramaCardEffect } from "../../engine/types.js";
+import type { DecisionResponse } from "../decision.js";
 import { RodohRuntimeMark } from "../brand/RodohRuntimeMark.js";
 import { PixelButton, PixelPanel } from "../pixel-ui/index.js";
 import { t } from "../i18n/index.js";
 import "./decision-panel.css";
 
 interface Props {
-  card: DramaCard;
-  onResolve: (optionId: string) => void;
+  card?: DramaCard;
+  response?: DecisionResponse;
+  onResolve?: (optionId: string) => void;
+  onContinue?: () => void;
   targetName?: (targetId: string) => string;
 }
 
@@ -27,14 +30,20 @@ function optionPreview(option: DramaCard["options"][number], targetName: (target
   return t("decision.noVisibleEffect");
 }
 
-export function DecisionPanel({ card: drama, onResolve, targetName = (id) => id }: Props): JSX.Element {
-  const [chosen, setChosen] = useState<{ id: string; label: string; description: string } | null>(null);
-  const isOpening = drama.id.startsWith("opening:");
-  const titleRef = useRef<HTMLParagraphElement | null>(null);
+function appliedEffectLabel(effect: DecisionResponse["effects"][number], targetName: (targetId: string) => string): string {
+  const sign = effect.delta > 0 ? "+" : "";
+  return `${targetName(effect.target)}: ${effect.type} ${effect.before} → ${effect.after} (${sign}${effect.delta})`;
+}
+
+export function DecisionPanel({ card: drama, response, onResolve, onContinue, targetName = (id) => id }: Props): JSX.Element {
+  if (!drama && !response) throw new Error("DecisionPanel requires a pending card or a resolved response");
+  const decisionId = response?.cardId ?? drama!.id;
+  const isOpening = decisionId.startsWith("opening:");
+  const titleRef = useRef<HTMLHeadingElement | HTMLParagraphElement | null>(null);
 
   useEffect(() => {
     titleRef.current?.focus();
-  }, [drama.id, chosen?.id]);
+  }, [decisionId, response?.optionId]);
 
   return createPortal(
     <>
@@ -46,15 +55,16 @@ export function DecisionPanel({ card: drama, onResolve, targetName = (id) => id 
         aria-modal="true"
         aria-labelledby="decision-title"
         data-testid="pending-decision-card"
+        data-phase={response ? "resolved" : "pending"}
         onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="decision-panel__eyebrow">
           <RodohRuntimeMark variant="micro" showText={false} />
-          {chosen ? t("decision.worldResponds") : isOpening ? t("decision.foundingHall") : t("decision.aDecision")}
+          {response ? t("decision.worldResponds") : isOpening ? t("decision.foundingHall") : t("decision.aDecision")}
         </div>
 
-        {!chosen ? (
+        {!response && drama ? (
           <>
             {isOpening && (
               <div className="decision-panel__opening-blurb">
@@ -74,7 +84,7 @@ export function DecisionPanel({ card: drama, onResolve, targetName = (id) => id 
                 <PixelButton
                   key={o.id}
                   type="button"
-                  onClick={() => setChosen({ id: o.id, label: o.label, description: o.description })}
+                  onClick={() => onResolve?.(o.id)}
                   variant="action"
                   className="decision-panel__option"
                 >
@@ -87,16 +97,28 @@ export function DecisionPanel({ card: drama, onResolve, targetName = (id) => id 
           </>
         ) : (
           <>
-            <h2 className="decision-panel__result-title">
-              {chosen.label}
+            <h2
+              id="decision-title"
+              ref={(node) => { titleRef.current = node; }}
+              tabIndex={-1}
+              className="decision-panel__result-title"
+            >
+              {response!.label}
             </h2>
             <p className="decision-panel__result-description">
-              {chosen.description}
+              {response!.description}
             </p>
+            <div className="decision-panel__applied-effects" data-testid="decision-applied-effects">
+              {response!.effects.length > 0
+                ? response!.effects.map((effect, index) => (
+                    <div key={`${effect.target}:${effect.type}:${index}`}>{appliedEffectLabel(effect, targetName)}</div>
+                  ))
+                : t("decision.noVisibleEffect")}
+            </div>
             <div className="decision-panel__continue-row">
               <PixelButton
                 type="button"
-                onClick={() => onResolve(chosen.id)}
+                onClick={onContinue}
                 variant="danger"
                 className="decision-panel__continue"
               >

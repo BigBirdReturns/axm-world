@@ -32,12 +32,19 @@ test("Run Graph and Planet are pure representations of the same cartridge state"
   await expect(page.getByTestId("party-count")).toHaveText(partyBefore);
 });
 
-test("post-run outcome and cartridge marks persist across a representation switch", async ({ page }) => {
+test("a selected contract has one player-facing commit path", async ({ page }) => {
+  await enterCartridge(page);
+  await expect(page.getByTestId("play-encounter-button")).toBeVisible();
+  await expect(page.getByTestId("play-encounter-button")).toBeEnabled();
+  await expect(page.getByTestId("run-contract-button")).toHaveCount(0);
+});
+
+test("post-run outcome and cartridge marks persist across a representation switch", async ({ page }, testInfo) => {
   test.slow();
   await enterCartridge(page);
 
-  // Run on "The Cellar" (first available node). Running hands off to the encounter
-  // overlay; runSelectedContract drives it to its result and back to the shell.
+  // Play "The Cellar" (first available node) through the compiled encounter;
+  // runSelectedContract drives it to its receipt and back to the shell.
   await runSelectedContract(page);
   // A run may enqueue a post-run decision, which gates the view switcher by design;
   // resolve it before switching representations.
@@ -53,9 +60,15 @@ test("post-run outcome and cartridge marks persist across a representation switc
   await page.getByTestId("view-run-graph").click();
   await expect(page.getByTestId("cartridge-mark-count")).toHaveText(marksBefore);
 
-  // The recorded outcome itself remains inspectable via the record-history modal.
-  await page.getByTestId("record-history-button").click();
-  await expect(page.getByTestId("outcome-region")).toContainText(/Cellar/i);
+  // Desktop exposes the record-history modal in its top bar. Mobile proves the
+  // same persistence through the carried cartridge mark above; it deliberately
+  // omits this desktop-only chrome.
+  if (testInfo.project.name === "desktop") {
+    await page.getByTestId("record-history-button").click();
+    await expect(page.getByTestId("outcome-region")).toContainText(/Cellar/i);
+  } else {
+    await expect(page.getByTestId("record-history-button")).toHaveCount(0);
+  }
 });
 
 test("the cartridge title is legible (not near-black on black)", async ({ page }) => {

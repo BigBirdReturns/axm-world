@@ -29,7 +29,7 @@ describe("consequence schema wiring (#69)", () => {
     expect(custody).toContain("ledger: Ledger;");
     expect(custody).toContain('format: "axm-cartridge-run/v2"');
     expect(custody).toContain("transformedLocations: deriveWorldTransformations");
-    expect(world).toContain("buildCustodyObject({ cartridge, org, openingChoice, nodes: layout.nodes, ledger })");
+    expect(world).toContain("buildCustodyObject({ cartridge, org, openingChoice, nodes: layout.nodes, ledger, openingChoiceId })");
   });
 
   it("old saves are MIGRATED (not discarded) on load — the save version is unchanged", () => {

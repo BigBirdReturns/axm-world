@@ -1,4 +1,4 @@
-# Worlds Roadmap — "One contract, four surfaces"
+# Worlds Roadmap — one cartridge and run, many faithful representations
 
 **Purpose.** The `AXM-ARC CARTRIDGES → PLAYABLE WORLDS` vision spans both repos.
 This doc maps the pipeline to what exists today and sequences what's left —
@@ -7,6 +7,11 @@ authored contract compiles into every play surface, derived, not hand-authored.*
 
 Read alongside: `docs/POSITIONING.md` (the public claim), axm-arc `ROADMAP.md`
 (engine + authoring), axm-arc `STATUS.md` (current checkpoint).
+
+This roadmap finishes Rodoh as the game/simulation-side spatial runtime player;
+it does not define the whole AXM family. “Surface” below means a representation
+inside Rodoh, not a separate runtime player. The architectural proof cannot
+replace the mandate to finish The First Charter as a compelling game.
 
 ---
 
@@ -123,53 +128,68 @@ future work, each gated on the authored lever actually existing and being honore
 
 ---
 
-## 2. Recommended sequence — proof before polish
+## 2. Recommended sequence — finish the game through the architecture
 
-Reordered so the CSS/decorative work can't become the place we hide from the hard
-proof. The compiler bridge is the spine; everything else hangs off it.
+The compiler bridge is real. The next question is no longer whether a contract
+can reach several representations; it is whether a stranger can play and finish
+something memorable without being taught the architecture.
 
-**0. IP-safe rename (decision, owner's call).** "Karazhan"/"Violet Eye"/boss names
-are Warcraft IP — fine for a private proof, a blocker for anything public. Every
-downstream track hardens the naming, so decide before, not after.
+**0. Correctness gate.** Do not tune or polish on state the engine miscomputes.
+The recruitment top-tier leak, ledger-less `recorded` transformation,
+pay-before-gate debit, negative upkeep balance, and Industrious
+double-application are closed in the current working change with direct guards.
+Progression unlocks are now durably stamped before and after each cycle, so a
+later reputation loss cannot re-lock an earned tier. The confirmed correctness
+queue is therefore closed; keep these guards green while campaign work proceeds.
 
-**1. Prove Karazhan is completable by hand (wing-5).** The sim clears it in
-autoplay, but no human has played Spire → Beyond-the-Tower. Do this before
-rendering that content into worlds.
+**1. Cold First Charter session.** A stranger must pick up the cartridge, enter,
+make the founding choice, meet Maren, understand and resolve The Cellar, read what
+happened and why, see the world and ledger change, know the next action, leave,
+and resume. Desktop and mobile must both complete this path with no explanation.
 
-**2. The one-contract vertical slice — Board → Planet-node → Encounter → Result →
-Ledger.** ✅ **Landed for the Board+Encounter+Result+Ledger legs; Planet-node leg
-is the WorldNode projection, still rendered as a marker.** The contract compiles
-into a playable encounter and writes the sim ledger. This is the thesis made
-mechanical — the rest of the roadmap is now *expansion*, not *proof*.
+**2. Finish The First Charter campaign.** Prove all six challenges through normal
+play; tune progression, economy, drama cadence, roster pressure, failure recovery,
+and duration; deliver a clear ending and return-to-cartridge state. Honest fixed
+contracts remain valid, but the campaign as a whole must contain enough authored,
+engine-honored agency to sustain play.
 
-**3. Result / reward-moment screen (mobile step 5).** The encounter receipt closes
-the loop on desktop and in the shell; the dedicated mobile result step is the one
-staged panel still to build. Small.
+**3. Make consequence unmistakable.** The founding oath must persist and become
+legible later. Every result must answer: what happened, why, what changed, what
+was recorded, and what comes next. Success, partial, and failure all need valid
+continuations.
 
-**4. Decorative polish (frames/seals/lanterns/dividers).** CSS/SVG, low risk,
-extends the shipped silhouette so the live build matches the mockups (minus
-painted art). Valuable — but explicitly *after* the proof, not instead of it.
+**4. Complete custody portability.** Import and resume `axm-cartridge-run/v2` so
+the actual loop is play → change → export → close → import → resume exact choice,
+state, transformations, and ledger. Then prove compatible continuation in another
+runtime player. Raw Arc transfer proves content portability, not changed-run
+custody.
 
-**5. Planet → world overview.** Grow the three.js Planet stub into the sim-layer
-overview (holdings, resources, active contract, time state) that consumes the
-`WorldNode` projection. Ship 2D/isometric first; don't gate the concept on 3D.
+**5. Prove a second grammar compactly.** Resolve the IP decision and ship one
+small, IP-safe, end-to-end cartridge with visibly different vocabulary and an
+authored lever such as deployment slack or posture. A finished small proof is
+more valuable than a large unbalanced campaign.
 
-**6. Cross-play/progression, then PLAY modes.** Accounts + cloud save precede any
-"play anywhere" / multiplayer; the co-op/social surfaces depend on it plus new
-render/net stacks. Multi-quarter product initiatives, scoped separately.
+**6. Polish expression.** Sound, motion, art, accessibility, mobile result flow,
+and spatial detail now compound a complete loop. Expand Planet only where
+territory, adjacency, travel, or spatial memory materially affect the cartridge.
+
+**7. Add provenance and broader modes later.** Publisher signing, verification,
+co-op, social systems, cloud convenience, and institutional workflows follow the
+finished game and custody round trip. Accounts are optional convenience, never a
+prerequisite for constitutional file portability.
 
 ---
 
 ## 3. What I can build vs. what I can't
 
-- **Can, in-repo, now:** tiers 1–5 (verification, the result screen, CSS/SVG
-  polish, and a first Planet overview using the three.js layer + the WorldNode
-  projection already present).
+- **Can, in-repo, now:** tiers 0–6 (correctness repairs, cold-loop repair, campaign verification and
+  tuning, consequence/result work, custody import/resume, a compact second
+  cartridge, and presentation polish).
 - **Can't, from code alone:** painted illustrations (need an artist/assets) and
   cross-play/multiplayer (need backend, identity, netcode). I can scope and
   prototype the *shells*; the substance is external.
 
-The compiler bridge (tier 2) is the load-bearing proof and it is now in the build.
-The honest next lever is the owner's rename call (0) and the Karazhan
-completability pass (1); after that, the result screen (3) and Planet overview (5)
-are the highest-value expansions of a thesis that no longer has to be argued.
+The compiler bridge is already in the build. The honest next lever is game
+completion: cold First Charter play, a finished campaign, legible consequence,
+and a changed-run custody round trip. Architecture no longer has to be argued;
+the experience has to earn it.

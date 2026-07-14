@@ -85,6 +85,6 @@ describe("walkable world vertical slice", () => {
     const markers = read("src/world/components/NodeMarkers.tsx");
     const exportState = read("src/world/useArcWorld.ts");
     expect(markers).toContain('const transformed = node.status === "cleared"');
-    expect(exportState).toContain("buildCustodyObject({ cartridge, org, openingChoice, nodes: layout.nodes, ledger })");
+    expect(exportState).toContain("buildCustodyObject({ cartridge, org, openingChoice, nodes: layout.nodes, ledger, openingChoiceId })");
   });
 });

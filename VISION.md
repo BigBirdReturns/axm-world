@@ -2,9 +2,9 @@
 
 **Product law. Not architecture notes. Read this before changing anything.**
 
-> **A cartridge is a playable, portable, creator-owned artifact. axm-world is one
-> player. axm-arc is another player. The engine guarantees the rules. The creator
-> keeps the thing.**
+> **A cartridge is a playable, portable, creator-owned artifact. AXM-WORLD and
+> axm-arc are compatible runtime players. The engine guarantees the rules. The
+> creator keeps the thing; the holder keeps the run.**
 
 ## The capture break
 
@@ -58,16 +58,62 @@ complete, portable, and alive.
 
 ## Ontology
 
-**Cartridge** = the game, such as *The First Charter*.
+**AXM** = the artifact family and compatibility contract.
 
-**Player** = a surface that plays cartridges. axm-world is a spatial player. axm-arc
-is a text player.
+**Cartridge** = the creator-owned authored program: structured law, content, and
+world semantics. Its authored identity is content-derived. A game such as *The
+First Charter* is one cartridge, not the limit of the category.
 
-**Engine** = the deterministic console inside every player. It guarantees that the
-cartridge still plays by the same rules.
+**Run** = the holder-owned mutable memory of operating a cartridge: choices,
+state, consequences, and ledger. A run is not the cartridge's authored identity.
 
-`axm-arc` must never appear in the axm-world UI. "arc" must not leak to players. The
-visible product point is: **one cartridge, many players.**
+**Engine** = the deterministic adjudicator shared by compatible runtime players.
+
+**Runtime player** = software that interprets cartridges through the engine.
+axm-arc is the authoring hub and a text-oriented runtime player. AXM-WORLD is the
+reusable spatial runtime-player implementation.
+
+**Rodoh** = AXM-WORLD's player-facing identity and truthful interaction language.
+
+**Representation** = a view inside a runtime player—board, map, hall, globe,
+graph, report, or novella. Representations share state; they are not separate
+runtime players or separate games.
+
+**Human roles** = creator, holder, and operator. Game-facing copy may still call
+the operator “the player”; architecture documents use “runtime player” for
+software.
+
+The visible product point is: **one cartridge, one carried run, many compatible
+players and representations.** The work is never confused with the runtime that
+presents it.
+
+`axm-arc` is an implementation/repository name and must not leak into Rodoh's
+game-facing UI. The player handles a cartridge and its run, not the architecture.
+
+## The game-completion mandate
+
+The current shipping priority is still the game. The First Charter must be
+understandable without explanation, consequential enough to sustain play,
+complete from opening through ending, recoverable after failure, resumable, and
+crafted on desktop and mobile.
+
+The architecture cannot substitute for that experience:
+
+- a portable mediocre game is still mediocre;
+- determinism is not pacing, tension, or satisfaction;
+- “no fake agency” cannot become “no agency” across a campaign;
+- export is not custody portability until a changed run can be imported and
+  resumed;
+- Library, Workshop, ledger, and provenance support play but do not finish it.
+
+The game is both a product in its own right and the reference proof of AXM. Those
+obligations reinforce one another; neither cancels the other.
+
+They are co-equal obligations, but sequencing needs a tie-breaker: when product
+experience and platform proof compete for the same work, close the player loop
+first. The exception is an irreversible substrate defect—schema, custody,
+determinism, save, or ledger behavior that will become expensive or dishonest if
+allowed to harden. Fix that defect before building more experience on top of it.
 
 ## Anti-capture rules
 

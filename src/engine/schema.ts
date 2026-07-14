@@ -282,9 +282,10 @@ type ArcBase = z.infer<typeof ArcBaseSchema>;
 
 export const ArcSchema = ArcBaseSchema.superRefine((arc: ArcBase, ctx: z.RefinementCtx) => {
   const attrIds = new Set(arc.attributes.map((a: { id: string }) => a.id));
+  const roleIds = new Set(arc.roles.map((r: { id: string }) => r.id));
 
-  for (const challenge of arc.challenges) {
-    for (const check of challenge.mechanicChecks) {
+  for (const [challengeIndex, challenge] of arc.challenges.entries()) {
+    for (const [checkIndex, check] of challenge.mechanicChecks.entries()) {
       for (const aw of check.attributeWeights) {
         if (!attrIds.has(aw.attributeId)) {
           ctx.addIssue({
@@ -293,6 +294,68 @@ export const ArcSchema = ArcBaseSchema.superRefine((arc: ArcBase, ctx: z.Refinem
           });
         }
       }
+
+      // Explicit role scopes must reference authored roles. Omitted and empty
+      // roleIds intentionally remain the v1 compatibility form: resolver,
+      // projections, and diagnostics fall back to this challenge's required
+      // roles. Do not materialize that fallback here; doing so would rewrite
+      // valid cartridge identity and save/ledger digests.
+      if (check.scope === "role_specific" && check.roleIds?.length) {
+        for (const [roleIndex, roleId] of check.roleIds.entries()) {
+          if (!roleIds.has(roleId)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: [
+                "challenges",
+                challengeIndex,
+                "mechanicChecks",
+                checkIndex,
+                "roleIds",
+                roleIndex,
+              ],
+              message: `Challenge "${challenge.id}", mechanic "${check.id}": roleIds references unknown roleId "${roleId}". Valid: ${[...roleIds].join(", ")}`,
+            });
+          }
+        }
+      }
+    }
+
+    // Roster requirements must describe a composition some legal party can
+    // actually field. The field schema only guarantees positive integers; these
+    // cross-checks reject a challenge that is impossible by construction — a
+    // roster no client could ever seat — so it fails loudly at validation
+    // rather than being discovered at boot (a runtime that can't prove a
+    // cartridge is fieldable must not claim it is). (roster-requirement validation)
+    const rr = challenge.rosterRequirements;
+    if (rr.minAgents > rr.maxAgents) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Challenge "${challenge.id}": rosterRequirements.minAgents (${rr.minAgents}) exceeds maxAgents (${rr.maxAgents}).`,
+      });
+    }
+    const seenRoles = new Set<string>();
+    let demanded = 0;
+    for (const req of rr.roleRequirements) {
+      demanded += req.count;
+      if (!roleIds.has(req.roleId)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Challenge "${challenge.id}": rosterRequirements references unknown roleId "${req.roleId}". Valid: ${[...roleIds].join(", ")}`,
+        });
+      }
+      if (seenRoles.has(req.roleId)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Challenge "${challenge.id}": duplicate rosterRequirements entry for roleId "${req.roleId}".`,
+        });
+      }
+      seenRoles.add(req.roleId);
+    }
+    if (demanded > rr.maxAgents) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Challenge "${challenge.id}": rosterRequirements demand ${demanded} agents across roles but maxAgents is ${rr.maxAgents}.`,
+      });
     }
   }
 });

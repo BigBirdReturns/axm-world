@@ -4,12 +4,11 @@ import type { WorldNode } from "../contract.js";
 import { PixelContractCard, PixelIcon, type ContractCardState, type PixelIconName } from "../pixel-ui/index.js";
 import type { ArcInteraction } from "../useArcInteraction.js";
 import type { ArcWorld } from "../useArcWorld.js";
-import type { CheckStatus, PartyReadiness } from "../readiness.js";
 import { attrIcon, roleIcon, itemIcon } from "../theme-icons.js";
 import { CartridgeMotif } from "../themes/CartridgeMotif.js";
 import { cartridgePaletteScope } from "../themes/select.js";
 import { deriveNodeMarkers } from "../worldmap/derive.js";
-import { contractCardState, squadFit, squadFitKind, squadFitLabelId, worldStateLabelId, worldStateNoteId } from "./card-axes.js";
+import { contractCardState, squadFit, squadFitKind, squadFitLabelId, squadFitReason, worldStateLabelId, worldStateNoteId } from "./card-axes.js";
 import { t } from "../i18n/index.js";
 import { unlockEdges } from "./adjacency.js";
 import "./contract-board.css";
@@ -19,11 +18,6 @@ export interface ContractBoardSceneProps {
   interaction: ArcInteraction;
   modalOpen?: boolean;
   active?: boolean;
-}
-
-function scoreText(value: number | undefined): string {
-  if (value === undefined) return "";
-  return String(Math.round(value * 10) / 10);
 }
 
 function shortDescription(text: string): string {
@@ -44,19 +38,6 @@ function rewardPreview(challenge: Challenge | null, world: ArcWorld): Array<{ na
     const name = item?.name ?? id;
     return { name, icon: itemIcon(name) };
   });
-}
-
-function strongestWeakness(readiness: PartyReadiness | null): string | null {
-  if (!readiness) return null;
-  if (!readiness.countOk) return readiness.reasons[0] ?? t("contractBoard.countNeedsWork");
-  if (!readiness.rolesOk) return readiness.reasons[0] ?? t("contractBoard.roleMissing");
-  const weak = [...readiness.checks].sort((a, b) => {
-    const severity = (s: CheckStatus) => (s === "short" ? 2 : s === "thin" ? 1 : 0);
-    return severity(b.status) - severity(a.status) || b.shortBy - a.shortBy;
-  })[0];
-  if (!weak || weak.status === "ready") return null;
-  if (weak.status === "thin") return t("contractBoard.needsBuffer", { name: weak.name, n: scoreText(weak.shortBy) });
-  return t("contractBoard.needsRecover", { name: weak.name, n: scoreText(weak.shortBy) });
 }
 
 // Lane names come from the loaded arc's own progression tiers — never invented here.
@@ -96,7 +77,6 @@ function ContractLocationCard(props: {
   const state = contractCardState(node);
   const fit = squadFit(node, readiness);
   const rewards = rewardPreview(challenge, world);
-  const weak = strongestWeakness(readiness);
   const req = challenge?.rosterRequirements;
 
   // World-state band copy — plain state line + a note reusing the map's own words.
@@ -107,7 +87,7 @@ function ContractLocationCard(props: {
   // Squad-fit band copy — the verdict label, and the readiness reason where the squad
   // has actually been evaluated (reliable → the reassurance; risky/failing → the gap).
   const squadFitLabel = t(squadFitLabelId(squadFitKind(node, fit)));
-  const squadFitReason = fit === "reliable" ? t("contractBoard.recommendedReliable") : weak ?? undefined;
+  const fitReason = squadFitReason(fit, readiness);
 
   const requirements = node.status === "locked" ? null : (
     <>
@@ -147,7 +127,7 @@ function ContractLocationCard(props: {
       worldStateLabel={worldStateLabel}
       worldStateNote={worldStateNote}
       squadFitLabel={squadFitLabel}
-      squadFitReason={squadFitReason}
+      squadFitReason={fitReason}
       footerLeft={req ? t("contractBoard.partyRange", { min: req.minAgents, max: req.maxAgents }) : t("contractBoard.party")}
       footerRight={rewards.length > 0 ? rewards.map((item) => <PixelIcon key={item.name} name={item.icon} label={item.name} />) : undefined}
       onClick={() => onSelect(node.challengeId)}

@@ -1,11 +1,15 @@
-# axm-world — the AXM play spoke
+# AXM-WORLD — the reusable spatial runtime player
 
-**Arc in → playable web app out.**
+**Rodoh is its player-facing identity. Cartridge in → governed world out.**
 
-`axm-arc` is the *hub*: a deterministic rules engine (the "brain") plus an
-authored tutorial game. `axm-world` is a **spoke** — a renderer/player that
-takes any arc and makes it playable in a browser, without owning the arc. Same
-brain, swappable player; drop in a cartridge, play it.
+AXM-WORLD is one compatible runtime player in the AXM family. It interprets
+creator-owned cartridges through the shared deterministic engine without owning
+their authored law or run record. Rodoh is the identity and interaction language
+humans encounter; AXM-WORLD is the implementation name used in this repository.
+
+Inside Rodoh, board, map, hall, globe, graph, and report are representations of
+one cartridge and one run—not separate games. `axm-arc` is both the authoring hub
+and another, text-oriented runtime player.
 
 The renderer never reimplements the rules. It calls the engine's pure functions
 (`runCycle`, `generateAgent`, the seeded PRNG) and draws whatever comes back.
@@ -44,9 +48,12 @@ npm run build      # emits docs/game
 
 ## Status
 
-Early. The engine, tutorial arc, and engine tests are vendored from `axm-arc`
-and pinned to an exact commit — see [RECONCILIATION.md](RECONCILIATION.md) for
-the contract that keeps hub and spoke from drifting (changes to the shared
-surface land in `axm-arc` first; `npm run engine:sync` re-vendors, and CI fails
-on silent divergence). Next step: a cartridge loader (open an arc from a
-file/URL instead of the bundled default).
+The cartridge bay, generic boot path, Board/Map/Encounter/Result/Ledger chain,
+digest-bound saves, custody export, and proximity-gated inhabited slice are
+implemented. The engine and shared tests remain vendored from `axm-arc` and
+pinned to an exact commit — see [RECONCILIATION.md](RECONCILIATION.md).
+
+The game is not finished merely because the architecture is proven. Current
+product work is to close The First Charter as an unaided, complete, memorable
+game and to turn one-way custody export into an import/resume round trip. See
+[VISION.md](VISION.md) and [docs/WORLDS_ROADMAP.md](docs/WORLDS_ROADMAP.md).
