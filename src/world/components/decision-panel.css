@@ -109,6 +109,35 @@
   font: 10px/1.4 var(--px-font);
 }
 
+.decision-panel__effect-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.decision-panel__exact-effects {
+  margin-top: 7px;
+  color: var(--coffee);
+}
+
+.decision-panel__exact-effects summary {
+  width: fit-content;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.decision-panel__exact-effects > div {
+  display: grid;
+  gap: 3px;
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px solid var(--gold-border);
+}
+
 .decision-panel__continue-row {
   display: flex;
   justify-content: flex-end;

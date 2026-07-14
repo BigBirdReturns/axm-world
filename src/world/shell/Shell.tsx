@@ -40,6 +40,7 @@ import { DecisionPanel } from "../components/DecisionPanel.js";
 import { CartridgeObjectPanel } from "../components/CartridgeObjectPanel.js";
 import { ProgramIdentityStrip } from "./ProgramIdentityStrip.js";
 import { MobileMissionStage } from "../components/MobileMissionStage.js";
+import { OpeningDecisionStage } from "../components/OpeningDecisionStage.js";
 import { t, useLocale } from "../i18n/index.js";
 import { isWorldInteractionUnlocked } from "../proximity.js";
 import type { ArcInteraction } from "../useArcInteraction.js";
@@ -128,7 +129,11 @@ function RecordModal(props: { record: NonNullable<ArcWorld["lastRecord"]>; onClo
 export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Element {
   const isMobile = useIsMobile();
   const [locale] = useLocale();
-  const [costumeId, setCostumeId] = useState<string>(() => loadCostume(world.cartridge.arc));
+  const [costumeId, setCostumeId] = useState<string>(() => (
+    world.pendingDecision?.id.startsWith("opening:") && hallSteward(world.cartridge)
+      ? "hall"
+      : loadCostume(world.cartridge.arc)
+  ));
   const [showCartridge, setShowCartridge] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [dismissedPurpose, setDismissedPurpose] = useState<Record<string, boolean>>({});
@@ -149,6 +154,9 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   // immediately; Shell retains this receipt until the player acknowledges it.
   // It is deliberately not restored, so resuming a saved run never replays it.
   const [decisionResponse, setDecisionResponse] = useState<DecisionResponse | null>(null);
+  // A one-shot stage direction, deliberately absent from save state. Resuming a
+  // marked cartridge returns to its world without replaying the founding beat.
+  const [openingHandoff, setOpeningHandoff] = useState(false);
   const activeTheme = useMemo(() => themeForArc(world.cartridge.arc), [world.cartridge.arc]);
   const mayOpenMobileSelection = costumeId !== "globe" || isWorldInteractionUnlocked(ix.selectedId, ix.nearbyId);
 
@@ -204,7 +212,16 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   const PresentationScene = active.Scene;
   const stage = (
     <div data-testid="representation-region" style={{ position: "absolute", inset: 0 }}>
-      <PresentationScene world={world} interaction={ix} modalOpen={modalOpen} active onEnterEncounter={enterEncounter} onNavigate={choose} />
+      <PresentationScene
+        world={world}
+        interaction={ix}
+        modalOpen={modalOpen}
+        active
+        onEnterEncounter={enterEncounter}
+        onNavigate={choose}
+        openingHandoff={openingHandoff}
+        onOpeningHandoffComplete={() => setOpeningHandoff(false)}
+      />
     </div>
   );
   const contextStrip = <ViewContextStrip rep={active} showPurpose={showPurpose} onDismiss={dismissPurpose} />;
@@ -559,13 +576,35 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
         <DecisionPanel
           key={`${decisionResponse.cardId}:${decisionResponse.optionId}`}
           response={decisionResponse}
-          onContinue={() => setDecisionResponse(null)}
+          stage={decisionResponse.cardId.startsWith("opening:")
+            ? <OpeningDecisionStage world={world} response={decisionResponse} />
+            : undefined}
+          onContinue={() => {
+            const closesOpening = decisionResponse.cardId.startsWith("opening:");
+            setDecisionResponse(null);
+            if (closesOpening && hallSteward(world.cartridge)) {
+              // This is scene direction, not a preference write: the player's saved
+              // representation remains theirs after the one-shot handoff.
+              setCostumeId("hall");
+              if (isMobile) {
+                // Mobile's governed one-panel flow already has the selected Cellar
+                // staging sheet. Land there directly; do not leave a dormant Hall
+                // dialogue cue that could fire later when the player steps back.
+                setMobileStep("contract");
+              } else {
+                setOpeningHandoff(true);
+              }
+            }
+          }}
           targetName={world.effectTargetName}
         />
       ) : world.pendingDecision ? (
         <DecisionPanel
           key={world.pendingDecision.id}
           card={world.pendingDecision}
+          stage={world.pendingDecision.id.startsWith("opening:")
+            ? <OpeningDecisionStage world={world} />
+            : undefined}
           onResolve={(optionId) => {
             const response = world.resolveDecision(optionId);
             if (response) setDecisionResponse(response);

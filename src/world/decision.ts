@@ -23,6 +23,36 @@ export interface DecisionResponse {
   effects: AppliedDecisionEffect[];
 }
 
+export interface DecisionEffectGroup {
+  type: string;
+  count: number;
+  minDelta: number;
+  maxDelta: number;
+}
+
+/** Compress a long per-agent receipt for first-glance direction. The exact effects
+ * remain the source and stay available in the UI; groups only summarize actual
+ * before/after deltas and preserve the first-seen authored effect order. */
+export function groupDecisionEffects(effects: AppliedDecisionEffect[]): DecisionEffectGroup[] {
+  const groups = new Map<string, DecisionEffectGroup>();
+  for (const effect of effects) {
+    const current = groups.get(effect.type);
+    if (current) {
+      current.count += 1;
+      current.minDelta = Math.min(current.minDelta, effect.delta);
+      current.maxDelta = Math.max(current.maxDelta, effect.delta);
+    } else {
+      groups.set(effect.type, {
+        type: effect.type,
+        count: 1,
+        minDelta: effect.delta,
+        maxDelta: effect.delta,
+      });
+    }
+  }
+  return [...groups.values()];
+}
+
 export interface WorldDecisionResolution {
   org: Organization;
   response: DecisionResponse;

@@ -2,7 +2,7 @@
 // in a costume. No designer, no library, no embedded hub game — those belong to
 // axm-arc. Boot -> cartridge select -> world (costume + HUD) -> exit back to select.
 
-import { Suspense, lazy, useMemo, useRef, useState, type CSSProperties } from "react";
+import { Suspense, lazy, useCallback, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { Cartridge } from "./cartridge.js";
 import {
   bayImportPreflight,
@@ -19,6 +19,7 @@ import { programForCartridge } from "./program-of-record.js";
 import { readProgramSaveSummary } from "./save.js";
 import { CartridgeBayCard } from "./components/CartridgeBayCard.js";
 import { LocaleSwitcher } from "./components/LocaleSwitcher.js";
+import { CartridgeEnterTransition } from "./components/CartridgeEnterTransition.js";
 import { RodohRuntimeMark } from "./brand/RodohRuntimeMark.js";
 import "./themes/karazhan/karazhan.css";
 import { PixelButton, PixelIcon } from "./pixel-ui/index.js";
@@ -62,11 +63,24 @@ export function Player(): JSX.Element {
   // the toggle below is used (the persisted choice otherwise only reads at load).
   useLocale();
   const [cartridge, setCartridge] = useState<Cartridge | null>(null);
+  const [enteringCartridge, setEnteringCartridge] = useState<Cartridge | null>(null);
   const [entries, setEntries] = useState<CartridgeBayEntry[]>(() => ensureBundledCartridges());
   const [importErrors, setImportErrors] = useState<string[] | null>(null);
   const [importedMsg, setImportedMsg] = useState<string | null>(null);
   const [importPreflight, setImportPreflight] = useState<BayImportPreflight | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const enterCartridge = useCallback((next: Cartridge): void => {
+    // Mount the authoritative world immediately. The bounded plaque layer below
+    // reveals that committed state; it never delays or owns game state.
+    setCartridge(next);
+    setEnteringCartridge(next);
+  }, []);
+  const completeEntry = useCallback(() => setEnteringCartridge(null), []);
+  const leaveCartridge = useCallback((): void => {
+    setEnteringCartridge(null);
+    setCartridge(null);
+  }, []);
 
   // Every bay entry's content-identity digest (arc-072 parity) — computed once
   // per entries change, not per render, since it hashes the whole canonical
@@ -88,17 +102,22 @@ export function Player(): JSX.Element {
 
   if (cartridge) {
     return (
-      <Suspense
-        fallback={
-          <div style={{ ...screen, font: "14px 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b" }}>
-            <div style={{ display: "grid", gap: 14, justifyItems: "center" }}>
-              <RodohRuntimeMark variant="boot" label="RODOH RUNTIME v1.0" caption={t("boot.loadingNamed", { name: cartridge.manifest.name })} />
+      <>
+        <Suspense
+          fallback={
+            <div style={{ ...screen, font: "14px 'IBM Plex Mono', ui-monospace, monospace", color: "#a59c8b" }}>
+              <div style={{ display: "grid", gap: 14, justifyItems: "center" }}>
+                <RodohRuntimeMark variant="boot" label="RODOH RUNTIME v1.0" caption={t("boot.loadingNamed", { name: cartridge.manifest.name })} />
+              </div>
             </div>
-          </div>
-        }
-      >
-        <WorldHost cartridge={cartridge} onExit={() => setCartridge(null)} />
-      </Suspense>
+          }
+        >
+          <WorldHost cartridge={cartridge} onExit={leaveCartridge} />
+        </Suspense>
+        {enteringCartridge && (
+          <CartridgeEnterTransition cartridge={enteringCartridge} onComplete={completeEntry} />
+        )}
+      </>
     );
   }
 
@@ -138,7 +157,7 @@ export function Player(): JSX.Element {
         {/* The runtime mark, with the language toggle beside it — the boot surface
             must offer the same EN / zh-Hant switch the shell has, or a persisted
             choice locks the player out of the other language before they enter. */}
-        <div style={{ marginBottom: 18, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ marginBottom: 18, display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
           <RodohRuntimeMark variant="boot" label="RODOH RUNTIME v1.0" caption={t("boot.holdTheLoop")} />
           <LocaleSwitcher />
         </div>
@@ -175,7 +194,7 @@ export function Player(): JSX.Element {
                 program={program}
                 save={save}
                 digest={digest}
-                onEnter={() => setCartridge(c)}
+                onEnter={() => enterCartridge(c)}
                 onRemove={() => handleRemove(entry)}
               />
             );

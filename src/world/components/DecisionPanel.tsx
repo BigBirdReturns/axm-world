@@ -2,10 +2,10 @@
 // card the engine generated). This is a true modal: rendered through a document-level
 // portal so representation labels/canvas Html can never render above the decision.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { DramaCard, DramaCardEffect } from "../../engine/types.js";
-import type { DecisionResponse } from "../decision.js";
+import { groupDecisionEffects, type DecisionResponse } from "../decision.js";
 import { RodohRuntimeMark } from "../brand/RodohRuntimeMark.js";
 import { PixelButton, PixelPanel } from "../pixel-ui/index.js";
 import { t } from "../i18n/index.js";
@@ -17,6 +17,7 @@ interface Props {
   onResolve?: (optionId: string) => void;
   onContinue?: () => void;
   targetName?: (targetId: string) => string;
+  stage?: ReactNode;
 }
 
 function effectLabel(effect: DramaCardEffect, targetName: (targetId: string) => string): string {
@@ -35,7 +36,12 @@ function appliedEffectLabel(effect: DecisionResponse["effects"][number], targetN
   return `${targetName(effect.target)}: ${effect.type} ${effect.before} → ${effect.after} (${sign}${effect.delta})`;
 }
 
-export function DecisionPanel({ card: drama, response, onResolve, onContinue, targetName = (id) => id }: Props): JSX.Element {
+function deltaLabel(min: number, max: number): string {
+  const signed = (value: number) => `${value > 0 ? "+" : ""}${value}`;
+  return min === max ? signed(min) : `${signed(min)}–${signed(max)}`;
+}
+
+export function DecisionPanel({ card: drama, response, onResolve, onContinue, targetName = (id) => id, stage }: Props): JSX.Element {
   if (!drama && !response) throw new Error("DecisionPanel requires a pending card or a resolved response");
   const decisionId = response?.cardId ?? drama!.id;
   const isOpening = decisionId.startsWith("opening:");
@@ -63,6 +69,8 @@ export function DecisionPanel({ card: drama, response, onResolve, onContinue, ta
           <RodohRuntimeMark variant="micro" showText={false} />
           {response ? t("decision.worldResponds") : isOpening ? t("decision.foundingHall") : t("decision.aDecision")}
         </div>
+
+        {stage}
 
         {!response && drama ? (
           <>
@@ -109,11 +117,29 @@ export function DecisionPanel({ card: drama, response, onResolve, onContinue, ta
               {response!.description}
             </p>
             <div className="decision-panel__applied-effects" data-testid="decision-applied-effects">
-              {response!.effects.length > 0
-                ? response!.effects.map((effect, index) => (
-                    <div key={`${effect.target}:${effect.type}:${index}`}>{appliedEffectLabel(effect, targetName)}</div>
-                  ))
-                : t("decision.noVisibleEffect")}
+              {response!.effects.length > 0 ? (
+                <>
+                  <div className="decision-panel__effect-groups" data-testid="decision-effect-groups">
+                    {groupDecisionEffects(response!.effects).map((group) => (
+                      <div key={group.type}>
+                        {t("decision.groupChange", {
+                          type: group.type,
+                          count: group.count,
+                          delta: deltaLabel(group.minDelta, group.maxDelta),
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                  <details className="decision-panel__exact-effects">
+                    <summary>{t("decision.exactChanges", { count: response!.effects.length })}</summary>
+                    <div>
+                      {response!.effects.map((effect, index) => (
+                        <div key={`${effect.target}:${effect.type}:${index}`}>{appliedEffectLabel(effect, targetName)}</div>
+                      ))}
+                    </div>
+                  </details>
+                </>
+              ) : t("decision.noVisibleEffect")}
             </div>
             <div className="decision-panel__continue-row">
               <PixelButton

@@ -12,7 +12,7 @@
 // chrome routes through t() (guarded by the i18n coverage test); the contract's
 // authored name flows verbatim.
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { SceneProps } from "../presentations.js";
 import { deriveHallView, canTakeContract } from "./hall.js";
 import { hallSteward } from "./people.js";
@@ -112,9 +112,18 @@ function Figure(props: { color: string; label: string; testid?: string; resolved
   );
 }
 
-export function HallScene({ world, interaction, modalOpen = false, onEnterEncounter, onNavigate }: SceneProps): JSX.Element {
+export function HallScene({
+  world,
+  interaction,
+  modalOpen = false,
+  onEnterEncounter,
+  onNavigate,
+  openingHandoff = false,
+  onOpeningHandoffComplete,
+}: SceneProps): JSX.Element {
   const theme = themeForArc(world.cartridge.arc);
   const [open, setOpen] = useState(false);
+  const dialogueRef = useRef<HTMLDivElement>(null);
   const [atThreshold, setAtThreshold] = useState(false);
   const view = deriveHallView(world.nodes);
   // The authored person the cartridge places in the hall (name/role/bio/spoken
@@ -145,6 +154,19 @@ export function HallScene({ world, interaction, modalOpen = false, onEnterEncoun
   const heldReadiness = view.challengeId && !view.resolved
     ? world.evaluateParty(view.challengeId, world.recommendedParty(view.challengeId))
     : null;
+
+  // The founding choice has already committed through the engine. This cue only
+  // reveals the authored steward and next contract once; it is not persisted and
+  // therefore cannot replay on resume.
+  useEffect(() => {
+    if (!openingHandoff) return;
+    if (view.challengeId) setOpen(true);
+    onOpeningHandoffComplete?.();
+  }, [openingHandoff, onOpeningHandoffComplete, view.challengeId]);
+
+  useEffect(() => {
+    if (open) dialogueRef.current?.focus();
+  }, [open]);
 
   // Route to the board with the steward's contract selected: the same interaction
   // selection + view switch the shell already owns — one place, one route into play.
@@ -317,6 +339,10 @@ export function HallScene({ world, interaction, modalOpen = false, onEnterEncoun
           to the existing engine (world.runChallenge) — no scene-only outcome. */}
       {open && view.challengeId && (
         <div
+          ref={dialogueRef}
+          role="dialog"
+          aria-labelledby="hall-dialogue-contract"
+          tabIndex={-1}
           data-testid="hall-dialogue"
           style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "14px 16px", borderTop: "1px solid #4a4238", background: "rgba(23,21,15,0.98)", display: "grid", gap: 10 }}
         >
@@ -339,7 +365,7 @@ export function HallScene({ world, interaction, modalOpen = false, onEnterEncoun
           {regionName && (
             <ContractPlace regionName={regionName} isNext={!view.resolved} testid="hall-dialogue-region" />
           )}
-          <div data-testid="hall-dialogue-contract" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, color: "#ece4d4" }}>
+          <div id="hall-dialogue-contract" data-testid="hall-dialogue-contract" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, color: "#ece4d4" }}>
             {view.challengeName}
           </div>
           {!view.resolved && lootPending && (
