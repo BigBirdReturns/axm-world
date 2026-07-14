@@ -1,18 +1,17 @@
 // The cartridge <-> world bridge. The player reads a cartridge: it bootstraps a
-// populated org from the cartridge's arc, enqueues the cartridge's AUTHORED opening
+// populated org from the Arc-owned founding law, enqueues the Arc-owned opening
 // decision as a real drama card, and resolves every choice through the deterministic
 // engine (runCycle, resolveDramaCard). axm-world authors nothing. It surfaces what
 // the cartridge holds and shows what the engine returns. It also builds the custody
 // object (manifest + arc + run state) so the cartridge can leave intact.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Arc, DramaCard, DramaCardEffect, Organization, RunReport } from "../engine/types.js";
+import type { Arc, DramaCard, Organization, RunReport } from "../engine/types.js";
 import type { ChallengeAssignment, PendingRewardChoice } from "../engine/cycle.js";
 import { runCycle } from "../engine/cycle.js";
 import { applyDifficultyMode } from "../engine/difficulty.js";
 import { awardItem } from "../engine/rewards.js";
-import { bootstrapOrg } from "../spoke/bootstrap.js";
-import { applianceBootOptions } from "./appliance/index.js";
+import { foundOrganization } from "../engine/founding.js";
 import {
   compileArcToPlayScene,
   recommendAgentsForChallenge,
@@ -22,7 +21,7 @@ import {
 } from "../play-pipeline/compile.js";
 import { buildWorldLayout, DEFAULT_WORLD_CONFIG, type WorldLayout, type WorldNode } from "./contract.js";
 import { applyAgentDowntime, type DowntimeAction } from "./agent-management.js";
-import { FIRST_CHARTER_CARTRIDGE, type AuthoredEffect, type AuthoredOpening, type Cartridge } from "./cartridge.js";
+import { FIRST_CHARTER_CARTRIDGE, type Cartridge } from "./cartridge.js";
 import { cartridgeIdentity } from "./cartridge-identity.js";
 import { appendResult, emptyLedger, type Ledger, type LedgerEntry } from "./ledger.js";
 import { buildConsequence, newlyAvailableContracts } from "./consequence.js";
@@ -166,33 +165,9 @@ export interface ArcWorld {
   buildExport: () => CustodyObject;
 }
 
-function expandEffects(effects: AuthoredEffect[], agentIds: string[]): DramaCardEffect[] {
-  const out: DramaCardEffect[] = [];
-  for (const e of effects) for (const id of agentIds) out.push({ target: id, type: e.type, value: e.value });
-  return out;
-}
-
 function roleName(arc: Arc, id: string | null): string {
   if (!id) return "Flex";
   return arc.roles.find((r) => r.id === id)?.name ?? id;
-}
-
-function buildOpeningCard(opening: AuthoredOpening, org: Organization): DramaCard {
-  const agentIds = Object.keys(org.agents);
-  return {
-    id: `opening:${opening.triggerType}`,
-    cycleGenerated: 0,
-    triggerType: opening.triggerType,
-    agentsInvolved: agentIds,
-    narrativeText: opening.narrativeText,
-    options: opening.options.map((o) => ({
-      id: o.id,
-      label: o.label,
-      description: o.description,
-      effects: expandEffects(o.effects, agentIds),
-      hiddenEffects: [],
-    })),
-  };
 }
 
 export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): ArcWorld {
@@ -207,13 +182,10 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   );
   const [org, setOrg] = useState<Organization>(() => {
     if (restored) return restored.org;
-    // Fresh boot only (a restored save keeps its own org above — never
-    // resized): size the roster from what this cartridge's own encounters
-    // ask for, so any cartridge — not just the ones world happens to know by
-    // name — can field its own party on first boot (RFC 054).
-    const base = bootstrapOrg(arc, applianceBootOptions(arc));
-    if (!cartridge.opening) return base;
-    return { ...base, dramaQueue: [buildOpeningCard(cartridge.opening, base), ...base.dramaQueue] };
+    // Fresh boot uses the same Arc-owned founding transition as every other
+    // client. No World-local roster, resource, seed, relationship, or opening
+    // policy can diverge under the same cartridge identity.
+    return foundOrganization(arc);
   });
   const [ledger, setLedger] = useState<Ledger>(() => restored?.ledger ?? emptyLedger(cartridgeDigest));
   const [lastReport, setLastReport] = useState<PlayReportView | null>(null);

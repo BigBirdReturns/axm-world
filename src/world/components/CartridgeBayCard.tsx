@@ -12,7 +12,7 @@ import { type CSSProperties } from "react";
 import type { Cartridge } from "../cartridge.js";
 import type { CartridgeBayEntry } from "../cartridge-bay.js";
 import type { ProgramOfRecord } from "../program-of-record.js";
-import type { ProgramSaveSummary } from "../save.js";
+import type { LegacyProgramSaveSummary, ProgramSaveSummary } from "../save.js";
 import type { ContractOutcome } from "../ledger.js";
 import { RodohRuntimeMark } from "../brand/RodohRuntimeMark.js";
 import { CartridgeEmblem } from "../themes/CartridgeMotif.js";
@@ -30,6 +30,8 @@ interface Props {
   /** A summary of this program's save slot, or null when fresh / not a program
    *  of record. Present ⇒ the run is genuinely resumable. */
   save: ProgramSaveSummary | null;
+  /** Preserved old-identity evidence. Never implies current Resume. */
+  legacySave: LegacyProgramSaveSummary | null;
   /** This entry's computed content-identity digest (`cartridgeIdentity` of the
    *  resolved cartridge) — shown verbatim, never a claimed manifest value. */
   digest: string;
@@ -114,7 +116,7 @@ function DigestLine({ digest }: { digest: string }): JSX.Element {
 }
 
 /** The program-of-record plaque: an elevated, single-object bay entry. */
-function ProgramPlaque({ entry, cartridge, program, save, digest, onEnter }: Omit<Props, "onRemove">): JSX.Element {
+function ProgramPlaque({ entry, cartridge, program, save, legacySave, digest, onEnter }: Omit<Props, "onRemove">): JSX.Element {
   const c = cartridge;
   const resumable = save !== null;
   const last = save?.lastResult ?? null;
@@ -184,6 +186,7 @@ function ProgramPlaque({ entry, cartridge, program, save, digest, onEnter }: Omi
           </span>
         )}
       </div>
+      <LegacyEvidenceLine legacySave={legacySave} />
 
       {/* Footer: trust provenance + the single primary action. */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
@@ -248,9 +251,22 @@ function SaveStateLine({ save }: { save: ProgramSaveSummary | null }): JSX.Eleme
   );
 }
 
+/** Historical evidence is an independent fact. It remains visible after a
+ * new-revision run exists, but it never controls the current Enter/Resume
+ * action and is never passed to MemoryLine as current history. */
+function LegacyEvidenceLine({ legacySave }: { legacySave: LegacyProgramSaveSummary | null }): JSX.Element | null {
+  if (!legacySave) return null;
+  return (
+    <div data-testid="bay-legacy-evidence" style={{ fontFamily: mono, fontSize: 10, color: "#8b8172", marginTop: 2 }}>
+      {t("boot.legacyRunUnavailable")}
+      {" · "}{t("boot.contractsRecorded", { count: legacySave.ledgerEntryCount })}
+    </div>
+  );
+}
+
 /** The plain bay row every cartridge had before the plaque: name, meta, trust,
  *  and Enter. Used for any cartridge that is not a program of record. */
-function ClassicRow({ entry, cartridge, digest, save, onEnter, onRemove }: Omit<Props, "program">): JSX.Element {
+function ClassicRow({ entry, cartridge, digest, save, legacySave, onEnter, onRemove }: Omit<Props, "program">): JSX.Element {
   const c = cartridge;
   const isKarazhan = entry.arc.meta.id === "karazhan";
   return (
@@ -280,6 +296,7 @@ function ClassicRow({ entry, cartridge, digest, save, onEnter, onRemove }: Omit<
           </div>
           <DigestLine digest={digest} />
           <SaveStateLine save={save} />
+          <LegacyEvidenceLine legacySave={legacySave} />
           <MemoryLine save={save} />
         </div>
       </div>
@@ -303,7 +320,7 @@ export function CartridgeBayCard(props: Props): JSX.Element {
   if (props.program) {
     return (
       <div style={{ display: "grid", gap: props.entry.source === "file" ? 6 : 0 }}>
-        <ProgramPlaque entry={props.entry} cartridge={props.cartridge} program={props.program} save={props.save} digest={props.digest} onEnter={props.onEnter} />
+        <ProgramPlaque entry={props.entry} cartridge={props.cartridge} program={props.program} save={props.save} legacySave={props.legacySave} digest={props.digest} onEnter={props.onEnter} />
         {props.entry.source === "file" && (
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <RemoveButton entry={props.entry} onRemove={props.onRemove} />
@@ -312,5 +329,5 @@ export function CartridgeBayCard(props: Props): JSX.Element {
       </div>
     );
   }
-  return <ClassicRow entry={props.entry} cartridge={props.cartridge} digest={props.digest} save={props.save} onEnter={props.onEnter} onRemove={props.onRemove} />;
+  return <ClassicRow entry={props.entry} cartridge={props.cartridge} digest={props.digest} save={props.save} legacySave={props.legacySave} onEnter={props.onEnter} onRemove={props.onRemove} />;
 }

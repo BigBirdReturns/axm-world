@@ -48,9 +48,10 @@ test("after one contract, the same plaque reads resumable, counts the ledger, an
   test.slow();
   await enterCartridge(page);
 
-  // Cold-start focuses the first available node — "The Cellar". Run it to
-  // resolution and clear any post-run decision the engine enqueues.
-  await expect(page.getByTestId("selected-contract-title")).toContainText(/Cellar/i);
+  // The post-oath Hall handoff names the first contract and offers the one
+  // advancing action into real gameplay. Run it to resolution and clear any
+  // post-run decision the engine enqueues.
+  await expect(page.getByTestId("hall-enter-contract")).toContainText(/Cellar/i);
   await runSelectedContract(page);
   await resolvePendingDecisions(page);
 

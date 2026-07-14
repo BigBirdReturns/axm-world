@@ -47,11 +47,19 @@ describe("encounter agency — the deploy choice is real where the contract affo
 
   it("the COMMITTED squad — not the recommended one — is what runCycle resolves and the receipt reports", () => {
     // This is the load-bearing guarantee: the player's deploy choice must reach the
-    // engine, not be quietly replaced by the recommendation. Build a legal squad
-    // that deliberately SWAPS a recommended Vanguard for a benched Mender.
-    const byName = (n: string) => roster.find((a) => a.name === n)!;
+    // engine, not be quietly replaced by the recommendation. Build a legal
+    // squad that swaps a non-required recommendation for a benched founder
+    // while preserving the required Vanguard.
     const recommended = recommendAgentsForChallenge(bridge, org, FIRST_CHARTER);
-    const committed = [byName("Caelum Ironcroft").id, byName("Fylan Dunmark").id, byName("Eiran Jarndace").id, byName("Nyara Forhaven").id];
+    const replacement = roster.find((candidate) =>
+      !recommended.includes(candidate.id) && candidate.role !== "vanguard",
+    )!;
+    const replaceIndex = recommended.findIndex((id) => agent(id).role !== "vanguard");
+    expect(replacement).toBeDefined();
+    expect(replaceIndex).toBeGreaterThanOrEqual(0);
+    const removed = agent(recommended[replaceIndex]!);
+    const committed = [...recommended];
+    committed[replaceIndex] = replacement.id;
 
     // It really is a different, legal squad (has a Vanguard, count in range).
     expect([...committed].sort()).not.toEqual([...recommended].sort());
@@ -65,12 +73,12 @@ describe("encounter agency — the deploy choice is real where the contract affo
     // The engine resolved exactly the committed squad — no substitution.
     expect(report.assignedAgents.map((a) => a.agentId).sort()).toEqual([...committed].sort());
 
-    // The receipt reports the committed squad: the swapped-in Mender appears, the
-    // benched-out Vanguard does not.
+    // The receipt reports the committed squad: the swapped-in founder appears,
+    // and the benched recommendation does not.
     const view = summarizeReport(report, FIRST_CHARTER, (id) => result.org.agents[id]?.name ?? id);
     const rows = view.lines.join(" | ");
-    expect(rows).toContain("Nyara Forhaven"); // committed (was in reserve)
-    expect(rows).not.toContain("Gwenna Emberveil"); // recommended, but benched by the player
+    expect(rows).toContain(replacement.name);
+    expect(rows).not.toContain(removed.name);
   });
 
   it("The Cellar is choice-locked: only a full party of 6 is legal (min == max == roster)", () => {

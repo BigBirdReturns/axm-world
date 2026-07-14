@@ -1,6 +1,6 @@
 // PR 008 — the appliance encounter expression: first-lockout, imported into
-// world, plays through world's OWN runtime path (bootstrapOrg → play scene →
-// the engine EncounterDirector drives), carrying its own authored vocabulary.
+// world, founds through the shared engine transition, then enters world's play
+// scene and EncounterDirector carrying its own authored vocabulary.
 // No arc Raid Night, no arc campaign ledger — the embodied client resolves the
 // same cartridge with world-native machinery.
 import { beforeEach, describe, expect, it } from "vitest";
@@ -8,8 +8,8 @@ import {
   cartridgeForEntry,
   importCartridgeFromJson,
 } from "../../src/world/cartridge-bay.js";
-import { applianceRosterSize, firstLockoutCartridgeJson } from "../../src/world/appliance/index.js";
-import { bootstrapOrg } from "../../src/spoke/bootstrap.js";
+import { firstLockoutCartridgeJson } from "../../src/world/appliance/index.js";
+import { foundOrganization } from "../../src/engine/founding.js";
 import { compileArcToPlayScene } from "../../src/play-pipeline/compile.js";
 import { resolveChallenge } from "../../src/engine/resolver.js";
 import type { Agent, Arc, Challenge } from "../../src/engine/types.js";
@@ -76,7 +76,7 @@ function legalParty(agents: Agent[], challenge: Challenge): Agent[] {
 describe("appliance encounter: first-lockout plays through world's runtime", () => {
   it("compiles to a play scene carrying first-lockout's own encounter vocabulary", () => {
     const arc = bootFirstLockout();
-    const org = bootstrapOrg(arc, { rosterSize: applianceRosterSize(arc) });
+    const org = foundOrganization(arc);
     expect(Object.keys(org.agents).length).toBeGreaterThan(0);
 
     const scene = compileArcToPlayScene(arc, org);
@@ -91,7 +91,7 @@ describe("appliance encounter: first-lockout plays through world's runtime", () 
 
   it("resolves an encounter through the same engine the EncounterDirector drives", () => {
     const arc = bootFirstLockout();
-    const org = bootstrapOrg(arc, { rosterSize: applianceRosterSize(arc) });
+    const org = foundOrganization(arc);
     const gateWarden = arc.challenges.find((c) => c.id === "the-gate-warden")!;
     const party = legalParty(Object.values(org.agents), gateWarden);
     // A real raid party could be fielded from a freshly-booted appliance org.
@@ -110,7 +110,7 @@ describe("appliance encounter: first-lockout plays through world's runtime", () 
 
   it("is deterministic — same seed, same outcome (the family law)", () => {
     const arc = bootFirstLockout();
-    const org = bootstrapOrg(arc, { rosterSize: applianceRosterSize(arc) });
+    const org = foundOrganization(arc);
     const ch = arc.challenges.find((c) => c.id === "the-hollow-choir")!;
     const party = legalParty(Object.values(org.agents), ch);
 

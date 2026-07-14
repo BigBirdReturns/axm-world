@@ -62,7 +62,7 @@ test("severed-march (never named in world's source) imports, boots, plays, and r
   await expect(preflightDigest).toHaveAttribute("aria-label", new RegExp(ARC_PINNED_DIGEST));
   await expect(page.getByTestId("bay-import-preflight-action")).toContainText(/new/i);
 
-  // Enter it. An imported cartridge carries no authored opening, so we land
+  // Enter it. This Arc authors no opening, so we land
   // straight in the embodied shell — no opening decision to resolve.
   await page.getByTestId("play-cartridge-severed-march").click();
 
@@ -85,11 +85,8 @@ test("severed-march (never named in world's source) imports, boots, plays, and r
   // skin — a second unknown cartridge, same guard as first-lockout's.
   await expect(page.locator("html")).not.toHaveAttribute("data-cartridge");
 
-  // PR 054 — the generic appliance boot: severed-march's own challenges top out
-  // at a 4-6 agent roster requirement (`applianceRosterSize` reads the largest
-  // maxAgents across all its challenges — 6, from walled-market-town/mountain-
-  // beacon/traitor-lords-keep/the-sever). The fresh-booted org is sized from
-  // that authored declaration, never a hardcoded constant. The cold-start
+  // The shared engine's frozen legacy founding law reads severed-march's own
+  // challenges, which top out at a 4-6 agent roster. The cold-start
   // selection lands on the arc's own first reachable challenge — the
   // crossroads-picket (2-4 agents, no role requirements, the opening fight of
   // Chapter I) — and auto-seeds the party with the engine's own recommendation,

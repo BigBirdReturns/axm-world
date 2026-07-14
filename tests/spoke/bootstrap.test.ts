@@ -2,9 +2,30 @@ import { describe, expect, it } from "vitest";
 import { runCycle } from "../../src/engine/cycle.js";
 import { buildPlayAssignment, compileArcToPlayScene, recommendAgentsForChallenge } from "../../src/play-pipeline/compile.js";
 import { bootstrapOrg, bootstrapRoster } from "../../src/spoke/bootstrap.js";
+import { defaultFoundingInput, foundOrganization } from "../../src/engine/founding.js";
 import { MINI_ARC } from "../fixtures/mini-arc.js";
 
 describe("spoke bootstrap", () => {
+  it("is only a byte-identical compatibility facade over canonical founding", () => {
+    expect(bootstrapOrg(MINI_ARC)).toEqual(foundOrganization(MINI_ARC));
+    expect(bootstrapRoster(MINI_ARC)).toEqual(Object.values(foundOrganization(MINI_ARC).agents));
+
+    const input = { ...defaultFoundingInput(MINI_ARC), seed: 12345 };
+    expect(bootstrapOrg(MINI_ARC, { seed: input.seed })).toEqual(foundOrganization(MINI_ARC, input));
+  });
+
+  it("cannot revive deprecated World-local roster or resource policy", () => {
+    const canonical = bootstrapOrg(MINI_ARC, { seed: 12345 });
+    const withDeprecatedOptions = bootstrapOrg(MINI_ARC, {
+      seed: 12345,
+      rosterSize: 99,
+      roleFloor: { guardian: 99 },
+      startingCurrency: 999_999,
+      startingTokens: 999,
+    });
+    expect(withDeprecatedOptions).toEqual(canonical);
+  });
+
   it("produces a populated, playable org for an arbitrary (non-bundled) arc", () => {
     const org = bootstrapOrg(MINI_ARC);
     const agents = Object.values(org.agents);

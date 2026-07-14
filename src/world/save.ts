@@ -10,6 +10,7 @@
 // carries the run ledger + opening choice alongside.
 
 import type { Arc, Organization } from "../engine/types.js";
+import { cartridgeDigest } from "../engine/cartridge-digest.js";
 import { serializeGame, deserializeGame } from "../engine/save.js";
 import { emptyLedger, migrateLedger, summarizeLedger, type ContractOutcome, type Ledger } from "./ledger.js";
 
@@ -59,6 +60,13 @@ export function saveRun(
   storage: KVStorage,
   params: { arc: Arc; authoredArcDigest: string; state: ProgramRunState },
 ): void {
+  const actualDigest = cartridgeDigest(params.arc);
+  if (actualDigest !== params.authoredArcDigest) {
+    throw new Error(`Refusing to save Arc ${params.arc.meta.id} under foreign authored identity ${params.authoredArcDigest}.`);
+  }
+  if (!ledgerMatchesAuthoredDigest(params.state.ledger, params.authoredArcDigest)) {
+    throw new Error("Refusing to save a ledger under a different authored identity.");
+  }
   const stored: StoredSave = {
     version: SAVE_SCHEMA_VERSION,
     authoredArcDigest: params.authoredArcDigest,
@@ -77,6 +85,10 @@ export function loadRun(
   storage: KVStorage,
   params: { arc: Arc; authoredArcDigest: string },
 ): ProgramRunState | null {
+  // The caller cannot relabel current Arc bytes with an old or foreign slot
+  // key. This is the content-identity half of the restore gate; deserializeGame
+  // separately checks the Arc id/schema inside the engine save.
+  if (cartridgeDigest(params.arc) !== params.authoredArcDigest) return null;
   const raw = storage.getItem(saveKeyFor(params.authoredArcDigest));
   if (!raw) return null;
   let parsed: Partial<StoredSave>;
@@ -88,6 +100,7 @@ export function loadRun(
   if (parsed.version !== SAVE_SCHEMA_VERSION) return null;
   if (parsed.authoredArcDigest !== params.authoredArcDigest) return null; // defense-in-depth
   if (typeof parsed.game !== "string") return null;
+  if (!ledgerMatchesAuthoredDigest(parsed.ledger, params.authoredArcDigest)) return null;
   let org: Organization;
   try {
     ({ org } = deserializeGame(parsed.game, params.arc));
@@ -123,6 +136,14 @@ export interface ProgramSaveSummary {
   openingChoice: string | null;
 }
 
+export interface LegacyProgramSaveSummary {
+  authoredArcDigest: string;
+  ledgerEntryCount: number;
+  lastResult: { challengeName: string; outcome: ContractOutcome } | null;
+  /** A legacy blob is preserved evidence, not a resumable current run. */
+  status: "legacy-profile-unavailable";
+}
+
 /** Summarize a program's save slot for the cartridge bay. Reuses `loadRun`'s
  *  digest + schema + arc guards, so a summary is returned only when the run is
  *  genuinely resumable — the boot plaque never offers "Resume" for a save that
@@ -142,6 +163,43 @@ export function readProgramSaveSummary(
   };
 }
 
+/** Inspect an old digest-keyed slot without deserializing it against or
+ * relabeling it as the current Arc. This is intentionally summary-only until an
+ * exact frozen legacy execution profile exists. The storage blob is never
+ * written or moved. */
+export function readLegacyProgramSaveSummary(
+  storage: KVStorage,
+  authoredArcDigest: string,
+): LegacyProgramSaveSummary | null {
+  const raw = storage.getItem(saveKeyFor(authoredArcDigest));
+  if (!raw) return null;
+  let parsed: Partial<StoredSave>;
+  try {
+    parsed = JSON.parse(raw) as Partial<StoredSave>;
+  } catch {
+    return null;
+  }
+  if (parsed.version !== SAVE_SCHEMA_VERSION) return null;
+  if (parsed.authoredArcDigest !== authoredArcDigest) return null;
+  if (typeof parsed.game !== "string") return null;
+  const ledger = parsed.ledger as Partial<Ledger> | undefined;
+  if (!ledger || ledger.authoredArcDigest !== authoredArcDigest || !Array.isArray(ledger.entries)) return null;
+  if (!ledger.entries.every((entry) =>
+    !!entry
+    && entry.authoredArcDigest === authoredArcDigest
+    && typeof entry.challengeName === "string"
+    && (entry.outcome === "success" || entry.outcome === "partial" || entry.outcome === "failure"))) {
+    return null;
+  }
+  const summary = summarizeLedger(ledger as Ledger);
+  return {
+    authoredArcDigest,
+    ledgerEntryCount: summary.entryCount,
+    lastResult: summary.lastResult,
+    status: "legacy-profile-unavailable",
+  };
+}
+
 function normalizeLedger(ledger: unknown, authoredArcDigest: string): Ledger {
   if (
     !!ledger &&
@@ -156,4 +214,12 @@ function normalizeLedger(ledger: unknown, authoredArcDigest: string): Ledger {
     return migrateLedger(ledger as Ledger);
   }
   return emptyLedger(authoredArcDigest);
+}
+
+function ledgerMatchesAuthoredDigest(ledger: unknown, authoredArcDigest: string): ledger is Ledger {
+  if (!ledger || typeof ledger !== "object") return false;
+  const candidate = ledger as Partial<Ledger>;
+  return candidate.authoredArcDigest === authoredArcDigest
+    && Array.isArray(candidate.entries)
+    && candidate.entries.every((entry) => !!entry && entry.authoredArcDigest === authoredArcDigest);
 }

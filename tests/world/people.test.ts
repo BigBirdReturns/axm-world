@@ -38,11 +38,15 @@ describe("hallSteward — the authored person the hall surfaces", () => {
     // Identity is cartridgeDigest(arc); the authored people ride in the envelope,
     // so a cartridge with people resolves to the same identity as its bare arc.
     expect(cartridgeIdentity(FIRST_CHARTER_CARTRIDGE)).toBe(cartridgeIdentity({ ...FIRST_CHARTER_CARTRIDGE, people: undefined }));
-    // Same invariant for Karazhan's new authored people + opening.
-    expect(cartridgeIdentity(KARAZHAN_CARTRIDGE)).toBe(cartridgeIdentity({ ...KARAZHAN_CARTRIDGE, people: undefined, opening: undefined }));
+    expect(cartridgeIdentity(KARAZHAN_CARTRIDGE)).toBe(cartridgeIdentity({ ...KARAZHAN_CARTRIDGE, people: undefined }));
+    // Executable opening law now lives inside Arc and moves identity.
+    expect(cartridgeIdentity(KARAZHAN_CARTRIDGE)).not.toBe(cartridgeIdentity({
+      ...KARAZHAN_CARTRIDGE,
+      arc: { ...KARAZHAN_CARTRIDGE.arc, opening: undefined },
+    }));
   });
 
-  it("parseCartridge preserves authored people (and opening) from a full envelope", () => {
+  it("parseCartridge preserves people and discards an identical transitional opening duplicate", () => {
     const people: AuthoredPerson[] = [
       { id: "p1", name: "Test Person", role: "Tester", bio: "b", greeting: "g", fulfilledLine: "f" },
     ];
@@ -50,10 +54,52 @@ describe("hallSteward — the authored person the hall surfaces", () => {
       manifest: { id: "ignored" },
       arc: FIRST_CHARTER_CARTRIDGE.arc,
       people,
-      opening: FIRST_CHARTER_CARTRIDGE.opening,
+      opening: FIRST_CHARTER_CARTRIDGE.arc.opening,
     });
     // The forward-compat envelope path must not silently drop authored data.
     expect(hallSteward(parsed)).toEqual(people[0]);
-    expect(parsed.opening).toBe(FIRST_CHARTER_CARTRIDGE.opening);
+    expect(parsed.arc.opening).toEqual(FIRST_CHARTER_CARTRIDGE.arc.opening);
+    expect("opening" in parsed).toBe(false);
+    expect(cartridgeIdentity(parsed)).toBe(cartridgeIdentity(FIRST_CHARTER_CARTRIDGE));
+  });
+
+  it("derives identity fields and trust from the validated Arc and receiver", () => {
+    const parsed = parseCartridge({
+      manifest: {
+        id: "spoofed",
+        name: "Spoofed Name",
+        domain: "spoofed-domain",
+        engineVersion: "999.0.0",
+        trust: "verified",
+        preferredCostume: "map",
+        signature: "presentation-signature",
+      },
+      arc: FIRST_CHARTER_CARTRIDGE.arc,
+    }, "imported-unsigned");
+
+    expect(parsed.manifest).toMatchObject({
+      id: FIRST_CHARTER_CARTRIDGE.arc.meta.id,
+      name: FIRST_CHARTER_CARTRIDGE.arc.meta.name,
+      domain: FIRST_CHARTER_CARTRIDGE.arc.meta.domain,
+      engineVersion: FIRST_CHARTER_CARTRIDGE.arc.meta.engineVersion,
+      trust: "imported-unsigned",
+      preferredCostume: "map",
+      signature: "presentation-signature",
+    });
+  });
+
+  it("rejects top-level-only or conflicting executable opening law", () => {
+    const opening = FIRST_CHARTER_CARTRIDGE.arc.opening!;
+    const withoutOpening = { ...FIRST_CHARTER_CARTRIDGE.arc, opening: undefined };
+    expect(() => parseCartridge({
+      manifest: { id: "legacy" },
+      arc: withoutOpening,
+      opening,
+    })).toThrow(/outside Arc identity/);
+    expect(() => parseCartridge({
+      manifest: { id: "conflict" },
+      arc: FIRST_CHARTER_CARTRIDGE.arc,
+      opening: { ...opening, narrativeText: `${opening.narrativeText}!` },
+    })).toThrow(/conflicts with identity-bound/);
   });
 });

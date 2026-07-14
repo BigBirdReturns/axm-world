@@ -23,7 +23,12 @@ export async function resolveOpeningDecision(page: Page): Promise<void> {
  * The compiled encounter resolves through world.runChallenge and leaves any
  * post-run decision for the caller. */
 export async function runSelectedContract(page: Page): Promise<void> {
-  await page.getByTestId("play-encounter-button").click();
+  const hallHandoff = page.getByTestId("hall-enter-contract");
+  if (await hallHandoff.isVisible().catch(() => false)) {
+    await hallHandoff.click();
+  } else {
+    await page.getByTestId("play-encounter-button").click();
+  }
   const encounter = page.getByTestId("encounter-shell");
   await expect(encounter).toBeVisible();
   await page.getByTestId("encs-resolve").click();
