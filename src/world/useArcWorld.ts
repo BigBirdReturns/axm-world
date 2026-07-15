@@ -10,7 +10,7 @@ import type { Arc, DramaCard, Organization, RunReport } from "../engine/types.js
 import type { ChallengeAssignment, PendingRewardChoice } from "../engine/cycle.js";
 import { runCycle } from "../engine/cycle.js";
 import { applyDifficultyMode } from "../engine/difficulty.js";
-import { awardItem } from "../engine/rewards.js";
+import { resolvePendingRewardChoice } from "../engine/rewards.js";
 import { foundOrganization } from "../engine/founding.js";
 import {
   compileArcToPlayScene,
@@ -88,6 +88,17 @@ export interface LastEquipEvent {
   sourceChallenge: string;
   agentId: string;
   agentName: string;
+  decisionBasis: "merit" | "seniority" | "need" | "favoritism" | "rotation";
+  moraleChanges: Array<{ agentId: string; agentName: string; before: number; after: number }>;
+}
+
+export interface RewardMemory {
+  itemId: string;
+  itemName: string;
+  sourceChallenge: string;
+  agentId: string;
+  agentName: string;
+  decisionBasis: "merit" | "seniority" | "need" | "favoritism" | "rotation";
 }
 
 export interface ArcWorld {
@@ -144,6 +155,8 @@ export interface ArcWorld {
   claimLoot: (choiceId: string, agentId: string) => void;
   /** Last reward equip, kept only to stage the immediate after-equip rail transition. */
   lastEquip: LastEquipEvent | null;
+  /** Latest Arc-recorded reward precedent. Unlike lastEquip, this survives reload. */
+  latestReward: RewardMemory | null;
   lastReport: PlayReportView | null;
   /** The full ledger entry for the last resolved run THIS SESSION — the SAME record
    *  the ledger persists (challengeName + outcome + cycle + seq + the structured
@@ -423,13 +436,39 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     [arc, org.agents, pendingRewardChoices],
   );
 
+  const latestReward = useMemo<RewardMemory | null>(() => {
+    const precedent = [...org.precedents].reverse().find((entry) => entry.type === "reward" && entry.winner);
+    if (!precedent?.winner) return null;
+    const itemId = typeof precedent.context.itemId === "string" ? precedent.context.itemId : null;
+    const sourceChallenge = typeof precedent.context.challengeId === "string" ? precedent.context.challengeId : null;
+    const agent = org.agents[precedent.winner];
+    const item = itemId ? arc.items.find((candidate) => candidate.id === itemId) : null;
+    if (!itemId || !sourceChallenge || !agent) return null;
+    return {
+      itemId,
+      itemName: item?.name ?? itemId,
+      sourceChallenge,
+      agentId: agent.id,
+      agentName: agent.name,
+      decisionBasis: precedent.decisionBasis,
+    };
+  }, [arc.items, org.agents, org.precedents]);
+
   const claimLoot = useCallback((choiceId: string, agentId: string) => {
     const choice = pendingRewardChoices.find((entry) => `${entry.sourceChallenge}:${entry.itemId}:${entry.cycle}` === choiceId);
     const item = choice ? arc.items.find((it) => it.id === choice.itemId) : null;
     const agent = org.agents[agentId] ?? null;
     if (!choice || !item || !agent || !choice.eligibleAgentIds.includes(agentId)) return;
 
-    setOrg((current) => awardItem(current, agentId, item, current.cycle, choice.sourceChallenge));
+    const resolution = resolvePendingRewardChoice(org, arc, choice, agentId);
+    if (!resolution.ok) return;
+    const moraleChanges = choice.eligibleAgentIds.flatMap((eligibleId) => {
+      const before = org.agents[eligibleId];
+      const after = resolution.org.agents[eligibleId];
+      if (!before || !after || before.morale === after.morale) return [];
+      return [{ agentId: eligibleId, agentName: after.name, before: before.morale, after: after.morale }];
+    });
+    setOrg(resolution.org);
     setLastEquip({
       choiceId,
       itemId: item.id,
@@ -439,9 +478,11 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
       sourceChallenge: choice.sourceChallenge,
       agentId,
       agentName: agent.name,
+      decisionBasis: resolution.precedent.decisionBasis,
+      moraleChanges,
     });
     setPendingRewardChoices((current) => current.filter((entry) => `${entry.sourceChallenge}:${entry.itemId}:${entry.cycle}` !== choiceId));
-  }, [arc, org.agents, pendingRewardChoices]);
+  }, [arc, org, pendingRewardChoices]);
 
   const clearedCount = layout.nodes.filter((n) => n.status === "cleared").length;
   const totalNodes = layout.nodes.length;
@@ -497,6 +538,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     pendingLoot,
     claimLoot,
     lastEquip,
+    latestReward,
     lastReport,
     lastRecord,
     difficultyModes: arc.difficultyModes,
