@@ -1,0 +1,73 @@
+name: Apply Rodoh runtime bridge
+
+on:
+  push:
+    branches:
+      - agent/bootstrap-rodoh-runtime-bridge
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out patch carrier
+        uses: actions/checkout@v4
+        with:
+          ref: agent/bootstrap-rodoh-runtime-bridge
+          path: carrier
+
+      - name: Check out implementation branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/rodoh-runtime-bridge
+          path: work
+          fetch-depth: 0
+
+      - name: Reassemble implementation patch
+        run: cat carrier/.bootstrap/rodoh-runtime.patch.gz.b64.* | base64 --decode | gzip --decompress > rodoh-runtime.patch
+
+      - name: Apply implementation commit
+        working-directory: work
+        run: git am ../rodoh-runtime.patch
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: work/package-lock.json
+
+      - name: Install dependencies
+        working-directory: work
+        run: npm ci
+
+      - name: Verify vendored Arc surface, types, and tests
+        working-directory: work
+        env:
+          ENGINE_DRIFT_STRICT: "1"
+          GITHUB_TOKEN: ${{ secrets.ARC_READ_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+          npm run check
+
+      - name: Verify production build
+        working-directory: work
+        run: npm run build
+
+      - name: Install Chromium
+        working-directory: work
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify desktop and mobile browser journeys
+        working-directory: work
+        env:
+          PW_BASE_URL: http://127.0.0.1:5173
+        run: |
+          export PW_CHROMIUM_PATH="$(node -e "const { chromium } = require('playwright'); process.stdout.write(chromium.executablePath())")"
+          npm run test:e2e
+
+      - name: Publish implementation branch
+        working-directory: work
+        run: git push origin HEAD:agent/rodoh-runtime-bridge
