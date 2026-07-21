@@ -1,0 +1,148 @@
+name: Apply Godscar Ilyon runtime
+
+on:
+  push:
+    branches:
+      - agent/bootstrap-godscar-ilyon-runtime
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Check out publication carrier
+        uses: actions/checkout@v4
+        with:
+          ref: agent/bootstrap-godscar-ilyon-runtime
+          path: carrier
+
+      - name: Check out World implementation branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/godscar-ilyon-runtime
+          path: work
+          fetch-depth: 0
+
+      - name: Check out the exact Arc source plane
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: 6bbf6bcac97d203f1a5ee6a23ab783ddf3701107
+          path: arc
+
+      - name: Synchronize Arc-owned executable and Godscar source planes
+        run: |
+          set -euo pipefail
+          rm -rf \
+            work/cartridges \
+            work/src/arcs \
+            work/src/godscar \
+            work/tests/engine \
+            work/tests/fixtures \
+            work/tests/godscar
+          mkdir -p work/src/engine work/tests
+          find work/src/engine -mindepth 1 -maxdepth 1 ! -name VENDORED_FROM -exec rm -rf {} +
+          cp -a arc/cartridges work/
+          cp -a arc/src/arcs work/src/
+          cp -a arc/src/godscar work/src/
+          cp -a arc/tests/engine work/tests/
+          cp -a arc/tests/fixtures work/tests/
+          cp -a arc/tests/godscar work/tests/
+          find arc/src/engine -mindepth 1 -maxdepth 1 ! -name VENDORED_FROM -exec cp -a {} work/src/engine/ \;
+
+      - name: Reassemble and authenticate the World-owned overlay
+        run: |
+          set -euo pipefail
+          cat \
+            carrier/.bootstrap/world-overlay.tar.xz.b64.00 \
+            carrier/.bootstrap/world-overlay.tar.xz.b64.01 \
+            carrier/.bootstrap/world-overlay.tar.xz.b64.02 \
+            carrier/.bootstrap/world-overlay.tar.xz.b64.03 \
+            carrier/.bootstrap/world-overlay.tar.xz.b64.04 \
+            carrier/.bootstrap/world-overlay.tar.xz.b64.05 \
+            carrier/.bootstrap/world-overlay.tar.xz.b64.06a \
+            carrier/.bootstrap/world-overlay.tar.xz.b64.06b \
+            carrier/.bootstrap/world-overlay.tar.xz.b64.07 \
+            | base64 --decode > world-overlay.tar.xz
+          echo "6d31966b4b75ecfe59dd933480615a2653c81428a0bbc344e66769609069b7bc  world-overlay.tar.xz" | sha256sum -c -
+          tar -xJf world-overlay.tar.xz -C work
+          git -C work diff --check
+
+      - name: Commit the implementation deliberately
+        working-directory: work
+        run: |
+          set -euo pipefail
+          git config user.name "OpenAI"
+          git config user.email "noreply@openai.com"
+          git add -A
+          git diff --cached --stat
+          git commit -m "Receive Godscar pockets and ship Ilyon"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: work/package-lock.json
+
+      - name: Install dependencies
+        working-directory: work
+        run: npm ci
+
+      - name: Verify vendored identity, types, and complete unit suite
+        working-directory: work
+        env:
+          ENGINE_DRIFT_STRICT: "1"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+          npm run check
+
+      - name: Verify the production build
+        working-directory: work
+        run: npm run build
+
+      - name: Install Chromium
+        working-directory: work
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify First Charter, Karazhan, and Ilyon on desktop and mobile
+        id: e2e
+        continue-on-error: true
+        working-directory: work
+        env:
+          PW_BASE_URL: http://localhost:5173
+        run: |
+          set -o pipefail
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npx playwright test e2e/honest-opening.spec.ts --workers=1 2>&1 | tee godscar-e2e.log
+
+      - name: Preserve browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godscar-ilyon-browser-diagnostics
+          path: |
+            work/godscar-e2e.log
+            work/test-results
+            work/playwright-report
+          if-no-files-found: warn
+          retention-days: 2
+
+      - name: Require the complete browser gate
+        if: steps.e2e.outcome == 'failure'
+        working-directory: work
+        run: |
+          tail -n 400 godscar-e2e.log
+          exit 1
+
+      - name: Publish the verified implementation branch
+        working-directory: work
+        run: git push origin HEAD:agent/godscar-ilyon-runtime
