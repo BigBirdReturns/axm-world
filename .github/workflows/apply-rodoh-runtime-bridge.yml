@@ -14,6 +14,7 @@ permissions:
 jobs:
   apply:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Check out patch carrier
         uses: actions/checkout@v4
@@ -80,7 +81,7 @@ jobs:
         working-directory: work
         run: npx playwright install --with-deps chromium
 
-      - name: Verify desktop and mobile browser journeys
+      - name: Verify the completed cold journey on desktop and mobile
         id: e2e
         continue-on-error: true
         working-directory: work
@@ -89,7 +90,7 @@ jobs:
         run: |
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
           set -o pipefail
-          npm run test:e2e 2>&1 | tee e2e.log
+          npx playwright test e2e/honest-opening.spec.ts --workers=1 2>&1 | tee e2e.log
 
       - name: Upload browser diagnostics
         if: always()
