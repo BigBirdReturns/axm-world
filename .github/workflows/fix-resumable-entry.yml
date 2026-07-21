@@ -1,0 +1,90 @@
+name: Fix and verify resumable cartridge entry
+
+on:
+  push:
+    branches:
+      - agent/bootstrap-rodoh-runtime-bridge
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out Rodoh implementation
+        uses: actions/checkout@v4
+        with:
+          ref: agent/rodoh-runtime-bridge
+          fetch-depth: 0
+
+      - name: Make resumable entry direct
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          p = Path('src/world/Player.tsx')
+          source = p.read_text()
+          before = '''  const enterCartridge = useCallback((next: Cartridge): void => {
+            // Mount the authoritative world immediately. The bounded plaque layer below
+            // reveals that committed state; it never delays or owns game state.
+            setCartridge(next);
+            setEnteringCartridge(next);
+          }, []);'''
+          after = '''  const enterCartridge = useCallback((next: Cartridge, animateEntry: boolean): void => {
+            // Mount the authoritative world immediately. The bounded plaque layer below
+            // reveals a genuinely fresh cartridge; resumable runs return directly to
+            // their held checkpoint instead of replaying acquisition theatre.
+            setCartridge(next);
+            setEnteringCartridge(animateEntry ? next : null);
+          }, []);'''
+          if before not in source:
+              if after not in source:
+                  raise SystemExit('enterCartridge source contract changed unexpectedly')
+          else:
+              source = source.replace(before, after)
+          source = source.replace('onEnter={() => enterCartridge(c)}', 'onEnter={() => enterCartridge(c, save === null)}')
+          p.write_text(source)
+          PY
+          git config user.name "OpenAI"
+          git config user.email "noreply@openai.com"
+          git add src/world/Player.tsx
+          if ! git diff --cached --quiet; then
+            git commit -m "Resume held cartridges without replaying entry"
+          fi
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify drift, types, and unit suites
+        env:
+          ENGINE_DRIFT_STRICT: "1"
+          GITHUB_TOKEN: ${{ secrets.ARC_READ_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+          npm run check
+
+      - name: Verify production build
+        run: npm run build
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify completed desktop and mobile journeys
+        env:
+          PW_BASE_URL: http://localhost:5173
+        run: |
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npx playwright test e2e/honest-opening.spec.ts --workers=1
+
+      - name: Publish verified fix
+        run: git push origin HEAD:agent/rodoh-runtime-bridge
