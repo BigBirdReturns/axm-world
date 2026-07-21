@@ -29,7 +29,21 @@ jobs:
           fetch-depth: 0
 
       - name: Reassemble implementation patch
-        run: cat carrier/.bootstrap/rodoh-runtime.patch.gz.b64.* | base64 --decode | gzip --decompress > rodoh-runtime.patch
+        run: |
+          cat \
+            carrier/.bootstrap/rodoh-runtime.patch.gz.b64.000 \
+            carrier/.bootstrap/rodoh-runtime.patch.gz.b64.001 \
+            carrier/.bootstrap/rodoh-runtime.patch.gz.b64.002 \
+            carrier/.bootstrap/rodoh-runtime.patch.gz.b64.003 \
+            carrier/.bootstrap/rodoh-runtime.patch.gz.b64.004a \
+            carrier/.bootstrap/rodoh-runtime.patch.gz.b64.004b \
+            carrier/.bootstrap/rodoh-runtime.patch.gz.b64.004c \
+            carrier/.bootstrap/rodoh-runtime.patch.gz.b64.004d \
+            carrier/.bootstrap/rodoh-runtime.patch.gz.b64.004e \
+            carrier/.bootstrap/rodoh-runtime.patch.gz.b64.005a \
+            carrier/.bootstrap/rodoh-runtime.patch.gz.b64.005b \
+            carrier/.bootstrap/rodoh-runtime.patch.gz.b64.005c \
+            | base64 --decode | gzip --decompress > rodoh-runtime.patch
 
       - name: Apply implementation commit
         working-directory: work
