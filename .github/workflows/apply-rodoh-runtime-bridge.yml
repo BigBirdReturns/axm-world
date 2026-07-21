@@ -81,12 +81,34 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Verify desktop and mobile browser journeys
+        id: e2e
+        continue-on-error: true
         working-directory: work
         env:
           PW_BASE_URL: http://127.0.0.1:5173
         run: |
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
-          npm run test:e2e
+          set -o pipefail
+          npm run test:e2e 2>&1 | tee e2e.log
+
+      - name: Upload browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rodoh-browser-diagnostics
+          path: |
+            work/e2e.log
+            work/test-results
+            work/playwright-report
+          if-no-files-found: warn
+          retention-days: 2
+
+      - name: Require browser journeys
+        if: steps.e2e.outcome == 'failure'
+        working-directory: work
+        run: |
+          tail -n 300 e2e.log
+          exit 1
 
       - name: Publish implementation branch
         working-directory: work
