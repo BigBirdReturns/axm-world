@@ -72,6 +72,10 @@ jobs:
             | base64 --decode > world-overlay.tar.xz
           echo "6d31966b4b75ecfe59dd933480615a2653c81428a0bbc344e66769609069b7bc  world-overlay.tar.xz" | sha256sum -c -
           tar -xJf world-overlay.tar.xz -C work
+          # GitHub's Actions token cannot publish a newly introduced workflow file.
+          # Publish the verified implementation first; the connector adds this one
+          # reviewed workflow to the target branch immediately afterward.
+          rm -f work/.github/workflows/godscar-ilyon.yml
           git -C work diff --check
 
       - name: Commit the implementation deliberately
