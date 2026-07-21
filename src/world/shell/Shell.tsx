@@ -186,9 +186,12 @@ export function Shell({ world, interaction: ix, onExit, initialCostumeId, onCost
   // sheet; deselect -> back to the board. Party is a manual push from contract.
   useEffect(() => {
     if (!isMobile) return;
-    if (ix.selectedId && mayOpenMobileSelection) setMobileStep((s) => (s === "board" ? "contract" : s));
-    else setMobileStep("board");
-  }, [isMobile, ix.selectedId, mayOpenMobileSelection]);
+    // Only a player's explicit pick opens the detail sheet. Cold-start focus
+    // must not bury a restored representation under the contract step.
+    if (ix.selectedId && mayOpenMobileSelection) {
+      if (ix.selectionIsUserAct) setMobileStep((s) => (s === "board" ? "contract" : s));
+    } else setMobileStep("board");
+  }, [isMobile, ix.selectedId, ix.selectionIsUserAct, mayOpenMobileSelection]);
 
   const choose = (id: string) => {
     setCostumeId(id);
@@ -196,6 +199,10 @@ export function Shell({ world, interaction: ix, onExit, initialCostumeId, onCost
       saveCostume(world.cartridge.arc, id);
       onCostumeChange?.(id);
     }
+    // Choosing a representation is a navigation act. On mobile the stage only
+    // renders in the board step, so switching views from the contract or party
+    // sheet must surface the board — otherwise the chosen view changes invisibly.
+    setMobileStep("board");
   };
   // Re-derived whenever locale changes so representation labels/blurbs/hints re-translate.
   const presentations = useMemo(() => getPresentations(), [locale]);

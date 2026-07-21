@@ -6,11 +6,13 @@ import { Shell } from "../shell/Shell.js";
 import { isCostumeId, loadCostume, type CostumeId } from "../presentation-prefs.js";
 import { programForCartridge } from "../program-of-record.js";
 import {
+  RODOH_EXPERIENCE_EXTENSION,
   RODOH_RUNTIME_EXTENSION,
   rodohRuntimeExtensionValue,
   rodohRuntimeMemory,
   type RodohRuntimeMemory,
 } from "../portable-run.js";
+import { checkpointKey } from "../experience/checkpoint.js";
 
 interface Props {
   world: ArcWorld;
@@ -25,9 +27,18 @@ export function initialRuntimeMemory(world: ArcWorld): RodohRuntimeMemory {
   // Entry direction is presentation metadata bound to the cartridge's computed
   // authored identity. A same-id import cannot inherit Program 001 direction.
   const program = programForCartridge(world.cartridge);
+  // The guided opening stays the holder's route for as long as its checkpoint
+  // exists: the first recorded resolution must not eject a reload into the
+  // shell while the experience still holds an unfinished moment (a required
+  // reward choice survives reload — the checkpoint is the durable evidence).
+  // Leaving guided is an explicit decision (enterShell records mode "shell"
+  // above via the runtime extension), never a ledger side effect.
+  const guidedCheckpoint = world.extensions[RODOH_EXPERIENCE_EXTENSION] !== undefined
+    || (typeof localStorage !== "undefined"
+      && localStorage.getItem(checkpointKey(world.cartridgeDigest)) !== null);
   const guided = program?.entryExperience === "guided-first-contract"
-    && world.ledger.entries.length === 0
-    && !world.arcComplete;
+    && !world.arcComplete
+    && (world.ledger.entries.length === 0 || guidedCheckpoint);
   return { version: 1, mode: guided ? "guided" : "shell", representation };
 }
 

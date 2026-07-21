@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { FIRST_CHARTER_CARTRIDGE, KARAZHAN_CARTRIDGE } from "../../src/world/cartridge.js";
 import { initialRuntimeMemory } from "../../src/world/runtime/RuntimeRouter.js";
-import { RODOH_RUNTIME_EXTENSION } from "../../src/world/portable-run.js";
+import { RODOH_EXPERIENCE_EXTENSION, RODOH_RUNTIME_EXTENSION } from "../../src/world/portable-run.js";
 import type { ArcWorld } from "../../src/world/useArcWorld.js";
 
 function world(overrides: Partial<ArcWorld> = {}): ArcWorld {
@@ -25,6 +25,24 @@ describe("RuntimeRouter entry direction", () => {
         authoredArcDigest: "cart1_test",
         entries: [{ seq: 0 }] as ArcWorld["ledger"]["entries"],
       },
+    })).mode).toBe("shell");
+  });
+
+  it("keeps a reload guided while the experience checkpoint survives — a recorded resolution is not a handoff", () => {
+    const midGuided = world({
+      ledger: {
+        version: 2,
+        authoredArcDigest: "cart1_test",
+        entries: [{ seq: 0 }] as ArcWorld["ledger"]["entries"],
+      },
+      extensions: { [RODOH_EXPERIENCE_EXTENSION]: { version: 1 } },
+    });
+    expect(initialRuntimeMemory(midGuided).mode).toBe("guided");
+
+    // A completed campaign returns to the shell even if a checkpoint lingers.
+    expect(initialRuntimeMemory(world({
+      arcComplete: true,
+      extensions: { [RODOH_EXPERIENCE_EXTENSION]: { version: 1 } },
     })).mode).toBe("shell");
   });
 

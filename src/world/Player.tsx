@@ -73,11 +73,14 @@ export function Player(): JSX.Element {
   const [importPreflight, setImportPreflight] = useState<BayImportPreflight | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const enterCartridge = useCallback((next: Cartridge): void => {
+  const enterCartridge = useCallback((next: Cartridge, resumable: boolean): void => {
     // Mount the authoritative world immediately. The bounded plaque layer below
-    // reveals that committed state; it never delays or owns game state.
+    // reveals that committed state; it never delays or owns game state. A fresh
+    // program gets the acquisition reveal; a resumable one returns straight to
+    // its exact checkpoint — replaying the theatre over held state would claim
+    // an acquisition that already happened.
     setCartridge(next);
-    setEnteringCartridge(next);
+    setEnteringCartridge(resumable ? null : next);
   }, []);
   const completeEntry = useCallback(() => setEnteringCartridge(null), []);
   const leaveCartridge = useCallback((): void => {
@@ -225,7 +228,7 @@ export function Player(): JSX.Element {
                 save={save}
                 legacySave={legacySave}
                 digest={digest}
-                onEnter={() => enterCartridge(c)}
+                onEnter={() => enterCartridge(c, save !== null)}
                 onRemove={() => handleRemove(entry)}
               />
             );
