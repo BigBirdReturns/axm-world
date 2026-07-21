@@ -6,7 +6,7 @@
 import type { Arc, AuthoredOpening, TrustLabel } from "../engine/types.js";
 import { validateArc } from "../engine/schema.js";
 import { canonicalizeArc } from "../engine/cartridge-digest.js";
-import { FIRST_CHARTER, KARAZHAN } from "../arcs/index.js";
+import { FIRST_CHARTER, KARAZHAN, KIND_GODS_OF_ILYON } from "../arcs/index.js";
 import { isCostumeId, type CostumeId } from "./presentation-prefs.js";
 
 export type TrustLevel = TrustLabel;
@@ -87,6 +87,26 @@ export const KARAZHAN_PEOPLE: AuthoredPerson[] = [{
   fulfilledLine: "Cleared, and counted. The Eye's tally holds what your raid did in there.",
 }];
 
+
+export const KIND_GODS_OF_ILYON_PEOPLE: AuthoredPerson[] = [
+  {
+    id: "free-observatory-witness",
+    name: "Iri Sable",
+    role: "Speaker of the Free Observatory",
+    bio: "A witness buying Ilyon enough time to test the dead star before a dynasty or a god turns uncertainty into command.",
+    greeting: "The cure is real. So is the ownership structure under it. We record both, or we become somebody else's proof.",
+    fulfilledLine: "The evidence leaves with its limits attached. Whatever follows, nobody gets to call Ilyon a clean sample.",
+  },
+  {
+    id: "deep-tide-interlocutor",
+    name: "Cael Arvon",
+    role: "Reef-Listener",
+    bio: "Translator for migratory reefs and deep ecologies that the planetary integration model cannot observe without changing.",
+    greeting: "Do not make one voice from the ocean because one voice is easier to govern. Listen for the refusals that disagree.",
+    fulfilledLine: "The ocean entered politics as several actors. That friction is the proof that it was heard rather than modeled away.",
+  },
+];
+
 export const FIRST_CHARTER_CARTRIDGE: Cartridge = {
   manifest: manifestForArc(FIRST_CHARTER, "bundled", "board"),
   arc: FIRST_CHARTER,
@@ -99,7 +119,17 @@ export const KARAZHAN_CARTRIDGE: Cartridge = {
   people: KARAZHAN_PEOPLE,
 };
 
-export const BUNDLED_CARTRIDGES: Cartridge[] = [FIRST_CHARTER_CARTRIDGE, KARAZHAN_CARTRIDGE];
+export const KIND_GODS_OF_ILYON_CARTRIDGE: Cartridge = {
+  manifest: manifestForArc(KIND_GODS_OF_ILYON, "bundled", "aperture"),
+  arc: KIND_GODS_OF_ILYON,
+  people: KIND_GODS_OF_ILYON_PEOPLE,
+};
+
+export const BUNDLED_CARTRIDGES: Cartridge[] = [
+  FIRST_CHARTER_CARTRIDGE,
+  KARAZHAN_CARTRIDGE,
+  KIND_GODS_OF_ILYON_CARTRIDGE,
+];
 
 function sameOpening(left: AuthoredOpening, right: AuthoredOpening): boolean {
   return canonicalizeArc(left as unknown as Arc) === canonicalizeArc(right as unknown as Arc);

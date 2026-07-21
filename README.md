@@ -28,6 +28,10 @@ stays replaceable.
   + same founding input → byte-identical opening state.
 - `src/spoke/bootstrap.ts` — deprecated source-compatible facade only; it
   delegates to `foundOrganization` and owns no roster/resource/opening policy.
+- `src/world/aperture/**` — the high-information Rodoh representation: campaign,
+  contracts, bounded people, exact receipts, and validated Godscar Pocket source.
+- `src/godscar/**` + `cartridges/kind-gods-of-ilyon.*` — the vendored Pocket
+  grammar and its first creator-owned source/executable cartridge pair.
 
 ## Why canonical founding matters
 
@@ -49,12 +53,16 @@ npm run build      # emits docs/game
 
 ## Status
 
-The cartridge bay, generic boot path, Board/Map/Encounter/Result/Ledger chain,
-digest-bound saves, custody export, and proximity-gated inhabited slice are
-implemented. The engine and shared tests remain vendored from `axm-arc` and
-pinned to an exact commit — see [RECONCILIATION.md](RECONCILIATION.md).
+The cartridge bay, digest-addressed immutable revisions, exact
+`axm-cartridge-run/v3` import/export, transactional restore, guided First Charter
+entry, reusable Board/Map/Hall/Globe/Aperture shell, complete six-contract
+campaign, offline boot, visible save recovery, and multi-cartridge receiver are
+implemented. The bundled proofs are The First Charter, Karazhan, and **The Kind
+Gods of Ilyon**. The engine and creator grammar remain vendored from `axm-arc`
+and pinned to an exact commit — see [RECONCILIATION.md](RECONCILIATION.md).
 
-The game is not finished merely because the architecture is proven. Current
-product work is to close The First Charter as an unaided, complete, memorable
-game and to turn one-way custody export into an import/resume round trip. See
+The remaining release qualification is human rather than architectural: one
+unaided player must complete the revised campaign and understand its consequence
+and custody loop. Ten older mobile-only Playwright receipts also predate the
+guided-entry contract and remain an explicit modernization tranche. See
 [VISION.md](VISION.md) and [docs/WORLDS_ROADMAP.md](docs/WORLDS_ROADMAP.md).

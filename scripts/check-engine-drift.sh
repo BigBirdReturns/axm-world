@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Verify that the vendored shared surface (src/engine, src/arcs, tests/engine,
-# tests/fixtures) still matches the axm-arc commit pinned in
+# Verify that the vendored shared surface (src/engine, src/arcs, tests/engine, tests/fixtures,
+# src/godscar, tests/godscar, cartridges) still matches the axm-arc commit pinned in
 # src/engine/VENDORED_FROM.
 #
 # Exit codes:
@@ -13,7 +13,7 @@
 set -euo pipefail
 
 ARC_REPO="https://github.com/BigBirdReturns/axm-arc.git"
-SHARED_PATHS=("src/engine" "src/arcs" "tests/engine" "tests/fixtures")
+SHARED_PATHS=("src/engine" "src/arcs" "tests/engine" "tests/fixtures" "src/godscar" "tests/godscar" "cartridges")
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROV="$ROOT/src/engine/VENDORED_FROM"

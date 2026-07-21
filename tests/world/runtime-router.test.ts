@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FIRST_CHARTER_CARTRIDGE, KARAZHAN_CARTRIDGE } from "../../src/world/cartridge.js";
+import { FIRST_CHARTER_CARTRIDGE, KARAZHAN_CARTRIDGE, KIND_GODS_OF_ILYON_CARTRIDGE } from "../../src/world/cartridge.js";
 import { initialRuntimeMemory } from "../../src/world/runtime/RuntimeRouter.js";
 import { RODOH_EXPERIENCE_EXTENSION, RODOH_RUNTIME_EXTENSION } from "../../src/world/portable-run.js";
 import type { ArcWorld } from "../../src/world/useArcWorld.js";
@@ -50,6 +50,10 @@ describe("RuntimeRouter entry direction", () => {
     expect(initialRuntimeMemory(world({
       cartridge: KARAZHAN_CARTRIDGE,
       arc: KARAZHAN_CARTRIDGE.arc,
+    })).mode).toBe("shell");
+    expect(initialRuntimeMemory(world({
+      cartridge: KIND_GODS_OF_ILYON_CARTRIDGE,
+      arc: KIND_GODS_OF_ILYON_CARTRIDGE.arc,
     })).mode).toBe("shell");
 
     const sameIdDifferentLaw = {

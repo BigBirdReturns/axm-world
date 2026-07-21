@@ -9,10 +9,13 @@ import type { Arc } from "../../engine/types.js";
 import { RODOH_BASE_THEME, type RodohTheme } from "./rodoh.js";
 import { FIRST_CHARTER_THEME } from "./first-charter/theme.js";
 import { KARAZHAN_THEME } from "./karazhan/theme.js";
+import { ILYON_THEME } from "./ilyon/theme.js";
 
 /** The full RodohTheme (vocabulary, mottos, icon map) for an arc. */
 export function themeForArc(arc: Arc): RodohTheme {
   switch (arc.meta.id) {
+    case ILYON_THEME.id:
+      return ILYON_THEME;
     case KARAZHAN_THEME.id:
       return KARAZHAN_THEME;
     case FIRST_CHARTER_THEME.id:
@@ -27,6 +30,7 @@ export function themeForArc(arc: Arc): RodohTheme {
  *  distinct material identity; unknown/imported arcs (Operations Lab) return
  *  null and render in the neutral runtime skin. */
 export function cartridgePaletteScope(arc: Arc): string | null {
+  if (arc.meta.id === ILYON_THEME.id) return "ilyon";
   if (arc.meta.id === KARAZHAN_THEME.id) return "karazhan";
   if (arc.meta.id === FIRST_CHARTER_THEME.id) return "first-charter";
   return null;

@@ -25,6 +25,7 @@ import { LocaleSwitcher } from "./components/LocaleSwitcher.js";
 import { CartridgeEnterTransition } from "./components/CartridgeEnterTransition.js";
 import { RodohRuntimeMark } from "./brand/RodohRuntimeMark.js";
 import "./themes/karazhan/karazhan.css";
+import "./themes/ilyon/ilyon.css";
 import { PixelButton, PixelIcon } from "./pixel-ui/index.js";
 import { t, useLocale } from "./i18n/index.js";
 

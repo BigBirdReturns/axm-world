@@ -15,6 +15,7 @@ import {
   type ApertureKitState,
   type ApertureMode,
 } from "./vendor/aperture-kit-state.mjs";
+import { GodscarPocketPanel } from "./GodscarPocketPanel.js";
 import "./rodoh-aperture.css";
 
 const URL_PREFIX = "rodoh_ap_";
@@ -505,9 +506,12 @@ export function RodohAperture({ world, interaction }: SceneProps): JSX.Element {
       </div>
 
       <main className="rodoh-aperture__body">
+        <GodscarPocketPanel arc={world.arc} />
+        <div className="rodoh-aperture__projection">
         {state.mode === "map" && <MapProjection world={world} interaction={interaction} state={state} onFocus={(focus) => commit({ focus }, "push")} />}
         {state.mode === "trace" && <TraceProjection world={world} interaction={interaction} state={state} onFocus={(focus) => commit({ focus }, "push")} />}
         {state.mode === "surface" && <SurfaceProjection world={world} interaction={interaction} state={state} onState={(patch) => commit(patch)} onFocus={(focus) => commit({ focus }, "push")} />}
+        </div>
       </main>
 
       <footer className="rodoh-aperture__footer">

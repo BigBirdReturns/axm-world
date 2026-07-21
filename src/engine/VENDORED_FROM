@@ -4,6 +4,7 @@
 # build/deploy stay self-contained (no axm-arc access required at build time):
 #
 #   src/engine  src/arcs  tests/engine  tests/fixtures
+#   src/godscar  tests/godscar  cartridges
 #
 # This file records exactly which axm-arc commit the copies correspond to, so
 # drift can be detected. The reconciliation contract (what is shared, and the
@@ -20,6 +21,6 @@
 # Both are wired as npm scripts: `npm run engine:sync`, `npm run engine:check`.
 
 repo: BigBirdReturns/axm-arc
-paths: src/engine src/arcs tests/engine tests/fixtures
-commit: 75608ddb56d3af020f699d0599e8eadbc69711ec
+paths: src/engine src/arcs tests/engine tests/fixtures src/godscar tests/godscar cartridges
+commit: 6bbf6bcac97d203f1a5ee6a23ab783ddf3701107
 synced: 2026-07-21

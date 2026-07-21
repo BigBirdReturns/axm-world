@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from
 import { EncounterShell } from "../encounter/EncounterShell.js";
 import { cartridgePaletteScope, themeForArc } from "../themes/select.js";
 import "../themes/karazhan/karazhan.css";
+import "../themes/ilyon/ilyon.css";
 import "../themes/first-charter/first-charter.css";
 import { getPresentations, type Representation } from "../presentations.js";
 import { deriveNodeMarkers } from "../worldmap/derive.js";

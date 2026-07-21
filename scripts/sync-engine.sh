@@ -6,6 +6,8 @@
 #   src/arcs        the bundled tutorial arc content
 #   tests/engine    engine subsystem + resolver tests
 #   tests/fixtures  shared test fixtures
+#   src/godscar     Godscar pocket grammar, compiler, and reference template
+#   tests/godscar   Godscar conformance and artifact tests
 #
 # Usage: scripts/sync-engine.sh [<axm-arc ref>]
 #   ref defaults to "main".
@@ -16,7 +18,7 @@ set -euo pipefail
 
 REF="${1:-main}"
 ARC_REPO="https://github.com/BigBirdReturns/axm-arc.git"
-SHARED_PATHS=("src/engine" "src/arcs" "tests/engine" "tests/fixtures")
+SHARED_PATHS=("src/engine" "src/arcs" "tests/engine" "tests/fixtures" "src/godscar" "tests/godscar" "cartridges")
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROV="$ROOT/src/engine/VENDORED_FROM"
@@ -38,18 +40,19 @@ for p in "${SHARED_PATHS[@]}"; do
     exit 1
   fi
   echo "Vendoring $p from $SHA ..."
-  mkdir -p "$DEST"
-  # Mirror every tracked .ts source RECURSIVELY (subdirectories included), so the
-  # vendored copy matches the recursive drift check (check-engine-drift.sh uses
-  # `diff -rq`). Preserve the provenance file and any non-.ts content.
-  find "$DEST" -name '*.ts' -delete
-  ( cd "$SRC" && find . -name '*.ts' -print0 | while IFS= read -r -d '' f; do
-      mkdir -p "$DEST/$(dirname "$f")"
-      cp "$f" "$DEST/$f"
-    done )
-  # Prune directories left empty by the delete (e.g. a subdir removed upstream),
-  # so a stale empty dir cannot register as drift.
-  find "$DEST" -mindepth 1 -type d -empty -delete
+  if [ "$p" = "src/engine" ]; then
+    # VENDORED_FROM is receiver-owned provenance, not upstream engine source.
+    PRESERVED="$(mktemp)"
+    [ -f "$PROV" ] && cp "$PROV" "$PRESERVED" || true
+    rm -rf "$DEST"
+    mkdir -p "$DEST"
+    cp -a "$SRC/." "$DEST/"
+    [ -s "$PRESERVED" ] && cp "$PRESERVED" "$PROV" || true
+  else
+    rm -rf "$DEST"
+    mkdir -p "$(dirname "$DEST")"
+    cp -a "$SRC" "$DEST"
+  fi
 done
 
 cat > "$PROV" <<EOF
@@ -58,7 +61,7 @@ cat > "$PROV" <<EOF
 # The following paths are vendored verbatim from axm-arc so world's
 # build/deploy stay self-contained (no axm-arc access required at build time):
 #
-#   src/engine  src/arcs  tests/engine  tests/fixtures
+#   src/engine  src/arcs  tests/engine  tests/fixtures  src/godscar  tests/godscar  cartridges
 #
 # This file records exactly which axm-arc commit the copies correspond to, so
 # drift can be detected. The reconciliation contract (what is shared, and the
@@ -75,7 +78,7 @@ cat > "$PROV" <<EOF
 # Both are wired as npm scripts: \`npm run engine:sync\`, \`npm run engine:check\`.
 
 repo: BigBirdReturns/axm-arc
-paths: src/engine src/arcs tests/engine tests/fixtures
+paths: src/engine src/arcs tests/engine tests/fixtures src/godscar tests/godscar cartridges
 commit: $SHA
 synced: $(date -u +%Y-%m-%d)
 EOF

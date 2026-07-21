@@ -143,3 +143,20 @@ test("the same receiver mounts a second Arc without a World rewrite", async ({ p
   await expect(page.getByTestId("cartridge-title")).toContainText("Karazhan");
   await expect(page.getByTestId("view-run-graph")).toBeVisible();
 });
+
+
+test("the same receiver opens Ilyon as a Godscar Pocket with inspectable pressure and evidence law", async ({ page }) => {
+  await coldBay(page);
+  await page.getByTestId("play-cartridge-kind-gods-of-ilyon").click();
+  const decision = page.getByTestId("pending-decision-card");
+  await expect(decision).toBeVisible();
+  await decision.getByRole("button").first().click();
+  await decision.getByRole("button", { name: /continue/i }).click();
+  await expect(page.getByTestId("engine-shell")).toBeVisible();
+  await expect(page.getByTestId("cartridge-title")).toContainText("Kind Gods of Ilyon");
+  await page.getByTestId("view-aperture").click();
+  await expect(page.getByTestId("godscar-pocket-panel")).toBeVisible();
+  await expect(page.getByTestId("godscar-six-pressures").locator("article")).toHaveCount(6);
+  await expect(page.getByTestId("godscar-pocket-panel")).toContainText(/authority to refuse salvation/i);
+  await expect(page.getByTestId("godscar-pocket-panel")).toContainText(/contested canon/i);
+});
