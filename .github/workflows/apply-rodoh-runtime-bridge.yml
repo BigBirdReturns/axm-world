@@ -85,7 +85,7 @@ jobs:
         continue-on-error: true
         working-directory: work
         env:
-          PW_BASE_URL: http://127.0.0.1:5173
+          PW_BASE_URL: http://localhost:5173
         run: |
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
           set -o pipefail
