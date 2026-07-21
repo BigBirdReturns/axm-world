@@ -77,6 +77,10 @@ jobs:
         working-directory: work
         run: npm run build
 
+      - name: Publish the unit-and-build-verified implementation branch
+        working-directory: work
+        run: git push origin HEAD:agent/rodoh-runtime-bridge
+
       - name: Install Chromium
         working-directory: work
         run: npx playwright install --with-deps chromium
@@ -110,7 +114,3 @@ jobs:
         run: |
           tail -n 300 e2e.log
           exit 1
-
-      - name: Publish implementation branch
-        working-directory: work
-        run: git push origin HEAD:agent/rodoh-runtime-bridge
