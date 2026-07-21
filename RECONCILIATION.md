@@ -13,6 +13,9 @@ recorded in `src/engine/VENDORED_FROM`:
 - `src/arcs/` — the bundled tutorial arc content
 - `tests/engine/` — engine subsystem + resolver tests
 - `tests/fixtures/` — shared test fixtures
+- `src/godscar/` — Godscar Pocket source grammar and compiler
+- `tests/godscar/` — Godscar conformance and reference-artifact tests
+- `cartridges/` — published portable examples, including the Godscar source/Arc pair
 
 Everything else in this repo — `src/world/`, `src/spoke/`, `src/play-pipeline/`,
 the world/spoke/game test suites — is world's own and free to evolve.
@@ -24,7 +27,7 @@ schema, or tutorial-arc change:
 
 1. Land it in axm-arc first (or upstream it in the same sitting if you
    prototyped it here), with tests.
-2. Back here, run `npm run engine:sync <arc ref>` — it re-vendors all four
+2. Back here, run `npm run engine:sync <arc ref>` — it re-vendors all seven
    paths and moves the pin in `VENDORED_FROM`.
 3. `npm run check`, commit the sync as its own commit.
 

@@ -13,7 +13,7 @@
 // than a hand-fabricated one.
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Arc } from "../../src/engine/types.js";
-import { FIRST_CHARTER, KARAZHAN } from "../../src/arcs/index.js";
+import { FIRST_CHARTER, KARAZHAN, KIND_GODS_OF_ILYON } from "../../src/arcs/index.js";
 import {
   cartridgeForEntry,
   importCartridgeFromJson,
@@ -23,6 +23,7 @@ import {
   RODOH_BASE_THEME,
   FIRST_CHARTER_THEME,
   KARAZHAN_THEME,
+  ILYON_THEME,
   themeForArc,
   cartridgePaletteScope,
   hasCartridgeMotifs,
@@ -74,6 +75,7 @@ describe("theme selection default: unknown/imported arcs", () => {
     const arc = importFirstLockout();
     expect(arc.meta.id).not.toBe(KARAZHAN_THEME.id);
     expect(arc.meta.id).not.toBe(FIRST_CHARTER_THEME.id);
+    expect(arc.meta.id).not.toBe(ILYON_THEME.id);
   });
 
   it("resolves to the base Rodoh theme — the very singleton, not a copy", () => {
@@ -99,6 +101,13 @@ describe("theme selection positive dispatch (pinned so the default branch above 
     expect(KARAZHAN.meta.id).toBe(KARAZHAN_THEME.id);
     expect(themeForArc(KARAZHAN)).toBe(KARAZHAN_THEME);
     expect(themeForArc(KARAZHAN).id).toBe(KARAZHAN_THEME.id);
+  });
+
+  it("Ilyon's own id resolves to ILYON_THEME", () => {
+    expect(KIND_GODS_OF_ILYON.meta.id).toBe(ILYON_THEME.id);
+    expect(themeForArc(KIND_GODS_OF_ILYON)).toBe(ILYON_THEME);
+    expect(cartridgePaletteScope(KIND_GODS_OF_ILYON)).toBe("ilyon");
+    expect(hasCartridgeMotifs(KIND_GODS_OF_ILYON)).toBe(false);
   });
 
   it("First Charter's own id resolves to FIRST_CHARTER_THEME", () => {

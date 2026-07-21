@@ -98,7 +98,8 @@
 .rodoh-aperture__controls input[type="range"] { width: 100%; accent-color: var(--ap-gold); }
 .rodoh-aperture__controls button { min-height: 28px; padding: 4px 8px; font-size: 8px; }
 
-.rodoh-aperture__body { position: relative; z-index: 1; min-width: 0; min-height: 0; overflow: auto; }
+.rodoh-aperture__body { position: relative; z-index: 1; min-width: 0; min-height: 0; overflow: auto; display: grid; grid-template-rows: auto minmax(520px, 1fr); }
+.rodoh-aperture__projection { position: relative; min-width: 0; min-height: 520px; }
 
 .rodoh-aperture__map { position: relative; width: 100%; height: 100%; min-height: 520px; overflow: hidden; }
 .rodoh-aperture__orbit {
@@ -214,4 +215,42 @@
   .rodoh-aperture *,
   .rodoh-aperture *::before,
   .rodoh-aperture *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
+
+
+/* Godscar Pocket constitutional projection. This is inspectable source metadata,
+   not a second resolver: malformed claims are refused and ordinary Arcs omit it. */
+.godscar-pocket {
+  position: relative; z-index: 2; margin: 12px; padding: 14px;
+  border: 1px solid rgba(72,183,176,.48);
+  background: linear-gradient(135deg, rgba(7,24,39,.97), rgba(14,39,50,.94));
+  box-shadow: 0 12px 40px rgba(0,0,0,.32);
+}
+.godscar-pocket > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.godscar-pocket > header small, .godscar-pocket article > small { color: #c9a45d; font-size: 8px; letter-spacing: .12em; text-transform: uppercase; }
+.godscar-pocket > header h2 { max-width: 900px; margin: 4px 0 12px; color: #e7e1cf; font: 800 22px/1.15 "Barlow Condensed", Impact, sans-serif; }
+.godscar-pocket > header > span { padding: 5px 8px; border: 1px solid rgba(201,164,93,.55); color: #d6bd82; font-size: 8px; text-transform: uppercase; white-space: nowrap; }
+.godscar-pocket__pressures { display: grid; grid-template-columns: repeat(6, minmax(160px, 1fr)); gap: 7px; overflow-x: auto; padding-bottom: 4px; }
+.godscar-pocket__pressures article { min-width: 160px; padding: 10px; border: 1px solid rgba(255,255,255,.11); background: rgba(255,255,255,.035); display: grid; grid-template-columns: auto 1fr; gap: 3px 8px; }
+.godscar-pocket__pressures article > b { grid-row: 1 / span 3; color: #d68165; font: 800 18px/1 "Barlow Condensed", Impact, sans-serif; }
+.godscar-pocket article > strong { color: #e7e1cf; font-size: 11px; }
+.godscar-pocket article p { margin: 4px 0 0; color: #b8c5c4; font: 10px/1.45 Georgia, serif; }
+.godscar-pocket details { margin-top: 8px; border-top: 1px solid rgba(201,164,93,.23); }
+.godscar-pocket summary { padding: 9px 2px 3px; color: #7dd3cd; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+.godscar-pocket__ledger { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.godscar-pocket__ledger > article, .godscar-pocket__ledger li, .godscar-pocket__factions article, .godscar-pocket__consequences article { padding: 9px; border: 1px solid rgba(255,255,255,.09); background: rgba(0,0,0,.16); }
+.godscar-pocket__ledger > ol { grid-column: 1 / -1; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 7px; list-style: none; }
+.godscar-pocket__ledger li { display: grid; gap: 3px; }
+.godscar-pocket__ledger li > span, .godscar-pocket__consequences article > span { color: #86a4aa; font-size: 9px; }
+.godscar-pocket__factions, .godscar-pocket__consequences { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 7px; }
+.godscar-pocket__more { grid-column: 1 / -1; margin: 0; padding: 7px 9px; border: 1px dashed rgba(201,164,93,.35); color: #9eb0b4; font: 9px/1.4 "IBM Plex Mono", ui-monospace, monospace; }
+.godscar-pocket--invalid { border-color: rgba(214,129,101,.75); }
+.godscar-pocket--invalid h2 { color: #f0b29f; }
+.godscar-pocket--invalid li, .godscar-pocket--invalid p { color: #d7b6aa; font-size: 10px; }
+@media (max-width: 700px) {
+  .godscar-pocket { margin: 7px; padding: 10px; }
+  .godscar-pocket > header { display: grid; }
+  .godscar-pocket > header h2 { font-size: 18px; }
+  .godscar-pocket__ledger { grid-template-columns: 1fr; }
+  .godscar-pocket__ledger > ol { grid-column: auto; }
 }

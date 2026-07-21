@@ -27,9 +27,9 @@ describe("bundled cartridge golden digests", () => {
   });
 
   it("keeps historical locators distinct from the current identity manifest", () => {
-    expect(Object.keys(LEGACY_BUNDLED_DIGESTS).sort()).toEqual(Object.keys(EXPECTED_BUNDLED_DIGESTS).sort());
-    for (const id of Object.keys(EXPECTED_BUNDLED_DIGESTS)) {
-      expect(EXPECTED_BUNDLED_DIGESTS[id]).not.toBe(LEGACY_BUNDLED_DIGESTS[id]);
+    for (const [id, legacyDigest] of Object.entries(LEGACY_BUNDLED_DIGESTS)) {
+      expect(EXPECTED_BUNDLED_DIGESTS[id]).toBeDefined();
+      expect(EXPECTED_BUNDLED_DIGESTS[id]).not.toBe(legacyDigest);
     }
   });
 

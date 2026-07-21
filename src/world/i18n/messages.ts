@@ -328,6 +328,42 @@ export type MessageId =
   | "decision.groupChange"
   | "decision.exactChanges"
   | "decision.continue"
+  // ── Godscar Pocket Aperture projection ──────────────────────────────────
+  | "godscar.metadataRefused"
+  | "godscar.invalidHeading"
+  | "godscar.invalidBody"
+  | "godscar.pocketEyebrow"
+  | "godscar.canonRelation.foundational"
+  | "godscar.canonRelation.compatible"
+  | "godscar.canonRelation.contested"
+  | "godscar.canonRelation.alternateSequence"
+  | "godscar.canonRelation.crossover"
+  | "godscar.canonRelation.privateBranch"
+  | "godscar.canonTier.settledCanon"
+  | "godscar.canonTier.contestedCanon"
+  | "godscar.canonTier.factionDoctrine"
+  | "godscar.canonTier.storyFacingUnknown"
+  | "godscar.pressure.pocket"
+  | "godscar.pressure.patron"
+  | "godscar.pressure.excludedActor"
+  | "godscar.pressure.approachingTrigger"
+  | "godscar.pressure.costOfResistance"
+  | "godscar.pressure.scaleRevelation"
+  | "godscar.evidenceLedger"
+  | "godscar.claim"
+  | "godscar.venue"
+  | "godscar.legitimacyAtStake"
+  | "godscar.ifAccepted"
+  | "godscar.costOfAcceptance"
+  | "godscar.ifFalse"
+  | "godscar.intervention"
+  | "godscar.limits"
+  | "godscar.factionReceipts"
+  | "godscar.prevents"
+  | "godscar.failsBy"
+  | "godscar.persistentConsequences"
+  | "godscar.inheritedBy"
+  | "godscar.moreInSource"
   // ── cartridge object panel ──────────────────────────────────────────────
   | "cartridgePanel.eyebrow"
   | "cartridgePanel.domain"
@@ -766,6 +802,45 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "decision.exactChanges": (params) => `Exact changes (${num(params, "count")})`,
     "decision.continue": "Continue",
 
+    "godscar.metadataRefused": "GODSCAR POCKET METADATA REFUSED",
+    "godscar.invalidHeading": "The cartridge claims a Godscar grammar it cannot validate.",
+    "godscar.invalidBody": "Play law remains the validated Arc. Rodoh will not invent canon, provenance, or pressures from malformed metadata.",
+    "godscar.pocketEyebrow": (params) => `GODSCAR POCKET · ${str(params, "relation")}`,
+    "godscar.canonRelation.foundational": "foundational",
+    "godscar.canonRelation.compatible": "compatible",
+    "godscar.canonRelation.contested": "contested",
+    "godscar.canonRelation.alternateSequence": "alternate sequence",
+    "godscar.canonRelation.crossover": "crossover",
+    "godscar.canonRelation.privateBranch": "private branch",
+    "godscar.canonTier.settledCanon": "settled canon",
+    "godscar.canonTier.contestedCanon": "contested canon",
+    "godscar.canonTier.factionDoctrine": "faction doctrine",
+    "godscar.canonTier.storyFacingUnknown": "story-facing unknown",
+    "godscar.pressure.pocket": "Pocket",
+    "godscar.pressure.patron": "Patron / controlling system",
+    "godscar.pressure.excludedActor": "Excluded actor",
+    "godscar.pressure.approachingTrigger": "Approaching trigger",
+    "godscar.pressure.costOfResistance": "Cost of resistance",
+    "godscar.pressure.scaleRevelation": "Scale revelation",
+    "godscar.evidenceLedger": (params) => {
+      const count = num(params, "count");
+      return `Evidence ledger · ${count} provenance receipt${count === 1 ? "" : "s"}`;
+    },
+    "godscar.claim": "Claim",
+    "godscar.venue": "Venue",
+    "godscar.legitimacyAtStake": "Legitimacy at stake",
+    "godscar.ifAccepted": "If accepted",
+    "godscar.costOfAcceptance": "Cost of acceptance",
+    "godscar.ifFalse": "If false",
+    "godscar.intervention": "Intervention:",
+    "godscar.limits": "Limits:",
+    "godscar.factionReceipts": (params) => `Faction receipts · ${num(params, "count")}`,
+    "godscar.prevents": "Prevents:",
+    "godscar.failsBy": "Fails by:",
+    "godscar.persistentConsequences": (params) => `Persistent consequences · ${num(params, "count")}`,
+    "godscar.inheritedBy": (params) => `Inherited by ${str(params, "name")}`,
+    "godscar.moreInSource": (params) => `${num(params, "count")} more remain in the cartridge source.`,
+
     "cartridgePanel.eyebrow": "Cartridge",
     "cartridgePanel.domain": "Domain",
     "cartridgePanel.engine": "Engine",
@@ -1152,6 +1227,42 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "decision.groupChange": (params) => `${str(params, "type")}：${num(params, "count")} 人 · ${str(params, "delta")}`,
     "decision.exactChanges": (params) => `精確變化（${num(params, "count")}）`,
     "decision.continue": "繼續",
+
+    "godscar.metadataRefused": "GODSCAR POCKET 中繼資料已拒絕",
+    "godscar.invalidHeading": "此卡匣聲稱使用的 Godscar 文法無法通過驗證。",
+    "godscar.invalidBody": "遊玩規則仍以已驗證的 Arc 為準。Rodoh 不會從格式錯誤的中繼資料虛構正典、來源或壓力。",
+    "godscar.pocketEyebrow": (params) => `GODSCAR POCKET · ${str(params, "relation")}`,
+    "godscar.canonRelation.foundational": "基礎正典",
+    "godscar.canonRelation.compatible": "相容支線",
+    "godscar.canonRelation.contested": "爭議支線",
+    "godscar.canonRelation.alternateSequence": "替代序列",
+    "godscar.canonRelation.crossover": "跨界",
+    "godscar.canonRelation.privateBranch": "私人分支",
+    "godscar.canonTier.settledCanon": "確立正典",
+    "godscar.canonTier.contestedCanon": "爭議正典",
+    "godscar.canonTier.factionDoctrine": "派系教義",
+    "godscar.canonTier.storyFacingUnknown": "故事面未知",
+    "godscar.pressure.pocket": "口袋域",
+    "godscar.pressure.patron": "庇護者／控制系統",
+    "godscar.pressure.excludedActor": "被排除行動者",
+    "godscar.pressure.approachingTrigger": "逼近中的觸發點",
+    "godscar.pressure.costOfResistance": "抵抗代價",
+    "godscar.pressure.scaleRevelation": "尺度揭示",
+    "godscar.evidenceLedger": (params) => `證據帳本 · ${num(params, "count")} 筆來源收據`,
+    "godscar.claim": "主張",
+    "godscar.venue": "驗證場所",
+    "godscar.legitimacyAtStake": "受影響的正當性",
+    "godscar.ifAccepted": "若被接受",
+    "godscar.costOfAcceptance": "接受代價",
+    "godscar.ifFalse": "若為假",
+    "godscar.intervention": "介入：",
+    "godscar.limits": "限制：",
+    "godscar.factionReceipts": (params) => `派系收據 · ${num(params, "count")}`,
+    "godscar.prevents": "防止：",
+    "godscar.failsBy": "失敗方式：",
+    "godscar.persistentConsequences": (params) => `持續後果 · ${num(params, "count")}`,
+    "godscar.inheritedBy": (params) => `由 ${str(params, "name")} 繼承`,
+    "godscar.moreInSource": (params) => `卡匣來源中仍有 ${num(params, "count")} 項。`,
 
     "cartridgePanel.eyebrow": "卡匣",
     "cartridgePanel.domain": "領域",

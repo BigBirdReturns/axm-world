@@ -8,6 +8,27 @@ authored contract compiles into every play surface, derived, not hand-authored.*
 Read alongside: `docs/POSITIONING.md` (the public claim), axm-arc `ROADMAP.md`
 (engine + authoring), axm-arc `STATUS.md` (current checkpoint).
 
+## Current overlay — 2026-07-21
+
+The numbered sequence below records the design path that produced the runtime;
+it is no longer the current queue. Since it was written:
+
+- The First Charter gained a directed cold opening, exact reload boundaries,
+  Arc-owned reward choice, explicit handoff into the reusable shell, a complete
+  six-challenge campaign, and a completed-cartridge return state.
+- Changed-run custody is now exact `axm-cartridge-run/v3` round-trip rather than
+  the historical one-way `v2` export described below.
+- Board, Map, Hall, Globe, and Aperture are live representations of one run.
+- Karazhan proves a second cartridge; The Kind Gods of Ilyon adds the first
+  `godscar-pocket/1` creator source and constitutional Aperture projection.
+
+The active release gates are one unaided human campaign completion and the
+modernization of ten older mobile-only browser receipts. New platform work must
+continue to preserve exact files, engine authority, offline play, bounded
+rendering, and explicit uncertainty.
+
+---
+
 This roadmap finishes Rodoh as the game/simulation-side spatial runtime player;
 it does not define the whole AXM family. “Surface” below means a representation
 inside Rodoh, not a separate runtime player. The architectural proof cannot

@@ -1,0 +1,56 @@
+/* Ilyon: oceanic civic observatory, nacre archives, and a planetary gift that
+   must remain refusible. Scoped to the exact bundled cartridge only. */
+:root[data-cartridge="ilyon"] {
+  --gold: #c9a45d;
+  --gold-dark: #9d783b;
+  --gold-border: #85652f;
+  --parchment-gold: #d6bd82;
+  --teal: #48b7b0;
+  --teal-dark: #0d6d78;
+  --olive: #568f7c;
+  --olive-dark: #386957;
+  --state-ready: #48b7b0;
+  --state-risky: #d68165;
+  --state-loot: #c9a45d;
+  --state-recorded: #8ab6c8;
+  --state-locked: #65747b;
+}
+
+:root[data-cartridge="ilyon"] .contract-board-shell {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(72,183,176,.24), transparent 38%),
+    radial-gradient(circle at 84% 82%, rgba(214,129,101,.15), transparent 42%),
+    repeating-radial-gradient(ellipse at 50% 130%, rgba(231,225,207,.04) 0 1px, transparent 1px 36px),
+    linear-gradient(180deg, #0b2432, #05131f 72%);
+}
+
+:root[data-cartridge="ilyon"] .contract-lane__title {
+  position: relative;
+  padding-right: 30px;
+  color: #e7e1cf;
+  background: linear-gradient(180deg, #164653, #0b2a37);
+  border: 2px solid #397d82;
+  border-left: 4px solid #d68165;
+  box-shadow: 3px 3px 0 #031019, inset 0 -2px 0 -1px rgba(201,164,93,.55);
+}
+:root[data-cartridge="ilyon"] .contract-lane__title small { color: #7dd3cd; }
+:root[data-cartridge="ilyon"] .contract-lane__title::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 13px;
+  height: 13px;
+  transform: translateY(-50%);
+  border: 1px solid #c9a45d;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 3px #0d6d78, inset 0 0 0 5px #e7e1cf;
+}
+
+:root[data-cartridge="ilyon"] .pixel-contract-card__panel {
+  border-color: #4b9296;
+  box-shadow: 3px 3px 0 #031019, inset 0 0 12px rgba(72,183,176,.13);
+}
+:root[data-cartridge="ilyon"] .contract-board-header {
+  border-bottom: 1px solid rgba(214,129,101,.5);
+}
