@@ -70,8 +70,10 @@ export type MessageId =
   | "shell.projectedFail"
   | "shell.assignParty"
   | "shell.equipArrow"
+  | "shell.recommendedFit"
   | "shell.engineLoop"
   | "shell.everyContractRecorded"
+  | "shell.openCompletedCartridge"
   | "shell.complete"
   | "shell.equipped"
   | "shell.rewardMomentTitle"
@@ -239,6 +241,10 @@ export type MessageId =
   | "presentations.map.blurb"
   | "presentations.map.controlsHint"
   | "presentations.map.purpose"
+  | "presentations.aperture.label"
+  | "presentations.aperture.blurb"
+  | "presentations.aperture.controlsHint"
+  | "presentations.aperture.purpose"
   // ── inhabited hall (presentation + scene chrome) ─────────────────────────
   | "presentations.hall.label"
   | "presentations.hall.blurb"
@@ -342,6 +348,7 @@ export type MessageId =
   | "boot.openCartridge"
   | "boot.remove"
   | "boot.importedNamed"
+  | "boot.runRestoredNamed"
   | "boot.importFailedHeading"
   | "boot.preflightNew"
   | "boot.preflightUpdate"
@@ -470,8 +477,10 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.projectedFail": "Projected to Fail",
     "shell.assignParty": "Assign a party",
     "shell.equipArrow": (params) => `Equip → ${str(params, "name")}`,
+    "shell.recommendedFit": "Recommended fit",
     "shell.engineLoop": "Engine loop",
     "shell.everyContractRecorded": "Every contract recorded",
+    "shell.openCompletedCartridge": "Return to the completed cartridge",
     "shell.complete": (params) => `${str(params, "name")} — Complete`,
     "shell.equipped": "Equipped:",
     "shell.rewardMomentTitle": "Reward moment.",
@@ -668,6 +677,10 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.map.blurb": "2D world map — the same contracts as locations, by region, with state and an enter-encounter action",
     "presentations.map.controlsHint": "pick a location, or enter its encounter",
     "presentations.map.purpose": "The cartridge's contracts as world locations, grouped by region: see what's available, active, or recorded, and walk into an encounter.",
+    "presentations.aperture.label": "Aperture",
+    "presentations.aperture.blurb": "Semantic command deck — campaign, contracts, bounded people, and exact receipts",
+    "presentations.aperture.controlsHint": "switch Map / Trace / Surface · zoom between cartridge and receipts · copy an exact view",
+    "presentations.aperture.purpose": "A high-information projection of the same run. It exposes authored structure and recorded consequence without manufacturing routes, choices, or relationships.",
     "presentations.hall.label": "Hall",
     "presentations.hall.blurb": "Inhabited hall — meet the steward and take a contract in person",
     "presentations.hall.controlsHint": "talk to the steward to take a contract",
@@ -772,9 +785,10 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "boot.openCartridge": "Open cartridge…",
     "boot.remove": "Remove",
     "boot.importedNamed": (params) => `Imported "${str(params, "name")}".`,
+    "boot.runRestoredNamed": (params) => `Exact run restored: ${str(params, "name")}.`,
     "boot.importFailedHeading": "Import failed:",
     "boot.preflightNew": "New — not seen in this bay before.",
-    "boot.preflightUpdate": "Update — replaces the existing imported cartridge with this id.",
+    "boot.preflightUpdate": "Revision — installed beside the held revision; no owned bytes are replaced.",
     "boot.preflightDuplicate": "Duplicate — this exact cartridge is already in the bay.",
     "boot.preflightSameIdBundled": "A bundled cartridge shares this id and stays untouched.",
     "boot.trustBundled": "Bundled",
@@ -870,8 +884,10 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "shell.projectedFail": "預測：將失敗",
     "shell.assignParty": "請指派隊伍",
     "shell.equipArrow": (params) => `裝備 → ${str(params, "name")}`,
+    "shell.recommendedFit": "建議配置",
     "shell.engineLoop": "引擎循環",
     "shell.everyContractRecorded": "所有契約皆已記錄",
+    "shell.openCompletedCartridge": "返回已完成的卡匣",
     "shell.complete": (params) => `${str(params, "name")} — 已完成`,
     "shell.equipped": "已裝備：",
     "shell.rewardMomentTitle": "獎勵時刻。",
@@ -1051,6 +1067,10 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.map.blurb": "2D 世界地圖 — 相同契約化為地點，依地區分組，顯示狀態並可進入遭遇",
     "presentations.map.controlsHint": "選擇地點，或進入其遭遇",
     "presentations.map.purpose": "將卡匣的契約呈現為世界地點，依地區分組：查看可用、進行中或已記錄的狀態，並走入遭遇。",
+    "presentations.aperture.label": "孔徑",
+    "presentations.aperture.blurb": "語意指揮台 — 戰役、契約、受限人物與精確收據",
+    "presentations.aperture.controlsHint": "切換地圖／追蹤／界面 · 在卡匣與收據間縮放 · 複製精確檢視",
+    "presentations.aperture.purpose": "同一執行紀錄的高資訊投影。它揭示作者結構與已記錄後果，不虛構路徑、選擇或關係。",
     "presentations.hall.label": "契約堂",
     "presentations.hall.blurb": "有人的契約堂 — 與管事會面，親自承接契約",
     "presentations.hall.controlsHint": "與管事對話以承接契約",
@@ -1149,9 +1169,10 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "boot.openCartridge": "開啟卡匣…",
     "boot.remove": "移除",
     "boot.importedNamed": (params) => `已匯入「${str(params, "name")}」。`,
+    "boot.runRestoredNamed": (params) => `已還原精確執行紀錄：${str(params, "name")}。`,
     "boot.importFailedHeading": "匯入失敗：",
     "boot.preflightNew": "全新 — 此貯放槽尚未有此卡匣。",
-    "boot.preflightUpdate": "更新 — 將取代此貯放槽中相同識別碼的已匯入卡匣。",
+    "boot.preflightUpdate": "修訂版 — 安裝在既有版本旁，不會取代持有者的內容。",
     "boot.preflightDuplicate": "重複 — 此貯放槽中已有內容完全相同的卡匣。",
     "boot.preflightSameIdBundled": "有一張內建卡匣使用相同識別碼，該內建項目維持不變。",
     "boot.trustBundled": "內建",

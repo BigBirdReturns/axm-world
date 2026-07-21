@@ -1,6 +1,8 @@
 import type { Agent, Arc, Challenge, Organization, RunReport } from "../engine/types.js";
 import type { ChallengeAssignment } from "../engine/cycle.js";
 import { challengeAccess, requiredAttunementChains } from "../engine/access.js";
+import { projectMechanics } from "../engine/projections.js";
+import { compareCodepoints } from "../engine/determinism.js";
 
 export type PlayNodeStatus = "available" | "locked" | "cleared";
 
@@ -252,34 +254,127 @@ function agentScoreForChallenge(agent: Agent, challenge: Challenge): number {
   return score;
 }
 
-export function recommendAgentsForChallenge(challenge: Challenge, org: Organization, arc: Arc): string[] {
-  const available = Object.values(org.agents).filter((agent) => agent.downedUntilCycle === null);
+interface RecommendedPartyPlan {
+  agentIds: string[];
+  failCount: number;
+  tightCount: number;
+  worstMargin: number;
+  totalMargin: number;
+}
+
+function partyPlan(challenge: Challenge, agents: Agent[], org: Organization, arc: Arc): RecommendedPartyPlan {
+  const projections = projectMechanics({ challenge, assignedAgents: agents, org, arc });
+  const margins = projections.map((projection) => projection.margin);
+  return {
+    agentIds: agents.map((agent) => agent.id).sort(compareCodepoints),
+    failCount: projections.filter((projection) => projection.assessment === "fail").length,
+    tightCount: projections.filter((projection) => projection.assessment === "tight").length,
+    worstMargin: margins.length > 0 ? Math.min(...margins) : Number.NEGATIVE_INFINITY,
+    totalMargin: margins.reduce((sum, margin) => sum + margin, 0),
+  };
+}
+
+function betterRecommendedPlan(candidate: RecommendedPartyPlan, incumbent: RecommendedPartyPlan): boolean {
+  if (candidate.failCount !== incumbent.failCount) return candidate.failCount < incumbent.failCount;
+  if (candidate.tightCount !== incumbent.tightCount) return candidate.tightCount < incumbent.tightCount;
+  if (candidate.worstMargin !== incumbent.worstMargin) return candidate.worstMargin > incumbent.worstMargin;
+  if (candidate.totalMargin !== incumbent.totalMargin) return candidate.totalMargin > incumbent.totalMargin;
+  // When two plans project identically, deploy fewer people. This avoids
+  // manufacturing a "more is always better" rule on per-agent or average checks.
+  if (candidate.agentIds.length !== incumbent.agentIds.length) return candidate.agentIds.length < incumbent.agentIds.length;
+  return compareCodepoints(candidate.agentIds.join("\u0000"), incumbent.agentIds.join("\u0000")) < 0;
+}
+
+function rolesSatisfied(challenge: Challenge, party: Agent[]): boolean {
+  return challenge.rosterRequirements.roleRequirements.every(
+    (requirement) => party.filter((agent) => agent.role === requirement.roleId).length >= requirement.count,
+  );
+}
+
+/** Enumerate bounded party combinations without turning the recommender into an
+ *  exponential scale hazard. Reference cartridges have small rosters, so they
+ *  receive exact projected selection; large raids keep the deterministic greedy
+ *  path below until a dedicated indexed squad planner lands. */
+function exactRecommendedParty(
+  challenge: Challenge,
+  available: Agent[],
+  org: Organization,
+  arc: Arc,
+): RecommendedPartyPlan | null {
+  const min = challenge.rosterRequirements.minAgents;
+  const max = Math.min(challenge.rosterRequirements.maxAgents, available.length);
+  if (available.length > 16 || max > 10) return null;
+
+  const ordered = [...available].sort((a, b) => compareCodepoints(a.id, b.id));
+  let best: RecommendedPartyPlan | null = null;
+  let visited = 0;
+  const visitLimit = 50_000;
+
+  const choose = (start: number, targetSize: number, current: Agent[]): void => {
+    if (visited >= visitLimit) return;
+    if (current.length === targetSize) {
+      visited += 1;
+      if (!rolesSatisfied(challenge, current)) return;
+      const ids = current.map((agent) => agent.id);
+      if (!challengeAccess(challenge, org, arc, ids).accessible) return;
+      const plan = partyPlan(challenge, current, org, arc);
+      if (best === null || betterRecommendedPlan(plan, best)) best = plan;
+      return;
+    }
+    const needed = targetSize - current.length;
+    for (let index = start; index <= ordered.length - needed; index += 1) {
+      current.push(ordered[index]!);
+      choose(index + 1, targetSize, current);
+      current.pop();
+      if (visited >= visitLimit) return;
+    }
+  };
+
+  for (let size = min; size <= max; size += 1) choose(0, size, []);
+  return best;
+}
+
+function greedyRecommendedParty(challenge: Challenge, available: Agent[], org: Organization, arc: Arc): string[] {
   const selected = new Set<string>();
+  const ranked = [...available].sort((a, b) => {
+    const score = agentScoreForChallenge(b, challenge) - agentScoreForChallenge(a, challenge);
+    return score || compareCodepoints(a.id, b.id);
+  });
 
-  for (const req of challenge.rosterRequirements.roleRequirements) {
-    const candidates = available
-      .filter((agent) => agent.role === req.roleId && !selected.has(agent.id))
-      .sort((a, b) => agentScoreForChallenge(b, challenge) - agentScoreForChallenge(a, challenge));
-    for (const agent of candidates.slice(0, req.count)) selected.add(agent.id);
+  for (const requirement of challenge.rosterRequirements.roleRequirements) {
+    const candidates = ranked.filter((agent) => agent.role === requirement.roleId && !selected.has(agent.id));
+    for (const agent of candidates.slice(0, requirement.count)) selected.add(agent.id);
   }
-
-  const remaining = available
-    .filter((agent) => !selected.has(agent.id))
-    .sort((a, b) => agentScoreForChallenge(b, challenge) - agentScoreForChallenge(a, challenge));
-
-  for (const agent of remaining) {
+  for (const agent of ranked) {
     if (selected.size >= challenge.rosterRequirements.minAgents) break;
     selected.add(agent.id);
   }
 
-  if (selected.size < challenge.rosterRequirements.minAgents) {
-    for (const agent of remaining) {
-      if (selected.size >= challenge.rosterRequirements.maxAgents) break;
-      selected.add(agent.id);
-    }
+  // Evaluate deterministic prefixes through max size: a fixed aggregate can
+  // benefit from an extra strong member, while a per-agent average can worsen.
+  let best: RecommendedPartyPlan | null = null;
+  const base = [...selected].map((id) => available.find((agent) => agent.id === id)!).filter(Boolean);
+  const remaining = ranked.filter((agent) => !selected.has(agent.id));
+  const max = Math.min(challenge.rosterRequirements.maxAgents, available.length);
+  for (let size = base.length; size <= max; size += 1) {
+    const party = [...base, ...remaining.slice(0, Math.max(0, size - base.length))];
+    if (party.length < challenge.rosterRequirements.minAgents || !rolesSatisfied(challenge, party)) continue;
+    const ids = party.map((agent) => agent.id);
+    if (!challengeAccess(challenge, org, arc, ids).accessible) continue;
+    const plan = partyPlan(challenge, party, org, arc);
+    if (best === null || betterRecommendedPlan(plan, best)) best = plan;
   }
+  return best?.agentIds ?? [...selected].slice(0, max);
+}
 
-  return [...selected].slice(0, challenge.rosterRequirements.maxAgents);
+/** Select the strongest legal party according to the same deterministic
+ * projections shown to the player. Small cartridges receive an exact search;
+ * large rosters receive a bounded deterministic planner. The recommendation is
+ * advice only: the committed party remains the party runCycle resolves. */
+export function recommendAgentsForChallenge(challenge: Challenge, org: Organization, arc: Arc): string[] {
+  const available = Object.values(org.agents).filter((agent) => agent.downedUntilCycle === null);
+  const exact = exactRecommendedParty(challenge, available, org, arc);
+  return exact?.agentIds ?? greedyRecommendedParty(challenge, available, org, arc);
 }
 
 export function buildPlayAssignment(challenge: Challenge, org: Organization, arc: Arc): ChallengeAssignment {

@@ -171,15 +171,15 @@ describe("cartridge bay: import", () => {
     expect(loadCartridgeBay()).toEqual([]);
   });
 
-  it("re-importing the same id updates the existing file entry rather than duplicating it", () => {
+  it("installs a same-id changed cartridge as an immutable side-by-side revision", () => {
     const arc = dummyOpsArc();
     importCartridgeFromJson(JSON.stringify(arc));
     const renamed = { ...arc, meta: { ...arc.meta, name: "Operations Lab Demo v2" } };
     importCartridgeFromJson(JSON.stringify(renamed));
 
     const stored = loadCartridgeBay().filter((e) => e.arc.meta.id === "operations-lab-demo");
-    expect(stored).toHaveLength(1);
-    expect(stored[0]!.arc.meta.name).toBe("Operations Lab Demo v2");
+    expect(stored).toHaveLength(2);
+    expect(stored.map((entry) => entry.arc.meta.name).sort()).toEqual(["Operations Lab Demo", "Operations Lab Demo v2"]);
   });
 });
 
@@ -214,13 +214,15 @@ describe("cartridge bay: remove", () => {
     importCartridgeFromJson(JSON.stringify(dummyOpsArc()));
     expect(listCartridges().some((e) => e.arc.meta.id === "operations-lab-demo")).toBe(true);
 
-    removeCartridge("operations-lab-demo");
+    const imported = listCartridges().find((e) => e.arc.meta.id === "operations-lab-demo" && e.source === "file")!;
+    removeCartridge(imported.authoredArcDigest);
     expect(listCartridges().some((e) => e.arc.meta.id === "operations-lab-demo")).toBe(false);
   });
 
   it("never removes the bundled entry, even if asked to remove its id", () => {
     ensureBundledCartridges();
-    removeCartridge(FIRST_CHARTER.meta.id);
+    const bundled = listCartridges().find((e) => e.source === "bundled" && e.arc.meta.id === FIRST_CHARTER.meta.id)!;
+    removeCartridge(bundled.authoredArcDigest);
     expect(listCartridges().some((e) => e.source === "bundled" && e.arc.meta.id === FIRST_CHARTER.meta.id)).toBe(true);
   });
 });
@@ -297,7 +299,7 @@ describe("cartridge bay: import preflight (PR 053, arc-073 parity)", () => {
     expect(result.existing!.digest).toBe(result.digest);
   });
 
-  it("reports 'update' for a same-id, different-content re-import — verified against what the write path ACTUALLY does: it replaces the sole file entry with that id", () => {
+  it("reports 'revision' for same-id different-content and preserves both exact revisions", () => {
     const arc = dummyOpsArc();
     importCartridgeFromJson(JSON.stringify(arc));
     const entries = listCartridges();
@@ -306,30 +308,29 @@ describe("cartridge bay: import preflight (PR 053, arc-073 parity)", () => {
     const result = bayImportPreflight(JSON.stringify(changed), entries);
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("expected ok");
-    expect(result.action).toBe("update");
+    expect(result.action).toBe("revision");
     expect(result.existing).not.toBeNull();
     expect(result.existing!.source).toBe("file");
     expect(result.existing!.digest).not.toBe(result.digest);
 
-    // Verify the write path actually does what the report claims: after the
-    // real import, there is still exactly one file entry under this id, now
-    // carrying the new content — an update, not a second entry.
+    // Verify the write path does what the report claims: the changed digest is
+    // installed beside the held revision rather than rewriting owned bytes.
     importCartridgeFromJson(JSON.stringify(changed));
     const stored = loadCartridgeBay().filter((e) => e.arc.meta.id === "operations-lab-demo");
-    expect(stored).toHaveLength(1);
-    expect(stored[0]!.arc.meta.name).toBe("Operations Lab Demo v2");
+    expect(stored).toHaveLength(2);
+    expect(new Set(stored.map((entry) => entry.authoredArcDigest)).size).toBe(2);
+    expect(stored.map((entry) => entry.arc.meta.name).sort()).toEqual(["Operations Lab Demo", "Operations Lab Demo v2"]);
   });
 
   it("reports sameIdBundled whenever the incoming id matches a bundled entry, independent of action", () => {
     const bundled = ensureBundledCartridges();
-    // Same id as the bundled entry, different content — action is "new" (no
-    // FILE entry shares this id yet), but sameIdBundled must still fire: the
-    // write path never touches the bundled entry for this id either way.
+    // Same id as the bundled entry, different content — the write path reports
+    // a new immutable revision and never touches the bundled bytes.
     const shadow: Arc = { ...FIRST_CHARTER, meta: { ...FIRST_CHARTER.meta, name: "Imported Shadow Charter" } };
     const result = bayImportPreflight(JSON.stringify(shadow), bundled);
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("expected ok");
-    expect(result.action).toBe("new");
+    expect(result.action).toBe("revision");
     expect(result.sameIdBundled).not.toBeNull();
     expect(result.sameIdBundled!.digest).not.toBe(result.digest);
   });

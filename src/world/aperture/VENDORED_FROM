@@ -1,0 +1,9 @@
+repo: BigBirdReturns/clifford-number
+ref: agent/aperture-kit
+commit: 1f19074bb979d68c729a2310d448aea470d4bad0
+paths:
+  - src/aperture-kit-core.mjs -> src/world/aperture/vendor/aperture-kit-core.mjs
+  - src/aperture-kit-state.mjs -> src/world/aperture/vendor/aperture-kit-state.mjs
+sha256:
+  aperture-kit-core.mjs: 732db2b5fca0862e610b72c810bc4292f175e55bd8c38a056c6cd3b9a3a6ce0b
+  aperture-kit-state.mjs: a3e74758a791abe695fb9d9a271408fcac9ed494a6734079124142c5c09a819b

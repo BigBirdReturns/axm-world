@@ -1,30 +1,15 @@
-import type { Arc, Organization } from "../engine/types.js";
+// Compatibility facade for the historical World custody helper. The canonical
+// export is now axm-cartridge-run/v3 from the shared engine contract.
+
+import type { Organization } from "../engine/types.js";
 import type { Cartridge } from "./cartridge.js";
 import type { WorldNode } from "./contract.js";
 import type { Ledger } from "./ledger.js";
-import { deriveWorldTransformations, type WorldTransformation } from "./world-state.js";
+import { buildRodohPortableRun } from "./portable-run.js";
+import type { PortableRunV3 } from "../engine/portable-run.js";
 
-export interface CustodyObject {
-  format: "axm-cartridge-run/v2";
-  manifest: Cartridge["manifest"];
-  arc: Arc;
-  runState: {
-    cycle: number;
-    openingChoice: string | null;
-    /** Stable authored option id; the label remains for human-readable custody. */
-    openingChoiceId: string | null;
-    clearedCount: number;
-    totalNodes: number;
-    roster: Array<{ name: string; morale: number; stress: number }>;
-    /** Readable durable location mutations. Derived from restored engine state
-     * and its ledger, so export and reload agree on what the world remembers. */
-    transformedLocations: WorldTransformation[];
-  };
-  ledger: Ledger;
-}
+export type CustodyObject = PortableRunV3;
 
-/** Pure custody boundary used by the UI download and deterministic acceptance
- * tests. JSON round-tripping this value is the actual export contract. */
 export function buildCustodyObject(params: {
   cartridge: Cartridge;
   org: Organization;
@@ -33,24 +18,13 @@ export function buildCustodyObject(params: {
   nodes: readonly WorldNode[];
   ledger: Ledger;
 }): CustodyObject {
-  const clearedCount = params.nodes.filter((node) => node.status === "cleared").length;
-  return {
-    format: "axm-cartridge-run/v2",
-    manifest: params.cartridge.manifest,
-    arc: params.cartridge.arc,
-    runState: {
-      cycle: params.org.cycle,
-      openingChoice: params.openingChoice,
-      openingChoiceId: params.openingChoiceId ?? null,
-      clearedCount,
-      totalNodes: params.nodes.length,
-      roster: Object.values(params.org.agents).map((agent) => ({
-        name: agent.name,
-        morale: Math.round(agent.morale),
-        stress: Math.round(agent.stress),
-      })),
-      transformedLocations: deriveWorldTransformations(params.nodes, params.ledger),
-    },
+  void params.nodes; // world mutations are represented by the ledger extension.
+  return buildRodohPortableRun({
+    cartridge: params.cartridge,
+    org: params.org,
+    extensions: {},
     ledger: params.ledger,
-  };
+    openingChoice: params.openingChoice,
+    openingChoiceId: params.openingChoiceId ?? null,
+  });
 }

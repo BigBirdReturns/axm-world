@@ -7,19 +7,26 @@
 //
 // The org is (de)serialized with the engine's own serializeGame/deserializeGame
 // (version + arcRef guard + migrations); this module adds the digest guard and
-// carries the run ledger + opening choice alongside.
+// carries the run ledger, opening choice, and losslessly preserved portable-run
+// extensions alongside it.
 
 import type { Arc, Organization } from "../engine/types.js";
 import type { PendingRewardChoice } from "../engine/cycle.js";
 import { cartridgeDigest } from "../engine/cartridge-digest.js";
 import { serializeGame, deserializeGame } from "../engine/save.js";
+import {
+  normalizePortableRunExtensions,
+  type PortableRunExtensions,
+} from "../engine/portable-run.js";
 import { emptyLedger, migrateLedger, summarizeLedger, type ContractOutcome, type Ledger } from "./ledger.js";
+import { storageWriteFailure, type StorageWriteResult } from "./storage-result.js";
 
-/** Save schema version. Kept in lockstep with PROGRAM_001.saveSchemaVersion. */
+/** Save schema version. Kept in lockstep with PROGRAM_001.saveSchemaVersion.
+ * Additive fields remain backward-compatible inside version 1. */
 export const SAVE_SCHEMA_VERSION = 1;
 /** Save-slot key prefix. Each authored program gets its OWN slot, keyed by its
- *  authored-arc digest (see saveKeyFor), so playing a second cartridge never
- *  overwrites the first program's saved run. */
+ * authored-arc digest (see saveKeyFor), so playing a second cartridge never
+ * overwrites the first program's saved run. */
 export const SAVE_KEY_PREFIX = "axm-world:save:v1:";
 
 /** The storage key for a specific authored program's save slot. */
@@ -28,7 +35,7 @@ export function saveKeyFor(authoredArcDigest: string): string {
 }
 
 /** The minimal storage surface this module needs -- localStorage satisfies it
- *  structurally, and tests pass a fake. Avoids a hard DOM `Storage` dependency. */
+ * structurally, and tests pass a fake. Avoids a hard DOM `Storage` dependency. */
 export interface KVStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
@@ -42,11 +49,14 @@ export interface ProgramRunState {
    * reload would preserve the receipt while deleting its unresolved choice. */
   pendingRewardChoices?: PendingRewardChoice[];
   /** The opening decision label the player chose, persisted so the visible decision
-   *  mark (and the export) survive a reload. Null until an opening choice is made;
-   *  optional on input for callers that never surface an opening choice. */
+   * mark (and the export) survive a reload. */
   openingChoice?: string | null;
   /** Stable authored option id. Additive so old v1 saves continue to load. */
   openingChoiceId?: string | null;
+  /** Holder-owned runtime memory imported from or destined for portable run v3.
+   * Unknown namespaces are preserved byte-semantically even when World cannot
+   * render them. */
+  extensions?: PortableRunExtensions;
 }
 
 interface StoredSave {
@@ -57,13 +67,14 @@ interface StoredSave {
   ledger: Ledger;
   openingChoice: string | null;
   openingChoiceId?: string | null;
+  extensions?: PortableRunExtensions;
 }
 
 /** Persist a program's run state under its own authored-arc-digest slot. */
 export function saveRun(
   storage: KVStorage,
   params: { arc: Arc; authoredArcDigest: string; state: ProgramRunState },
-): void {
+): StorageWriteResult {
   const actualDigest = cartridgeDigest(params.arc);
   if (actualDigest !== params.authoredArcDigest) {
     throw new Error(`Refusing to save Arc ${params.arc.meta.id} under foreign authored identity ${params.authoredArcDigest}.`);
@@ -78,20 +89,23 @@ export function saveRun(
     ledger: params.state.ledger,
     openingChoice: params.state.openingChoice ?? null,
     openingChoiceId: params.state.openingChoiceId ?? null,
+    extensions: normalizePortableRunExtensions(params.state.extensions ?? {}),
   };
-  storage.setItem(saveKeyFor(params.authoredArcDigest), JSON.stringify(stored));
+  try {
+    storage.setItem(saveKeyFor(params.authoredArcDigest), JSON.stringify(stored));
+    return { ok: true };
+  } catch (error) {
+    return storageWriteFailure(error, "Saving the run");
+  }
 }
 
 /** Load a program's run state IF the stored save matches this program's authored
- *  identity (digest guard) and arc. Returns null when there is no save, when the
- *  save belongs to a different authored program, or when it is unreadable. */
+ * identity (digest guard) and arc. Returns null when there is no save, when the
+ * save belongs to a different authored program, or when it is unreadable. */
 export function loadRun(
   storage: KVStorage,
   params: { arc: Arc; authoredArcDigest: string },
 ): ProgramRunState | null {
-  // The caller cannot relabel current Arc bytes with an old or foreign slot
-  // key. This is the content-identity half of the restore gate; deserializeGame
-  // separately checks the Arc id/schema inside the engine save.
   if (cartridgeDigest(params.arc) !== params.authoredArcDigest) return null;
   const raw = storage.getItem(saveKeyFor(params.authoredArcDigest));
   if (!raw) return null;
@@ -102,7 +116,7 @@ export function loadRun(
     return null;
   }
   if (parsed.version !== SAVE_SCHEMA_VERSION) return null;
-  if (parsed.authoredArcDigest !== params.authoredArcDigest) return null; // defense-in-depth
+  if (parsed.authoredArcDigest !== params.authoredArcDigest) return null;
   if (typeof parsed.game !== "string") return null;
   if (!ledgerMatchesAuthoredDigest(parsed.ledger, params.authoredArcDigest)) return null;
   let org: Organization;
@@ -110,7 +124,13 @@ export function loadRun(
   try {
     ({ org, pendingRewardChoices } = deserializeGame(parsed.game, params.arc));
   } catch {
-    return null; // arc mismatch / corrupt engine save
+    return null;
+  }
+  let extensions: PortableRunExtensions;
+  try {
+    extensions = normalizePortableRunExtensions(parsed.extensions ?? {});
+  } catch {
+    return null;
   }
   return {
     org,
@@ -118,27 +138,24 @@ export function loadRun(
     pendingRewardChoices,
     openingChoice: typeof parsed.openingChoice === "string" ? parsed.openingChoice : null,
     openingChoiceId: typeof parsed.openingChoiceId === "string" ? parsed.openingChoiceId : null,
+    extensions,
   };
 }
 
-export function clearRun(storage: KVStorage, authoredArcDigest: string): void {
-  storage.removeItem(saveKeyFor(authoredArcDigest));
+export function clearRun(storage: KVStorage, authoredArcDigest: string): StorageWriteResult {
+  try {
+    storage.removeItem(saveKeyFor(authoredArcDigest));
+    return { ok: true };
+  } catch (error) {
+    return storageWriteFailure(error, "Clearing the run");
+  }
 }
 
-/** A read-only, boot-surface view of a program's save slot: enough to tell the
- *  player whether the program is fresh or resumable, and what it remembers,
- *  WITHOUT entering it. Derived from `loadRun`, so "present" means the same thing
- *  the boot flow's restore means — a save that belongs to THIS exact authored
- *  program (digest guard) and is actually restorable. Returns null when there is
- *  no such save. */
+/** A read-only, boot-surface view of a program's save slot. */
 export interface ProgramSaveSummary {
   authoredArcDigest: string;
-  /** Number of resolved contracts recorded in the saved ledger. */
   ledgerEntryCount: number;
-  /** The most recently recorded contract (name + outcome), or null for a save
-   *  that has resolved the opening but not yet run a contract. */
   lastResult: { challengeName: string; outcome: ContractOutcome } | null;
-  /** The opening decision label the player chose, if any. */
   openingChoice: string | null;
 }
 
@@ -146,14 +163,9 @@ export interface LegacyProgramSaveSummary {
   authoredArcDigest: string;
   ledgerEntryCount: number;
   lastResult: { challengeName: string; outcome: ContractOutcome } | null;
-  /** A legacy blob is preserved evidence, not a resumable current run. */
   status: "legacy-profile-unavailable";
 }
 
-/** Summarize a program's save slot for the cartridge bay. Reuses `loadRun`'s
- *  digest + schema + arc guards, so a summary is returned only when the run is
- *  genuinely resumable — the boot plaque never offers "Resume" for a save that
- *  restore would reject. */
 export function readProgramSaveSummary(
   storage: KVStorage,
   params: { arc: Arc; authoredArcDigest: string },
@@ -171,8 +183,7 @@ export function readProgramSaveSummary(
 
 /** Inspect an old digest-keyed slot without deserializing it against or
  * relabeling it as the current Arc. This is intentionally summary-only until an
- * exact frozen legacy execution profile exists. The storage blob is never
- * written or moved. */
+ * exact frozen legacy execution profile exists. */
 export function readLegacyProgramSaveSummary(
   storage: KVStorage,
   authoredArcDigest: string,
@@ -206,6 +217,14 @@ export function readLegacyProgramSaveSummary(
   };
 }
 
+export function normalizeLedgerForDigest(ledger: unknown, authoredArcDigest: string): Ledger {
+  return normalizeLedger(ledger, authoredArcDigest);
+}
+
+export function ledgerMatchesDigest(ledger: unknown, authoredArcDigest: string): ledger is Ledger {
+  return ledgerMatchesAuthoredDigest(ledger, authoredArcDigest);
+}
+
 function normalizeLedger(ledger: unknown, authoredArcDigest: string): Ledger {
   if (
     !!ledger &&
@@ -213,10 +232,6 @@ function normalizeLedger(ledger: unknown, authoredArcDigest: string): Ledger {
     Array.isArray((ledger as Ledger).entries) &&
     (ledger as Ledger).authoredArcDigest === authoredArcDigest
   ) {
-    // Migrate a restored ledger to the current schema: entries saved before the
-    // structured consequence record existed are backfilled honestly (grade,
-    // contract, and "recorded" only — never invented rewards/party/unlocks), and
-    // the ledger version is brought current. New entries pass through untouched.
     return migrateLedger(ledger as Ledger);
   }
   return emptyLedger(authoredArcDigest);

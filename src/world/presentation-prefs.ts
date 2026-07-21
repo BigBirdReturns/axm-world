@@ -1,24 +1,42 @@
-// Per-arc costume preference. Each cartridge opens in the costume that best serves
-// it, and the player's manual choice is remembered.
+// Per-cartridge-revision representation preference. Each exact authored program
+// remembers the player's manual choice without allowing a same-id revision to
+// inherit another revision's presentation state.
 
 import type { Arc } from "../engine/types.js";
+import { cartridgeDigest } from "../engine/cartridge-digest.js";
+import { storageWriteFailure, type StorageWriteResult } from "./storage-result.js";
 
-export type CostumeId = "board" | "map" | "globe" | "graph" | "hall";
+export type CostumeId = "board" | "map" | "globe" | "graph" | "hall" | "aperture";
 
-const KEY = "axm-world:costume:v1";
+const KEY = "axm-world:costume:v2";
 
-export function isCostumeId(value: string | null | undefined): value is CostumeId {
-  return value === "board" || value === "map" || value === "globe" || value === "graph" || value === "hall";
+export interface PreferenceStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
 }
 
-/** Default costume for an arc. 2D contract board is the lightweight default. */
+export function isCostumeId(value: string | null | undefined): value is CostumeId {
+  return value === "board"
+    || value === "map"
+    || value === "globe"
+    || value === "graph"
+    || value === "hall"
+    || value === "aperture";
+}
+
+/** Default representation for an arc. 2D contract board is the lightweight floor. */
 export function preferredCostumeForArc(_arc: Arc): CostumeId {
   return "board";
 }
 
-export function loadCostume(arc: Arc): CostumeId {
+export function costumeKey(arc: Arc): string {
+  return `${KEY}:${cartridgeDigest(arc)}`;
+}
+
+export function loadCostume(arc: Arc, storage: PreferenceStorage = localStorage): CostumeId {
   try {
-    const saved = localStorage.getItem(`${KEY}:${arc.meta.id}`);
+    const saved = storage.getItem(costumeKey(arc));
     if (isCostumeId(saved)) return saved;
   } catch {
     /* no localStorage (headless) — fall through to heuristic */
@@ -26,10 +44,27 @@ export function loadCostume(arc: Arc): CostumeId {
   return preferredCostumeForArc(arc);
 }
 
-export function saveCostume(arc: Arc, id: CostumeId): void {
+export function saveCostume(
+  arc: Arc,
+  id: CostumeId,
+  storage: PreferenceStorage = localStorage,
+): StorageWriteResult {
   try {
-    localStorage.setItem(`${KEY}:${arc.meta.id}`, id);
-  } catch {
-    /* ignore */
+    storage.setItem(costumeKey(arc), id);
+    return { ok: true };
+  } catch (error) {
+    return storageWriteFailure(error, "Saving the representation preference");
+  }
+}
+
+export function clearCostume(
+  arc: Arc,
+  storage: PreferenceStorage = localStorage,
+): StorageWriteResult {
+  try {
+    storage.removeItem(costumeKey(arc));
+    return { ok: true };
+  } catch (error) {
+    return storageWriteFailure(error, "Clearing the representation preference");
   }
 }

@@ -13,7 +13,8 @@ import type { Cartridge } from "./cartridge.js";
 
 /** Runtime surfaces a program may project. Presentation-only labels — the engine
  *  owns outcomes, RODOH owns rendering. */
-export type RuntimeSurface = "board" | "encounter" | "result" | "ledger" | "world";
+export type RuntimeSurface = "board" | "encounter" | "result" | "ledger" | "world" | "aperture";
+export type EntryExperience = "guided-first-contract" | "direct-to-runtime";
 
 export interface ProgramOfRecord {
   /** Stable program-of-record id, e.g. "program-001". */
@@ -29,6 +30,8 @@ export interface ProgramOfRecord {
   bundledAssets: Readonly<Record<string, string>>;
   /** Runtime surfaces RODOH may project for this program. */
   runtimeSurfaces: readonly RuntimeSurface[];
+  /** Presentation-only entry direction. It cannot alter Arc law or resolution. */
+  entryExperience: EntryExperience;
   /** Persistence (save) schema version this program reads/writes. */
   saveSchemaVersion: number;
   /** Ledger schema version this program writes. */
@@ -43,6 +46,7 @@ export function defineProgram(
   cartridge: Cartridge,
   opts: {
     runtimeSurfaces: readonly RuntimeSurface[];
+    entryExperience?: EntryExperience;
     saveSchemaVersion: number;
     ledgerSchemaVersion: number;
     extraAssets?: Readonly<Record<string, string>>;
@@ -56,6 +60,7 @@ export function defineProgram(
     authoredArcDigest,
     bundledAssets: { [cartridge.manifest.id]: authoredArcDigest, ...(opts.extraAssets ?? {}) },
     runtimeSurfaces: opts.runtimeSurfaces,
+    entryExperience: opts.entryExperience ?? "direct-to-runtime",
     saveSchemaVersion: opts.saveSchemaVersion,
     ledgerSchemaVersion: opts.ledgerSchemaVersion,
   };
@@ -65,7 +70,8 @@ export function defineProgram(
  *  record. Runtime surfaces are the full single-contract loop; schema versions
  *  start at 1. */
 export const PROGRAM_001: ProgramOfRecord = defineProgram("program-001", FIRST_CHARTER_CARTRIDGE, {
-  runtimeSurfaces: ["board", "encounter", "result", "ledger", "world"],
+  runtimeSurfaces: ["board", "encounter", "result", "ledger", "world", "aperture"],
+  entryExperience: "guided-first-contract",
   saveSchemaVersion: 1,
   // Ledger schema 2: entries carry a structured consequence record (#69). Kept in
   // lockstep with LEDGER_SCHEMA_VERSION (ledger-schema-lockstep.test.ts enforces it).

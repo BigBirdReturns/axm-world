@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DramaCard, Organization } from "../../src/engine/types.js";
 import { bootstrapOrg } from "../../src/spoke/bootstrap.js";
+import { parsePortableRun } from "../../src/engine/portable-run.js";
 import { FIRST_CHARTER_CARTRIDGE } from "../../src/world/cartridge.js";
 import { buildCustodyObject } from "../../src/world/custody.js";
 import { groupDecisionEffects, resolveWorldDecision } from "../../src/world/decision.js";
@@ -8,6 +9,7 @@ import { openingReactionTone } from "../../src/world/components/OpeningDecisionS
 import { emptyLedger } from "../../src/world/ledger.js";
 import { loadRun, saveRun, type KVStorage } from "../../src/world/save.js";
 import { cartridgeIdentity } from "../../src/world/cartridge-identity.js";
+import { rodohOpeningMemory } from "../../src/world/portable-run.js";
 
 function fakeStorage(): KVStorage {
   const values = new Map<string, string>();
@@ -99,13 +101,13 @@ describe("decision commit and authoritative readback", () => {
       nodes: [],
       ledger,
     });
-    expect(exported.runState.openingChoiceId).toBe("open-charter");
-    expect(exported.runState.openingChoice).toBe("Swear the open charter");
-    expect(exported.runState.roster).toEqual(Object.values(restored.org.agents).map((agent) => ({
-      name: agent.name,
-      morale: Math.round(agent.morale),
-      stress: Math.round(agent.stress),
-    })));
+    const parsedExport = parsePortableRun(exported);
+    expect(rodohOpeningMemory(parsedExport.extensions)).toEqual({
+      version: 1,
+      openingChoiceId: "open-charter",
+      openingChoice: "Swear the open charter",
+    });
+    expect(parsedExport.org).toEqual(restored.org);
   });
 
   it("does not fabricate a response for a stale or invalid selection", () => {
@@ -120,11 +122,9 @@ describe("decision commit and authoritative readback", () => {
     const agentCount = Object.keys(openingOrg().agents).length;
     expect(groups).toEqual([
       { type: "morale", count: agentCount, minDelta: 8, maxDelta: 8 },
-      // One founder is already capped, so the response honestly omits its
-      // zero delta instead of repeating the authored +3 claim.
-      { type: "loyalty", count: agentCount - 1, minDelta: 3, maxDelta: 3 },
+      { type: "loyalty", count: agentCount, minDelta: 3, maxDelta: 3 },
     ]);
-    expect(response.effects).toHaveLength(agentCount * 2 - 1);
+    expect(response.effects).toHaveLength(agentCount * 2);
     expect(openingReactionTone(response)).toBe("lifted");
   });
 

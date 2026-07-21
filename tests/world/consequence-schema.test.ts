@@ -23,13 +23,16 @@ describe("consequence schema wiring (#69)", () => {
     expect(src).toContain("consequence,");
   });
 
-  it("the exported custody object carries the full ledger, so consequences export with the run", () => {
+  it("the exact v3 export carries the full ledger as a namespaced runtime extension", () => {
     const custody = read("src/world/custody.ts");
+    const adapter = read("src/world/portable-run.ts");
     const world = read("src/world/useArcWorld.ts");
-    expect(custody).toContain("ledger: Ledger;");
-    expect(custody).toContain('format: "axm-cartridge-run/v2"');
-    expect(custody).toContain("transformedLocations: deriveWorldTransformations");
-    expect(world).toContain("buildCustodyObject({ cartridge, org, openingChoice, nodes: layout.nodes, ledger, openingChoiceId })");
+    expect(custody).toContain("export type CustodyObject = PortableRunV3");
+    expect(custody).toContain("buildRodohPortableRun");
+    expect(adapter).toContain('export const RODOH_LEDGER_EXTENSION = "rodoh.ledger@2"');
+    expect(adapter).toContain("[RODOH_LEDGER_EXTENSION]");
+    expect(world).toContain("buildRodohPortableRun({");
+    expect(world).toContain("ledger,");
   });
 
   it("old saves are MIGRATED (not discarded) on load — the save version is unchanged", () => {

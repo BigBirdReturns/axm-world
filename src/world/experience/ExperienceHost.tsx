@@ -8,6 +8,12 @@ import { PixelButton, PixelDoll, PixelPanel } from "../pixel-ui/index.js";
 import { resolveDollAppearance } from "../themes/appearance.js";
 import { themeForArc } from "../themes/select.js";
 import {
+  RODOH_EXPERIENCE_EXTENSION,
+  downloadPortableRun,
+  rodohCheckpointMemory,
+  rodohExperienceExtensionValue,
+} from "../portable-run.js";
+import {
   hallCheckpoint,
   loadCheckpoint,
   saveCheckpoint,
@@ -19,6 +25,7 @@ import "./experience.css";
 interface Props {
   world: ArcWorld;
   onExit: () => void;
+  onEnterRuntime: () => void;
 }
 
 function latestAvailable(nodes: readonly WorldNode[]): WorldNode | null {
@@ -68,11 +75,18 @@ function playThresholdCue(): void {
   }
 }
 
-export function ExperienceHost({ world, onExit }: Props): JSX.Element {
+export function ExperienceHost({ world, onExit, onEnterRuntime }: Props): JSX.Element {
   const challengeIds = useMemo(() => new Set(world.arc.challenges.map((challenge) => challenge.id)), [world.arc]);
   const agentIds = useMemo(() => new Set(world.roster.map((agent) => agent.id)), [world.roster]);
+  const difficultyModeIds = useMemo(() => new Set(world.arc.difficultyModes.map((mode) => mode.id)), [world.arc]);
   const [checkpoint, setCheckpoint] = useState<ExperienceCheckpoint>(() =>
-    loadCheckpoint(localStorage, world.cartridgeDigest, challengeIds, agentIds)
+    rodohCheckpointMemory(world.extensions, {
+      authoredArcDigest: world.cartridgeDigest,
+      challengeIds,
+      agentIds,
+      difficultyModeIds,
+    })
+      ?? loadCheckpoint(localStorage, world.cartridgeDigest, challengeIds, agentIds, difficultyModeIds)
       ?? hallCheckpoint(world.cartridgeDigest),
   );
   const [decisionResponse, setDecisionResponse] = useState<DecisionResponse | null>(null);
@@ -109,7 +123,8 @@ export function ExperienceHost({ world, onExit }: Props): JSX.Element {
 
   useEffect(() => {
     saveCheckpoint(localStorage, checkpoint);
-  }, [checkpoint]);
+    world.setExtension(RODOH_EXPERIENCE_EXTENSION, rodohExperienceExtensionValue(checkpoint));
+  }, [checkpoint, world.setExtension]);
 
   useEffect(() => () => {
     for (const timer of actionTimers.current) window.clearTimeout(timer);
@@ -306,6 +321,11 @@ export function ExperienceHost({ world, onExit }: Props): JSX.Element {
                 <PixelButton data-testid="hall-enter-contract" variant="action" onClick={enterBriefing}>
                   Take {next.title}
                 </PixelButton>
+                {cellarRecord && (
+                  <PixelButton data-testid="enter-rodoh-runtime" variant="secondary" onClick={onEnterRuntime}>
+                    Open the full Rodoh world
+                  </PixelButton>
+                )}
               </PixelPanel>
             ) : (
               <PixelPanel className="axm-contract" tone="light"><h2>The charter is fulfilled.</h2></PixelPanel>
@@ -449,7 +469,7 @@ export function ExperienceHost({ world, onExit }: Props): JSX.Element {
                         return (
                           <button type="button" key={candidate.id} onClick={() => world.claimLoot(choice.id, candidate.id)} data-testid={`reward-candidate-${candidate.id}`}>
                             <PixelDoll appearance={resolveDollAppearance(theme, candidate.role)} identity={candidate.id} state="idle" size={38} />
-                            <span><strong>{candidate.name}</strong><small>{candidate.role} · {member?.morale ?? "?"} morale</small></span>
+                            <span><strong>{candidate.name}{candidate.id === choice.recommendedAgentId ? " · Recommended fit" : ""}</strong><small>{candidate.role} · {member?.morale ?? "?"} morale{candidate.id === choice.recommendedAgentId && choice.recommendationReason ? ` · ${choice.recommendationReason}` : ""}</small></span>
                           </button>
                         );
                       })}
@@ -484,7 +504,7 @@ export function ExperienceHost({ world, onExit }: Props): JSX.Element {
       </section>
 
       <footer className="axm-experience__footer">
-        <span><i className="is-live" /> Exact local save</span>
+        <span data-testid="save-health"><i className={world.saveStatus.ok ? "is-live" : ""} /> {world.saveStatus.ok ? "Exact local save" : "Unsaved — export recovery available"}</span>
         <span>{world.ledger.entries.length} consequence{world.ledger.entries.length === 1 ? "" : "s"} recorded</span>
         <span>The Arc supplies the rules. This World runs and remembers them.</span>
       </footer>
@@ -532,7 +552,11 @@ export function ExperienceHost({ world, onExit }: Props): JSX.Element {
                 </button>
               ))}
             </div>
+            {!world.saveStatus.ok && (
+              <p role="alert" data-testid="save-failure">{world.saveStatus.message}</p>
+            )}
             <div className="axm-record__actions">
+              <PixelButton variant="secondary" data-testid="export-exact-run" onClick={() => downloadPortableRun(world.buildExport())}>Export exact run</PixelButton>
               <PixelButton variant="secondary" onClick={() => setShowRecord(false)}>Resume</PixelButton>
               <PixelButton variant="danger" onClick={onExit}>Leave</PixelButton>
             </div>

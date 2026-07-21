@@ -10,6 +10,8 @@ import { isWorldInteractionUnlocked } from "../../src/world/proximity.js";
 import { loadRun, saveRun, type KVStorage } from "../../src/world/save.js";
 import { deriveWorldTransformations } from "../../src/world/world-state.js";
 import { buildCustodyObject } from "../../src/world/custody.js";
+import { parsePortableRun } from "../../src/engine/portable-run.js";
+import { rodohLedgerMemory } from "../../src/world/portable-run.js";
 
 function memoryStorage(): KVStorage {
   const values = new Map<string, string>();
@@ -85,10 +87,15 @@ describe("The Cellar — complete playable-world acceptance run", () => {
       nodes: restoredLayout.nodes,
       ledger: restored!.ledger,
     })));
-    expect(exported.format).toBe("axm-cartridge-run/v2");
-    expect(exported.ledger.entries).toHaveLength(1);
-    expect(exported.ledger.entries[0].challengeId).toBe("cellar");
-    expect(exported.runState.transformedLocations).toEqual([
+    expect(exported.format).toBe("axm-cartridge-run/v3");
+    const portable = parsePortableRun(exported);
+    expect(portable.authoredArcDigest).toBe(digest);
+    expect(portable.org).toEqual(restored!.org);
+    const exportedLedger = rodohLedgerMemory(portable.extensions, digest);
+    expect(exportedLedger.entries).toHaveLength(1);
+    expect(exportedLedger.entries[0]?.challengeId).toBe("cellar");
+    const portableLayout = buildWorldLayout(compileArcToPlayScene(portable.arc, portable.org));
+    expect(deriveWorldTransformations(portableLayout.nodes, exportedLedger)).toEqual([
       expect.objectContaining({ challengeId: "cellar", state: "recorded", outcome: "success" }),
     ]);
   });
