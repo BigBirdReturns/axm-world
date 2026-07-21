@@ -15,6 +15,10 @@ export function firstAvailableNodeId(nodes: Pick<WorldNode, "challengeId" | "sta
 export interface ArcInteraction {
   selectedId: string | null;
   select: (challengeId: string | null) => void;
+  /** True only when the current selection came from an explicit select() act.
+   * Cold-start focus and post-run focus advance are FOCUS, not a player pick —
+   * surfaces that open UI on "the player chose this" must key off this flag. */
+  selectionIsUserAct: boolean;
   /** The authored location currently inside the embodied world's interaction
    * radius. This is deliberately separate from selection: a Board or Map may
    * inspect a contract remotely, but inspection never grants physical access. */
@@ -39,6 +43,7 @@ export interface ArcInteraction {
 
 export function useArcInteraction(world: ArcWorld): ArcInteraction {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectionIsUserAct, setSelectionIsUserAct] = useState(false);
   const [nearbyId, setNearbyId] = useState<string | null>(null);
   const [party, setParty] = useState<string[]>([]);
 
@@ -152,5 +157,10 @@ export function useArcInteraction(world: ArcWorld): ArcInteraction {
     [selectedId, party, world, locale],
   );
 
-  return { selectedId, select: setSelectedId, nearbyId, setNearbyId, party, toggleAgent, selected, req, canRun, run, contract, readiness, recommendation, fixPlan, applyFix };
+  const select = useCallback((challengeId: string | null) => {
+    setSelectionIsUserAct(challengeId !== null);
+    setSelectedId(challengeId);
+  }, []);
+
+  return { selectedId, select, selectionIsUserAct, nearbyId, setNearbyId, party, toggleAgent, selected, req, canRun, run, contract, readiness, recommendation, fixPlan, applyFix };
 }

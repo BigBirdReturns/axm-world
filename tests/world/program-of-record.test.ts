@@ -24,6 +24,8 @@ describe("Program 001 — controlled object", () => {
     expect(PROGRAM_001.ledgerSchemaVersion).toBe(2);
     expect(PROGRAM_001.runtimeSurfaces).toContain("ledger");
     expect(PROGRAM_001.runtimeSurfaces).toContain("world");
+    expect(PROGRAM_001.runtimeSurfaces).toContain("aperture");
+    expect(PROGRAM_001.entryExperience).toBe("guided-first-contract");
   });
 
   it("records the authored-arc digest in bundledAssets keyed by cartridge id", () => {

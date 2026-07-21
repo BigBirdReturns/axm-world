@@ -117,6 +117,19 @@ test("cold operator founds, commits an engine-honored plan, resumes it exactly, 
   await expect(page.getByTestId("cartridge-enter-transition")).toHaveCount(0, { timeout: 2_000 });
   await expect(page.getByTestId("changed-hall-memory")).toBeVisible();
   await expect(page.getByTestId("selected-contract-title")).toContainText(/Bridge Troll|Cellar/);
+
+  // The focused first contract is the entrance to Rodoh, not a replacement for
+  // the reusable runtime. Handoff preserves the same ArcWorld and then persists
+  // the player's exact representation choice.
+  await page.getByTestId("enter-rodoh-runtime").click();
+  await expect(page.getByTestId("engine-shell")).toBeVisible();
+  await page.getByTestId("view-aperture").click();
+  await expect(page.getByTestId("rodoh-aperture")).toBeVisible();
+
+  await page.reload();
+  await page.getByTestId("play-cartridge-first-charter").click();
+  await expect(page.getByTestId("engine-shell")).toBeVisible();
+  await expect(page.getByTestId("rodoh-aperture")).toBeVisible();
 });
 
 test("the same receiver mounts a second Arc without a World rewrite", async ({ page }) => {
@@ -126,7 +139,7 @@ test("the same receiver mounts a second Arc without a World rewrite", async ({ p
   await expect(decision).toBeVisible();
   await decision.getByRole("button").first().click();
   await decision.getByRole("button", { name: /continue/i }).click();
-  await expect(page.getByTestId("axm-experience")).toBeVisible();
-  await expect(page.getByText("Karazhan", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText(/RODOH WORLD · RECEIVER/i)).toBeVisible();
+  await expect(page.getByTestId("engine-shell")).toBeVisible();
+  await expect(page.getByTestId("cartridge-title")).toContainText("Karazhan");
+  await expect(page.getByTestId("view-run-graph")).toBeVisible();
 });

@@ -15,6 +15,7 @@ import {
   type CartridgeBayEntry,
 } from "./cartridge-bay.js";
 import { cartridgeIdentity } from "./cartridge-identity.js";
+import { importRodohPortableRun, isRodohPortableRun } from "./portable-run.js";
 import { programForCartridge } from "./program-of-record.js";
 import { readLegacyProgramSaveSummary, readProgramSaveSummary } from "./save.js";
 import { LEGACY_BUNDLED_DIGESTS } from "./legacy-revisions.js";
@@ -72,11 +73,14 @@ export function Player(): JSX.Element {
   const [importPreflight, setImportPreflight] = useState<BayImportPreflight | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const enterCartridge = useCallback((next: Cartridge): void => {
+  const enterCartridge = useCallback((next: Cartridge, resumable: boolean): void => {
     // Mount the authoritative world immediately. The bounded plaque layer below
-    // reveals that committed state; it never delays or owns game state.
+    // reveals that committed state; it never delays or owns game state. A fresh
+    // program gets the acquisition reveal; a resumable one returns straight to
+    // its exact checkpoint — replaying the theatre over held state would claim
+    // an acquisition that already happened.
     setCartridge(next);
-    setEnteringCartridge(next);
+    setEnteringCartridge(resumable ? null : next);
   }, []);
   const completeEntry = useCallback(() => setEnteringCartridge(null), []);
   const leaveCartridge = useCallback((): void => {
@@ -88,7 +92,7 @@ export function Player(): JSX.Element {
   // per entries change, not per render, since it hashes the whole canonical
   // arc. Keyed by id+source to match the entries' own dedup key below.
   const digests = useMemo(
-    () => new Map(entries.map((e) => [`${e.arc.meta.id}:${e.source}`, cartridgeIdentity(cartridgeForEntry(e))])),
+    () => new Map(entries.map((entry) => [entry.authoredArcDigest, cartridgeIdentity(cartridgeForEntry(entry))])),
     [entries],
   );
 
@@ -128,9 +132,22 @@ export function Player(): JSX.Element {
     e.target.value = ""; // allow re-selecting the same filename later
     if (!file) return;
     const text = await file.text();
-    // Preflight is computed against the bay's state BEFORE this import writes
-    // anything — a pure, additive report that reuses the same validator the
-    // write path uses. It never changes what importCartridgeFromJson does.
+    if (isRodohPortableRun(text)) {
+      const result = importRodohPortableRun(localStorage, text);
+      if (!result.ok) {
+        setImportErrors(result.errors);
+        setImportedMsg(null);
+        setImportPreflight(null);
+        return;
+      }
+      setImportErrors(null);
+      setImportedMsg(t("boot.runRestoredNamed", { name: result.value.cartridge.manifest.name }));
+      setImportPreflight(null);
+      setEntries(listCartridges());
+      return;
+    }
+
+    // Raw cartridge import: report the exact revision action before writing.
     const report = bayImportPreflight(text, entries);
     const result = importCartridgeFromJson(text);
     if (!result.ok) {
@@ -145,11 +162,15 @@ export function Player(): JSX.Element {
     setEntries(listCartridges());
   };
 
-  const preflightActionMessage = (action: "new" | "update" | "duplicate") =>
-    action === "new" ? t("boot.preflightNew") : action === "update" ? t("boot.preflightUpdate") : t("boot.preflightDuplicate");
+  const preflightActionMessage = (action: "new" | "revision" | "duplicate") =>
+    action === "new" ? t("boot.preflightNew") : action === "revision" ? t("boot.preflightUpdate") : t("boot.preflightDuplicate");
 
   const handleRemove = (entry: CartridgeBayEntry) => {
-    removeCartridge(entry.arc.meta.id);
+    const removed = removeCartridge(entry.authoredArcDigest);
+    if (!removed.ok) {
+      setImportErrors([removed.message]);
+      return;
+    }
     setEntries(listCartridges());
   };
 
@@ -176,7 +197,7 @@ export function Player(): JSX.Element {
         <div style={{ display: "grid", gap: 10 }}>
           {entries.map((entry) => {
             const c = cartridgeForEntry(entry);
-            const digest = digests.get(`${entry.arc.meta.id}:${entry.source}`)!;
+            const digest = digests.get(entry.authoredArcDigest)!;
             // A program of record is matched by the cartridge's COMPUTED authored
             // identity (never a manifest claim); its plaque route keeps its own
             // fresh-vs-resumable framing built from the same summary below.
@@ -200,14 +221,14 @@ export function Player(): JSX.Element {
               : null;
             return (
               <CartridgeBayCard
-                key={`${entry.arc.meta.id}:${entry.source}`}
+                key={entry.authoredArcDigest}
                 entry={entry}
                 cartridge={c}
                 program={program}
                 save={save}
                 legacySave={legacySave}
                 digest={digest}
-                onEnter={() => enterCartridge(c)}
+                onEnter={() => enterCartridge(c, save !== null)}
                 onRemove={() => handleRemove(entry)}
               />
             );
@@ -230,7 +251,7 @@ export function Player(): JSX.Element {
             id="cartridge-file-input"
             ref={fileInputRef}
             type="file"
-            accept="application/json,.json"
+            accept="application/json,.json,.run.json,.arc.json"
             data-testid="open-cartridge"
             style={visuallyHidden}
             onChange={handleFileChange}

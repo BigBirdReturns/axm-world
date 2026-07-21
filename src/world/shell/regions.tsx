@@ -773,7 +773,7 @@ export function LootRegion(props: { loot: PendingLootChoice[]; onClaimLoot: (cho
       </div>
       {props.loot.map((choice) => {
         const bonus = Object.entries(choice.bonuses).map(([attr, value]) => `${attrNameLabel(attr)} +${value}`).join(" · ");
-        const preferred = choice.eligibleAgents[0];
+        const preferred = choice.eligibleAgents.find((agent) => agent.id === choice.recommendedAgentId) ?? choice.eligibleAgents[0];
         const itemGlyph = itemIcon(choice.itemName);
         return (
           <PixelLootCard
@@ -787,9 +787,10 @@ export function LootRegion(props: { loot: PendingLootChoice[]; onClaimLoot: (cho
             {choice.eligibleAgents.slice(0, 3).map((agent) => (
               <PixelButton key={agent.id} variant={agent.id === preferred?.id ? "confirm" : "secondary"} className="pixel-loot-card__equip-button" onClick={() => props.onClaimLoot(choice.id, agent.id)}>
                 <PixelIcon name={itemGlyph} size={18} className="pixel-loot-card__equip-icon" />
-                <span>{t("shell.equipArrow", { name: agent.name })}</span>
+                <span>{t("shell.equipArrow", { name: agent.name })}{agent.id === preferred?.id ? ` · ${t("shell.recommendedFit")}` : ""}</span>
               </PixelButton>
             ))}
+            {choice.recommendationReason && <small data-testid="loot-recommendation" style={{ color: "var(--ink-muted)", fontFamily: "var(--px-font)" }}>{choice.recommendationReason}</small>}
           </PixelLootCard>
         );
       })}
@@ -871,13 +872,18 @@ export function DispatchRegion(props: { dispatches: DramaCard[]; limit: number }
   );
 }
 
-export function CompleteBanner(props: { arcName: string }): JSX.Element {
+export function CompleteBanner(props: { arcName: string; onOpenCartridge?: () => void }): JSX.Element {
   return (
-    <PixelPanel style={{ padding: "16px 20px", textAlign: "center" }}>
-      <PixelBadge state="reliable" style={{ marginBottom: 8, display: "inline-flex" }}>{t("shell.complete", { name: props.arcName })}</PixelBadge>
+    <PixelPanel data-testid="complete-cartridge-banner" style={{ padding: "16px 20px", textAlign: "center", display: "grid", gap: 10, justifyItems: "center" }}>
+      <PixelBadge state="reliable" style={{ display: "inline-flex" }}>{t("shell.complete", { name: props.arcName })}</PixelBadge>
       <div style={{ fontFamily: "var(--px-font)", fontSize: 16, fontWeight: 800, color: "var(--teal-dark)" }}>
         {t("shell.everyContractRecorded")}
       </div>
+      {props.onOpenCartridge && (
+        <PixelButton type="button" variant="action" data-testid="open-completed-cartridge" onClick={props.onOpenCartridge}>
+          <PixelIcon name="recorded" /> <span>{t("shell.openCompletedCartridge")}</span>
+        </PixelButton>
+      )}
     </PixelPanel>
   );
 }

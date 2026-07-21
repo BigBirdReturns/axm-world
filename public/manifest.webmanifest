@@ -1,0 +1,19 @@
+{
+  "name": "Rodoh Cartridge Runtime",
+  "short_name": "Rodoh",
+  "description": "An offline-capable runtime for creator-owned cartridges and holder-owned runs.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0a08",
+  "theme_color": "#0b0a08",
+  "icons": [
+    {
+      "src": "./rodoh-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -19,7 +19,7 @@ import { deriveNodeMarkers } from "../worldmap/derive.js";
 import { deriveHallView } from "../inhabited/hall.js";
 import { hallSteward } from "../inhabited/people.js";
 import { CartridgePortrait } from "../themes/CartridgeMotif.js";
-import { loadCostume, saveCostume, isCostumeId } from "../presentation-prefs.js";
+import { loadCostume, saveCostume, isCostumeId, type CostumeId } from "../presentation-prefs.js";
 import { useIsMobile } from "../use-viewport.js";
 import { getEngineCoachMessage } from "./coach.js";
 import {
@@ -51,6 +51,8 @@ export interface ShellProps {
   world: ArcWorld;
   interaction: ArcInteraction;
   onExit: () => void;
+  initialCostumeId?: CostumeId;
+  onCostumeChange?: (id: CostumeId) => void;
 }
 
 /** A panel-styled card used in both rails and the mobile dock. */
@@ -126,13 +128,13 @@ function RecordModal(props: { record: NonNullable<ArcWorld["lastRecord"]>; onClo
   );
 }
 
-export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Element {
+export function Shell({ world, interaction: ix, onExit, initialCostumeId, onCostumeChange }: ShellProps): JSX.Element {
   const isMobile = useIsMobile();
   const [locale] = useLocale();
   const [costumeId, setCostumeId] = useState<string>(() => (
-    world.pendingDecision?.id.startsWith("opening:") && hallSteward(world.cartridge)
+    initialCostumeId ?? (world.pendingDecision?.id.startsWith("opening:") && hallSteward(world.cartridge)
       ? "hall"
-      : loadCostume(world.cartridge.arc)
+      : loadCostume(world.cartridge.arc))
   ));
   const [showCartridge, setShowCartridge] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -184,13 +186,23 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
   // sheet; deselect -> back to the board. Party is a manual push from contract.
   useEffect(() => {
     if (!isMobile) return;
-    if (ix.selectedId && mayOpenMobileSelection) setMobileStep((s) => (s === "board" ? "contract" : s));
-    else setMobileStep("board");
-  }, [isMobile, ix.selectedId, mayOpenMobileSelection]);
+    // Only a player's explicit pick opens the detail sheet. Cold-start focus
+    // must not bury a restored representation under the contract step.
+    if (ix.selectedId && mayOpenMobileSelection) {
+      if (ix.selectionIsUserAct) setMobileStep((s) => (s === "board" ? "contract" : s));
+    } else setMobileStep("board");
+  }, [isMobile, ix.selectedId, ix.selectionIsUserAct, mayOpenMobileSelection]);
 
   const choose = (id: string) => {
     setCostumeId(id);
-    if (isCostumeId(id)) saveCostume(world.cartridge.arc, id);
+    if (isCostumeId(id)) {
+      saveCostume(world.cartridge.arc, id);
+      onCostumeChange?.(id);
+    }
+    // Choosing a representation is a navigation act. On mobile the stage only
+    // renders in the board step, so switching views from the contract or party
+    // sheet must surface the board — otherwise the chosen view changes invisibly.
+    setMobileStep("board");
   };
   // Re-derived whenever locale changes so representation labels/blurbs/hints re-translate.
   const presentations = useMemo(() => getPresentations(), [locale]);
@@ -468,9 +480,32 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
           {switcher}
           {localeSwitcher}
           {!isMobile && recordButton}
-          {!isMobile && cartridgeButton}
+          {cartridgeButton}
         </div>
       </div>
+
+      {!world.saveStatus.ok && (
+        <div
+          role="alert"
+          data-testid="shell-save-failure"
+          style={{
+            flex: "none",
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: 10,
+            padding: "8px 12px",
+            borderBottom: "1px solid #7a352f",
+            background: "rgba(122,53,47,0.24)",
+            color: "#f0d4cf",
+            font: "11px/1.45 'IBM Plex Mono', ui-monospace, monospace",
+          }}
+        >
+          <strong>RUN NOT SAVED</strong>
+          <span style={{ flex: "1 1 260px" }}>{world.saveStatus.message}</span>
+          <PixelButton type="button" variant="danger" onClick={() => setShowCartridge(true)}>Export exact run</PixelButton>
+        </div>
+      )}
 
       {isMobile ? (
         // Staged turn flow — ONE panel at a time (Board -> Contract -> Party),
@@ -497,7 +532,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
               <div style={{ flex: 1, position: "relative", minHeight: "60dvh" }}>{stage}</div>
               {(world.arcComplete || coach || world.dispatches.length > 0) && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 12px" }}>
-                  {world.arcComplete && <CompleteBanner arcName={world.arc.meta.name} />}
+                  {world.arcComplete && <CompleteBanner arcName={world.arc.meta.name} onOpenCartridge={() => setShowCartridge(true)} />}
                   {coach && <Card style={{ borderColor: "#6b5935", background: "rgba(32,28,20,0.92)" }}><CoachRegion message={coach} /></Card>}
                   {world.dispatches.length > 0 && <Card style={{ padding: "8px 12px" }}><DispatchRegion dispatches={world.dispatches} limit={1} /></Card>}
                 </div>
@@ -557,7 +592,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
               {stage}
               {world.arcComplete && (
                 <div style={{ position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)" }}>
-                  <Card style={{ borderColor: "#74ad77" }}><CompleteBanner arcName={world.arc.meta.name} /></Card>
+                  <Card style={{ borderColor: "#74ad77" }}><CompleteBanner arcName={world.arc.meta.name} onOpenCartridge={() => setShowCartridge(true)} /></Card>
                 </div>
               )}
             </div>
@@ -596,6 +631,7 @@ export function Shell({ world, interaction: ix, onExit }: ShellProps): JSX.Eleme
               // This is scene direction, not a preference write: the player's saved
               // representation remains theirs after the one-shot handoff.
               setCostumeId("hall");
+              onCostumeChange?.("hall");
               if (isMobile) {
                 // Mobile's governed one-panel flow already has the selected Cellar
                 // staging sheet. Land there directly; do not leave a dormant Hall

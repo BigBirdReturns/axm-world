@@ -17,6 +17,12 @@ describe("Titmouse production slice: cartridge to authored Hall", () => {
     expect(read("index.html")).toContain("overflow-x: clip");
   });
 
+  it("plays the acquisition reveal only for fresh programs — resume returns straight to the checkpoint", () => {
+    const player = read("src/world/Player.tsx");
+    expect(player).toContain("setEnteringCartridge(resumable ? null : next)");
+    expect(player).toContain("enterCartridge(c, save !== null)");
+  });
+
   it("keeps the response compact without deleting the exact engine receipt", () => {
     const panel = read("src/world/components/DecisionPanel.tsx");
     expect(panel).toContain("groupDecisionEffects(response!.effects)");
