@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/bootstrap-rodoh-runtime-bridge
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -65,7 +68,7 @@ jobs:
         env:
           PW_BASE_URL: http://127.0.0.1:5173
         run: |
-          export PW_CHROMIUM_PATH="$(node -e "const { chromium } = require('playwright'); process.stdout.write(chromium.executablePath())")"
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
           npm run test:e2e
 
       - name: Publish implementation branch
