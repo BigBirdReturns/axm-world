@@ -1,4 +1,5 @@
 import { RODOH_BASE_THEME, type RodohTheme } from "../rodoh.js";
+import { ILYON_DOLL_APPEARANCES, ILYON_ROLE_BINDINGS } from "./portrait-icons.js";
 
 export const ILYON_THEME: RodohTheme = {
   ...RODOH_BASE_THEME,
@@ -20,14 +21,12 @@ export const ILYON_THEME: RodohTheme = {
     resolve: { icon: "mettle", label: "Resolve", meaning: "Act before uncertainty can be made complete or comfortable." },
   },
   appearancePack: {
-    ...RODOH_BASE_THEME.appearancePack,
-    roleBindings: {
-      auditor: "rodoh:hooded",
-      interlocutor: "rodoh:robed",
-      witness: "rodoh:hooded",
-      protector: "rodoh:plated",
-      exception: "rodoh:bare-doll",
+    fallback: RODOH_BASE_THEME.appearancePack.fallback,
+    appearances: {
+      ...RODOH_BASE_THEME.appearancePack.appearances,
+      ...ILYON_DOLL_APPEARANCES,
     },
+    roleBindings: ILYON_ROLE_BINDINGS,
   },
 };
 
