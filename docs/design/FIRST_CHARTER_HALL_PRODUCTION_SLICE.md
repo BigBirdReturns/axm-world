@@ -4,9 +4,9 @@
 
 This is AXM World's first runtime-loaded cartridge art vertical slice. It upgrades the actual First Charter Hall with three standalone original assets:
 
-- a 1600×900 founding-hall environment;
-- a 640×800 portrait of Maren Vos, Charter-Keeper;
-- a 1600×900 foreground and architectural framing layer.
+- a 1600×900 authored-view-box founding-hall environment;
+- a 640×800 authored-view-box portrait of Maren Vos, Charter-Keeper;
+- a 1600×900 authored-view-box foreground and architectural framing layer.
 
 The slice is deliberately bounded. It proves the asset-production, provenance, responsive-dispatch, and browser-validation path for one important runtime surface. It does not claim that The First Charter, The Waking Tower, The Kind Gods of Ilyon, or Dark Tomb already possess complete production asset libraries.
 
@@ -25,7 +25,7 @@ Maren's portrait replaces the directed Hall's generated initial-card treatment w
 
 `src/assets/first-charter/hall/provenance.json` is the machine-readable receipt. The three SVG compositions were authored specifically for this repository. No stock image, external illustration, third-party source file, or generated model-weight artifact was incorporated.
 
-The SVGs remain source-readable and versionable. They include semantic titles or descriptions where they convey content, fixed view boxes, and explicit responsive intent.
+The SVGs remain source-readable and versionable. They include semantic titles or descriptions where they convey content, fixed view boxes, and explicit responsive intent. Because these are responsive SVG sources rather than raster images, the browser acceptance verifies successful image decoding and the exact authored view boxes instead of inventing fixed intrinsic raster dimensions.
 
 ## Responsive and access behavior
 
@@ -39,8 +39,8 @@ The slice is accepted only when all of the following pass on one exact candidate
 
 1. the assets exist as standalone files and match the provenance manifest;
 2. the production build resolves every Vite asset URL;
-3. desktop Chromium loads all three assets at their declared natural dimensions and captures a Hall screenshot;
-4. mobile Chromium loads all three assets at their declared natural dimensions and captures a Hall screenshot;
+3. desktop Chromium loads and decodes all three assets, verifies their authored view boxes, and captures a Hall screenshot;
+4. mobile Chromium loads and decodes all three assets, verifies their authored view boxes, and captures a Hall screenshot;
 5. existing Hall, campaign, custody, accessibility, Vitest, and complete desktop/mobile browser gates remain green.
 
 The browser screenshots are CI artifacts and visual receipts. They are evidence that the actual runtime loaded and presented the slice, rather than documentation-board mockups.
