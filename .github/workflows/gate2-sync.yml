@@ -1,0 +1,46 @@
+name: Gate 2 exact Arc sync
+
+on:
+  push:
+    branches: [codex/gate2-world-reconcile]
+    paths:
+      - '.github/workflows/gate2-sync.yml'
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - '.github/workflows/gate2-sync.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.head_ref == 'codex/gate2-world-reconcile' || github.ref_name == 'codex/gate2-world-reconcile'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/gate2-world-reconcile
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Vendor the exact reviewed Arc source plane
+        run: bash scripts/sync-engine.sh dd688a0e5db8228998de310347c505b7a0d7bfe5
+      - run: npm ci
+      - name: Verify exact provenance
+        env:
+          ENGINE_DRIFT_STRICT: '1'
+        run: npm run engine:check
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Publish verified sync
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Vendor Arc Gate 2 source plane at dd688a0"
+          git push origin HEAD:codex/gate2-world-reconcile
