@@ -1,15 +1,19 @@
 import { test, expect, type Page, type TestInfo } from "@playwright/test";
-import { enterCartridge, enterFullRuntime } from "./helpers";
+import { enterFullRuntime } from "./helpers";
 
 // Proves the shell contract the branch claims: one cartridge state, switched between
 // representations without reset; a true modal that representation labels can't bleed
 // through. Runs on both a desktop and a mobile viewport (see playwright.config.ts).
 
-/** Mobile deliberately lands on the Board without manufacturing a selected contract.
- * The Contract sheet opens only after the player chooses the Board's derived Up next
- * card; desktop already owns the persistent detail rail. */
+/** The guided handoff preserves Hall. Mobile must explicitly return to Board and
+ * choose its derived Up next card before the Contract sheet exists; desktop already
+ * owns the persistent detail rail. */
 async function openMobileContractSheet(page: Page, testInfo: TestInfo): Promise<void> {
   if (testInfo.project.name !== "mobile") return;
+  if (!(await page.getByTestId("contract-board").isVisible().catch(() => false))) {
+    await page.getByTestId("view-run-graph").click();
+  }
+  await expect(page.getByTestId("contract-board")).toBeVisible();
   const upNextCard = page.locator('[data-testid^="contract-board-card-"][data-upnext="true"]');
   await expect(upNextCard).toBeVisible();
   await upNextCard.click();
