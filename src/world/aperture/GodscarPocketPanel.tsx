@@ -2,6 +2,16 @@ import type { Arc } from "../../engine/types.js";
 import type { CanonRelation, CanonTier } from "../../godscar/types.js";
 import { inspectGodscarPocket } from "./godscar.js";
 import { t, type MessageId } from "../i18n/index.js";
+import { PORTRAITS, PixelPortraitGlyph } from "../pixel-ui/PixelPortrait.js";
+import { resolveDollAppearance } from "../themes/appearance.js";
+import { themeForArc } from "../themes/select.js";
+import {
+  CartridgeEmblem,
+  CartridgePressureMark,
+  CartridgeEvidenceMark,
+  CartridgeFactionMark,
+  CartridgeConsequenceMark,
+} from "../themes/CartridgeMotif.js";
 
 const RECEIPT_BUDGET = 12;
 const FACTION_BUDGET = 12;
@@ -33,6 +43,10 @@ const tierMessage: Record<CanonTier, MessageId> = {
   "story-facing-unknown": "godscar.canonTier.storyFacingUnknown",
 };
 
+function humanize(value: string): string {
+  return value.replaceAll("-", " ");
+}
+
 export function GodscarPocketPanel({ arc }: { arc: Arc }): JSX.Element | null {
   const inspection = inspectGodscarPocket(arc);
   if (inspection.status === "none") return null;
@@ -51,6 +65,7 @@ export function GodscarPocketPanel({ arc }: { arc: Arc }): JSX.Element | null {
   }
 
   const source = inspection.source;
+  const theme = themeForArc(arc);
   const pressureByKind = new Map(source.pressures.map((pressure) => [pressure.kind, pressure]));
   const relation = t(relationMessage[source.identity.canonRelation]);
   const tier = t(tierMessage[source.evidence.tier]);
@@ -60,9 +75,12 @@ export function GodscarPocketPanel({ arc }: { arc: Arc }): JSX.Element | null {
   return (
     <section className="godscar-pocket" data-testid="godscar-pocket-panel" data-canon-tier={source.evidence.tier}>
       <header>
-        <div>
-          <small>{t("godscar.pocketEyebrow", { relation })}</small>
-          <h2>{source.controlQuestion}</h2>
+        <div className="godscar-pocket__header-identity">
+          <CartridgeEmblem arcId={arc.meta.id} size={38} className="godscar-pocket__emblem" />
+          <div>
+            <small>{t("godscar.pocketEyebrow", { relation })}</small>
+            <h2>{source.controlQuestion}</h2>
+          </div>
         </div>
         <span>{tier}</span>
       </header>
@@ -73,9 +91,32 @@ export function GodscarPocketPanel({ arc }: { arc: Arc }): JSX.Element | null {
           return (
             <article key={kind} data-pressure={kind}>
               <b>{index + 1}</b>
+              <span className="godscar-pocket__asset-mark">
+                <CartridgePressureMark arcId={arc.meta.id} kind={kind} />
+              </span>
               <small>{t(title)}</small>
               <strong>{pressure.label}</strong>
               <p>{pressure.description}</p>
+            </article>
+          );
+        })}
+      </div>
+
+      <div className="godscar-pocket__factions godscar-pocket__cast" data-testid="godscar-cast-responsibilities">
+        {source.cast.map((member) => {
+          const appearance = resolveDollAppearance(theme, member.roleId);
+          const portrait = appearance.portraitSpec ?? PORTRAITS[appearance.portrait] ?? PORTRAITS.person;
+          return (
+            <article key={member.id} data-testid="godscar-cast-member" data-responsibility={member.responsibility}>
+              <span className="godscar-pocket__cast-portrait" data-appearance={appearance.id}>
+                <PixelPortraitGlyph spec={portrait} />
+              </span>
+              <div>
+                <small>{humanize(member.responsibility)}</small>
+                <strong>{member.name}</strong>
+                <span>{member.roleId}</span>
+                <p>{member.description}</p>
+              </div>
             </article>
           );
         })}
@@ -96,6 +137,7 @@ export function GodscarPocketPanel({ arc }: { arc: Arc }): JSX.Element | null {
           </article>
           <ol>{receipts.map((receipt) => (
             <li key={receipt.id}>
+              <CartridgeEvidenceMark arcId={arc.meta.id} receiptId={receipt.id} />
               <strong>{receipt.label}</strong>
               <span>{receipt.source}</span>
               <p><b>{t("godscar.intervention")}</b> {receipt.intervention}</p>
@@ -112,6 +154,7 @@ export function GodscarPocketPanel({ arc }: { arc: Arc }): JSX.Element | null {
         <summary>{t("godscar.factionReceipts", { count: source.factionReceipts.length })}</summary>
         <div className="godscar-pocket__factions">{factionReceipts.map((receipt) => (
           <article key={receipt.factionId}>
+            <CartridgeFactionMark arcId={arc.meta.id} factionId={receipt.factionId} />
             <small>{receipt.variableControlled}</small>
             <strong>{receipt.factionName}</strong>
             <p><b>{t("godscar.prevents")}</b> {receipt.publicGood}</p>
@@ -128,6 +171,7 @@ export function GodscarPocketPanel({ arc }: { arc: Arc }): JSX.Element | null {
         <summary>{t("godscar.persistentConsequences", { count: source.consequences.length })}</summary>
         <div className="godscar-pocket__consequences">{consequences.map((consequence) => (
           <article key={consequence.id}>
+            <CartridgeConsequenceMark arcId={arc.meta.id} consequenceId={consequence.id} />
             <small>{consequence.kind}</small>
             <strong>{consequence.label}</strong>
             <p>{consequence.description}</p>
