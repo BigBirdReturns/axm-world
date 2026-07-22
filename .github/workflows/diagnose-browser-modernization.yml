@@ -24,7 +24,7 @@ jobs:
           cache: npm
       - run: npm ci --silent
       - run: npx playwright install --with-deps chromium >/dev/null
-      - name: Run exact first-lockout path against owned Vite server
+      - name: Run exact severed-march path against owned Vite server
         id: browser
         continue-on-error: true
         env:
@@ -40,7 +40,7 @@ jobs:
           done
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
           set +e
-          npx playwright test e2e/appliance-first-lockout.spec.ts --workers=1 --reporter=json >"$RUNNER_TEMP/playwright.json" 2>"$RUNNER_TEMP/playwright.stderr"
+          npx playwright test e2e/appliance-severed-march.spec.ts --workers=1 --reporter=json >"$RUNNER_TEMP/playwright.json" 2>"$RUNNER_TEMP/playwright.stderr"
           status=$?
           set -e
           printf '%s\n' "$status" >"$RUNNER_TEMP/status.txt"
@@ -49,7 +49,7 @@ jobs:
           const data = JSON.parse(fs.readFileSync(process.env.JSON_PATH, 'utf8'));
           const lines = [];
           const stats = data.stats ?? {};
-          lines.push(`FIRST-LOCKOUT STATS expected=${stats.expected ?? 0} unexpected=${stats.unexpected ?? 0} skipped=${stats.skipped ?? 0} flaky=${stats.flaky ?? 0}`);
+          lines.push(`SEVERED-MARCH STATS expected=${stats.expected ?? 0} unexpected=${stats.unexpected ?? 0} skipped=${stats.skipped ?? 0} flaky=${stats.flaky ?? 0}`);
           function walk(suites, parents = []) {
             for (const suite of suites ?? []) {
               const here = suite.title ? [...parents, suite.title] : parents;
@@ -94,7 +94,7 @@ jobs:
         with:
           name: browser-compact-receipt
           path: receipt
-      - name: Exact first-lockout receipt
+      - name: Exact severed-march receipt
         run: |
           cat receipt/browser-summary.txt
           test "$(cat receipt/status.txt)" -eq 0
