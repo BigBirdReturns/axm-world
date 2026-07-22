@@ -1,0 +1,46 @@
+name: Bundled product parity
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'src/world/**'
+      - 'src/arcs/**'
+      - 'src/engine/**'
+      - 'src/godscar/**'
+      - 'tests/world/**'
+      - 'e2e/**'
+      - 'docs/design/**'
+      - '.github/workflows/bundled-parity.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Exact Arc provenance
+        env:
+          ENGINE_DRIFT_STRICT: '1'
+        run: npm run engine:check
+      - name: Parity contracts
+        run: npm test -- tests/world/cartridge-parity.test.ts tests/world/bundled-campaign-parity.test.ts tests/world/sensory-prefs.test.ts tests/world/asset-standard.test.ts tests/world/i18n-coverage.test.ts
+      - name: Complete World regression suite
+        run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Complete desktop and mobile browser suite
+        env:
+          PW_BASE_URL: http://localhost:5173
+        run: |
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npx playwright test --workers=1
