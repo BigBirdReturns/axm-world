@@ -74,10 +74,11 @@ describe("World source-plane inspection", () => {
   });
 
   it("returns no source plane for a neutral cartridge with only unregistered memory", () => {
+    const compiled = compileRegisteredSourcePlane(SOURCE_PLANE_REGISTRY[0]!.starter());
+    expect(compiled.ok).toBe(true);
+    if (!compiled.ok) return;
     const arc: Arc = {
-      ...compileRegisteredSourcePlane(SOURCE_PLANE_REGISTRY[0]!.starter()).ok
-        ? (compileRegisteredSourcePlane(SOURCE_PLANE_REGISTRY[0]!.starter()) as { ok: true; arc: Arc }).arc
-        : (() => { throw new Error("fixture did not compile"); })(),
+      ...compiled.arc,
       extensions: { "creator.neutral@1": { exact: true } },
     };
     const result = inspectWorldSourcePlanes(arc);
