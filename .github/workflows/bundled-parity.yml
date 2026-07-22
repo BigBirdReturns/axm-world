@@ -29,28 +29,49 @@ jobs:
       CI: 'true'
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Record candidate identity
+      - name: Record exact candidate identity
+        env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
+          set -euo pipefail
           mkdir -p acceptance-receipt
-          git rev-parse HEAD | tee acceptance-receipt/world-candidate-sha.txt
+          actual_sha="$(git rev-parse HEAD)"
+          printf '%s\n' "$CANDIDATE_SHA" | tee acceptance-receipt/world-candidate-sha.txt
+          printf '%s\n' "$actual_sha" | tee acceptance-receipt/checkout-sha.txt
+          test "$actual_sha" = "$CANDIDATE_SHA"
           cat src/engine/VENDORED_FROM | tee acceptance-receipt/arc-source-plane.txt
+          git diff --check
       - name: Exact Arc provenance
         env:
           ENGINE_DRIFT_STRICT: '1'
-        run: npm run engine:check
+        run: |
+          set -o pipefail
+          npm run engine:check | tee acceptance-receipt/engine-drift.log
       - name: TypeScript
-        run: npm run typecheck
+        run: |
+          set -o pipefail
+          npm run typecheck | tee acceptance-receipt/typecheck.log
       - name: Parity contracts
-        run: npm test -- tests/world/cartridge-parity.test.ts tests/world/bundled-campaign-parity.test.ts tests/world/sensory-prefs.test.ts tests/world/asset-standard.test.ts tests/world/i18n-coverage.test.ts
+        run: |
+          set -o pipefail
+          npm test -- tests/world/cartridge-parity.test.ts tests/world/bundled-campaign-parity.test.ts tests/world/sensory-prefs.test.ts tests/world/asset-standard.test.ts tests/world/i18n-coverage.test.ts | tee acceptance-receipt/parity-contracts.log
       - name: Complete World regression suite
-        run: npm test
+        run: |
+          set -o pipefail
+          npm test | tee acceptance-receipt/vitest.log
       - name: Production build
-        run: npm run build
+        run: |
+          set -o pipefail
+          npm run build | tee acceptance-receipt/build.log
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Complete desktop and mobile browser suite
