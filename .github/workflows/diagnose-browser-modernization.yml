@@ -11,7 +11,7 @@ permissions:
 jobs:
   exercise:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 70
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,7 +24,7 @@ jobs:
           cache: npm
       - run: npm ci --silent
       - run: npx playwright install --with-deps chromium >/dev/null
-      - name: Run exact identity-strip path against owned Vite server
+      - name: Run complete desktop/mobile Chromium suite against owned Vite server
         id: browser
         continue-on-error: true
         env:
@@ -40,7 +40,7 @@ jobs:
           done
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
           set +e
-          npx playwright test e2e/program-001-identity-strip.spec.ts --workers=1 --reporter=json >"$RUNNER_TEMP/playwright.json" 2>"$RUNNER_TEMP/playwright.stderr"
+          npx playwright test --workers=1 --reporter=json >"$RUNNER_TEMP/playwright.json" 2>"$RUNNER_TEMP/playwright.stderr"
           status=$?
           set -e
           printf '%s\n' "$status" >"$RUNNER_TEMP/status.txt"
@@ -49,20 +49,40 @@ jobs:
           const data = JSON.parse(fs.readFileSync(process.env.JSON_PATH, 'utf8'));
           const lines = [];
           const stats = data.stats ?? {};
-          lines.push(`IDENTITY-STRIP STATS expected=${stats.expected ?? 0} unexpected=${stats.unexpected ?? 0} skipped=${stats.skipped ?? 0} flaky=${stats.flaky ?? 0}`);
+          lines.push(`PLAYWRIGHT STATS expected=${stats.expected ?? 0} unexpected=${stats.unexpected ?? 0} skipped=${stats.skipped ?? 0} flaky=${stats.flaky ?? 0} durationMs=${stats.duration ?? 0}`);
+          const projects = new Map();
+          const skipped = [];
+          function projectBucket(name) {
+            if (!projects.has(name)) projects.set(name, { expected: 0, unexpected: 0, skipped: 0, flaky: 0 });
+            return projects.get(name);
+          }
           function walk(suites, parents = []) {
             for (const suite of suites ?? []) {
               const here = suite.title ? [...parents, suite.title] : parents;
               for (const spec of suite.specs ?? []) {
                 for (const test of spec.tests ?? []) {
-                  const bad = test.status === 'unexpected' || (test.results ?? []).some((result) => ['failed', 'timedOut', 'interrupted'].includes(result.status));
-                  if (!bad) continue;
-                  lines.push(`FAIL [${test.projectName ?? test.projectId ?? 'unknown'}] ${[...here, spec.title].filter(Boolean).join(' > ')}`);
+                  const project = test.projectName ?? test.projectId ?? 'unknown';
+                  const bucket = projectBucket(project);
+                  const title = [...here, spec.title].filter(Boolean).join(' > ');
+                  const resultStatuses = (test.results ?? []).map((result) => result.status);
+                  const failed = test.status === 'unexpected' || resultStatuses.some((status) => ['failed', 'timedOut', 'interrupted'].includes(status));
+                  const flaky = test.status === 'flaky';
+                  const isSkipped = test.status === 'skipped' || resultStatuses.every((status) => status === 'skipped');
+                  if (failed) bucket.unexpected++;
+                  else if (isSkipped) bucket.skipped++;
+                  else if (flaky) bucket.flaky++;
+                  else bucket.expected++;
+                  if (isSkipped) {
+                    const reason = (test.annotations ?? []).map((annotation) => annotation.description || annotation.type).filter(Boolean).join('; ');
+                    skipped.push(`SKIP [${project}] ${title}${reason ? ` — ${reason}` : ''}`);
+                  }
+                  if (!failed) continue;
+                  lines.push(`FAIL [${project}] ${title}`);
                   for (const result of test.results ?? []) {
                     if (!['failed', 'timedOut', 'interrupted'].includes(result.status)) continue;
                     const error = result.error ?? result.errors?.[0] ?? {};
                     const message = String(error.message ?? error.stack ?? error.value ?? 'no error message').replace(/\u001b\[[0-9;]*m/g, '');
-                    lines.push(message.slice(0, 2400));
+                    lines.push(message.slice(0, 3200));
                   }
                 }
               }
@@ -70,20 +90,25 @@ jobs:
             }
           }
           walk(data.suites);
+          for (const [project, counts] of [...projects.entries()].sort()) {
+            lines.splice(1, 0, `PROJECT ${project} expected=${counts.expected} unexpected=${counts.unexpected} skipped=${counts.skipped} flaky=${counts.flaky}`);
+          }
+          if (skipped.length) lines.push('', ...skipped);
           fs.writeFileSync(process.env.SUMMARY_PATH, `${lines.join('\n\n')}\n`);
           NODE
-      - name: Upload compact receipt
+      - name: Upload complete browser receipt
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: browser-compact-receipt
+          name: complete-browser-receipt
           path: |
             ${{ runner.temp }}/browser-summary.txt
             ${{ runner.temp }}/status.txt
             ${{ runner.temp }}/playwright.stderr
             ${{ runner.temp }}/vite.log
-          if-no-files-found: error
-          retention-days: 1
+            test-results
+          if-no-files-found: warn
+          retention-days: 3
 
   report:
     if: always()
@@ -92,9 +117,9 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: browser-compact-receipt
+          name: complete-browser-receipt
           path: receipt
-      - name: Exact identity-strip receipt
+      - name: Complete desktop/mobile Chromium receipt
         run: |
           cat receipt/browser-summary.txt
           test "$(cat receipt/status.txt)" -eq 0
