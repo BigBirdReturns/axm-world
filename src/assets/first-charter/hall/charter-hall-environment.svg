@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">The First Charter founding hall</title>
+  <desc id="desc">A warm civic hall of timber, brass, teal wax seals, ledgers, and a moonlit charter window.</desc>
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#29251f"/>
+      <stop offset="0.58" stop-color="#17140f"/>
+      <stop offset="1" stop-color="#0b0907"/>
+    </linearGradient>
+    <linearGradient id="wood" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#745537"/>
+      <stop offset="0.48" stop-color="#412d1c"/>
+      <stop offset="1" stop-color="#24170f"/>
+    </linearGradient>
+    <radialGradient id="lamp" cx="50%" cy="42%" r="62%">
+      <stop offset="0" stop-color="#ffe5a8" stop-opacity="0.95"/>
+      <stop offset="0.28" stop-color="#d8b276" stop-opacity="0.52"/>
+      <stop offset="1" stop-color="#d8b276" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="moon" cx="36%" cy="30%" r="75%">
+      <stop offset="0" stop-color="#fff6df"/>
+      <stop offset="0.68" stop-color="#d9ccb0"/>
+      <stop offset="1" stop-color="#9e927b"/>
+    </radialGradient>
+    <pattern id="floor" width="150" height="56" patternUnits="userSpaceOnUse">
+      <rect width="150" height="56" fill="#3c291b"/>
+      <path d="M0 1H150M0 55H150" stroke="#765536" stroke-width="2" opacity="0.7"/>
+      <path d="M28 7c28 9 54 5 91 15M12 40c36-8 73-4 119 6" fill="none" stroke="#24170f" stroke-width="3" opacity="0.35"/>
+    </pattern>
+    <filter id="grain" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="11" result="n"/>
+      <feColorMatrix in="n" type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="table" tableValues="0 0.08"/></feComponentTransfer>
+    </filter>
+    <filter id="glow"><feGaussianBlur stdDeviation="18"/></filter>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#wall)"/>
+  <ellipse cx="800" cy="330" rx="620" ry="360" fill="url(#lamp)" opacity="0.36"/>
+
+  <!-- civic timber skeleton -->
+  <path d="M0 90L800 0l800 90v58L800 72 0 148z" fill="#120e0a"/>
+  <path d="M130 0v650M390 0v620M1210 0v620M1470 0v650" stroke="#4b3522" stroke-width="34"/>
+  <path d="M70 196H1530M58 434H1542" stroke="#6c4b2d" stroke-width="20" opacity="0.72"/>
+  <path d="M120 206H1480M120 444H1480" stroke="#c59a59" stroke-width="3" opacity="0.46"/>
+
+  <!-- moonlit charter window -->
+  <g transform="translate(616 94)">
+    <path d="M0 330V116C0 52 52 0 116 0h136c64 0 116 52 116 116v214z" fill="#090b0d" stroke="#b89460" stroke-width="8"/>
+    <path d="M20 310V122c0-55 45-100 100-100h128c55 0 100 45 100 100v188z" fill="#101a1b"/>
+    <circle cx="184" cy="132" r="82" fill="url(#moon)"/>
+    <circle cx="184" cy="132" r="104" fill="#d8b276" opacity="0.15" filter="url(#glow)"/>
+    <path d="M184 48v264M20 176h328" stroke="#b89460" stroke-width="5" opacity="0.72"/>
+    <!-- dandelion charter seal -->
+    <g transform="translate(184 236)" stroke="#e7d8ae" fill="none" stroke-linecap="round">
+      <path d="M0 54V8" stroke-width="5"/>
+      <path d="M0 10C-32 0-42-27-27-42M0 10C31 0 43-27 27-42M0 10C-4-25 13-44 37-43M0 10C4-25-13-44-37-43M0 10C-23-18-21-42-3-54M0 10C23-18 21-42 3-54" stroke-width="3"/>
+      <circle cx="0" cy="9" r="8" fill="#2fbfa2" stroke="#0f7a63" stroke-width="3"/>
+      <circle cx="-27" cy="-42" r="4" fill="#e7d8ae"/><circle cx="27" cy="-42" r="4" fill="#e7d8ae"/>
+      <circle cx="37" cy="-43" r="4" fill="#e7d8ae"/><circle cx="-37" cy="-43" r="4" fill="#e7d8ae"/>
+      <circle cx="-3" cy="-54" r="4" fill="#e7d8ae"/><circle cx="3" cy="-54" r="4" fill="#e7d8ae"/>
+    </g>
+  </g>
+
+  <!-- ledger shelves -->
+  <g opacity="0.9">
+    <path d="M48 300h410v252H48zM1142 300h410v252h-410z" fill="#120f0b" stroke="#6b4a2e" stroke-width="10"/>
+    <path d="M62 376h382M62 460h382M1156 376h382M1156 460h382" stroke="#8e6740" stroke-width="8"/>
+    <g fill="#d8c49f"><path d="M76 320h34v47H76zM118 326h48v41h-48zM176 316h28v51h-28zM216 323h54v44h-54zM284 312h33v55h-33zM332 326h42v41h-42zM389 318h38v49h-38z"/>
+      <path d="M1170 320h34v47h-34zM1212 326h48v41h-48zM1270 316h28v51h-28zM1310 323h54v44h-54zM1378 312h33v55h-33zM1426 326h42v41h-42zM1483 318h38v49h-38z"/></g>
+    <g fill="#2fbfa2"><circle cx="94" cy="405" r="7"/><circle cx="230" cy="489" r="7"/><circle cx="1190" cy="405" r="7"/><circle cx="1460" cy="489" r="7"/></g>
+  </g>
+
+  <!-- standing lamps -->
+  <g stroke="#6d512f" stroke-width="8" fill="none">
+    <path d="M260 520v210M1340 520v210"/>
+    <path d="M224 730h72M1304 730h72"/>
+  </g>
+  <g>
+    <ellipse cx="260" cy="518" rx="86" ry="72" fill="url(#lamp)"/>
+    <ellipse cx="1340" cy="518" rx="86" ry="72" fill="url(#lamp)"/>
+    <path d="M233 510h54l-10 45h-34zM1313 510h54l-10 45h-34z" fill="#e0b96b" stroke="#49331f" stroke-width="5"/>
+  </g>
+
+  <!-- floor and charter table -->
+  <path d="M0 640H1600V900H0z" fill="url(#floor)"/>
+  <path d="M0 642H1600" stroke="#d8b276" stroke-width="5" opacity="0.6"/>
+  <ellipse cx="800" cy="760" rx="430" ry="72" fill="#080605" opacity="0.55"/>
+  <path d="M466 644h668l68 116H398z" fill="url(#wood)" stroke="#b89460" stroke-width="8"/>
+  <path d="M498 670h604l28 50H470z" fill="#d8c49f" stroke="#8a6b3e" stroke-width="4"/>
+  <path d="M740 679h120v32H740z" fill="#f5eddc" stroke="#b89460" stroke-width="3"/>
+  <circle cx="800" cy="695" r="12" fill="#2fbfa2" stroke="#0f7a63" stroke-width="4"/>
+  <path d="M468 760l-28 140M1132 760l28 140" stroke="#2a1a10" stroke-width="24"/>
+
+  <!-- subtle authored texture -->
+  <rect width="1600" height="900" filter="url(#grain)" opacity="0.5"/>
+</svg>
