@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  diagnose:
+  exercise:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -17,31 +17,84 @@ jobs:
         with:
           ref: agent/local-first-product-parity
           fetch-depth: 0
+          show-progress: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - name: Run shell representation path
+      - run: npm ci --silent
+      - run: npx playwright install --with-deps chromium >/dev/null
+      - name: Run exact shell path against owned Vite server
         id: shell
         continue-on-error: true
         env:
-          PW_BASE_URL: http://localhost:5173
+          PW_BASE_URL: http://127.0.0.1:5173
         run: |
-          set -o pipefail
+          set -uo pipefail
+          npm run dev -- --host 127.0.0.1 >"$RUNNER_TEMP/vite.log" 2>&1 &
+          vite_pid=$!
+          trap 'kill "$vite_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 60); do
+            if curl -fsS "$PW_BASE_URL/axm-world/game/" >/dev/null; then break; fi
+            sleep 1
+          done
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
-          npx playwright test e2e/shell.spec.ts --workers=1 --reporter=line 2>&1 | tee "$RUNNER_TEMP/shell.log"
-      - name: Upload diagnostic receipts
+          set +e
+          npx playwright test e2e/shell.spec.ts --workers=1 --reporter=json >"$RUNNER_TEMP/playwright.json" 2>"$RUNNER_TEMP/playwright.stderr"
+          status=$?
+          set -e
+          printf '%s\n' "$status" >"$RUNNER_TEMP/status.txt"
+          JSON_PATH="$RUNNER_TEMP/playwright.json" SUMMARY_PATH="$RUNNER_TEMP/shell-summary.txt" node <<'NODE'
+          const fs = require('node:fs');
+          const data = JSON.parse(fs.readFileSync(process.env.JSON_PATH, 'utf8'));
+          const lines = [];
+          const stats = data.stats ?? {};
+          lines.push(`SHELL STATS expected=${stats.expected ?? 0} unexpected=${stats.unexpected ?? 0} skipped=${stats.skipped ?? 0} flaky=${stats.flaky ?? 0}`);
+          function walk(suites, parents = []) {
+            for (const suite of suites ?? []) {
+              const here = suite.title ? [...parents, suite.title] : parents;
+              for (const spec of suite.specs ?? []) {
+                for (const test of spec.tests ?? []) {
+                  const bad = test.status === 'unexpected' || (test.results ?? []).some((result) => ['failed', 'timedOut', 'interrupted'].includes(result.status));
+                  if (!bad) continue;
+                  lines.push(`FAIL [${test.projectName ?? test.projectId ?? 'unknown'}] ${[...here, spec.title].filter(Boolean).join(' > ')}`);
+                  for (const result of test.results ?? []) {
+                    if (!['failed', 'timedOut', 'interrupted'].includes(result.status)) continue;
+                    const error = result.error ?? result.errors?.[0] ?? {};
+                    const message = String(error.message ?? error.stack ?? error.value ?? 'no error message').replace(/\u001b\[[0-9;]*m/g, '');
+                    lines.push(message.slice(0, 2400));
+                  }
+                }
+              }
+              walk(suite.suites, here);
+            }
+          }
+          walk(data.suites);
+          fs.writeFileSync(process.env.SUMMARY_PATH, `${lines.join('\n\n')}\n`);
+          NODE
+      - name: Upload compact receipt
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: shell-diagnostic
+          name: shell-compact-receipt
           path: |
-            ${{ runner.temp }}/shell.log
-            test-results
-          if-no-files-found: warn
+            ${{ runner.temp }}/shell-summary.txt
+            ${{ runner.temp }}/status.txt
+            ${{ runner.temp }}/playwright.stderr
+            ${{ runner.temp }}/vite.log
+          if-no-files-found: error
           retention-days: 1
-      - name: Preserve failure status
-        if: steps.shell.outcome == 'failure'
-        run: exit 1
+
+  report:
+    if: always()
+    needs: exercise
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: shell-compact-receipt
+          path: receipt
+      - name: Exact shell receipt
+        run: |
+          cat receipt/shell-summary.txt
+          test "$(cat receipt/status.txt)" -eq 0
