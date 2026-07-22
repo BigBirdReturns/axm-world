@@ -1,50 +1,231 @@
-name: Parity source export
+name: Convergence read-only audit
 
 on:
-  push:
-    branches:
-      - agent/parity-source-export
   pull_request:
-    branches:
-      - main
+    branches: [main]
+    types: [opened, reopened, synchronize]
 
 permissions:
   contents: read
 
 jobs:
-  export:
+  audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
-      - name: Check out source
+      - name: Check out current World candidate
         uses: actions/checkout@v4
-      - name: Package exact source
+        with:
+          ref: agent/local-first-product-parity
+          fetch-depth: 0
+          show-progress: false
+      - name: Fetch every World branch and Arc repository
         run: |
-          tar --exclude=.git -czf "$RUNNER_TEMP/axm-world-source.tgz" .
-          sha256sum "$RUNNER_TEMP/axm-world-source.tgz" > "$RUNNER_TEMP/axm-world-source.sha256"
-      - name: Upload source
+          set -euo pipefail
+          git fetch --prune origin '+refs/heads/*:refs/remotes/origin/*'
+          git clone --filter=blob:none --no-checkout https://github.com/BigBirdReturns/axm-arc.git "$RUNNER_TEMP/axm-arc"
+          git -C "$RUNNER_TEMP/axm-arc" fetch --prune origin '+refs/heads/*:refs/remotes/origin/*'
+      - name: Build branch, workflow, and asset inventory
+        env:
+          ARC_REPO: ${{ runner.temp }}/axm-arc
+          REPORT_DIR: ${{ runner.temp }}/convergence-audit
+        run: |
+          set -euo pipefail
+          mkdir -p "$REPORT_DIR"
+          python <<'PY'
+          from __future__ import annotations
+
+          import json
+          import os
+          import re
+          import subprocess
+          from pathlib import Path
+
+          report_dir = Path(os.environ["REPORT_DIR"])
+          media_re = re.compile(r"\.(?:png|jpe?g|webp|gif|avif|svg|ico|woff2?|ttf|otf)$", re.I)
+          source_re = re.compile(r"\.(?:ts|tsx|js|jsx|css|scss|html|md)$", re.I)
+
+          def run(repo: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+              return subprocess.run(
+                  ["git", "-C", str(repo), *args],
+                  check=check,
+                  text=True,
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.PIPE,
+              )
+
+          def text(repo: Path, *args: str, check: bool = True) -> str:
+              return run(repo, *args, check=check).stdout.strip()
+
+          def exists(repo: Path, rev: str, path: str) -> bool:
+              return run(repo, "cat-file", "-e", f"{rev}:{path}", check=False).returncode == 0
+
+          def blob(repo: Path, rev: str, path: str) -> str | None:
+              if not exists(repo, rev, path):
+                  return None
+              return text(repo, "rev-parse", f"{rev}:{path}")
+
+          def branch_inventory(repo: Path, authority: str) -> dict[str, object]:
+              refs_raw = text(repo, "for-each-ref", "--format=%(refname:short)|%(objectname)|%(committerdate:iso8601-strict)", "refs/remotes/origin")
+              branches: list[dict[str, object]] = []
+              for line in refs_raw.splitlines():
+                  if not line or line.startswith("origin/HEAD|"):
+                      continue
+                  ref, sha, date = line.split("|", 2)
+                  if ref == "origin":
+                      continue
+                  branch = ref.removeprefix("origin/")
+                  counts = text(repo, "rev-list", "--left-right", "--count", f"{authority}...{ref}").split()
+                  behind, ahead = (int(counts[0]), int(counts[1]))
+                  ancestor = run(repo, "merge-base", "--is-ancestor", ref, authority, check=False).returncode == 0
+                  tree_equal = run(repo, "diff", "--quiet", authority, ref, "--", check=False).returncode == 0
+                  merge_base = text(repo, "merge-base", authority, ref, check=False)
+                  commit_lines = text(repo, "log", "--reverse", "--format=%H|%ad|%s", "--date=iso-strict", f"{authority}..{ref}", check=False)
+                  commits = []
+                  for commit_line in commit_lines.splitlines():
+                      if not commit_line:
+                          continue
+                      commit_sha, commit_date, subject = commit_line.split("|", 2)
+                      commits.append({"sha": commit_sha, "date": commit_date, "subject": subject})
+
+                  changed: list[dict[str, object]] = []
+                  if merge_base:
+                      diff_lines = text(repo, "diff", "--name-status", f"{merge_base}..{ref}", "--", check=False)
+                      for diff_line in diff_lines.splitlines():
+                          if not diff_line:
+                              continue
+                          parts = diff_line.split("\t")
+                          status = parts[0]
+                          paths = parts[1:]
+                          path = paths[-1]
+                          ref_blob = blob(repo, ref, path)
+                          authority_blob = blob(repo, authority, path)
+                          if ref_blob is None and authority_blob is None:
+                              disposition = "absent-both"
+                          elif ref_blob is None:
+                              disposition = "deleted-on-branch"
+                          elif authority_blob is None:
+                              disposition = "absent-on-authority"
+                          elif ref_blob == authority_blob:
+                              disposition = "same-on-authority"
+                          else:
+                              disposition = "different-on-authority"
+                          changed.append({
+                              "status": status,
+                              "paths": paths,
+                              "authority_disposition": disposition,
+                          })
+
+                  branches.append({
+                      "branch": branch,
+                      "ref": ref,
+                      "sha": sha,
+                      "committer_date": date,
+                      "authority": authority.removeprefix("refs/remotes/").removeprefix("origin/"),
+                      "behind": behind,
+                      "ahead": ahead,
+                      "tip_is_ancestor": ancestor,
+                      "tree_equal": tree_equal,
+                      "merge_base": merge_base,
+                      "unique_commits": commits,
+                      "branch_changed_files": changed,
+                  })
+              return {"authority": authority, "branches": sorted(branches, key=lambda item: str(item["branch"]))}
+
+          def tree_files(repo: Path, rev: str) -> list[str]:
+              return [line for line in text(repo, "ls-tree", "-r", "--name-only", rev).splitlines() if line]
+
+          def asset_inventory(repo: Path, rev: str) -> dict[str, object]:
+              files = tree_files(repo, rev)
+              media = sorted(path for path in files if media_re.search(path))
+              workflows = sorted(path for path in files if path.startswith(".github/workflows/"))
+              reference = sorted(path for path in files if path.startswith("docs/") and any(token in path.lower() for token in ("art", "asset", "reference", "visual", "design")))
+              runtime_media = [path for path in media if path.startswith(("src/", "public/", "assets/"))]
+              docs_media = [path for path in media if path.startswith("docs/")]
+              other_media = [path for path in media if path not in runtime_media and path not in docs_media]
+
+              media_basenames = {Path(path).name: path for path in media}
+              citations: dict[str, list[str]] = {path: [] for path in media}
+              for source_path in files:
+                  if not source_re.search(source_path):
+                      continue
+                  shown = run(repo, "show", f"{rev}:{source_path}", check=False)
+                  if shown.returncode != 0:
+                      continue
+                  source = shown.stdout
+                  for basename, media_path in media_basenames.items():
+                      if basename in source or media_path in source:
+                          citations[media_path].append(source_path)
+              cited = {path: refs for path, refs in citations.items() if refs}
+              return {
+                  "rev": rev,
+                  "workflows": workflows,
+                  "media_files": media,
+                  "runtime_media": runtime_media,
+                  "docs_media": docs_media,
+                  "other_media": other_media,
+                  "design_reference_files": reference,
+                  "media_citations": cited,
+              }
+
+          world_repo = Path.cwd()
+          arc_repo = Path(os.environ["ARC_REPO"])
+          world_authority = "refs/remotes/origin/agent/local-first-product-parity"
+          arc_authority = "refs/remotes/origin/main"
+
+          world_branches = branch_inventory(world_repo, world_authority)
+          arc_branches = branch_inventory(arc_repo, arc_authority)
+          world_assets = asset_inventory(world_repo, world_authority)
+          arc_assets = asset_inventory(arc_repo, arc_authority)
+
+          payloads = {
+              "world-branches.json": world_branches,
+              "arc-branches.json": arc_branches,
+              "world-assets.json": world_assets,
+              "arc-assets.json": arc_assets,
+          }
+          for filename, payload in payloads.items():
+              (report_dir / filename).write_text(json.dumps(payload, indent=2) + "\n")
+
+          lines: list[str] = []
+          for label, inventory in (("WORLD", world_branches), ("ARC", arc_branches)):
+              lines.append(f"{label} AUTHORITY {inventory['authority']}")
+              for item in inventory["branches"]:
+                  same_files = sum(1 for entry in item["branch_changed_files"] if entry["authority_disposition"] == "same-on-authority")
+                  absent_files = sum(1 for entry in item["branch_changed_files"] if entry["authority_disposition"] == "absent-on-authority")
+                  different_files = sum(1 for entry in item["branch_changed_files"] if entry["authority_disposition"] == "different-on-authority")
+                  lines.append(
+                      f"{label} BRANCH {item['branch']} {item['sha']} behind={item['behind']} ahead={item['ahead']} "
+                      f"ancestor={str(item['tip_is_ancestor']).lower()} treeEqual={str(item['tree_equal']).lower()} "
+                      f"uniqueCommits={len(item['unique_commits'])} changedFiles={len(item['branch_changed_files'])} "
+                      f"same={same_files} absent={absent_files} different={different_files}"
+                  )
+                  for commit in item["unique_commits"]:
+                      lines.append(f"  COMMIT {commit['sha']} {commit['subject']}")
+                  for entry in item["branch_changed_files"]:
+                      lines.append(f"  FILE {entry['status']} {' -> '.join(entry['paths'])} [{entry['authority_disposition']}]")
+              lines.append("")
+
+          for label, assets in (("WORLD", world_assets), ("ARC", arc_assets)):
+              lines.append(
+                  f"{label} ASSETS media={len(assets['media_files'])} runtime={len(assets['runtime_media'])} "
+                  f"docs={len(assets['docs_media'])} other={len(assets['other_media'])} cited={len(assets['media_citations'])}"
+              )
+              for path in assets["runtime_media"]:
+                  lines.append(f"  RUNTIME_MEDIA {path}")
+              for path in assets["docs_media"]:
+                  lines.append(f"  DOC_MEDIA {path}")
+              for path in assets["workflows"]:
+                  lines.append(f"  WORKFLOW {path}")
+              lines.append("")
+
+          (report_dir / "summary.txt").write_text("\n".join(lines) + "\n")
+          print("\n".join(lines))
+          PY
+      - name: Upload convergence audit
         uses: actions/upload-artifact@v4
         with:
-          name: axm-world-source
-          path: |
-            ${{ runner.temp }}/axm-world-source.tgz
-            ${{ runner.temp }}/axm-world-source.sha256
+          name: convergence-read-only-audit
+          path: ${{ runner.temp }}/convergence-audit
           if-no-files-found: error
-          retention-days: 1
-
-  dependencies:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: Package dependencies
-        run: tar -czf "$RUNNER_TEMP/axm-world-node-modules.tgz" node_modules
-      - uses: actions/upload-artifact@v4
-        with:
-          name: axm-world-node-modules
-          path: ${{ runner.temp }}/axm-world-node-modules.tgz
-          if-no-files-found: error
-          retention-days: 1
+          retention-days: 3
