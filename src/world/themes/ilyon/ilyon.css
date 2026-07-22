@@ -1,5 +1,7 @@
 /* Ilyon: oceanic civic observatory, nacre archives, and a planetary gift that
-   must remain refusible. Scoped to the exact bundled cartridge only. */
+   must remain refusible. Every selector is cartridge-scoped; imported Arcs keep
+   the neutral Rodoh skin and never inherit these assets. */
+
 :root[data-cartridge="ilyon"] {
   --gold: #c9a45d;
   --gold-dark: #9d783b;
@@ -9,6 +11,12 @@
   --teal-dark: #0d6d78;
   --olive: #568f7c;
   --olive-dark: #386957;
+  --cream: #e7e1cf;
+  --cream-mid: #d8d5c7;
+  --cream-border: #8eb6b3;
+  --ink: #071827;
+  --ink-muted: #34535b;
+  --stone: #56727a;
   --state-ready: #48b7b0;
   --state-risky: #d68165;
   --state-loot: #c9a45d;
@@ -16,6 +24,7 @@
   --state-locked: #65747b;
 }
 
+/* Board — a tide observatory laid over a civic dependency chart. */
 :root[data-cartridge="ilyon"] .contract-board-shell {
   background:
     radial-gradient(circle at 18% 0%, rgba(72,183,176,.24), transparent 38%),
@@ -24,9 +33,20 @@
     linear-gradient(180deg, #0b2432, #05131f 72%);
 }
 
+:root[data-cartridge="ilyon"] .contract-board-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .22;
+  background:
+    linear-gradient(30deg, transparent 48%, rgba(72,183,176,.18) 49% 50%, transparent 51%) 0 0 / 92px 92px,
+    linear-gradient(-30deg, transparent 48%, rgba(201,164,93,.12) 49% 50%, transparent 51%) 0 0 / 92px 92px;
+}
+
 :root[data-cartridge="ilyon"] .contract-lane__title {
   position: relative;
-  padding-right: 30px;
+  padding-right: 34px;
   color: #e7e1cf;
   background: linear-gradient(180deg, #164653, #0b2a37);
   border: 2px solid #397d82;
@@ -38,9 +58,9 @@
   content: "";
   position: absolute;
   top: 50%;
-  right: 8px;
-  width: 13px;
-  height: 13px;
+  right: 9px;
+  width: 14px;
+  height: 14px;
   transform: translateY(-50%);
   border: 1px solid #c9a45d;
   border-radius: 50%;
@@ -53,4 +73,245 @@
 }
 :root[data-cartridge="ilyon"] .contract-board-header {
   border-bottom: 1px solid rgba(214,129,101,.5);
+}
+
+/* The white-label motif vocabulary. */
+:root[data-cartridge="ilyon"] .ilyon-motif-icon {
+  color: #48b7b0;
+  filter: drop-shadow(0 1px 0 #031019);
+}
+:root[data-cartridge="ilyon"] .ilyon-motif-icon--deadStar,
+:root[data-cartridge="ilyon"] .ilyon-motif-icon--openRoute,
+:root[data-cartridge="ilyon"] .ilyon-motif-icon--contestedSeal { color: #d68165; }
+:root[data-cartridge="ilyon"] .ilyon-motif-icon--benefactors,
+:root[data-cartridge="ilyon"] .ilyon-motif-icon--archiveCustody,
+:root[data-cartridge="ilyon"] .ilyon-motif-icon--cureLedger { color: #c9a45d; }
+:root[data-cartridge="ilyon"] .ilyon-cartridge-emblem {
+  padding: 3px;
+  color: #e7e1cf;
+  border: 1px solid rgba(72,183,176,.5);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(72,183,176,.22), rgba(7,24,39,.82));
+}
+
+/* Roster — close-up portraits carry the bespoke appearance pack. */
+:root[data-cartridge="ilyon"] .pixel-doll-portrait {
+  background:
+    radial-gradient(circle at 50% 34%, rgba(231,225,207,.24), transparent 42%),
+    linear-gradient(145deg, #123a47, #071827);
+  border: 1px solid #4b9296;
+  box-shadow: 2px 2px 0 #031019, inset 0 0 0 1px rgba(201,164,93,.24);
+}
+:root[data-cartridge="ilyon"] .pixel-doll-portrait[data-appearance="ilyon:exception"] {
+  border-color: #d68165;
+  box-shadow: 2px 2px 0 #031019, 0 0 12px rgba(72,183,176,.26);
+}
+:root[data-cartridge="ilyon"] .pixel-roster-card {
+  background:
+    linear-gradient(90deg, rgba(72,183,176,.08), transparent 38%),
+    #e7e1cf;
+}
+
+/* Hall — the generic plank chamber becomes an intertidal civic observatory. */
+:root[data-cartridge="ilyon"] [data-testid="hall-scene"] {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(231,225,207,.11) 0 1px, transparent 2px),
+    radial-gradient(circle at 18% 18%, rgba(72,183,176,.28), transparent 28%),
+    linear-gradient(180deg, #0b2d3b 0%, #071827 63%, #031019 100%) !important;
+}
+:root[data-cartridge="ilyon"] [data-testid="hall-scene"]::before,
+:root[data-cartridge="ilyon"] [data-testid="hall-scene"]::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  border: 1px solid rgba(201,164,93,.26);
+  border-radius: 50%;
+}
+:root[data-cartridge="ilyon"] [data-testid="hall-scene"]::before {
+  width: min(58vw, 560px);
+  aspect-ratio: 1;
+  left: 50%;
+  top: -36%;
+  transform: translateX(-50%);
+  box-shadow: inset 0 0 0 48px rgba(72,183,176,.025), inset 0 0 0 96px rgba(201,164,93,.02);
+}
+:root[data-cartridge="ilyon"] [data-testid="hall-scene"]::after {
+  width: 68%;
+  height: 28%;
+  left: 16%;
+  bottom: 9%;
+  border-color: rgba(72,183,176,.22);
+}
+:root[data-cartridge="ilyon"] [data-testid="hall-floor"] {
+  height: 46% !important;
+  border-top: 2px solid rgba(72,183,176,.56) !important;
+  background:
+    repeating-radial-gradient(ellipse at 50% 120%, transparent 0 24px, rgba(72,183,176,.19) 25px 26px, transparent 27px 48px),
+    linear-gradient(90deg, rgba(201,164,93,.08) 1px, transparent 1px) 0 0 / 48px 100%,
+    linear-gradient(180deg, rgba(13,109,120,.34), rgba(3,16,25,.82)) !important;
+  box-shadow: inset 0 14px 30px -18px #000, 0 -18px 40px rgba(72,183,176,.08) !important;
+}
+:root[data-cartridge="ilyon"] [data-testid="hall-npc"],
+:root[data-cartridge="ilyon"] [data-testid="hall-you"],
+:root[data-cartridge="ilyon"] [data-testid="hall-party-bodies"],
+:root[data-cartridge="ilyon"] [data-testid="hall-threshold"] {
+  position: relative;
+  z-index: 1;
+}
+
+/* Encounter — a nacre instrument table rather than the neutral cream box. */
+:root[data-cartridge="ilyon"] .encs-overlay {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(72,183,176,.22), transparent 36%),
+    rgba(3,12,20,.9);
+}
+:root[data-cartridge="ilyon"] .encs-panel {
+  position: relative;
+  overflow: hidden auto;
+  border-color: #4b9296;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.28), transparent 34%),
+    #e7e1cf;
+  box-shadow: 7px 7px 0 #031019, 0 0 0 1px rgba(201,164,93,.48);
+}
+:root[data-cartridge="ilyon"] .encs-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .22;
+  background:
+    radial-gradient(circle at 86% 12%, transparent 0 34px, #0d6d78 35px 36px, transparent 37px),
+    linear-gradient(26deg, transparent 49%, #48b7b0 50%, transparent 51%) 0 0 / 72px 72px;
+}
+:root[data-cartridge="ilyon"] .encs-panel > * { position: relative; z-index: 1; }
+:root[data-cartridge="ilyon"] .encs-room {
+  border-color: #4b9296;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(13,109,120,.15) 0 1px, transparent 2px) 0 0 / 24px 24px,
+    rgba(13,109,120,.06);
+}
+:root[data-cartridge="ilyon"] .encs-objective {
+  border-left: 3px solid #d68165;
+  background: linear-gradient(90deg, rgba(72,183,176,.1), transparent 42%), #d8d5c7;
+}
+:root[data-cartridge="ilyon"] .encs-staging,
+:root[data-cartridge="ilyon"] [data-testid="encs-staging"] {
+  padding: 10px;
+  border: 1px solid rgba(13,109,120,.35);
+  background: linear-gradient(90deg, rgba(13,109,120,.07), rgba(214,129,101,.05));
+}
+
+/* Aperture — constitutional observatory, not a generic metadata accordion. */
+:root[data-cartridge="ilyon"] .godscar-pocket {
+  overflow: hidden;
+  border-color: rgba(72,183,176,.72);
+  background:
+    radial-gradient(circle at 92% 5%, rgba(214,129,101,.15), transparent 22%),
+    radial-gradient(circle at 12% 0%, rgba(72,183,176,.18), transparent 32%),
+    linear-gradient(135deg, rgba(7,24,39,.99), rgba(14,39,50,.96));
+  box-shadow: 0 14px 46px rgba(0,0,0,.42), inset 0 0 0 1px rgba(201,164,93,.13);
+}
+:root[data-cartridge="ilyon"] .godscar-pocket::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .17;
+  background:
+    linear-gradient(30deg, transparent 49%, rgba(72,183,176,.24) 50%, transparent 51%) 0 0 / 86px 86px,
+    linear-gradient(-30deg, transparent 49%, rgba(201,164,93,.2) 50%, transparent 51%) 0 0 / 86px 86px;
+}
+:root[data-cartridge="ilyon"] .godscar-pocket > * { position: relative; }
+:root[data-cartridge="ilyon"] .godscar-pocket__header-identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+:root[data-cartridge="ilyon"] .godscar-pocket__emblem { margin-top: 2px; }
+:root[data-cartridge="ilyon"] .godscar-pocket__pressures article {
+  position: relative;
+  grid-template-columns: auto auto 1fr;
+  border-color: rgba(72,183,176,.22);
+  background: linear-gradient(145deg, rgba(72,183,176,.07), rgba(255,255,255,.025));
+}
+:root[data-cartridge="ilyon"] .godscar-pocket__pressures article > b { grid-row: 1 / span 4; }
+:root[data-cartridge="ilyon"] .godscar-pocket__pressures article > small,
+:root[data-cartridge="ilyon"] .godscar-pocket__pressures article > strong,
+:root[data-cartridge="ilyon"] .godscar-pocket__pressures article > p { grid-column: 2 / -1; }
+:root[data-cartridge="ilyon"] .godscar-pocket__asset-mark {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+}
+:root[data-cartridge="ilyon"] .godscar-pocket__cast {
+  margin-top: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+:root[data-cartridge="ilyon"] .godscar-pocket__cast article {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 10px;
+  align-items: start;
+  border-color: rgba(72,183,176,.18);
+  background: linear-gradient(135deg, rgba(72,183,176,.08), rgba(0,0,0,.18));
+}
+:root[data-cartridge="ilyon"] .godscar-pocket__cast-portrait {
+  width: 44px;
+  height: 44px;
+  display: inline-block;
+  border: 1px solid #4b9296;
+  background: #071827;
+  box-shadow: 2px 2px 0 #031019;
+}
+:root[data-cartridge="ilyon"] .godscar-pocket__cast article > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+:root[data-cartridge="ilyon"] .godscar-pocket__cast article strong {
+  color: #e7e1cf;
+  font-size: 12px;
+}
+:root[data-cartridge="ilyon"] .godscar-pocket__cast article span {
+  color: #7dd3cd;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+:root[data-cartridge="ilyon"] .godscar-pocket__ledger li,
+:root[data-cartridge="ilyon"] .godscar-pocket__factions article,
+:root[data-cartridge="ilyon"] .godscar-pocket__consequences article {
+  position: relative;
+  padding-left: 40px;
+}
+:root[data-cartridge="ilyon"] .godscar-pocket__ledger li > .ilyon-motif-icon,
+:root[data-cartridge="ilyon"] .godscar-pocket__factions article > .ilyon-motif-icon,
+:root[data-cartridge="ilyon"] .godscar-pocket__consequences article > .ilyon-motif-icon {
+  position: absolute;
+  left: 9px;
+  top: 9px;
+}
+:root[data-cartridge="ilyon"] .godscar-pocket__factions article {
+  border-top: 2px solid rgba(201,164,93,.45);
+}
+:root[data-cartridge="ilyon"] .godscar-pocket__consequences article {
+  border-top: 2px solid rgba(214,129,101,.42);
+}
+
+@media (max-width: 700px) {
+  :root[data-cartridge="ilyon"] .godscar-pocket__header-identity { display: grid; grid-template-columns: auto 1fr; }
+  :root[data-cartridge="ilyon"] .godscar-pocket__cast { grid-template-columns: 1fr; }
+  :root[data-cartridge="ilyon"] [data-testid="hall-scene"]::before { width: 520px; top: -18%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-cartridge="ilyon"] [data-testid="hall-scene"] *,
+  :root[data-cartridge="ilyon"] .encs-panel *,
+  :root[data-cartridge="ilyon"] .godscar-pocket * {
+    animation: none !important;
+    transition: none !important;
+  }
 }
