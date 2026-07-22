@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" aria-hidden="true">
+  <defs>
+    <linearGradient id="beam" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8b6740"/><stop offset="0.5" stop-color="#4b321f"/><stop offset="1" stop-color="#24160e"/></linearGradient>
+    <linearGradient id="cloth" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#2fbfa2"/><stop offset="1" stop-color="#0f6f5d"/></linearGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="9"/></filter>
+  </defs>
+  <path d="M0 0h1600v38H0zM0 0h38v900H0zM1562 0h38v900h-38z" fill="#0b0806" opacity="0.78"/>
+  <path d="M0 0l270 0-140 900H0zM1600 0h-270l140 900h130z" fill="url(#beam)" opacity="0.85"/>
+  <path d="M52 0h76L42 900H0zM1548 0h-76l86 900h42z" fill="#c59a59" opacity="0.25"/>
+  <path d="M0 0h1600l-74 78H74z" fill="url(#beam)" opacity="0.86"/>
+  <path d="M650 0h300l-34 126H684z" fill="url(#cloth)" opacity="0.92"/>
+  <path d="M684 0h232l-18 96H702z" fill="none" stroke="#d8b276" stroke-width="5"/>
+  <g transform="translate(800 54)" stroke="#f2e4bc" fill="none" stroke-linecap="round">
+    <path d="M0 34V5M0 7c-24-2-34-18-26-31M0 7c24-2 34-18 26-31M0 7c-10-20-4-34 12-42M0 7c10-20 4-34-12-42" stroke-width="3"/>
+    <circle cy="7" r="6" fill="#d8b276" stroke="#684a2f" stroke-width="3"/>
+  </g>
+  <ellipse cx="800" cy="884" rx="640" ry="44" fill="#000" opacity="0.72" filter="url(#soft)"/>
+  <path d="M0 860q310-55 540-12 262 50 520 2 253-47 540 10v40H0z" fill="#160e09" opacity="0.88"/>
+  <path d="M0 868q322-47 542-7 266 48 517 2 252-46 541 7" fill="none" stroke="#b89460" stroke-width="5" opacity="0.45"/>
+</svg>

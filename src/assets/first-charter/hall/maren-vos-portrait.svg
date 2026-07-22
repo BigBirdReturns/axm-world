@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 800" role="img" aria-labelledby="title desc">
+  <title id="title">Maren Vos, Charter-Keeper</title>
+  <desc id="desc">An original painted-vector portrait of an older charter keeper holding the founding ledger.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#1d2826"/><stop offset="1" stop-color="#0b0a08"/></linearGradient>
+    <linearGradient id="robe" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8b5545"/><stop offset="0.58" stop-color="#6b392f"/><stop offset="1" stop-color="#3e211d"/></linearGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f1cfaa"/><stop offset="1" stop-color="#c89369"/></linearGradient>
+    <linearGradient id="hair" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d6d0c4"/><stop offset="1" stop-color="#8e887e"/></linearGradient>
+    <radialGradient id="halo"><stop stop-color="#d8b276" stop-opacity="0.55"/><stop offset="1" stop-color="#d8b276" stop-opacity="0"/></radialGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="14" stdDeviation="12" flood-color="#000" flood-opacity="0.55"/></filter>
+    <pattern id="paper" width="16" height="16" patternUnits="userSpaceOnUse"><path d="M0 1h16M1 0v16" stroke="#8b6b42" stroke-width="0.45" opacity="0.22"/></pattern>
+  </defs>
+
+  <rect width="640" height="800" rx="28" fill="url(#bg)"/>
+  <circle cx="320" cy="260" r="250" fill="url(#halo)"/>
+  <path d="M70 740V120Q70 70 120 70h400q50 0 50 50v620" fill="none" stroke="#b89460" stroke-width="14"/>
+  <path d="M92 740V137q0-43 43-43h370q43 0 43 43v603" fill="none" stroke="#2fbfa2" stroke-width="3" opacity="0.65"/>
+
+  <!-- side bun and gathered grey hair -->
+  <ellipse cx="438" cy="238" rx="74" ry="82" fill="#777168" stroke="#27231e" stroke-width="10"/>
+  <path d="M187 271q3-142 131-158 128 11 151 154l-29 36-247-4z" fill="url(#hair)" stroke="#2a2622" stroke-width="12"/>
+  <path d="M219 184q92 18 182-25M205 221q112 19 224-28M203 261q115 16 232-20" fill="none" stroke="#f1ece3" stroke-width="8" opacity="0.5"/>
+
+  <!-- face -->
+  <path d="M208 254q4-95 111-105 107 8 119 105l-17 146q-37 84-101 89-69-6-104-91z" fill="url(#skin)" stroke="#3b2c23" stroke-width="10"/>
+  <path d="M245 294q31-22 64-2M337 292q31-20 61 4" fill="none" stroke="#6d4a36" stroke-width="9" stroke-linecap="round"/>
+  <ellipse cx="278" cy="311" rx="10" ry="8" fill="#273d38"/><ellipse cx="370" cy="311" rx="10" ry="8" fill="#273d38"/>
+  <path d="M322 315l-12 53 29 5" fill="none" stroke="#a56f50" stroke-width="7" stroke-linecap="round"/>
+  <path d="M280 405q40 26 83-2" fill="none" stroke="#984f48" stroke-width="9" stroke-linecap="round"/>
+  <path d="M229 351q20 14 42 17M376 367q24-3 42-19" fill="none" stroke="#9f765a" stroke-width="5" opacity="0.65"/>
+
+  <!-- robe and charter collar -->
+  <path d="M128 750q14-180 93-251l99 51 98-51q80 73 94 251z" fill="url(#robe)" stroke="#2a1714" stroke-width="12" filter="url(#shadow)"/>
+  <path d="M222 499l98 51 98-51-26 96-72 37-73-37z" fill="#d8b276" stroke="#684a2f" stroke-width="8"/>
+  <path d="M260 522l60 28 61-29-18 58-43 23-43-22z" fill="#f2e6c8"/>
+  <path d="M176 586q143 75 289-2M158 651q164 70 326-5" fill="none" stroke="#d19c75" stroke-width="7" opacity="0.55"/>
+
+  <!-- ledger -->
+  <g transform="translate(184 568) rotate(-3 142 100)">
+    <rect x="0" y="0" width="284" height="204" rx="10" fill="#3b2b20" stroke="#b89460" stroke-width="10"/>
+    <rect x="18" y="17" width="248" height="170" rx="4" fill="#e8d8b9"/>
+    <rect x="18" y="17" width="248" height="170" rx="4" fill="url(#paper)"/>
+    <path d="M142 20v164" stroke="#9b7b50" stroke-width="4"/>
+    <path d="M42 58h78M42 82h86M42 106h66M162 58h72M162 82h62M162 106h78M42 136h82M162 136h68" stroke="#684a2f" stroke-width="5" stroke-linecap="round" opacity="0.72"/>
+    <circle cx="220" cy="149" r="22" fill="#2fbfa2" stroke="#0f7a63" stroke-width="6"/>
+    <path d="M220 164v-26m0 4-15-17m15 17 15-17m-15 17-25-4m25 4 25-4" stroke="#f0e2bf" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <!-- hands -->
+  <path d="M170 654q42-20 80 18l-24 60q-45 5-78-24zM470 646q-42-14-79 24l25 60q45 1 78-29z" fill="url(#skin)" stroke="#6b4734" stroke-width="8"/>
+
+  <text x="320" y="754" text-anchor="middle" fill="#f4ead5" font-family="Georgia,serif" font-size="30" font-weight="700">MAREN VOS</text>
+  <text x="320" y="782" text-anchor="middle" fill="#2fbfa2" font-family="monospace" font-size="15" letter-spacing="4">CHARTER-KEEPER</text>
+</svg>
