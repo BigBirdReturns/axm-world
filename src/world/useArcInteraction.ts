@@ -61,6 +61,7 @@ export function useArcInteraction(world: ArcWorld): ArcInteraction {
       if (coldStartDone.current) return;
       const next = firstAvailableNodeId(world.nodes);
       if (next) {
+        setSelectionIsUserAct(false);
         setSelectedId(next);
         coldStartDone.current = true;
       }
@@ -69,7 +70,10 @@ export function useArcInteraction(world: ArcWorld): ArcInteraction {
     coldStartDone.current = true;
     if (world.lastReport?.challengeId === selectedId && selected?.status === "cleared") {
       const next = firstAvailableNodeId(world.nodes, selectedId);
-      if (next) setSelectedId(next);
+      if (next) {
+        setSelectionIsUserAct(false);
+        setSelectedId(next);
+      }
     }
   }, [selected?.status, selectedId, world.lastReport?.challengeId, world.nodes, world.pendingDecision]);
 

@@ -32,10 +32,10 @@ stays replaceable.
   contracts, bounded people, exact receipts, and validated Godscar Pocket source.
 - `src/godscar/**` + `cartridges/kind-gods-of-ilyon.*` — the vendored Pocket
   grammar and its first creator-owned source/executable cartridge pair.
-- `src/world/themes/ilyon/**` — Ilyon's cartridge-owned visual pack: five role
-  portraits and bodies, six beat motifs, institutional/evidence/consequence
-  marks, and the scoped oceanic board, hall, encounter, and Aperture treatment.
-  See [the asset bible](docs/design/ILYON_ASSET_BIBLE.md).
+- `src/world/themes/first-charter/**`, `src/world/themes/karazhan/**`, and
+  `src/world/themes/ilyon/**` — cartridge-owned role portraits/bodies, encounter
+  motifs, emblems, material treatments, and procedural globe palettes for every
+  bundled cartridge. See the governed asset bibles under `docs/design/`.
 
 ## Why canonical founding matters
 
@@ -61,21 +61,15 @@ The cartridge bay, digest-addressed immutable revisions, exact
 `axm-cartridge-run/v3` import/export, transactional restore, guided First Charter
 entry, reusable Board/Map/Hall/Globe/Aperture shell, complete six-contract
 campaign, offline boot, visible save recovery, and multi-cartridge receiver are
-implemented. The bundled proofs are The First Charter, Karazhan, and **The Kind
-Gods of Ilyon**. The engine and creator grammar remain vendored from `axm-arc`
+implemented. The bundled proofs are **The First Charter**, **The Waking Tower**, and **The Kind Gods of Ilyon**. The engine and creator grammar remain vendored from `axm-arc`
 and pinned to an exact commit — see [RECONCILIATION.md](RECONCILIATION.md).
 
-The implemented Godscar scope is release-qualified: exact Arc provenance,
+The bundled local-first product scope is release-qualified: all three cartridges now share full-campaign and exact-custody coverage, cartridge-owned role art, every shipped representation, responsive parity, local sensory controls, and focused regression gates. The implemented Godscar scope additionally proves exact Arc provenance,
 deterministic full-campaign completion, faithful receiver projection, Ilyon
 desktop/mobile entry, and the cartridge-owned visual identity pack are present.
 The campaign has a model-based narrative acceptance record in
 [axm-arc](https://github.com/BigBirdReturns/axm-arc/blob/main/docs/ILYON_ACCEPTANCE.md).
 Human sessions remain valuable telemetry and regression discovery; they are not
-a prerequisite for calling the cartridge or receiver complete. Ten older
-mobile-only Playwright receipts still predate the guided-entry contract and
-remain modernization work, not a Godscar release gate. See [VISION.md](VISION.md)
-and [docs/WORLDS_ROADMAP.md](docs/WORLDS_ROADMAP.md).
+a prerequisite for calling the cartridge or receiver complete. Legacy browser receipts are maintained against the current guided-entry contract rather than treated as a separate release veto. See [VISION.md](VISION.md) and [docs/WORLDS_ROADMAP.md](docs/WORLDS_ROADMAP.md).
 
-The Ilyon visual pack closes its current pixel-art presentation scope. It is not
-a claim that future sound, music, cinematic animation, accessibility research,
-or higher-resolution illustration for the wider AXM product is finished.
+The parity claim is bounded to the dependency-free local browser product. Multiplayer, cloud identity, marketplace services, orchestral/cinematic media, and high-resolution painted illustration remain separate expansion products, not uneven missing lanes inside the shipped runtime.

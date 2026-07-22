@@ -1,15 +1,10 @@
 # Engine-design proposal — resource-spend as a bounded variance lever
 
-**Status:** engine-design proposal. **No implementation.** This is the arc-first
-engine-design pass called for by `RESOURCE_SPEND_DECISION.md` §"Sequence from
-here" step 2. It turns the accepted invariant into a concrete, code-grounded
-resolver design: the authored parameter shape, the exact threading into
-`resolveChallenge`, the variance math, the gate/difficulty composition proofs,
-the required property tests, and the receipt language. It is governed by
-`POSITIONING.md` ("The anti-extractive contract") and `WORLDS_ROADMAP.md` §0a
-(the encounter-agency taxonomy). **Resolver code may be written only after this
-proposal is accepted, as its own reviewed engine change** (see "Acceptance
-gate").
+**Status:** accepted and implemented engine-design record. Arc owns the authored
+parameter, resolver threading, variance math, gate/difficulty composition, exact
+debit, and property tests; World renders the same law. It is governed by
+`POSITIONING.md` and `WORLDS_ROADMAP.md` §0a and remains the explanation of why
+the bounded lever is constitutional.
 
 Read first: `RESOURCE_SPEND_MEMO.md` (the gate) and `RESOURCE_SPEND_DECISION.md`
 (the invariant this proposal implements). The invariant, verbatim:
@@ -399,28 +394,18 @@ separately-reviewed engine change with its own mean-invariance proof.
 
 ---
 
-## Acceptance gate
+## Completed acceptance gate
 
-This document is a proposal. It authorizes no code.
+1. Arc implements and property-tests `ResourceSpendLever`, resolver threading,
+   steadiness math, and two-layer gate enforcement.
+2. World re-vendors that exact source and renders the pre-commit spend option,
+   risk-band projection, exact debit, and receipt only when the lever is authored,
+   the party is legal, and tokens are held.
+3. First Charter without a relevant lever renders no invented control; The Waking
+   Tower's independently authored Heroic mode remains orthogonal.
 
-1. **Accept this proposal** as the engine design for the resource-spend lever.
-2. **Then, and only then**, write the resolver change as its **own reviewed engine
-   change**: the `ResourceSpendLever` schema (§1), the `tokensSpent` threading into
-   `resolveChallenge` (§2), the steadiness math (§4), the two-layer gate
-   enforcement (§5), and the four property tests (§7) — which must be green before
-   merge. No shell/UI work rides on this commit.
-3. **Only after the resolver honors the lever and the property tests pass**, build
-   the encounter-shell surface — the pre-commit spend option, the risk-band
-   projection, and the receipt — **gated exactly like difficulty-mode choice**: a
-   contract that authors no `resourceSpend` shows no spend option (as First Charter
-   authors no mode and shows no chooser; Karazhan authors Heroic and shows one —
-   `POSITIONING.md`, "Difficulty-mode contracts render posture choice"). The option
-   renders only when `resourceSpend` is authored **and** `countOk && rolesOk` **and**
-   the player holds tokens.
-
-Only at that point does this become the fourth encounter-agency taxonomy row —
-"resource-spend choice" — in `WORLDS_ROADMAP.md` §0a, promoted from **blocked**
-to **implemented**. Until then the UI keeps refusing to imply the lever exists.
+Resource-spend is therefore an implemented fourth taxonomy row, not a pending
+proposal. The ordinary Arc/World parity gates are its continuing acceptance.
 
 ## Control question (must answer yes to all three)
 

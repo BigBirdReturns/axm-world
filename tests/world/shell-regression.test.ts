@@ -70,6 +70,12 @@ describe("shell regressions", () => {
     expect(markers).toContain("className=\"node-label\"");
   });
 
+  it("keeps the digest-bound program identity visible at every breakpoint", () => {
+    const shell = read("src/world/shell/Shell.tsx");
+    expect(shell).toContain("<ProgramIdentityStrip world={world} />");
+    expect(shell).not.toContain("!isMobile && <ProgramIdentityStrip");
+  });
+
   it("keeps Arc world state above the experience presentation", () => {
     const host = read("src/world/WorldHost.tsx");
 

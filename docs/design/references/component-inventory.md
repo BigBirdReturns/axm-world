@@ -10,9 +10,10 @@ This is the ledger for the repo's one uniform visual-asset standard. Every
 pixel-grid or hand-SVG asset in `src/world/` must follow these rules; guard
 tests in `tests/world/asset-standard.test.ts` enforce them mechanically.
 
-- **Provenance vocabulary** (exactly three levels, see below): "harvested
-  asset" / "redrawn derivative" / "newly invented placeholder". This file is
-  the ledger of record for which level applies to which component.
+- **Provenance vocabulary** (four explicit levels, see below): "harvested
+  asset" / "redrawn derivative" / "original governed asset" / "newly invented
+  placeholder". This file is the ledger of record for which level applies to
+  which component.
 - **Grid systems in use**:
   - `PixelIcon` — 32x32 pixel grids, alphabet `. # o w`, all defined in
     `src/world/pixel-ui/PixelIcon.tsx` behind `PixelIconName`.
@@ -46,8 +47,10 @@ tokens, components, and a small controlled icon set" —
 - **redrawn derivative** — built by looking at a named harvested sheet and
   reproducing its shapes/rules as runtime code (CSS tokens, SVG icons). This
   is the expected outcome for icons per the harvest's own rule above.
+- **original governed asset** — intentional production art authored for a
+  cartridge and bound to a committed asset bible/reference sheet.
 - **newly invented placeholder** — no corresponding shape exists on any
-  harvested sheet; the shape was chosen without a source reference.
+  governed source; temporary only and ineligible for a completion claim.
 
 ## Components
 
@@ -66,6 +69,13 @@ tokens, components, and a small controlled icon set" —
 | PixelLootCard | `src/world/pixel-ui/PixelLootCard.tsx` | `.pixel-loot-card` | Yes — LootRegion | Redrawn derivative — `...asset_pack.png` §8 "Loot Card Frame" |
 | PixelRosterCard | `src/world/pixel-ui/PixelRosterCard.tsx` | `.pixel-roster-card` | Yes — RosterRegion | Redrawn derivative — `...asset_pack.png` §8 "Roster Card Frame" |
 | PixelContractCard | `src/world/pixel-ui/PixelContractCard.tsx` | `.pixel-contract-card` | Yes — ContractBoard's ContractLocationCard | Redrawn derivative — `...asset_pack.png` §8 "Selected Contract Card Frame" |
+| PixelPortrait / PixelSprite | `src/world/pixel-ui/PixelPortrait.tsx`, `PixelSprite.tsx` | `.pixel-portrait`, `.pixel-sprite` | Yes — neutral fallback and abstract threat | Original governed runtime primitives; cartridge roles override them through the appearance seam |
+| PixelDoll / PixelDollPortrait | `src/world/pixel-ui/PixelDoll.tsx`, `PixelDollPortrait.tsx` | `.pixel-doll`, `.pixel-doll-portrait` | Yes — roster, Hall, Encounter, Aperture | Governed renderers over theme-owned appearance specs; contain no cartridge identity themselves |
+| First Charter role pack | `src/world/themes/first-charter/role-appearances.tsx` | appearance ids `first-charter:*` | Yes — every authored role across roster and staged scenes | Redrawn derivative — committed First Charter reference sheet |
+| Waking Tower role pack | `src/world/themes/karazhan/role-appearances.tsx` | appearance ids `karazhan:*` | Yes — every authored raid role across roster and staged scenes | Original governed asset — `karazhan_white_label_asset_pack.svg` (legacy path/id retained for custody compatibility) |
+| Ilyon role/founder pack | `src/world/themes/ilyon/portrait-icons.tsx` | appearance ids `ilyon:*` | Yes — every authored role and exact founder in roster/Aperture | Original governed asset — `ilyon_white_label_asset_pack.svg` and `ILYON_ASSET_BIBLE.md` |
+| MotifIcon (Waking Tower) | `src/world/themes/karazhan/motif-icons.tsx` | `.kz-motif-icon` | Yes — Board, bay, Encounter | Original governed asset — committed Waking Tower white-label reference |
+| MotifIcon (Ilyon) | `src/world/themes/ilyon/motif-icons.tsx` | `.ilyon-motif-icon` | Yes — Board, bay, Aperture evidence/faction/consequence records | Original governed asset — committed Ilyon white-label reference |
 | MotifIcon (First Charter) | `src/world/themes/first-charter/motif-icons.tsx` | `.fc-motif-icon` | Yes — EncounterDirector overlay (replaces emoji glyphs) | Redrawn derivative — `first_charter_theme_asset_pack_overview.png` §1 "Motif Icons" (per-motif breakdown below) |
 | RodohRuntimeMark | `src/world/brand/RodohRuntimeMark.tsx` | (inline styles, no CSS class prefix) | Yes — boot screen, cartridge surfaces, and decisions | Governed source map — exact 16x18 `SCGPX.MAP` published by the [AXM Tools identity system](https://bigbirdreturns.github.io/axm-tools/identity/); no redraw or centering |
 
@@ -132,18 +142,15 @@ also redrawn derivatives, not slices.
 | notebook | `...overview.png` §1 — spiral-bound notebook | close — cover + spine + lines |
 | starSpark | `...overview.png` §1 — 4-point sparkle | close — 4-point star |
 
-### Karazhan theme motifs
+### The Waking Tower theme motifs
 
 `src/world/themes/karazhan/motif-icons.tsx` — 16x16 viewBox SVG paths, one per
-encounter id (attumen…magtheridon + the tower default). Provenance level:
-**redrawn derivative**. Source: the Karazhan theme asset sheet §1 "Location
-Motifs" (design review). Unlike the First Charter sheet, the Karazhan sheet is
-**not yet committed** to `docs/design/references/`, so these motifs are
-hand-authored from its per-encounter descriptions (spectral horseshoe, pocket
-watch, chained sigil, twin masks, orrery core, summoning circle, rune ring,
-three beams, knight, tilted crown, dragon skull, ogre fist, shattered
-mountain, broken manacle) rather than sliced from a committed asset. When the
-sheet lands in `references/`, add its filename here and upgrade the citations.
+legacy encounter id (`attumen`…`magtheridon` + the tower default). Provenance level:
+**original governed asset**. Source:
+`docs/design/references/karazhan_white_label_asset_pack.svg` (legacy filename
+retained for compatibility), governed by `docs/design/KARAZHAN_ASSET_BIBLE.md`.
+The paths are hand-authored runtime derivatives of the committed per-encounter
+motifs rather than image slices.
 The violet-night palette (§6) is applied as scoped CSS
 (`karazhan.css`, under `:root[data-cartridge="karazhan"]`), not new pixel grids.
 

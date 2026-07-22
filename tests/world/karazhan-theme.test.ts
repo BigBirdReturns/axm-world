@@ -1,6 +1,6 @@
-// Karazhan theme wiring: the cartridge is visibly its own skin, and the theme
+// The Waking Tower theme wiring (legacy id `karazhan`): the cartridge is visibly its own skin, and the theme
 // seam can never leak one cartridge's clothes onto another. These are the
-// mechanical guards behind acceptance #4/#7/#8 (Karazhan palette scoped;
+// mechanical guards behind acceptance #4/#7/#8 (Waking Tower palette scoped;
 // First Charter unchanged; imported arcs neutral).
 
 import { describe, expect, it } from "vitest";
@@ -28,6 +28,7 @@ const importedArc = { ...KARAZHAN, meta: { ...KARAZHAN.meta, id: "operations-lab
 describe("theme selection", () => {
   it("resolves each bundled arc to its own theme", () => {
     expect(themeForArc(KARAZHAN).id).toBe("karazhan");
+    expect(KARAZHAN_THEME.name).toBe("The Waking Tower");
     expect(themeForArc(FIRST_CHARTER).id).toBe("first-charter");
   });
 

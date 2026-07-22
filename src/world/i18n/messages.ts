@@ -27,6 +27,11 @@ export type MessageId =
   // ── locale switcher ────────────────────────────────────────────────────
   | "locale.enLabel"
   | "locale.zhHantLabel"
+  | "sensory.group"
+  | "sensory.soundOn"
+  | "sensory.soundOff"
+  | "sensory.motionFull"
+  | "sensory.motionReduced"
   // ── shell chrome ───────────────────────────────────────────────────────
   | "shell.cycle"
   | "shell.recorded"
@@ -298,6 +303,8 @@ export type MessageId =
   | "presentations.globe.blurb"
   | "presentations.globe.controlsHint"
   | "presentations.globe.purpose"
+  | "presentations.globe.fallbackTitle"
+  | "presentations.globe.fallbackBody"
   | "world.movementControls"
   | "world.walkForward"
   | "world.walkBackward"
@@ -414,7 +421,7 @@ export type MessageId =
   | "boot.cartridgeMeta"
   // ── boot screen: classic-row save state (PR 057) ──────────────────────────
   // "boot.freshProgram" says "program" — honest on the program-of-record
-  // plaque, but a lie on a classic row (an imported cartridge, or Karazhan,
+  // plaque, but a lie on a classic row (an imported cartridge, or The Waking Tower,
   // are never "a program"). "boot.resumable" carries no such claim and is
   // reused verbatim. This is the one neutral pair PR 057 adds.
   | "boot.freshEntry";
@@ -458,6 +465,11 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
 
     "locale.enLabel": "EN",
     "locale.zhHantLabel": "中文",
+    "sensory.group": "Presentation preferences",
+    "sensory.soundOn": "Sound on",
+    "sensory.soundOff": "Sound off",
+    "sensory.motionFull": "Full motion",
+    "sensory.motionReduced": "Reduced motion",
 
     "shell.cycle": "Cycle",
     "shell.recorded": "Recorded",
@@ -771,6 +783,8 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.globe.blurb": "Enter the cartridge as a spatial world",
     "presentations.globe.controlsHint": "WASD / arrows or touch pad to walk · drag to turn · Space to jump · approach a ◆ contract",
     "presentations.globe.purpose": "The cartridge made spatial: its places, contracts, and consequences remain the same world state.",
+    "presentations.globe.fallbackTitle": "Spatial atlas",
+    "presentations.globe.fallbackBody": "3D acceleration is unavailable in this browser. The same cartridge places and carried run remain available in a local orbital view.",
     "world.movementControls": "World movement controls",
     "world.walkForward": "Walk forward",
     "world.walkBackward": "Walk backward",
@@ -897,6 +911,11 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     },
   },
   "zh-Hant": {
+    "sensory.group": "呈現偏好",
+    "sensory.soundOn": "音效開啟",
+    "sensory.soundOff": "音效關閉",
+    "sensory.motionFull": "完整動態效果",
+    "sensory.motionReduced": "減少動態效果",
     "coach.arcComplete": "卡匣已標記為完成。離開前請檢視或匯出本次執行狀態。",
     "coach.pendingDecision": "請處理目前的決策。引擎將把結果套用到此卡匣的執行進度。",
     "coach.outcomeRecorded": "結果已記錄。請檢視已變更的卡匣狀態，或選擇其他可用節點。",
@@ -1197,6 +1216,8 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.globe.blurb": "進入卡匣所構成的空間世界",
     "presentations.globe.controlsHint": "使用 WASD、方向鍵或觸控板行走 · 拖曳轉向 · 空白鍵跳躍 · 靠近 ◆ 契約",
     "presentations.globe.purpose": "卡匣成為空間世界：其中的地點、契約與後果仍共享同一份世界狀態。",
+    "presentations.globe.fallbackTitle": "空間星圖",
+    "presentations.globe.fallbackBody": "此瀏覽器無法使用 3D 加速。相同的卡匣地點與已攜帶的執行狀態仍可在本機軌道檢視中使用。",
     "world.movementControls": "世界移動控制",
     "world.walkForward": "向前行走",
     "world.walkBackward": "向後行走",

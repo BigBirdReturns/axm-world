@@ -1,8 +1,9 @@
 import { RODOH_BASE_THEME, type RodohTheme } from "../rodoh.js";
+import { KARAZHAN_DOLL_APPEARANCES, KARAZHAN_ROLE_BINDINGS } from "./role-appearances.js";
 
-// The Karazhan cartridge theme — mood "haunted grandeur / arcane decay / violet
-// night." Extends the Rodoh base theme (the runtime shell stays identical) with
-// Karazhan's own role/attribute/item vocabulary. Icons reuse the shared
+// The Waking Tower cartridge theme (legacy id `karazhan`) — mood "haunted
+// grandeur / arcane decay / violet night." Extends the Rodoh base theme (the
+// runtime shell stays identical) with the tower's own role/attribute/item vocabulary. Icons reuse the shared
 // PixelIcon set where a base glyph reads correctly for the raid vocabulary;
 // where nothing fits, the base theme's generic fallback is kept deliberately
 // (the theme seam degrades, it never mislabels). The distinct violet-night look
@@ -12,7 +13,7 @@ import { RODOH_BASE_THEME, type RodohTheme } from "../rodoh.js";
 export const KARAZHAN_THEME: RodohTheme = {
   ...RODOH_BASE_THEME,
   id: "karazhan",
-  name: "Karazhan",
+  name: "The Waking Tower",
   motto: "The tower remembers every guest.",
   roles: {
     Tank: { icon: "vanguard", label: "Tank", meaning: "Hold the boss. Eat what would delete anyone else." },
@@ -22,14 +23,9 @@ export const KARAZHAN_THEME: RodohTheme = {
     Support: { icon: "mender", label: "Support", meaning: "Calls the mechanic. Owns the count." },
   },
   appearancePack: {
-    ...RODOH_BASE_THEME.appearancePack,
-    roleBindings: {
-      Tank: "rodoh:plated",
-      Healer: "rodoh:robed",
-      Melee: "rodoh:hooded",
-      Ranged: "rodoh:hooded",
-      Support: "rodoh:robed",
-    },
+    fallback: RODOH_BASE_THEME.appearancePack.fallback,
+    appearances: { ...RODOH_BASE_THEME.appearancePack.appearances, ...KARAZHAN_DOLL_APPEARANCES },
+    roleBindings: KARAZHAN_ROLE_BINDINGS,
   },
   attributes: {
     power: { icon: "power", label: "Power", meaning: "Raw damage output, martial or arcane." },
@@ -40,14 +36,14 @@ export const KARAZHAN_THEME: RodohTheme = {
   },
 };
 
-// Palette tokens from the Karazhan theme sheet §6 (violet-night set). Mirrored
+// Palette tokens from the Waking Tower theme sheet §6 (violet-night set). Mirrored
 // here as constants so TS surfaces can reference them; the CSS override in
 // karazhan.css is the source of truth for rendered color.
 export const KARAZHAN_PALETTE = {
   violet: "#574A7A",
   arcane: "#4F7D9E",
   ember: "#D19A3D",
-  fel: "#6F8F3F",
+  rift: "#6F8F3F",
   stone: "#746F7C",
   parchment: "#E9DDC4",
   ink: "#1A1420",

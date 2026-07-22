@@ -47,6 +47,8 @@ import { isWorldInteractionUnlocked } from "../proximity.js";
 import type { ArcInteraction } from "../useArcInteraction.js";
 import type { ArcWorld } from "../useArcWorld.js";
 import type { DecisionResponse } from "../decision.js";
+import { SensorySwitcher } from "../components/SensorySwitcher.js";
+import { playPresentationCue } from "../sensory-prefs.js";
 
 export interface ShellProps {
   world: ArcWorld;
@@ -295,7 +297,7 @@ export function Shell({ world, interaction: ix, onExit, initialCostumeId, onCost
       <PixelIcon name="selected" /> {!isMobile && <span>{t("shell.cartridgeButton")}</span>}
     </PixelButton>
   );
-  const localeSwitcher = <LocaleSwitcher />;
+  const localeSwitcher = <div style={{ display: "inline-flex", gap: 4 }}><SensorySwitcher /><LocaleSwitcher /></div>;
 
   const selectionActive = selectionVisible && ix.selected?.status === "available";
   const recommendedIds = useMemo(
@@ -463,7 +465,7 @@ export function Shell({ world, interaction: ix, onExit, initialCostumeId, onCost
 
   return (
     <div data-testid="engine-shell" data-modal-open={modalOpen ? "true" : "false"} style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: "#0b0a08", overflow: "hidden", isolation: "isolate", fontFamily: "'IBM Plex Mono', ui-monospace, monospace" }}>
-      {!isMobile && <ProgramIdentityStrip world={world} />}
+      <ProgramIdentityStrip world={world} />
       <div
         style={{
           flex: "none",
@@ -654,7 +656,10 @@ export function Shell({ world, interaction: ix, onExit, initialCostumeId, onCost
             : undefined}
           onResolve={(optionId) => {
             const response = world.resolveDecision(optionId);
-            if (response) setDecisionResponse(response);
+            if (response) {
+              playPresentationCue("decision", world.arc.meta.id);
+              setDecisionResponse(response);
+            }
           }}
           targetName={world.effectTargetName}
         />

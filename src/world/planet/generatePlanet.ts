@@ -2,13 +2,14 @@ import * as THREE from "three";
 import { MeshBVH } from "three-mesh-bvh";
 import "three-mesh-bvh"; // augments BufferGeometry with boundsTree
 import { fbm3 } from "./noise.js";
-import { colorForElevation, WATER_LEVEL } from "./palette.js";
+import { colorForElevation, WATER_LEVEL, type PaletteBand } from "./palette.js";
 
 export interface PlanetOptions {
   radius: number;
   detail?: number;
   seed?: number;
   amplitude?: number;
+  palette?: PaletteBand[];
 }
 
 /**
@@ -77,7 +78,7 @@ export function generatePlanet(opts: PlanetOptions): THREE.BufferGeometry {
 
     posAttr.setXYZ(i, nx * newR, ny * newR, nz * newR);
 
-    const c = colorForElevation(normElevation);
+    const c = colorForElevation(normElevation, opts.palette);
     const o = i * 3;
     colors[o] = c[0];
     colors[o + 1] = c[1];

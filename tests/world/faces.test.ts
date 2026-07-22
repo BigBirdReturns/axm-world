@@ -58,7 +58,7 @@ describe("faces (#72): portrait asset integrity", () => {
 
   it("Karazhan faces are keyed by AUTHORED id too — no invented faces for unknown people", () => {
     expect(karazhanPortrait("tower-warden")).not.toBeNull();
-    expect(karazhanPortrait("Aldous Venn")).toBeNull(); // name is not an id
+    expect(karazhanPortrait("Seren Vale")).toBeNull(); // name is not an id
     expect(karazhanPortrait("charter-keeper")).toBeNull(); // not this cartridge's person
   });
 
@@ -69,7 +69,7 @@ describe("faces (#72): portrait asset integrity", () => {
   });
 
   it("roster faces key off the ROLE — real run data — with a neutral fallback", () => {
-    expect(FIRST_CHARTER_THEME.appearancePack.roleBindings.Vanguard).toBe("rodoh:plated");
+    expect(FIRST_CHARTER_THEME.appearancePack.roleBindings.Vanguard).toBe("first-charter:vanguard");
   });
 });
 

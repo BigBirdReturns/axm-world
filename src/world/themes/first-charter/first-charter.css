@@ -107,3 +107,47 @@
 :root[data-cartridge="first-charter"] .contract-board-header {
   box-shadow: inset 0 -3px 0 -2px rgba(216, 178, 118, 0.4);
 }
+
+/* Whole-cartridge parity pass: the same civic-ledger material language reaches
+   Map, Hall, Encounter, Aperture, Globe controls, and role close-ups. */
+:root[data-cartridge="first-charter"] .pixel-doll-portrait {
+  background: linear-gradient(145deg, #f4ead5, #d8c49f);
+  border: 1px solid #b89460;
+  box-shadow: 2px 2px 0 #684a2f, inset 0 0 0 1px rgba(23,165,137,.28);
+}
+:root[data-cartridge="first-charter"] .wm-surface {
+  background:
+    repeating-linear-gradient(180deg, transparent 0 31px, rgba(104,74,47,.07) 31px 32px),
+    linear-gradient(180deg, #efe5cf, #d8c8a9);
+}
+:root[data-cartridge="first-charter"] .wm-pin { border-left-color: #17a589; box-shadow: 2px 2px 0 rgba(104,74,47,.35); }
+:root[data-cartridge="first-charter"] [data-testid="hall-scene"] {
+  background:
+    radial-gradient(circle at 50% 12%, rgba(216,178,118,.24), transparent 34%),
+    linear-gradient(180deg, #3e3526, #17130d 68%, #0b0906) !important;
+}
+:root[data-cartridge="first-charter"] [data-testid="hall-floor"] {
+  background:
+    repeating-linear-gradient(90deg, rgba(126,96,55,.42) 0 30px, rgba(87,67,39,.42) 30px 60px),
+    repeating-linear-gradient(180deg, transparent 0 22px, rgba(23,165,137,.15) 22px 23px) !important;
+  border-top-color: #d8b276 !important;
+}
+:root[data-cartridge="first-charter"] .encs-overlay { background: rgba(24,20,13,.84); }
+:root[data-cartridge="first-charter"] .encs-panel {
+  border-color: #b89460;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 27px, rgba(104,74,47,.055) 27px 28px),
+    #efe7d6;
+  box-shadow: 6px 6px 0 #3b2d1e, inset 0 0 0 1px rgba(23,165,137,.24);
+}
+:root[data-cartridge="first-charter"] .encs-room { border-color: #17a589; background: rgba(23,165,137,.05); }
+:root[data-cartridge="first-charter"] .encs-objective { border-left: 3px solid #d8b276; }
+:root[data-cartridge="first-charter"] .rodoh-aperture {
+  --ap-bg: #16130d; --ap-panel: rgba(42,35,24,.95); --ap-line: rgba(216,178,118,.46);
+  --ap-gold: #d8b276; --ap-teal: #2fbfa2; --ap-ink: #f1e7d2; --ap-muted: #b9aa8e;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 35px, rgba(216,178,118,.05) 35px 36px),
+    linear-gradient(180deg, #272015, #0d0b08);
+}
+:root[data-cartridge="first-charter"] .walkable-world { box-shadow: inset 0 0 80px rgba(216,178,118,.12); }
+:root[data-cartridge="first-charter"] .world-movement-pad button { border-color: #b89460; background: rgba(42,35,24,.92); color: #efe5cf; }

@@ -26,14 +26,14 @@ export const WATER_LEVEL = 0.4;
  * Map normalized elevation e in [0,1] to a linear RGB color.
  * Flat (per-band) for a tactile low-poly look.
  */
-export function colorForElevation(e: number): RGB {
+export function colorForElevation(e: number, palette: PaletteBand[] = PALETTE): RGB {
   const clamped = e < 0 ? 0 : e > 1 ? 1 : e;
-  for (const band of PALETTE) {
+  for (const band of palette) {
     if (clamped <= band.max) {
       return [band.color[0], band.color[1], band.color[2]];
     }
   }
-  const last = PALETTE[PALETTE.length - 1];
+  const last = palette[palette.length - 1];
   if (last) return [last.color[0], last.color[1], last.color[2]];
   return [1, 1, 1];
 }

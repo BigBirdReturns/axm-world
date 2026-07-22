@@ -1,7 +1,7 @@
 // Embodied arc representation: the player walks between authored locations on
 // the generated world. Shell chrome still owns contracts, encounters and records.
 
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { Component, useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { Stars } from "@react-three/drei";
@@ -18,6 +18,7 @@ import { PlayerCharacter } from "./core/PlayerCharacter.js";
 import { setVirtualWorldInput } from "./core/input.js";
 import { isWorldNodeWithinRange, nearestWorldNode } from "./proximity.js";
 import { t } from "./i18n/index.js";
+import { planetPaletteForArc } from "./themes/select.js";
 import "./world-screen.css";
 
 const RADIUS = DEFAULT_WORLD_CONFIG.planetRadius;
@@ -33,6 +34,43 @@ export interface SceneProps {
   interaction: ArcInteraction;
   modalOpen?: boolean;
   active?: boolean;
+  onEnterEncounter?: (challengeId: string) => void;
+}
+
+interface CanvasBoundaryProps {
+  children: ReactNode;
+  fallback: ReactNode;
+}
+
+class CanvasBoundary extends Component<CanvasBoundaryProps, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError(): { failed: boolean } {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: unknown): void {
+    // Rendering a cartridge must not become impossible merely because the host
+    // cannot create a WebGL context. The accessible fallback below remains a
+    // faithful projection over the same WorldNode records.
+    console.warn("Planet renderer unavailable; using the bounded fallback.", error);
+  }
+
+  render(): ReactNode {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
+function hasWebGL(): boolean {
+  if (typeof document === "undefined") return false;
+  try {
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("webgl2", { failIfMajorPerformanceCaveat: true })
+      ?? canvas.getContext("webgl", { failIfMajorPerformanceCaveat: true });
+    return context !== null;
+  } catch {
+    return false;
+  }
 }
 
 /** Drop each node onto the actual displaced terrain (so markers do not float). */
@@ -84,17 +122,90 @@ function scheduleTapMovement(input: { x?: number; y?: number; jump?: boolean }):
   window.setTimeout(() => tapMovement(input), 0);
 }
 
-export function PlanetScene({ world, interaction: ix, modalOpen = false, active = true }: SceneProps): JSX.Element {
+/** The Globe is an optional accelerated representation, not a boot requirement.
+ * Browsers without WebGL keep the same cartridge/run available as an orbital
+ * atlas instead of crashing the complete runtime. The fallback selects and
+ * enters the same WorldNode records; it owns no alternate game state. */
+function PlanetFallback({ world, interaction: ix, modalOpen = false, onEnterEncounter }: SceneProps): JSX.Element {
+  const selected = world.nodes.find((node) => node.challengeId === ix.selectedId) ?? world.nodes[0] ?? null;
+  const count = Math.max(1, world.nodes.length);
+  return (
+    <div className="walkable-world walkable-world--fallback" data-testid="walkable-world" data-renderer="orbital-fallback">
+      <div className="world-fallback__sky" aria-hidden="true" />
+      <header className="world-fallback__header">
+        <small>{t("presentations.globe.fallbackTitle")}</small>
+        <strong>{world.arc.meta.name}</strong>
+        <p>{t("presentations.globe.fallbackBody")}</p>
+      </header>
+      <div className="world-fallback__orbit" data-testid="world-fallback-orbit" aria-label={t("presentations.globe.label")}>
+        <div className="world-fallback__planet" aria-hidden="true" />
+        {world.nodes.map((node, index) => {
+          const angle = (index / count) * Math.PI * 2 - Math.PI / 2;
+          const left = 50 + Math.cos(angle) * 42;
+          const top = 50 + Math.sin(angle) * 37;
+          return (
+            <button
+              key={node.challengeId}
+              type="button"
+              className={`world-fallback__pin world-fallback__pin--${node.status}`}
+              data-testid={`world-fallback-node-${node.challengeId}`}
+              data-selected={node.challengeId === selected?.challengeId ? "true" : undefined}
+              disabled={modalOpen}
+              onClick={() => ix.select(node.challengeId)}
+              style={{ left: `${left}%`, top: `${top}%` }}
+            >
+              <span aria-hidden="true">{node.status === "cleared" ? "✓" : node.status === "available" ? "◆" : "◇"}</span>
+              <strong>{node.title}</strong>
+            </button>
+          );
+        })}
+      </div>
+      {selected && (
+        <aside className="world-fallback__detail" data-testid="world-fallback-detail">
+          <small>{selected.status}</small>
+          <strong>{selected.title}</strong>
+          <p>{selected.description}</p>
+          {selected.status === "available" && onEnterEncounter && (
+            <button type="button" disabled={modalOpen} onClick={() => onEnterEncounter(selected.challengeId)}>
+              {t("worldMap.enterEncounter")}
+            </button>
+          )}
+        </aside>
+      )}
+    </div>
+  );
+}
+
+export function PlanetScene(props: SceneProps): JSX.Element {
+  // Commit the bounded atlas first, then progressively upgrade to WebGL after
+  // mount. Probing or creating a context during render can strand React before
+  // the representation wrapper commits on restricted/headless hosts. A host
+  // that supports WebGL upgrades one frame later; every other host keeps the
+  // exact same WorldNode projection and interaction seam.
+  const [webglAvailable, setWebglAvailable] = useState(false);
+  useEffect(() => {
+    setWebglAvailable(hasWebGL());
+  }, []);
+  if (!webglAvailable) return <PlanetFallback {...props} />;
+  return (
+    <CanvasBoundary fallback={<PlanetFallback {...props} />}>
+      <WebGLPlanetScene {...props} />
+    </CanvasBoundary>
+  );
+}
+
+function WebGLPlanetScene({ world, interaction: ix, modalOpen = false, active = true }: SceneProps): JSX.Element {
   const [collider, setCollider] = useState<THREE.Mesh | null>(null);
   const [nearbyChallengeId, setNearbyChallengeId] = useState<string | null>(null);
   const controllerState = useRef<ControllerState | null>(null);
   const nearbyId = useRef<string | null>(null);
 
+  const planetPalette = useMemo(() => planetPaletteForArc(world.arc), [world.arc]);
   const geometry = useMemo(() => {
-    const generated = generatePlanet({ radius: RADIUS, seed: SEED });
+    const generated = generatePlanet({ radius: RADIUS, seed: SEED, palette: planetPalette });
     makeColliderBVH(generated);
     return generated;
-  }, []);
+  }, [planetPalette]);
   const scatterItems = useMemo(() => scatterOnPlanet(geometry, RADIUS, 140, SEED), [geometry]);
   const placedNodes = useMemo(() => placeOnTerrain(world.nodes, collider), [world.nodes, collider]);
   const spawn = useMemo(() => placeSpawn(world.layout.spawn.normal, collider), [world.layout.spawn.normal, collider]);

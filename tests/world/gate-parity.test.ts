@@ -54,13 +54,13 @@ const wing1 = [
 ];
 
 describe("attunement gates on the board (acceptance 4-6)", () => {
-  it("fresh org: wing-1 available, Curator locked by the Master's Key", () => {
+  it("fresh org: wing-1 available, Orrery Warden locked by the Surveyor's Key", () => {
     const scene = compileArcToPlayScene(KARAZHAN, karazhanOrg());
     const byId = new Map(scene.nodes.map((n) => [n.challengeId, n]));
     expect(byId.get("attumen")!.status).toBe("available");
     expect(byId.get("curator")!.status).toBe("locked");
     // The lock renders its reason: the authored chain name, not an id.
-    expect(byId.get("curator")!.requirements.join(" ")).toContain("The Master's Key");
+    expect(byId.get("curator")!.requirements.join(" ")).toContain("The Surveyor's Key");
     expect(byId.get("curator")!.requirements.join(" ")).toContain("50% of party");
   });
 
@@ -83,7 +83,7 @@ describe("attunement gates on the board (acceptance 4-6)", () => {
     expect(scene.nodes.find((n) => n.challengeId === "curator")!.status).toBe("available");
   });
 
-  it("Nightbane stays locked after prince until an attuned agent holds the urn", () => {
+  it("The Bell-Woken Wyrm stays locked after the Cinder Prince until an attuned agent holds the urn", () => {
     const spire = [...wing1,
       { challengeId: "curator", cycle: 5, outcome: "success" as const },
       { challengeId: "aran", cycle: 6, outcome: "success" as const },
@@ -95,7 +95,7 @@ describe("attunement gates on the board (acceptance 4-6)", () => {
     const locked = compileArcToPlayScene(KARAZHAN, withoutUrn);
     const lockedNode = locked.nodes.find((n) => n.challengeId === "nightbane")!;
     expect(lockedNode.status).toBe("locked");
-    expect(lockedNode.requirements.join(" ")).toContain("The Blackened Urn");
+    expect(lockedNode.requirements.join(" ")).toContain("The Bell-Blackened Urn");
 
     const withUrn = karazhanOrg((agents) => {
       for (const id of Object.keys(agents)) agents[id]!.assignmentHistory = [...spire];

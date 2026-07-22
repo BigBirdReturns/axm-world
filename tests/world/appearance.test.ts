@@ -11,9 +11,9 @@ function read(rel: string): string {
 
 describe("Dolls + Layers appearance contract", () => {
   it("keeps role-to-appearance choices in cartridge theme data", () => {
-    expect(resolveDollAppearance(FIRST_CHARTER_THEME, "Vanguard").id).toBe("rodoh:plated");
-    expect(resolveDollAppearance(KARAZHAN_THEME, "Tank").id).toBe("rodoh:plated");
-    expect(resolveDollAppearance(KARAZHAN_THEME, "Healer").id).toBe("rodoh:robed");
+    expect(resolveDollAppearance(FIRST_CHARTER_THEME, "Vanguard").id).toBe("first-charter:vanguard");
+    expect(resolveDollAppearance(KARAZHAN_THEME, "Tank").id).toBe("karazhan:tank");
+    expect(resolveDollAppearance(KARAZHAN_THEME, "Healer").id).toBe("karazhan:healer");
   });
 
   it("degrades unknown roles and cartridges to the dignified bare doll", () => {

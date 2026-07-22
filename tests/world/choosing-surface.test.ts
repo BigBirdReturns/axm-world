@@ -31,17 +31,19 @@ describe("choosing surface (PR A)", () => {
     const board = read("src/world/contract-board/ContractBoard.tsx");
     expect(board).toContain("unlockEdges");
     expect(board).toContain('data-testid="board-adjacency"');
-    // Selecting the already-selected card deselects it (the no-selection state is reachable):
-    expect(board).toContain("interaction.selectedId === id ? null : id");
+    // Cold-start focus is not a user pick: the first tap opens that card. A second
+    // tap on an explicitly selected card still reaches the no-selection state.
+    expect(board).toContain("interaction.selectedId === id && interaction.selectionIsUserAct ? null : id");
 
     const adjacency = read("src/world/contract-board/adjacency.ts");
     expect(adjacency).toContain("orgMilestones");
     expect(adjacency).toContain("milestoneFlag");
   });
 
-  it("cold-start auto-select fires once so an explicit deselect sticks", () => {
+  it("cold-start and post-run focus never impersonate an explicit player pick", () => {
     const hook = read("src/world/useArcInteraction.ts");
     expect(hook).toContain("coldStartDone");
+    expect(hook.match(/setSelectionIsUserAct\(false\)/g)?.length).toBeGreaterThanOrEqual(2);
   });
 
   it("roster collapses to compact rows and ranks the recommended party first", () => {

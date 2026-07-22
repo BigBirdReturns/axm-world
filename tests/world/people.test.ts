@@ -14,13 +14,13 @@ describe("hallSteward — the authored person the hall surfaces", () => {
     expect(steward!.fulfilledLine.length).toBeGreaterThan(0);
   });
 
-  it("returns Karazhan's authored warden — the second cartridge is now first-class, not a generic fallback", () => {
-    // Dignity pass: Karazhan authors its own steward, proving the directing
+  it("returns The Waking Tower's authored warden — the second cartridge is now first-class, not a generic fallback", () => {
+    // Dignity pass: The Waking Tower authors its own steward, proving the directing
     // primitive generalizes beyond First Charter. Different fiction, same shape.
     const steward = hallSteward(KARAZHAN_CARTRIDGE);
     expect(steward).not.toBeNull();
-    expect(steward!.name).toBe("Aldous Venn");
-    expect(steward!.role).toBe("Warden of the Violet Eye");
+    expect(steward!.name).toBe("Seren Vale");
+    expect(steward!.role).toBe("Warden of the Lamplit Survey");
     expect(steward!.bio.length).toBeGreaterThan(0);
     expect(steward!.greeting.length).toBeGreaterThan(0);
     expect(steward!.fulfilledLine.length).toBeGreaterThan(0);

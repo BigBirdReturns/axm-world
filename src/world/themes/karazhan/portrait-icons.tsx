@@ -1,7 +1,7 @@
-// Authored-person portraits for the Karazhan theme. A face here exists ONLY for a
+// Authored-person portraits for The Waking Tower theme (legacy id `karazhan`). A face here exists ONLY for a
 // person the cartridge actually authors (cartridge.people) — keyed by the person's
 // authored id, never generated for unnamed figures. Cartridges without authored
-// people keep the neutral runtime figures. This is the Karazhan-side twin of
+// people keep the neutral runtime figures. This is the Waking-Tower-side twin of
 // themes/first-charter/portrait-icons.tsx: same renderer, same encoding, a
 // per-person grid + palette in the tower's own violet register.
 //
@@ -14,9 +14,9 @@
 
 import { PixelPortraitGlyph, type PortraitSpec } from "../../pixel-ui/PixelPortrait.js";
 
-// Aldous Venn, Warden of the Violet Eye — a deep-hooded warden of the order,
-// tower-pale face framed by an amethyst hood with the Eye's trim at the brow.
-const ALDOUS_VENN: PortraitSpec = {
+// Seren Vale, Warden of the Lamplit Survey — a deep-hooded survey warden,
+// tower-pale face framed by an amethyst hood with the Survey's lamp trim.
+const SEREN_VALE: PortraitSpec = {
   grid: [
     "....oooooooo....",
     "...ohhhhhhhho...",
@@ -50,7 +50,7 @@ const ALDOUS_VENN: PortraitSpec = {
 
 // Venn's standing BODY for the staged hall scene — sprite in the scene, portrait
 // in the close-ups (dialogue, steward's note): the classic tactics-game split.
-const ALDOUS_VENN_BODY: PortraitSpec = {
+const SEREN_VALE_BODY: PortraitSpec = {
   grid: [
     ".....ooooo.oo...",
     "....ohhhhhoho...",
@@ -82,20 +82,20 @@ const ALDOUS_VENN_BODY: PortraitSpec = {
 
 const PEOPLE: Record<string, PortraitSpec> = {
   // Keyed by the person's AUTHORED id (cartridge.people[].id), not their name.
-  "tower-warden": ALDOUS_VENN,
+  "tower-warden": SEREN_VALE,
 };
 
 const PEOPLE_BODIES: Record<string, PortraitSpec> = {
-  "tower-warden": ALDOUS_VENN_BODY,
+  "tower-warden": SEREN_VALE_BODY,
 };
 
-/** The authored portrait for a Karazhan person id, or null when that person has
+/** The authored portrait for a Waking Tower person id, or null when that person has
  *  no authored face (callers keep their existing figure/fallback). */
 export function personPortrait(personId: string): PortraitSpec | null {
   return PEOPLE[personId] ?? null;
 }
 
-/** The authored standing body for a Karazhan person id, or null. */
+/** The authored standing body for a Waking Tower person id, or null. */
 export function personSprite(personId: string): PortraitSpec | null {
   return PEOPLE_BODIES[personId] ?? null;
 }

@@ -42,7 +42,7 @@ describe("places (#73): sprite asset integrity", () => {
   });
 
   it("bodies key off the ROLE with a neutral fallback — never an invented identity", () => {
-    expect(FIRST_CHARTER_THEME.appearancePack.roleBindings.Vanguard).toBe("rodoh:plated");
+    expect(FIRST_CHARTER_THEME.appearancePack.roleBindings.Vanguard).toBe("first-charter:vanguard");
   });
 });
 

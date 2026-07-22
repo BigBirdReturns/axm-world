@@ -4,7 +4,7 @@
 // that produces the custody object (manifest + arc + run state) as a file. Custody as
 // an object action.
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import type { CartridgeManifest } from "../cartridge.js";
 import { RodohRuntimeMark } from "../brand/RodohRuntimeMark.js";
 import { PixelButton, PixelIcon } from "../pixel-ui/index.js";
@@ -13,6 +13,7 @@ import { t } from "../i18n/index.js";
 import type { MessageId } from "../i18n/messages.js";
 import type { CustodyObject } from "../useArcWorld.js";
 import type { Ledger } from "../ledger.js";
+import { playPresentationCue } from "../sensory-prefs.js";
 
 interface Props {
   manifest: CartridgeManifest;
@@ -84,6 +85,9 @@ export function CartridgeObjectPanel({ manifest, digest, ledger, openingChoice, 
   // consequence (Objectives / Rewards / World changes) — a simple detail over the
   // stored record, no tabs/filters/timestamps.
   const [openSeq, setOpenSeq] = useState<number | null>(null);
+  useEffect(() => {
+    if (ledger.entries.length > 0) playPresentationCue("record", manifest.id);
+  }, [ledger.entries.length, manifest.id]);
   const handleExport = () => {
     const data = onExport();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });

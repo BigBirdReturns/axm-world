@@ -68,17 +68,15 @@ artifact format"**—demonstrated by a game good enough to stand on its own:
 3. Trust-label it.
 4. Click Play in World.
 5. World boots the cartridge.
-6. Rodoh represents the same cartridge and run as board · planet · comic/report
-   · text-forward novella without changing authored law or recorded outcomes.
-7. Finish a run.
-8. Replay or verify that run from a hash.
+6. Rodoh represents the same cartridge and run as Board · Map · Hall ·
+   Encounter · Globe · Aperture without changing authored law or recorded outcomes.
+7. Finish a run and carry its exact consequence through `axm-cartridge-run/v3`.
+8. Reload, import, resume, and verify the content/run identity.
 
-Steps 1–3 exist in the hub today. Step 5's machinery exists: the shared
-`foundOrganization` transition boots any valid Arc from identity-bound law or
-the frozen legacy fallback; the loader door is the gap.
-Step 6 has board + planet today; comic/report and novella are costumes to
-be built on the same seam. Step 8 rests on determinism today (same arc +
-seed → same run) and on Genesis signing/hashing for the full story.
+Steps 1–8 are implemented for the local-first browser product. The content
+identity digest and deterministic run receipt verify exact bytes and replay;
+publisher-authorship signatures remain the separate Genesis-conformance stage
+and are not implied by the current trust label.
 
 ## What the planet view is for
 
@@ -133,12 +131,12 @@ exists*; the taxonomy says *how it is enforced*:
 - **Fixed contracts render fixed** — The Cellar shows no choice, and that is the
   feature obeying the contract, not a missing feature.
 - **Deployment-slack contracts render deployment choice** — The Bridge Troll.
-- **Difficulty-mode contracts render posture choice** — Karazhan's Heroic. This is
+- **Difficulty-mode contracts render posture choice** — The Waking Tower's Heroic. This is
   the current proof case: First Charter authors no mode, so it shows **no** chooser;
-  Karazhan authors Heroic, so it does. The lever, not the UI, decides.
-- **Resource-spend does not render until the engine honors it** — `tokensSpent`
-  today is a ledger debit the resolver never reads, so surfacing it would be fake
-  agency. It stays excluded until the engine actually consumes it.
+  The Waking Tower authors Heroic, so it does. The lever, not the UI, decides.
+- **Resource-spend renders only where authored** — `tokensSpent` now reaches
+  `resolveChallenge`, changes the resolver's risk band, debits exactly once, and
+  is written into the receipt. Cartridges without the lever render no spend row.
 
 ## Canonical one-pager direction (subordinate to the doctrine above)
 
@@ -151,11 +149,11 @@ WORLDS" sheet:
 3. **One-session loop** — what a single sitting feels like.
 4. **Projection pipeline** — `Author → Cartridge → Sim → World → Play`; every
    surface is a projection of the one cartridge.
-5. **Current proof** — `Board → Map node → Encounter → Result → Ledger` (built and
-   verified today).
-6. **Future surfaces** — Planet, co-op, social, guilds, seasons: **marked as
-   roadmap, not shipped mechanics**, and each must pass the anti-extractive test
-   before it becomes canonical.
+5. **Current proof** — `Board → Map → Hall → Encounter → Globe → Aperture →
+   Result → Ledger`, built and verified across all three bundled cartridges.
+6. **Future products** — co-op, social, cloud identity, guilds, seasons,
+   marketplace services, and cinematic media are marked as expansion products,
+   not missing local-runtime mechanics; each must pass the anti-extractive test.
 
 Point 6 is load-bearing. Season, guild, and social systems are exactly where
 extraction grammar tries to re-enter wearing cute clothes (season pressure, guild
@@ -164,20 +162,23 @@ contract governs them when they do.
 
 ## Current strategic priorities
 
-1. **Finish The First Charter as an unaided game** — cold entry, meaningful
-   opening consequence, complete campaign, legible ending, failure recovery,
-   save/resume, and desktop/mobile craft.
-2. **Complete custody portability** — import and resume the existing changed-run
-   export; export alone is one-way custody, not a round trip.
-3. **Prove equal treatment with one compact IP-safe second cartridge** — a
-   distinct authored grammar completed end to end, not a giant unbalanced demo.
-4. **Polish spatial representation where space carries meaning** — territory,
-   adjacency, travel, or spatial memory; never 3D as a substitute for the loop.
+1. **Protect parity as a contract.** Every bundled cartridge must keep full
+   campaign/custody proof, cartridge-owned expression, all six representations,
+   desktop/mobile browser coverage, and neutral fallback for imports.
+2. **Keep authoring and runtime law aligned.** Arc owns schema, validation,
+   founding, resolution, portable runs, and authored levers; World re-vendors
+   exact reviewed bytes and never grows a second resolver.
+3. **Expand only as a named product.** Multiplayer, cloud identity, signing,
+   marketplace services, and cinematic media require their own authority,
+   privacy, custody, and acceptance contracts. They do not silently reopen the
+   completed local-first product.
+4. **Treat human sessions as telemetry.** Concrete accessibility, pacing, and
+   comprehension findings become ordinary defects or tuning work; absence of a
+   ceremonial session is not a release veto.
 
-Library and Workshop are maintained foundations inside priorities 1–2: preserve
-their validation, custody, accessibility, and game-support behavior, but do not
-grow them as independent feature lanes until the reference game and changed-run
-round trip are closed.
+Library, Workshop, Designer, and Godscar Forge are maintained authoring
+foundations. Their validation, custody, accessibility, and preview paths remain
+part of parity rather than independent speculative lanes.
 
 “Program of record” in current Rodoh code means a controlled playable artifact
 bound to a computed digest, declared runtime representations, and versioned save

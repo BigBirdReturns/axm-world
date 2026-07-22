@@ -2,7 +2,7 @@
 // when the cartridge authors the lever (difficultyModes), recompile the encounter
 // under the chosen posture, and shift the projection — all through the same
 // applyDifficultyMode transform the resolver uses. First Charter authors no modes,
-// so its encounters (The Cellar included) stay fixed. Karazhan authors Heroic.
+// so its encounters (The Cellar included) stay fixed. The Waking Tower authors Heroic.
 
 import { describe, expect, it } from "vitest";
 import { FIRST_CHARTER, KARAZHAN } from "../../src/arcs/index.js";
@@ -20,7 +20,7 @@ describe("difficulty-mode choice is a property of the authored contract", () => 
   it("the lever exists only where authored — and Karazhan is reachable as a bundled game", () => {
     expect(FIRST_CHARTER.difficultyModes).toHaveLength(0); // fixed: no posture choice
     expect(KARAZHAN.difficultyModes.length).toBeGreaterThan(0); // authored lever
-    // The proof is reachable live: Karazhan is now a bundled world cartridge.
+    // The proof is reachable live: The Waking Tower is now a bundled world cartridge.
     expect(BUNDLED_CARTRIDGES.some((c) => c.arc.meta.id === KARAZHAN.meta.id)).toBe(true);
   });
 

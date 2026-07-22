@@ -80,11 +80,11 @@ export const FIRST_CHARTER_PEOPLE: AuthoredPerson[] = [{
 
 export const KARAZHAN_PEOPLE: AuthoredPerson[] = [{
   id: "tower-warden",
-  name: "Aldous Venn",
-  role: "Warden of the Violet Eye",
-  bio: "The order's warden at the tower door. Venn keeps the Violet Eye's tally — every wing the raid reclaims, every raider it spends — and answers to the order for all of it.",
-  greeting: "The wards are thin and the next wing is waiting. Take the raid in when you're ready — the Eye will hear how it went from me.",
-  fulfilledLine: "Cleared, and counted. The Eye's tally holds what your raid did in there.",
+  name: "Seren Vale",
+  role: "Warden of the Lamplit Survey",
+  bio: "The Survey's warden at the tower door. Vale keeps its tally — every wing the raid reclaims, every raider it spends — and answers for all of it.",
+  greeting: "The wards are thin and the next wing is waiting. Take the raid in when you're ready — the Survey will hear how it went from me.",
+  fulfilledLine: "Cleared, and counted. The Survey's tally holds what your raid did in there.",
 }];
 
 
