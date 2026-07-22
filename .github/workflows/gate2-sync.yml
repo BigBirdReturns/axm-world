@@ -5,12 +5,17 @@ on:
     branches: [codex/gate2-world-reconcile]
     paths:
       - '.github/workflows/gate2-sync.yml'
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - '.github/workflows/gate2-sync.yml'
 
 permissions:
   contents: write
 
 jobs:
   sync:
+    if: github.head_ref == 'codex/gate2-world-reconcile' || github.ref_name == 'codex/gate2-world-reconcile'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -36,7 +41,7 @@ jobs:
         run: |
           rm .github/workflows/gate2-sync.yml
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "418982982+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "Vendor Arc Gate 2 source plane at dd688a0"
           git push origin HEAD:codex/gate2-world-reconcile
