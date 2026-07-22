@@ -11,18 +11,21 @@
     {
       "path": "src/assets/first-charter/hall/charter-hall-environment.svg",
       "role": "runtime environment",
+      "viewBox": "0 0 1600 900",
       "surface": "guided and reusable First Charter Hall",
       "responsiveIntent": "cover crop with preserved charter window and table focal area"
     },
     {
       "path": "src/assets/first-charter/hall/maren-vos-portrait.svg",
       "role": "runtime authored-person portrait",
+      "viewBox": "0 0 640 800",
       "subject": "Maren Vos, Charter-Keeper",
       "responsiveIntent": "portrait crop remains legible from mobile card to desktop steward panel"
     },
     {
       "path": "src/assets/first-charter/hall/charter-hall-foreground.svg",
       "role": "runtime framing overlay",
+      "viewBox": "0 0 1600 900",
       "surface": "guided and reusable First Charter Hall",
       "responsiveIntent": "edge framing may crop; center interaction space remains unobstructed"
     }
@@ -30,8 +33,8 @@
   "validation": {
     "required": [
       "Vite production build resolves every asset URL",
-      "desktop Chromium loads natural dimensions and captures a Hall screenshot",
-      "mobile Chromium loads natural dimensions and captures a Hall screenshot",
+      "desktop Chromium loads every asset, verifies its authored view box, and captures a Hall screenshot",
+      "mobile Chromium loads every asset, verifies its authored view box, and captures a Hall screenshot",
       "existing Hall interaction and persistence receipts remain green"
     ]
   }
