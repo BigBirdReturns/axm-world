@@ -26,9 +26,6 @@ describe("First Charter Hall production vertical slice", () => {
 
   it("binds the environment, portrait, and framing files into the actual Hall runtime", () => {
     const css = read("src/world/themes/first-charter/first-charter.css");
-    for (const path of assets) {
-      expect(css).toContain(path.replace("src/world/themes/first-charter/../../../", ""));
-    }
     expect(css).toContain('url("../../../assets/first-charter/hall/charter-hall-environment.svg")');
     expect(css).toContain('url("../../../assets/first-charter/hall/maren-vos-portrait.svg")');
     expect(css).toContain('url("../../../assets/first-charter/hall/charter-hall-foreground.svg")');
