@@ -1,37 +1,42 @@
 # Reconciliation: how this repo stays in sync with axm-arc
 
-The canonical contract lives in **axm-arc's `RECONCILIATION.md`** — axm-arc is
-the hub and owns the shared surface. This file is the world-side operational
-summary.
+The canonical contract lives in **axm-arc's `RECONCILIATION.md`**. Arc is the
+source and execution authority. World is a Rodoh player and renderer over one
+exact vendored Arc source plane.
 
 ## What is vendored here
 
-These paths are byte-identical copies of axm-arc, pinned to the commit
-recorded in `src/engine/VENDORED_FROM`:
+These paths are byte-identical copies of the Arc commit recorded in
+`src/engine/VENDORED_FROM`:
 
-- `src/engine/` — the deterministic rules engine
-- `src/arcs/` — the bundled tutorial arc content
-- `tests/engine/` — engine subsystem + resolver tests
-- `tests/fixtures/` — shared test fixtures
-- `src/godscar/` — Godscar Pocket source grammar and compiler
-- `tests/godscar/` — Godscar conformance and reference-artifact tests
-- `cartridges/` — published portable examples, including the Godscar source/Arc pair
+- `src/engine/` — deterministic execution, state, composition, custody, and save law;
+- `src/arcs/` — bundled reference Arc content;
+- `src/godscar/` — Book I Pocket source grammar and compiler;
+- `src/dark-tomb/` — Book II Dark Tomb source grammar and compiler;
+- `src/common-ship/` — Book III Common Ship source grammar and compiler;
+- `src/source-planes/` — the canonical registry joining formats, extension keys, starters, validators, compilers, and exact recovery;
+- `tests/engine/`, `tests/fixtures/`, `tests/godscar/`, `tests/dark-tomb/`, `tests/common-ship/`, and `tests/source-planes/` — the shared conformance surface;
+- `cartridges/` — published creator sources and compiled portable examples.
 
-Everything else in this repo — `src/world/`, `src/spoke/`, `src/play-pipeline/`,
-the world/spoke/game test suites — is world's own and free to evolve.
+World's `src/world/`, `src/spoke/`, browser tests, receiver state, presentation,
+and assets remain World-owned. World may inspect registered creator source and
+render engine facts. It may not maintain a second validator, compiler, resolver,
+state transition, or composition evaluator.
 
 ## The rule
 
-**Never land a shared-surface change here alone.** If you need an engine,
-schema, or tutorial-arc change:
+**Never land a shared-surface change here alone.** For an engine, schema,
+source-plane, registry, fixture, or reference-cartridge change:
 
-1. Land it in axm-arc first (or upstream it in the same sitting if you
-   prototyped it here), with tests.
-2. Back here, run `npm run engine:sync <arc ref>` — it re-vendors all seven
-   paths and moves the pin in `VENDORED_FROM`.
-3. `npm run check`, commit the sync as its own commit.
+1. Land and review it in axm-arc first, with tests.
+2. Run `npm run engine:sync -- <arc ref>` in World.
+3. Run `npm run check` and the browser/product-parity gates.
+4. Commit the exact sync and updated `VENDORED_FROM` pin.
 
-`npm run engine:check` (and the `engine-drift` CI job, which runs on any push
-or PR touching the shared paths) diffs the working copies against the pinned
-axm-arc commit and fails on any mismatch — that is the guardrail that makes
-"whatever we do hits both" enforceable rather than aspirational.
+`npm run engine:check` and the `engine-drift` workflow diff every shared path
+against the pinned Arc commit. Unknown namespaced Arc and run extensions remain
+holder-owned data. A receiver that does not recognize them must preserve them.
+
+World source-plane inspection consumes the vendored registry. It reports known
+valid or invalid embedded source objects and identifies unknown extension keys;
+it does not reinterpret their law.
