@@ -1,13 +1,25 @@
 import { test, expect } from "@playwright/test";
 import { enterCartridge } from "./helpers";
 
-async function loadedBackgroundAssets(page: import("@playwright/test").Page, urls: string[]): Promise<Array<{ url: string; width: number; height: number }>> {
-  return page.evaluate(async (sources) => Promise.all(sources.map((url) => new Promise<{ url: string; width: number; height: number }>((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve({ url, width: image.naturalWidth, height: image.naturalHeight });
-    image.onerror = () => reject(new Error(`Failed to load runtime Hall asset: ${url}`));
-    image.src = url;
-  }))), urls);
+interface LoadedAsset {
+  url: string;
+  width: number;
+  height: number;
+  source: string;
+}
+
+async function loadedBackgroundAssets(page: import("@playwright/test").Page, urls: string[]): Promise<LoadedAsset[]> {
+  return page.evaluate(async (sources) => Promise.all(sources.map(async (url) => {
+    const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+      image.onerror = () => reject(new Error(`Failed to load runtime Hall asset: ${url}`));
+      image.src = url;
+    });
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Runtime Hall asset returned ${response.status}: ${url}`);
+    return { url, ...dimensions, source: await response.text() };
+  })), urls);
 }
 
 function firstUrl(backgroundImage: string): string {
@@ -38,11 +50,14 @@ test("the First Charter Hall loads its production environment, Maren portrait, a
     firstUrl(frameStyle),
     firstUrl(portraitStyle),
   ]);
-  expect(assets).toEqual([
-    expect.objectContaining({ width: 1600, height: 900 }),
-    expect.objectContaining({ width: 1600, height: 900 }),
-    expect.objectContaining({ width: 640, height: 800 }),
-  ]);
+  for (const asset of assets) {
+    expect(asset.width, asset.url).toBeGreaterThan(0);
+    expect(asset.height, asset.url).toBeGreaterThan(0);
+    expect(asset.source, asset.url).toContain("<svg");
+  }
+  expect(assets[0]?.source).toContain('viewBox="0 0 1600 900"');
+  expect(assets[1]?.source).toContain('viewBox="0 0 1600 900"');
+  expect(assets[2]?.source).toContain('viewBox="0 0 640 800"');
 
   await page.screenshot({
     path: testInfo.outputPath(`first-charter-hall-${testInfo.project.name}.png`),
