@@ -1,4 +1,4 @@
-name: Diagnose browser modernization
+name: Diagnose browser convergence
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  routing-and-source:
+  mobile-first-charter:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -29,8 +29,8 @@ jobs:
           mkdir -p .diagnostic
           tar --exclude=.git --exclude=.diagnostic --exclude=node_modules -czf .diagnostic/axm-world-pr121-source.tgz .
           sha256sum .diagnostic/axm-world-pr121-source.tgz > .diagnostic/axm-world-pr121-source.sha256
-      - name: Run exact desktop routing path against owned Vite server
-        id: routing
+      - name: Run exact mobile First Charter loop against owned Vite server
+        id: mobile
         continue-on-error: true
         env:
           PW_BASE_URL: http://127.0.0.1:5173
@@ -45,15 +45,15 @@ jobs:
           done
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
           set +e
-          npx playwright test e2e/program-001-routing.spec.ts --project=desktop --workers=1 --reporter=json --trace=retain-on-failure >.diagnostic/playwright.json 2>.diagnostic/playwright.stderr
+          npx playwright test e2e/program-001-loop.spec.ts --project=mobile --workers=1 --reporter=json --trace=retain-on-failure >.diagnostic/playwright.json 2>.diagnostic/playwright.stderr
           status=$?
           set -e
           printf '%s\n' "$status" >.diagnostic/status.txt
-          JSON_PATH=.diagnostic/playwright.json SUMMARY_PATH=.diagnostic/routing-summary.txt node <<'NODE'
+          JSON_PATH=.diagnostic/playwright.json SUMMARY_PATH=.diagnostic/mobile-summary.txt node <<'NODE'
           const fs = require('node:fs');
           const data = JSON.parse(fs.readFileSync(process.env.JSON_PATH, 'utf8'));
           const stats = data.stats ?? {};
-          const lines = [`ROUTING STATS expected=${stats.expected ?? 0} unexpected=${stats.unexpected ?? 0} skipped=${stats.skipped ?? 0} flaky=${stats.flaky ?? 0}`];
+          const lines = [`MOBILE STATS expected=${stats.expected ?? 0} unexpected=${stats.unexpected ?? 0} skipped=${stats.skipped ?? 0} flaky=${stats.flaky ?? 0}`];
           function walk(suites, parents = []) {
             for (const suite of suites ?? []) {
               const here = suite.title ? [...parents, suite.title] : parents;
@@ -66,7 +66,7 @@ jobs:
                     if (!['failed', 'timedOut', 'interrupted'].includes(result.status)) continue;
                     const error = result.error ?? result.errors?.[0] ?? {};
                     const message = String(error.message ?? error.stack ?? error.value ?? 'no error message').replace(/\u001b\[[0-9;]*m/g, '');
-                    lines.push(message.slice(0, 4000));
+                    lines.push(message.slice(0, 6000));
                   }
                 }
               }
@@ -76,17 +76,18 @@ jobs:
           walk(data.suites);
           fs.writeFileSync(process.env.SUMMARY_PATH, `${lines.join('\n\n')}\n`);
           NODE
-          cat .diagnostic/routing-summary.txt
-      - name: Upload exact source and routing receipt
+          cat .diagnostic/mobile-summary.txt
+      - name: Upload exact source and mobile receipt
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: routing-and-source-receipt
+          name: mobile-first-charter-source-and-receipt
           path: |
             .diagnostic
             test-results
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 2
       - name: Preserve exact path status
-        if: steps.routing.outcome == 'failure'
+        if: steps.mobile.outcome == 'failure'
         run: exit 1
