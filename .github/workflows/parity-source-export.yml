@@ -30,3 +30,21 @@ jobs:
             ${{ runner.temp }}/axm-world-source.sha256
           if-no-files-found: error
           retention-days: 1
+
+  dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Package dependencies
+        run: tar -czf "$RUNNER_TEMP/axm-world-node-modules.tgz" node_modules
+      - uses: actions/upload-artifact@v4
+        with:
+          name: axm-world-node-modules
+          path: ${{ runner.temp }}/axm-world-node-modules.tgz
+          if-no-files-found: error
+          retention-days: 1
