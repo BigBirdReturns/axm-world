@@ -1,0 +1,38 @@
+{
+  "format": "axm-runtime-asset-provenance/1",
+  "slice": "first-charter-hall/1",
+  "status": "production-vertical-slice",
+  "createdAt": "2026-07-22",
+  "owner": "BigBirdReturns/axm-world",
+  "authorship": "Original vector compositions authored for the AXM First Charter runtime. No external art, stock imagery, model weights, or third-party source files were incorporated.",
+  "license": "Project-owned; distributed under the repository license for this runtime use.",
+  "releaseBoundary": "The First Charter Hall only. This manifest does not claim a complete cartridge-wide or multi-cartridge production asset library.",
+  "assets": [
+    {
+      "path": "src/assets/first-charter/hall/charter-hall-environment.svg",
+      "role": "runtime environment",
+      "surface": "guided and reusable First Charter Hall",
+      "responsiveIntent": "cover crop with preserved charter window and table focal area"
+    },
+    {
+      "path": "src/assets/first-charter/hall/maren-vos-portrait.svg",
+      "role": "runtime authored-person portrait",
+      "subject": "Maren Vos, Charter-Keeper",
+      "responsiveIntent": "portrait crop remains legible from mobile card to desktop steward panel"
+    },
+    {
+      "path": "src/assets/first-charter/hall/charter-hall-foreground.svg",
+      "role": "runtime framing overlay",
+      "surface": "guided and reusable First Charter Hall",
+      "responsiveIntent": "edge framing may crop; center interaction space remains unobstructed"
+    }
+  ],
+  "validation": {
+    "required": [
+      "Vite production build resolves every asset URL",
+      "desktop Chromium loads natural dimensions and captures a Hall screenshot",
+      "mobile Chromium loads natural dimensions and captures a Hall screenshot",
+      "existing Hall interaction and persistence receipts remain green"
+    ]
+  }
+}
