@@ -1,6 +1,7 @@
 import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 import { PixelIcon, type PixelIconName } from "./PixelIcon.js";
-import { PixelDoll, type DollState } from "./PixelDoll.js";
+import { PixelDollPortrait } from "./PixelDollPortrait.js";
+import type { DollState } from "./PixelDoll.js";
 import type { DollAppearance } from "../themes/appearance.js";
 import { RODOH_DOLL_APPEARANCES } from "../themes/appearance.js";
 import { PixelMeter } from "./PixelMeter.js";
@@ -84,9 +85,10 @@ export function PixelRosterCard(props: PixelRosterCardProps): JSX.Element {
         style={{ cursor: downed || !selectable ? "default" : "pointer" }}
       >
         <div className="pixel-roster-card__header">
-          {/* A face for the body: the member's ROLE (real run data) keyed to its
-              pixel portrait — presence, not a new identity claim. */}
-          <PixelDoll appearance={resolvedAppearance} identity={identity ?? name} state={dollState} label={`${name}, ${role}`} size={32} data-testid="roster-card-doll" style={{ marginRight: 8 }} />
+          {/* The appearance pack owns both the staged body and this close-up.
+              A cartridge-specific face therefore follows the same role binding
+              everywhere instead of falling back to generic Rodoh art. */}
+          <PixelDollPortrait appearance={resolvedAppearance} state={dollState} label={`${name}, ${role}`} size={32} data-testid="roster-card-doll" style={{ marginRight: 8 }} />
           <div className="pixel-roster-card__identity">
             <strong className="pixel-roster-card__name">{name}</strong>
             <div className="pixel-roster-card__badges">
