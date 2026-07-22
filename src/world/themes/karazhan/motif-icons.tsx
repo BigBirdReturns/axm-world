@@ -2,10 +2,8 @@
 // replacing the generic contract glyph on the board and encounter surfaces
 // with on-theme iconography.
 //
-// Source: Karazhan theme asset sheet §1 "Location Motifs" (design review) —
-// redrawn derivative; the sheet is not yet committed to
-// docs/design/references, so these are hand-authored from its per-encounter
-// descriptions (spectral horseshoe, pocket watch, chained sigil, twin masks,
+// Source: docs/design/references/karazhan_white_label_asset_pack.svg —
+// redrawn derivative of the committed encounter-motif vocabulary (spectral horseshoe, pocket watch, chained sigil, twin masks,
 // orrery core, summoning circle, rune ring, three beams, knight, tilted crown,
 // dragon skull, ogre fist, shattered mountain, broken manacle, the tower).
 // Provenance level: redrawn derivative (see component-inventory.md).

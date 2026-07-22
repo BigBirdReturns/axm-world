@@ -22,5 +22,5 @@
 
 repo: BigBirdReturns/axm-arc
 paths: src/engine src/arcs tests/engine tests/fixtures src/godscar tests/godscar cartridges
-commit: 6bbf6bcac97d203f1a5ee6a23ab783ddf3701107
-synced: 2026-07-21
+commit: ac3c4f620cf5df802567c7dd10d3ee972cabfa46
+synced: 2026-07-22

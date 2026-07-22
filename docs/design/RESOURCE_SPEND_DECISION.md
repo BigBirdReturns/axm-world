@@ -1,10 +1,9 @@
 # Decision memo — resource-spend invariant
 
-**Status:** decision / specification. **Still no implementation.** This is the
-answer to `RESOURCE_SPEND_MEMO.md` (the gate). It fixes the invariant, rejects the
-alternatives, and defines the first allowed shape. Code may touch
-`resolveChallenge` only after this memo is accepted. Governed by
-`POSITIONING.md` ("The anti-extractive contract").
+**Status:** accepted and implemented specification. This is the answer to
+`RESOURCE_SPEND_MEMO.md`; Arc owns the resolver behavior and World projects the
+same committed value. Governed by `POSITIONING.md` ("The anti-extractive
+contract").
 
 ## The invariant (decided)
 
@@ -35,7 +34,7 @@ make them unrepresentable, not merely discouraged.
 
 ## The engine invariant (what the resolver must guarantee)
 
-When `tokensSpent` eventually reaches `resolveChallenge`, its only permitted
+When `tokensSpent` reaches `resolveChallenge`, its only permitted
 effect is a **bounded variance/downside modifier**, and it must satisfy:
 
 1. **Gate independence.** Spend has *zero* effect on `countOk` / `rolesOk`. A
@@ -70,9 +69,8 @@ strictly narrows without its failure floor rising.
 - **Refused below requirements** — the option does not render when the party is
   below the contract's minimum count or missing a required role.
 
-This becomes the fourth encounter-agency taxonomy row ("resource-spend choice")
-only once the resolver honors it under the invariant above and the property tests
-pass.
+This is the fourth implemented encounter-agency taxonomy row. The resolver,
+projection, debit, receipt, and property tests all enforce the invariant above.
 
 ## Control question
 
@@ -80,14 +78,13 @@ pass.
 > hopeless parties, preserves authored difficulty, and records exactly what the
 > player spent and why?
 
-If a proposed implementation cannot answer yes to all three clauses simultaneously,
-it is rejected and the row stays future.
+The shipped implementation answers yes to all three clauses simultaneously. A
+future modification that cannot do so is rejected.
 
-## Sequence from here
+## Completed sequence
 
-1. Accept this decision memo.
-2. Arc-first engine-design pass: define the authored parameter shape + the
-   `resolveChallenge` variance modifier + the property tests for the engine
-   invariant. (Engine change — reviewed on its own.)
-3. Only then: encounter-shell surface (pre-commit option, projection, receipt),
-   gated exactly like difficulty-mode choice.
+1. The decision memo was accepted.
+2. Arc added the authored parameter, resolver modifier, gate independence, exact
+   debit, receipt fields, and property tests.
+3. World re-vendored the exact Arc source and added the pre-commit control,
+   resolver-faithful projection, receipt, and browser/campaign coverage.

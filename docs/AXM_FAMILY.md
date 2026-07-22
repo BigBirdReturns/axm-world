@@ -19,9 +19,10 @@ dialect rather than inventing a private one:
 - **axm-genesis `docs/ADOPTING.md` + `ALIGNMENT.md`** — the family's formal
   adoption kit and cross-repo ledger.
 
-> Status: **proposal.** No code changes ship with this document. It defines the
-> north star and the first concrete work item (§7); the code lands arc-first,
-> per `RECONCILIATION.md`, in later commits.
+> Status: **active adoption record.** Internal Arc→World adoption, canonical
+> content digests, digest-addressed cartridge revisions, and exact v3 run custody
+> are live. Genesis publisher signatures and independent hybrid verification
+> remain the future conformance rungs; this document does not imply they ship.
 
 ---
 
@@ -29,7 +30,7 @@ dialect rather than inventing a private one:
 
 | Repo | Role | Stack | Relationship to world |
 |---|---|---|---|
-| **axm-arc** | **Hub** — owns the deterministic engine, the arc/cartridge format, and the tutorial cartridges (*The First Charter*, *Karazhan*) | TypeScript | world **vendors** arc's shared surface byte-for-byte |
+| **axm-arc** | **Hub** — owns the deterministic engine, the arc/cartridge format, and the tutorial cartridges (*The First Charter*, *The Waking Tower*) | TypeScript | world **vendors** arc's shared surface byte-for-byte |
 | **axm-world** | **Spoke** ("Rodoh") — a spatial player that renders any arc without owning the rules | TypeScript | *this repo* |
 | **axm-genesis** | **Kernel** — the frozen spec + toolchain that signs and verifies content-addressed artifacts (`axm-build` / `axm-verify`) | Python | world's future signing/verify layer; today only a **slot** |
 | **axm-wolf** | **Spoke** (testimony capture) — a sibling player that already documented its own adoption | TypeScript | the model this file follows |
@@ -75,7 +76,7 @@ This is meaning (1), recorded here for completeness. All of it is live.
 | **Arc schema + `validateArc`** | The Zod schema is the platform ABI; world's cartridge bay validates every import with the *same* vendored `validateArc` arc's exporter runs | live |
 | **Trust taxonomy** | `bundled \| imported-unsigned \| verified \| quarantined`, re-exported from the vendored engine — not a parallel world-local union | live (only `bundled` / `imported-unsigned` reachable today) |
 | **Gating layer** (`engine/access.ts`, `engine/difficulty.ts`) | Board status delegates to engine `challengeAccess`; world mirrors, never re-derives, the resolver | live |
-| **Resource-spend lever** | Spec authored world-side (`docs/design/RESOURCE_SPEND_DECISION.md`), implemented **arc-first** behind four property-test guarantees; world holds until the arc resolver honors it | proven arc-side; world UI held |
+| **Resource-spend lever** | Resolver, projection, exact debit, and receipt consume one Arc-owned value; World renders it only when authored | live, parity-tested |
 | **Strategy Board turn machine** | Schema + turn scaffold vendored; executor lands arc-first, then world renders | scaffold only |
 
 The pattern is invariant: **outcome-affecting → arc (vendored, drift-guarded);
@@ -101,7 +102,7 @@ leaves the product working; nothing here is a rewrite.
   run). This is the honest floor genesis's `ROADMAP` calls *"the honest
   precursor."*
 
-- **Stage 1 — canonical cartridge digest (the first work item, §7).** Give a
+- **Stage 1 — canonical cartridge digest (done; §7 records the shipped step).** Give a
   cartridge a deterministic **content-identity anchor**: a digest over the
   canonicalized raw Arc JSON. This is wolf's `packDigest` move exactly —
   *"introduce the canonicalization + digest boundary now, even if signing comes
@@ -192,11 +193,11 @@ Open questions to resolve with genesis before any ledger PR:
 
 ---
 
-## 7. First concrete work item — the canonical cartridge digest
+## 7. First completed work item — the canonical cartridge digest
 
-The smallest real step on the ladder, and the one that unblocks everything
-above it. **Lands arc-first**, per `RECONCILIATION.md`, because it touches the
-shared engine surface.
+This step is shipped. It landed Arc-first and is re-vendored into World under
+`RECONCILIATION.md`; the section remains as the design and audit record for the
+content-identity boundary.
 
 **In axm-arc (the hub):**
 1. Add a pure `canonicalizeArc(arc)` + `cartridgeDigest(arc)` to the engine

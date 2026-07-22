@@ -315,3 +315,28 @@
     transition: none !important;
   }
 }
+
+/* Map, Aperture shell, and Globe — complete the same material identity across
+   representations outside the Godscar constitutional panel itself. */
+:root[data-cartridge="ilyon"] .wm-surface {
+  background:
+    radial-gradient(circle at 18% 14%, rgba(72,183,176,.2), transparent 30%),
+    repeating-radial-gradient(ellipse at 50% 110%, transparent 0 42px, rgba(72,183,176,.12) 43px 44px, transparent 45px 84px),
+    linear-gradient(180deg, #0b2d3b, #071827 72%);
+}
+:root[data-cartridge="ilyon"] .wm-region-label,
+:root[data-cartridge="ilyon"] .wm-node { border-color: rgba(72,183,176,.52); }
+:root[data-cartridge="ilyon"] .rodoh-aperture {
+  --ap-bg: #061621;
+  --ap-panel: rgba(8,31,41,.95);
+  --ap-line: rgba(72,183,176,.42);
+  --ap-gold: #c9a45d;
+  --ap-teal: #48b7b0;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(72,183,176,.16), transparent 36%),
+    radial-gradient(circle at 10% 8%, rgba(214,129,101,.1), transparent 28%),
+    linear-gradient(180deg, #0b2d3b, #061621);
+}
+:root[data-cartridge="ilyon"] .walkable-world {
+  box-shadow: inset 0 0 110px rgba(72,183,176,.18), inset 0 -80px 100px rgba(3,16,25,.28);
+}

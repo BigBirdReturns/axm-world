@@ -63,6 +63,17 @@ describe("walkable world vertical slice", () => {
     expect(source).not.toContain("OrbitControls");
   });
 
+  it("keeps the Globe available as the same-node orbital atlas when WebGL is unavailable", () => {
+    const source = read("src/world/WorldScreen.tsx");
+    expect(source).toContain("class CanvasBoundary");
+    expect(source).toContain("setWebglAvailable(hasWebGL())");
+    expect(source).toContain('data-testid="walkable-world"');
+    expect(source).toContain('data-renderer="orbital-fallback"');
+    expect(source).toContain("world.nodes.map");
+    expect(source).toContain("onEnterEncounter(selected.challengeId)");
+    expect(source).toContain("ix.select(node.challengeId)");
+  });
+
   it("gates shared shell actions on physical custody while World is active", () => {
     const shell = read("src/world/shell/Shell.tsx");
     expect(shell).toContain('active.id !== "globe" || isWorldInteractionUnlocked(ix.selectedId, ix.nearbyId)');

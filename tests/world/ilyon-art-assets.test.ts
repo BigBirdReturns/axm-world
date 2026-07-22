@@ -57,7 +57,9 @@ describe("Ilyon white-label asset pack", () => {
     for (const [roleId, specs] of Object.entries(ILYON_ROLE_SPECS)) {
       assertSpecIntegrity(`${roleId} portrait`, specs.portrait);
       assertSpecIntegrity(`${roleId} body`, specs.body);
-      const appearance = ILYON_DOLL_APPEARANCES[ILYON_ROLE_BINDINGS[roleId as keyof typeof ILYON_ROLE_BINDINGS]];
+      const appearanceId = ILYON_ROLE_BINDINGS[roleId];
+      expect(appearanceId, `${roleId} binding`).toBeTruthy();
+      const appearance = appearanceId ? ILYON_DOLL_APPEARANCES[appearanceId] : undefined;
       expect(appearance?.portraitSpec).toBe(specs.portrait);
       expect(appearance?.bodySpec).toBe(specs.body);
       expect(appearance?.identityTreatment).toBe("authored");

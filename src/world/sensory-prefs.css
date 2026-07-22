@@ -1,0 +1,37 @@
+:root[data-motion="reduced"] *,
+:root[data-motion="reduced"] *::before,
+:root[data-motion="reduced"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.001ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion="full"]) *,
+  :root:not([data-motion="full"]) *::before,
+  :root:not([data-motion="full"]) *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  button, [role="button"], input, select, textarea { outline-offset: 2px; }
+  .pixel-panel, .encs-panel, .wm-pin { border-width: 2px !important; }
+}
+
+@media (forced-colors: active) {
+  .pixel-icon svg, .ilyon-motif-icon svg, .fc-motif-icon svg, .kz-motif-icon svg { forced-color-adjust: auto; }
+}
+
+:where(button, [role="button"], input, select, textarea, a):focus-visible {
+  outline: 3px solid var(--teal, #48b7b0);
+  outline-offset: 3px;
+}
+
+@media (max-width: 700px) {
+  :where(button, [role="button"], input, select) { min-height: 44px; }
+}

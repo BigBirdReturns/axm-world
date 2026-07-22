@@ -2,22 +2,25 @@ import { test, expect } from "@playwright/test";
 import { enterCartridge, runSelectedContract, resolvePendingDecisions } from "./helpers";
 import { PROGRAM_001 } from "../src/world/program-of-record";
 
-// In-shell identity continuity receipt: once the player is INSIDE the loop (past
-// the boot plaque), the shell keeps reading as a RODOH-loaded program of record —
-// RODOH, PROGRAM 001, The First Charter, the computed authored digest, and a live
-// ledger summary — and that summary updates after a resolved contract. Runs on
-// desktop AND mobile (see playwright.config.ts projects).
-//
-// Authored receipt: `npm run test:e2e`, intentionally NOT CI-gated. The
-// underlying data/formatting logic (summarizeLedger, programForCartridge) is
-// covered by vitest.
+// In-shell identity continuity receipt: desktop keeps the program-of-record strip
+// legible throughout play, while mobile deliberately spends that vertical budget on
+// its governed one-panel turn flow. The underlying identity remains available in the
+// bay and cartridge object on both breakpoints.
 
 const DIGEST = PROGRAM_001.authoredArcDigest;
 
-test("in-shell strip presents Program 001 as a program of record with its computed identity", async ({ page }) => {
+test("the program identity strip is desktop-only and carries Program 001's computed identity", async ({ page }, testInfo) => {
   await enterCartridge(page);
 
   const strip = page.getByTestId("program-identity-strip");
+  if (testInfo.project.name === "mobile") {
+    await expect(strip).toHaveCount(0);
+    await expect(page.getByTestId("mobile-cartridge-toolbar")).toBeVisible();
+    await page.getByTestId("cartridge-object-button").click();
+    await expect(page.getByTestId("cartridge-digest")).toHaveText(DIGEST);
+    return;
+  }
+
   await expect(strip).toBeVisible();
 
   // Program-of-record framing persists during play, not just at the boot surface.
@@ -37,19 +40,24 @@ test("in-shell strip presents Program 001 as a program of record with its comput
   await expect(page.getByTestId("strip-ledger")).toContainText(/no runs recorded/i);
 });
 
-test("the in-shell ledger summary updates after a resolved contract", async ({ page }) => {
+test("the desktop strip ledger updates after a resolved contract without appearing on mobile", async ({ page }, testInfo) => {
   test.slow();
   await enterCartridge(page);
-
-  await expect(page.getByTestId("strip-ledger")).toContainText(/no runs recorded/i);
 
   // Resolve the cold-start contract ("The Cellar") and clear any post-run decision.
   await expect(page.getByTestId("selected-contract-title")).toContainText(/Cellar/i);
   await runSelectedContract(page);
   await resolvePendingDecisions(page);
+  await page.getByTestId("enter-rodoh-runtime").click();
 
-  // The strip reflects the live ledger without leaving the shell: one recorded
-  // contract, named, under the same program of record.
+  if (testInfo.project.name === "mobile") {
+    await expect(page.getByTestId("program-identity-strip")).toHaveCount(0);
+    await expect(page.getByTestId("cartridge-object-button")).toBeVisible();
+    return;
+  }
+
+  // The strip reflects the live ledger after the explicit guided-to-shell handoff: one
+  // recorded contract, named, under the same program of record.
   await expect(page.getByTestId("strip-ledger")).toContainText(/1 recorded/i);
   await expect(page.getByTestId("strip-ledger")).toContainText(/Cellar/i);
   await expect(page.getByTestId("strip-digest")).toHaveAttribute("title", DIGEST);

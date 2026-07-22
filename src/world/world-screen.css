@@ -66,3 +66,119 @@
   .world-movement-pad:hover,
   .world-movement-pad:focus-within { opacity: 1; }
 }
+
+
+/* WebGL is an optional costume capability. When acceleration is unavailable,
+   preserve the Globe's spatial orientation and exact WorldNode actions rather
+   than taking down the cartridge runtime. */
+.walkable-world--fallback {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 14px;
+  padding: clamp(14px, 3vw, 28px);
+  color: #ece4d4;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(63, 174, 159, 0.16), transparent 32%),
+    radial-gradient(circle at 15% 10%, rgba(201, 161, 74, 0.13), transparent 24%),
+    linear-gradient(180deg, #111821, #080b10 72%);
+}
+.world-fallback__sky {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.42;
+  background-image:
+    radial-gradient(circle, rgba(236, 228, 212, 0.8) 0 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(63, 174, 159, 0.7) 0 1px, transparent 1.5px);
+  background-position: 0 0, 23px 31px;
+  background-size: 71px 71px, 97px 97px;
+}
+.world-fallback__header,
+.world-fallback__orbit,
+.world-fallback__detail { position: relative; z-index: 1; }
+.world-fallback__header { grid-column: 1 / -1; max-width: 760px; }
+.world-fallback__header small,
+.world-fallback__detail small {
+  color: var(--gold, #c9a14a);
+  font: 800 9px/1.2 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.world-fallback__header strong {
+  display: block;
+  margin-top: 4px;
+  font: 800 clamp(24px, 4vw, 42px)/1 "Barlow Condensed", Impact, sans-serif;
+}
+.world-fallback__header p,
+.world-fallback__detail p { color: #b9b2a5; font: 13px/1.5 Georgia, serif; }
+.world-fallback__orbit {
+  min-height: 420px;
+  border: 1px solid rgba(201, 161, 74, 0.32);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 42px rgba(63, 174, 159, 0.025), inset 0 0 0 84px rgba(201, 161, 74, 0.02);
+}
+.world-fallback__planet {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: min(38%, 230px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(236, 228, 212, 0.34);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(236, 228, 212, 0.18), transparent 10%),
+    repeating-radial-gradient(ellipse at 50% 85%, transparent 0 15px, rgba(63, 174, 159, 0.16) 16px 17px),
+    radial-gradient(circle at 35% 30%, var(--teal, #3f9f95), #152b31 62%, #080b10 100%);
+  box-shadow: 0 0 52px rgba(63, 174, 159, 0.18);
+}
+.world-fallback__pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  max-width: 150px;
+  min-height: 42px;
+  padding: 5px 8px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(236, 228, 212, 0.4);
+  color: #ece4d4;
+  background: rgba(12, 16, 22, 0.9);
+  font: 700 9px/1.2 "IBM Plex Mono", ui-monospace, monospace;
+  text-align: left;
+  cursor: pointer;
+}
+.world-fallback__pin strong { overflow: hidden; text-overflow: ellipsis; }
+.world-fallback__pin--available { border-color: var(--gold, #c9a14a); }
+.world-fallback__pin--cleared { border-color: #74ad77; }
+.world-fallback__pin[data-selected="true"] { outline: 2px solid var(--teal, #3f9f95); outline-offset: 3px; z-index: 2; }
+.world-fallback__detail {
+  align-self: center;
+  padding: 16px;
+  border: 1px solid rgba(201, 161, 74, 0.42);
+  background: rgba(12, 16, 22, 0.9);
+  box-shadow: 5px 5px 0 rgba(0,0,0,.35);
+}
+.world-fallback__detail > strong { display: block; margin-top: 5px; font: 800 22px/1 "Barlow Condensed", Impact, sans-serif; }
+.world-fallback__detail button {
+  min-height: 44px;
+  width: 100%;
+  border: 1px solid var(--gold, #c9a14a);
+  color: #12100b;
+  background: var(--gold, #c9a14a);
+  font: 800 11px "IBM Plex Mono", ui-monospace, monospace;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+@media (max-width: 760px) {
+  .walkable-world--fallback { grid-template-columns: 1fr; grid-template-rows: auto minmax(360px, 1fr) auto; overflow-y: auto; }
+  .world-fallback__header { grid-column: auto; }
+  .world-fallback__orbit { min-height: 390px; }
+  .world-fallback__pin { max-width: 112px; font-size: 8px; }
+  .world-fallback__detail { width: auto; align-self: stretch; }
+}
+@media (forced-colors: active) {
+  .world-fallback__pin[data-selected="true"] { outline: 3px solid Highlight; }
+  .world-fallback__detail button { border-color: ButtonText; color: ButtonText; background: ButtonFace; }
+}

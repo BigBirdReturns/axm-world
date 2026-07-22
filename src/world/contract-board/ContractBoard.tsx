@@ -114,7 +114,7 @@ function ContractLocationCard(props: {
       title={node.title}
       titleMotif={
         // Board-card motifs are part of a cartridge's full skin. Only
-        // palette-scoped cartridges (Karazhan) opt in, so First Charter's
+        // palette-scoped cartridges (The Waking Tower) opt in, so First Charter's
         // motif-free board stays byte-identical. CartridgeMotif is generic —
         // no First Charter motif is hardcoded into this runtime component.
         cartridgePaletteScope(world.arc)
@@ -301,7 +301,7 @@ export function ContractBoardScene({ world, interaction, modalOpen = false }: Co
                       selected={interaction.selectedId === node.challengeId}
                       upNext={markers.get(node.challengeId)?.next ?? false}
                       steep={markers.get(node.challengeId)?.steep ?? false}
-                      onSelect={(id) => interaction.select(interaction.selectedId === id ? null : id)}
+                      onSelect={(id) => interaction.select(interaction.selectedId === id && interaction.selectionIsUserAct ? null : id)}
                     />
                   </div>
                 );

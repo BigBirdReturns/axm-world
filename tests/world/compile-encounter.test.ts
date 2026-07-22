@@ -54,7 +54,7 @@ describe("compileEncounter derives from the authored contract", () => {
     expect(spec.onClear.worldChanges).toContain("The Charter Begins");
   });
 
-  it("Attumen: two objectives incl. a role-specific tank slot and a perAssignedAgent sweep", () => {
+  it("The Ashen Huntsman: two objectives incl. a role-specific tank slot and a perAssignedAgent sweep", () => {
     const spec = compileEncounter(attumen, bootstrapOrg(KARAZHAN), KARAZHAN);
 
     // Two authored checks → two objectives, distinctly derived.
@@ -80,7 +80,7 @@ describe("compileEncounter derives from the authored contract", () => {
     // The recommended party filled the tank slot with an actual tank.
     expect(spec.slots[0]!.role).toBe("Tank");
 
-    expect(spec.location.site).toBe("Attumen the Huntsman");
+    expect(spec.location.site).toBe("The Ashen Huntsman");
   });
 
   it("the two encounters are genuinely distinct projections, not the same shape", () => {

@@ -140,7 +140,7 @@ test("the same receiver mounts a second Arc without a World rewrite", async ({ p
   await decision.getByRole("button").first().click();
   await decision.getByRole("button", { name: /continue/i }).click();
   await expect(page.getByTestId("engine-shell")).toBeVisible();
-  await expect(page.getByTestId("cartridge-title")).toContainText("Karazhan");
+  await expect(page.getByTestId("cartridge-title")).toContainText("The Waking Tower");
   await expect(page.getByTestId("view-run-graph")).toBeVisible();
 });
 

@@ -7,6 +7,11 @@ import { OpeningDecisionStage } from "../components/OpeningDecisionStage.js";
 import { PixelButton, PixelDoll, PixelPanel } from "../pixel-ui/index.js";
 import { resolveDollAppearance } from "../themes/appearance.js";
 import { themeForArc } from "../themes/select.js";
+import { CartridgePortrait, CartridgeSprite } from "../themes/CartridgeMotif.js";
+import { programForCartridge } from "../program-of-record.js";
+import { summarizeLedger } from "../ledger.js";
+import { t } from "../i18n/index.js";
+import { useIsMobile } from "../use-viewport.js";
 import {
   RODOH_EXPERIENCE_EXTENSION,
   downloadPortableRun,
@@ -76,6 +81,7 @@ function playThresholdCue(): void {
 }
 
 export function ExperienceHost({ world, onExit, onEnterRuntime }: Props): JSX.Element {
+  const isMobile = useIsMobile();
   const challengeIds = useMemo(() => new Set(world.arc.challenges.map((challenge) => challenge.id)), [world.arc]);
   const agentIds = useMemo(() => new Set(world.roster.map((agent) => agent.id)), [world.roster]);
   const difficultyModeIds = useMemo(() => new Set(world.arc.difficultyModes.map((mode) => mode.id)), [world.arc]);
@@ -105,6 +111,8 @@ export function ExperienceHost({ world, onExit, onEnterRuntime }: Props): JSX.El
   const fixedDeployment = !!requirements && requirements.minAgents === requirements.maxAgents;
   const record = ledgerEntry(world, checkpoint);
   const theme = useMemo(() => themeForArc(world.arc), [world.arc]);
+  const program = programForCartridge(world.cartridge);
+  const ledgerSummary = summarizeLedger(world.ledger);
   const steward = world.cartridge.people?.[0] ?? null;
   const organizationName = world.arc.founding?.organization.name ?? world.arc.meta.name;
   const cellarRecord = [...world.ledger.entries].reverse().find((entry) => entry.challengeId === "cellar") ?? null;
@@ -199,17 +207,45 @@ export function ExperienceHost({ world, onExit, onEnterRuntime }: Props): JSX.El
 
   return (
     <main className="axm-experience" data-testid="axm-experience" data-stage={checkpoint.stage}>
-      <header className="axm-experience__identity">
-        <div>
-          <span className="axm-experience__receiver">RODOH WORLD · RECEIVER</span>
-          <strong>{world.arc.meta.name}</strong>
+      {isMobile ? (
+        <div className="axm-experience__mobile-toolbar" data-testid="mobile-cartridge-toolbar">
+          <div>
+            <span>Active cartridge</span>
+            <strong>{world.arc.meta.name}</strong>
+          </div>
+          <button
+            type="button"
+            data-testid="cartridge-object-button"
+            aria-label={`Open run record, ${ledgerSummary.entryCount} recorded`}
+            onClick={() => setShowRecord(true)}
+          >
+            <span>Run record</span>
+            <b aria-hidden="true">{String(ledgerSummary.entryCount).padStart(2, "0")}</b>
+          </button>
         </div>
-        <div className="axm-experience__custody">
-          <span>ARC LAW</span>
-          <code title={world.cartridgeDigest}>{world.cartridgeDigest.slice(0, 18)}…</code>
-          <button type="button" data-testid="cartridge-object-button" onClick={() => setShowRecord(true)}>Run record</button>
-        </div>
-      </header>
+      ) : (
+        <header className="axm-experience__identity" data-testid="program-identity-strip">
+          <div>
+            <span className="axm-experience__receiver">{t("shell.runtimeName")} WORLD · RECEIVER</span>
+            {program && (
+              <span data-testid="strip-program" className="axm-experience__program">
+                {program.programId.replaceAll("-", " ").toUpperCase()} · {t("boot.programOfRecord")}
+              </span>
+            )}
+            <strong>{world.arc.meta.name}</strong>
+          </div>
+          <div className="axm-experience__custody">
+            <span>ARC LAW</span>
+            <code data-testid="strip-digest" title={world.cartridgeDigest}>{world.cartridgeDigest.slice(0, 18)}…</code>
+            <span data-testid="strip-ledger">
+              {ledgerSummary.entryCount > 0
+                ? `${t("shell.identityRecorded", { count: ledgerSummary.entryCount })}${ledgerSummary.lastResult ? ` · ${ledgerSummary.lastResult.challengeName}` : ""}`
+                : t("shell.identityFresh")}
+            </span>
+            <button type="button" data-testid="cartridge-object-button" onClick={() => setShowRecord(true)}>Run record</button>
+          </div>
+        </header>
+      )}
 
       <section className="axm-experience__stage">
         <div className="axm-experience__atmosphere" aria-hidden="true">
@@ -266,12 +302,18 @@ export function ExperienceHost({ world, onExit, onEnterRuntime }: Props): JSX.El
             </p>
 
             <div className="axm-hall__table">
-              <div className="axm-steward">
-                <div className="axm-steward__portrait">{steward?.name.slice(0, 1) ?? "W"}</div>
+              <div className="axm-steward" data-testid="hall-npc" data-resolved={cellarRecord ? "true" : "false"}>
+                <div className="axm-steward__portrait">
+                  {steward
+                    ? CartridgeSprite({ arcId: world.arc.meta.id, personId: steward.id, size: 64 })
+                      ?? CartridgePortrait({ arcId: world.arc.meta.id, personId: steward.id, size: 54 })
+                      ?? steward.name.slice(0, 1)
+                    : "W"}
+                </div>
                 <div>
-                  <span>{steward?.role ?? "World steward"}</span>
+                  <span data-testid="hall-npc-role">{steward?.role ?? "World steward"}</span>
                   <strong>{steward?.name ?? "The receiver"}</strong>
-                  <p>{cellarRecord
+                  <p data-testid="hall-speech">{cellarRecord
                     ? cellarRecord.outcome === "success"
                       ? "The cellar doors are rehung. I entered the names before the mud dried. The bridge petition is on your table."
                       : "I entered what happened without polishing it. Decide whether we return below or carry the cost forward."
@@ -279,7 +321,7 @@ export function ExperienceHost({ world, onExit, onEnterRuntime }: Props): JSX.El
                 </div>
               </div>
 
-              <div className="axm-roster" aria-label="Founded roster">
+              <div className="axm-roster" aria-label="Founded roster" data-testid="hall-party-bodies">
                 {world.roster.map((member) => (
                   <div className="axm-roster__member" key={member.id} data-testid={`founder-${member.id}`}>
                     <PixelDoll appearance={resolveDollAppearance(theme, member.role)} identity={member.id} state={member.downed ? "downed" : "idle"} size={42} />

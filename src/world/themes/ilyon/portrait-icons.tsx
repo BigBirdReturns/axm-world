@@ -269,12 +269,17 @@ export const ILYON_DOLL_APPEARANCES: Record<string, DollAppearance> = {
   },
 };
 
-export const ILYON_ROLE_BINDINGS: Record<IlyonRoleId, string> = {
+export const ILYON_ROLE_BINDINGS: Record<string, string> = {
   auditor: "ilyon:auditor",
+  Auditor: "ilyon:auditor",
   interlocutor: "ilyon:interlocutor",
+  Interlocutor: "ilyon:interlocutor",
   witness: "ilyon:witness",
+  Witness: "ilyon:witness",
   protector: "ilyon:protector",
+  Protector: "ilyon:protector",
   exception: "ilyon:exception",
+  "Sovereign Exception": "ilyon:exception",
 };
 
 const CAST_ROLE: Record<string, IlyonRoleId> = {

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
+  <title id="title">The Waking Tower white-label visual asset pack</title>
+  <desc id="desc">A violet-night reference sheet showing five raid roles, the tower emblem, and encounter motifs used by the local pixel and vector runtime assets.</desc>
+  <rect width="960" height="540" fill="#1a1420"/>
+  <rect x="30" y="30" width="900" height="480" rx="18" fill="#201830" stroke="#574a7a" stroke-width="4"/>
+  <text x="60" y="82" fill="#e9ddc4" font-family="sans-serif" font-size="30" font-weight="700">THE WAKING TOWER · WHITE-LABEL ASSET PACK</text>
+  <text x="60" y="112" fill="#9a7fd0" font-family="monospace" font-size="14">HAUNTED GRANDEUR · ARCANE DECAY · VIOLET NIGHT</text>
+  <g transform="translate(70 150)" stroke="#e9ddc4" stroke-width="5" fill="none">
+    <path d="M20 180V70h18V42h18v28h18V42h18v28h18V42h18v138z" fill="#574a7a"/>
+    <rect x="63" y="105" width="22" height="30" fill="#1a1420"/>
+  </g>
+  <g font-family="monospace" font-size="15" fill="#e9ddc4">
+    <text x="60" y="370">TOWER EMBLEM</text>
+    <text x="280" y="170">ROLE SILHOUETTES</text>
+  </g>
+  <g transform="translate(280 190)">
+    <g transform="translate(0 0)"><circle cx="55" cy="55" r="48" fill="#514c68" stroke="#d19a3d" stroke-width="4"/><path d="M32 70V38h46v32l-23 25z" fill="#4b465e"/><text x="55" y="128" text-anchor="middle" fill="#e9ddc4" font-family="monospace">TANK</text></g>
+    <g transform="translate(130 0)"><circle cx="55" cy="55" r="48" fill="#6b5b83" stroke="#9a7fd0" stroke-width="4"/><path d="M28 72q27-54 54 0v22H28z" fill="#e7d9c5"/><text x="55" y="128" text-anchor="middle" fill="#e9ddc4" font-family="monospace">HEALER</text></g>
+    <g transform="translate(260 0)"><circle cx="55" cy="55" r="48" fill="#49385f" stroke="#c65d69" stroke-width="4"/><path d="M22 78l33-50 33 50-33 18z" fill="#302942"/><text x="55" y="128" text-anchor="middle" fill="#e9ddc4" font-family="monospace">MELEE</text></g>
+    <g transform="translate(390 0)"><circle cx="55" cy="55" r="48" fill="#3f607b" stroke="#68a4ca" stroke-width="4"/><path d="M25 80l60-46-22 58z" fill="#283d55"/><text x="55" y="128" text-anchor="middle" fill="#e9ddc4" font-family="monospace">RANGED</text></g>
+    <g transform="translate(520 0)"><circle cx="55" cy="55" r="48" fill="#4c4b68" stroke="#6f8f3f" stroke-width="4"/><path d="M25 88V42h60v46l-30 10z" fill="#433151"/><text x="55" y="128" text-anchor="middle" fill="#e9ddc4" font-family="monospace">SUPPORT</text></g>
+  </g>
+  <g transform="translate(285 390)" fill="none" stroke="#9a7fd0" stroke-width="4">
+    <circle cx="25" cy="25" r="18"/><path d="M25 7v36M7 25h36"/>
+    <circle cx="105" cy="25" r="18"/><path d="M105 25l12-10M105 25l-10 12"/>
+    <path d="M160 42l20-34 20 34z"/><path d="M235 8l18 34h-36z"/>
+    <path d="M300 42V8h38v34z"/><path d="M370 8l18 34 18-34"/>
+  </g>
+  <text x="280" y="475" fill="#746f7c" font-family="monospace" font-size="13">Motifs are redrawn into 16×16 SVG; role art becomes 16×16 authored grids.</text>
+</svg>

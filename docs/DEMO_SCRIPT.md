@@ -19,8 +19,7 @@ Two cartridges carry the tour:
 
 - **First Charter** (`play-cartridge-first-charter`) — a fixed campaign that
   authors **no** difficulty modes. Its encounters stay fixed.
-- **Karazhan** (`play-cartridge-karazhan`) — authors a **Heroic** difficulty
-  mode, so its encounters gain a posture chooser.
+- **The Waking Tower** (`play-cartridge-karazhan`, legacy id) — authors a **Heroic** difficulty mode, so its encounters gain a posture chooser.
 
 Nothing in the shell branches on a cartridge id. Every difference you see below
 is derived from what the cartridge authored.
@@ -50,8 +49,7 @@ Click one to enter its world.
 you get an opening decision (`[data-testid="pending-decision-card"]`). Resolve it
 before anything else: click one of the option buttons inside the card, then click
 **Continue**. The card dismisses and does not replay. (This mirrors the e2e
-helper `resolveOpeningDecision` in `e2e/helpers.ts`.) Karazhan has no opening
-decision.
+helper `resolveOpeningDecision` in `e2e/helpers.ts`.) The Waking Tower also opens with its own Lamplit Survey oath; resolve it through the same helper.
 
 **Selecting a contract.** On the board, click a contract card
 (`[data-testid="contract-board-card-<id>"]`; if that does not take, use the
@@ -163,10 +161,10 @@ recommended one — is what actually resolves.
 
 ---
 
-## Proof 3 — Karazhan · Attumen, Standard → Heroic (difficulty-mode choice)
+## Proof 3 — The Waking Tower · The Ashen Huntsman, Standard → Heroic
 
 **The claim.** This is the *second* agency type, and it appears **only where the
-cartridge authors it**. Karazhan authors a Heroic difficulty mode, so Attumen's
+cartridge authors it**. The Waking Tower authors a Heroic difficulty mode, so The Ashen Huntsman's
 encounter shows a posture chooser. Switching from Standard to Heroic **recompiles
 the encounter**: it adds an objective ("The Tower Unravels"), raises the reaches,
 and shifts the projection — all through the same `applyDifficultyMode` transform
@@ -175,9 +173,8 @@ chooser at all (see Proof 1).
 
 **Reach it in the app.**
 
-1. Enter Karazhan (`[data-testid="play-cartridge-karazhan"]`). No opening
-   decision here.
-2. Select Attumen: `[data-testid="contract-board-card-attumen"]` →
+1. Enter The Waking Tower (`[data-testid="play-cartridge-karazhan"]`) and resolve the Lamplit Survey oath.
+2. Select The Ashen Huntsman: `[data-testid="contract-board-card-attumen"]` →
    `[data-testid="play-encounter-button"]`.
 3. The `[data-testid="encs-posture"]` region **is** present (contrast Proof 1).
    It starts on `[data-testid="encs-posture-standard"]`.
@@ -190,7 +187,7 @@ chooser at all (see Proof 1).
 **The guarding test.** `tests/world/difficulty-mode-choice.test.ts`
 
 - *"the lever exists only where authored"* — `FIRST_CHARTER.difficultyModes` is
-  length 0; `KARAZHAN.difficultyModes` is non-empty; and Karazhan is a
+  length 0; `KARAZHAN.difficultyModes` is non-empty; and The Waking Tower is a
   **bundled** world cartridge, so this proof is reachable live.
 - *"choosing the posture recompiles the encounter"* — Heroic yields strictly more
   objectives than Standard, and a shared objective's `targetThreshold` rises
@@ -201,10 +198,10 @@ chooser at all (see Proof 1).
 - *"a fixed cartridge is untouched"* — First Charter authors no `heroic` mode, so
   The Cellar stays exactly fixed even if a stray mode id arrived.
 
-The distinctness of the two derived encounters (Cellar vs Attumen) is separately
+The distinctness of the two derived encounters (Cellar vs The Ashen Huntsman) is separately
 pinned in `tests/world/compile-encounter.test.ts` (*"the two encounters are
 genuinely distinct projections"*: different objective counts, different max
-agents, role-specific slot only on Attumen).
+agents, role-specific slot only on The Ashen Huntsman).
 
 ---
 
@@ -244,13 +241,13 @@ find src tests -name '*.js' -not -path '*/node_modules/*' -delete 2>/dev/null
 npx vitest run
 ```
 
-Expect **all green (~375 tests)**. The four load-bearing files for this tour:
+Expect the complete current suite to pass; do not use a historical test count as an acceptance shortcut. The four load-bearing files for this tour:
 
 | Proof point | File |
 | --- | --- |
 | Compiler derives distinct encounters + the loop closes | `tests/world/compile-encounter.test.ts` |
 | Deployment choice moves projection; committed squad resolves; Cellar choice-locked | `tests/world/encounter-agency.test.ts` |
-| Posture only where authored; recompiles; projection shifts; Karazhan bundled | `tests/world/difficulty-mode-choice.test.ts` |
+| Posture only where authored; recompiles; projection shifts; The Waking Tower bundled | `tests/world/difficulty-mode-choice.test.ts` |
 | World-node projection + recorded state | `tests/world/worldmap.test.ts` |
 
 If the four tour points are green, the control question is answered: one authored

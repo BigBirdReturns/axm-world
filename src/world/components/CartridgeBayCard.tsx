@@ -236,7 +236,7 @@ function MemoryLine({ save }: { save: ProgramSaveSummary | null }): JSX.Element 
  *  the run is genuinely resumable"). No new derivation, no wall-clock: this is
  *  the exact same `save` prop `MemoryLine` already renders, just naming the
  *  other honest fact it carries. "boot.freshProgram" says "program", which
- *  would lie on a classic row (an imported cartridge, or Karazhan, are never
+ *  would lie on a classic row (an imported cartridge, or The Waking Tower, are never
  *  "a program") — so fresh uses the neutral "boot.freshEntry" pair added for
  *  this PR, while "boot.resumable" carries no such claim and is reused as-is. */
 function SaveStateLine({ save }: { save: ProgramSaveSummary | null }): JSX.Element {
@@ -268,7 +268,7 @@ function LegacyEvidenceLine({ legacySave }: { legacySave: LegacyProgramSaveSumma
  *  and Enter. Used for any cartridge that is not a program of record. */
 function ClassicRow({ entry, cartridge, digest, save, legacySave, onEnter, onRemove }: Omit<Props, "program">): JSX.Element {
   const c = cartridge;
-  const isKarazhan = entry.arc.meta.id === "karazhan";
+  const isWakingTower = entry.arc.meta.id === "karazhan";
   return (
     <div
       data-testid={`cartridge-entry-${entry.arc.meta.id}`}
@@ -281,9 +281,9 @@ function ClassicRow({ entry, cartridge, digest, save, legacySave, onEnter, onRem
         textAlign: "left",
         padding: "16px 18px",
         borderRadius: 8,
-        border: isKarazhan ? "1px solid #574a7a" : "1px solid #4a4238",
-        borderLeft: isKarazhan ? "3px solid #8a79b8" : "1px solid #4a4238",
-        background: isKarazhan ? "rgba(48,36,64,0.5)" : "rgba(42,38,32,0.5)",
+        border: isWakingTower ? "1px solid #574a7a" : "1px solid #4a4238",
+        borderLeft: isWakingTower ? "3px solid #8a79b8" : "1px solid #4a4238",
+        background: isWakingTower ? "rgba(48,36,64,0.5)" : "rgba(42,38,32,0.5)",
         color: "#ece4d4",
       }}
     >

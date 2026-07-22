@@ -81,8 +81,8 @@ amending the constitution.
 
 Program 001 feels good (#59–#73). The platform lanes, in their stated order:
 
-1. **Dignity pass** — Karazhan (the second cartridge) made first-class; proves
-   the runtime generalizes. Open call: whether Karazhan gets authored people.
+1. **Dignity pass** — The Waking Tower (the second cartridge) made first-class; proves
+   the runtime generalizes. Open call: closed: The Waking Tower has authored people and role art.
 2. **Library screen** — the bay grows into a real library (emblems, save
    summaries, import/update/remove).
 3. **Creator packaging** — author → validate → digest → export `.cart`; closes

@@ -54,36 +54,38 @@ ContractDefinition  →  the authored Challenge record (source of truth)
 Objectives come from the contract's checks; hazards from each check's failure
 consequence; party slots from roster requirements; resolutions and ledger from
 outcomes. Feed the compiler **The Cellar** and you get a rat-cellar sweep; feed
-it **Attumen** and you get a two-objective, tank-slotted stable fight — from the
+it **The Ashen Huntsman** and you get a two-objective, tank-slotted stable fight — from the
 same code, with zero hand-authoring.
 
 ---
 
-## Current proof: Board → Map Node → Encounter → Result → Ledger
+## Current proof: one run, six representations, one ledger
 
-Built and verified today. The contract compiles into a playable encounter and
-writes the sim ledger — the thesis made mechanical, not argued:
+Built and verified today across desktop and mobile:
 
-- **Board** — a real management play surface (staged desktop table + mobile turn
-  flow), derived per cartridge.
-- **Map Node** — the `WorldNode` projection is emitted and positioned; today it
-  renders as a marker (the Planet overview that consumes it is roadmap).
-- **Encounter** — `compileEncounter` derives location, objectives, threat
-  markers, party tokens, hazards, and resolutions from the contract, and
-  resolves through the **real engine** (`runChallenge → runCycle`).
-- **Result → Ledger** — a receipt reports the outcome and the ledger writeback.
+- **Board** — management cards, gates, risk, roster, rewards, and recorded state.
+- **Map** — the same contracts as regional locations with exact state and entry.
+- **Hall** — an inhabited handoff into the same selected contract and encounter.
+- **Encounter** — `compileEncounter` derives objectives, hazards, bodies, levers,
+  and resolutions, then calls the real engine (`runChallenge → runCycle`).
+- **Globe** — a walkable atmospheric representation with proximity-gated entry;
+  it never becomes a second economy or resolver.
+- **Aperture** — authored structure, bounded people, exact receipts, and Godscar
+  source provenance without manufacturing facts or routes.
+- **Result → Ledger → v3 custody** — the outcome changes the run, writes the
+  ledger, exports exactly, imports transactionally, and resumes at the held state.
 
-Proven live on **The Cellar**, and proven to generalize by unit test (**Attumen**
-derives a distinct two-objective, tank-slotted encounter with no hand-authoring).
-Determinism holds: same arc + same seed → the same run, replayable and
-verifiable. Two games are bundled today — **The First Charter** (civic / ledger)
-and **Karazhan** (haunted raid tower).
+The same receiver proves three distinct complete cartridges: **The First
+Charter**, **The Waking Tower** (legacy internal id `karazhan`), and **The Kind
+Gods of Ilyon**. Each has cartridge-owned role art, motifs, material identity,
+and a distinct procedural globe palette. Imported cartridges retain the neutral
+white-label runtime rather than borrowing bundled fiction.
 
 ---
 
 ## Proven agency types
 
-Agency is a property of the *contract*, not paint the UI applies. Three lever
+Agency is a property of the *contract*, not paint the UI applies. Four lever
 types are implemented and verified — the highest authored agency wins, and it
 degrades honestly:
 
@@ -94,32 +96,29 @@ degrades honestly:
   Vanguard, `perAssignedAgent`): choose which eligible agents deploy, watch the
   risk change, and commit a legal squad. The committed squad — not the
   recommendation — is what `runCycle` resolves and what the receipt reports.
-- **Difficulty-mode choice — Karazhan's Heroic.** Authored `difficultyModes`:
+- **Difficulty-mode choice — The Waking Tower's Heroic.** Authored `difficultyModes`:
   pick a posture and the engine applies `applyDifficultyMode`. The First Charter
-  authors no mode, so it shows **no** chooser; Karazhan authors Heroic, so it
+  authors no mode, so it shows **no** chooser; The Waking Tower authors Heroic, so it
   does. The lever, not the UI, decides.
 
-Deliberately **not** surfaced: resource-spend. `tokensSpent` only debits the
-ledger today — the resolver never reads it — so selling it as agency would be
-fake agency. It stays excluded until the engine actually consumes it.
+- **Resource-spend choice.** When a contract authors the lever, the player may
+  spend or hold capacity marks; the resolver consumes the committed value,
+  changes the risk band, debits once, and records the spend. No authored lever
+  means no spend control.
 
 ---
 
-## Roadmap surfaces — FUTURE, not shipped
+## Expansion products — FUTURE, not missing parity
 
-These are not shipped mechanics. They are on the roadmap, and **each must pass
-the anti-extractive test before it becomes canonical**:
+The local-first browser product is complete at its declared scope. These are
+separate products, and **each must pass the anti-extractive test before it
+becomes canonical**:
 
-- **Planet** — grow the three.js globe stub into the sim-layer world overview
-  (holdings, resources, active contract, time state) that consumes the
-  `WorldNode` projection. *Roadmap.*
-- **Co-op / social play** — new client render modes plus real-time netcode.
-  *Roadmap; separate multi-quarter initiative.*
-- **Guilds · seasons** — organization- and time-scoped systems layered on
-  cross-play and cloud progression. *Roadmap.*
+- co-op / social play and real-time netcode;
+- cloud identity, cross-play progression, and hosted convenience;
+- guilds, seasons, marketplace services, and publisher signing;
+- cinematic video, orchestral media, and high-resolution painted illustration.
 
-These surfaces are exactly where extraction grammar tries to re-enter wearing
-cute clothes: season pressure, guild obligation, social retention. The same
-sovereignty rule governs them when they arrive — only authored levers, no
-manufactured scarcity, no fake agency. Until then, this page does not imply they
-exist.
+These are exactly where extraction grammar tries to re-enter wearing cute
+clothes. The same sovereignty rule governs them when they arrive: only authored
+levers, no manufactured scarcity, no custodial lock-in, and no fake agency.

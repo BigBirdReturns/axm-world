@@ -14,7 +14,7 @@
 // Primitives only: markers are squares, the room is a box, party are tokens. The
 // proof is the compilation, not the fidelity.
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import type { ArcWorld } from "../useArcWorld.js";
 import type { ProjectedOutcome } from "../readiness.js";
@@ -24,6 +24,7 @@ import { PixelButton, PixelDoll, PixelSprite } from "../pixel-ui/index.js";
 import { resolveDollAppearance } from "../themes/appearance.js";
 import { themeForArc } from "../themes/select.js";
 import { t } from "../i18n/index.js";
+import { playPresentationCue } from "../sensory-prefs.js";
 import "./encounter-shell.css";
 
 // Projected outcome → a compact deploy-time badge. The player reads the stakes of
@@ -154,6 +155,11 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
       return [...cur, id];
     });
   };
+
+  useEffect(() => {
+    if (!report) return;
+    playPresentationCue(report.outcome === "success" ? "resolve-success" : report.outcome === "partial" ? "resolve-partial" : "resolve-failure", world.arc.meta.id);
+  }, [report, world.arc.meta.id]);
 
   const resolve = () => {
     if (!countOk) return;

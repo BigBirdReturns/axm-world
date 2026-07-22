@@ -22,6 +22,9 @@ import { LEGACY_BUNDLED_DIGESTS } from "./legacy-revisions.js";
 import { EXPECTED_BUNDLED_DIGESTS } from "./bundled-digests.js";
 import { CartridgeBayCard } from "./components/CartridgeBayCard.js";
 import { LocaleSwitcher } from "./components/LocaleSwitcher.js";
+import { SensorySwitcher } from "./components/SensorySwitcher.js";
+import { playPresentationCue } from "./sensory-prefs.js";
+import "./sensory-prefs.css";
 import { CartridgeEnterTransition } from "./components/CartridgeEnterTransition.js";
 import { RodohRuntimeMark } from "./brand/RodohRuntimeMark.js";
 import "./themes/karazhan/karazhan.css";
@@ -80,6 +83,7 @@ export function Player(): JSX.Element {
     // program gets the acquisition reveal; a resumable one returns straight to
     // its exact checkpoint — replaying the theatre over held state would claim
     // an acquisition that already happened.
+    playPresentationCue("enter", next.arc.meta.id);
     setCartridge(next);
     setEnteringCartridge(resumable ? null : next);
   }, []);
@@ -183,7 +187,7 @@ export function Player(): JSX.Element {
             choice locks the player out of the other language before they enter. */}
         <div style={{ marginBottom: 18, display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
           <RodohRuntimeMark variant="boot" label="RODOH RUNTIME v1.0" caption={t("boot.holdTheLoop")} />
-          <LocaleSwitcher />
+          <div style={{ display: "flex", gap: 6 }}><SensorySwitcher /><LocaleSwitcher /></div>
         </div>
         <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase", color: "#6f8f57" }}>
           {t("boot.runtimeEyebrow")}
