@@ -9,9 +9,9 @@ permissions:
   contents: read
 
 jobs:
-  exercise:
+  routing-and-source:
     runs-on: ubuntu-latest
-    timeout-minutes: 70
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,14 +24,19 @@ jobs:
           cache: npm
       - run: npm ci --silent
       - run: npx playwright install --with-deps chromium >/dev/null
-      - name: Run complete desktop/mobile Chromium suite against owned Vite server
-        id: browser
+      - name: Package exact release-candidate source
+        run: |
+          mkdir -p .diagnostic
+          tar --exclude=.git --exclude=.diagnostic --exclude=node_modules -czf .diagnostic/axm-world-pr121-source.tgz .
+          sha256sum .diagnostic/axm-world-pr121-source.tgz > .diagnostic/axm-world-pr121-source.sha256
+      - name: Run exact desktop routing path against owned Vite server
+        id: routing
         continue-on-error: true
         env:
           PW_BASE_URL: http://127.0.0.1:5173
         run: |
           set -uo pipefail
-          npm run dev -- --host 127.0.0.1 >"$RUNNER_TEMP/vite.log" 2>&1 &
+          npm run dev -- --host 127.0.0.1 >.diagnostic/vite.log 2>&1 &
           vite_pid=$!
           trap 'kill "$vite_pid" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 60); do
@@ -40,49 +45,28 @@ jobs:
           done
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
           set +e
-          npx playwright test --workers=1 --reporter=json >"$RUNNER_TEMP/playwright.json" 2>"$RUNNER_TEMP/playwright.stderr"
+          npx playwright test e2e/program-001-routing.spec.ts --project=desktop --workers=1 --reporter=json --trace=retain-on-failure >.diagnostic/playwright.json 2>.diagnostic/playwright.stderr
           status=$?
           set -e
-          printf '%s\n' "$status" >"$RUNNER_TEMP/status.txt"
-          JSON_PATH="$RUNNER_TEMP/playwright.json" SUMMARY_PATH="$RUNNER_TEMP/browser-summary.txt" node <<'NODE'
+          printf '%s\n' "$status" >.diagnostic/status.txt
+          JSON_PATH=.diagnostic/playwright.json SUMMARY_PATH=.diagnostic/routing-summary.txt node <<'NODE'
           const fs = require('node:fs');
           const data = JSON.parse(fs.readFileSync(process.env.JSON_PATH, 'utf8'));
-          const lines = [];
           const stats = data.stats ?? {};
-          lines.push(`PLAYWRIGHT STATS expected=${stats.expected ?? 0} unexpected=${stats.unexpected ?? 0} skipped=${stats.skipped ?? 0} flaky=${stats.flaky ?? 0} durationMs=${stats.duration ?? 0}`);
-          const projects = new Map();
-          const skipped = [];
-          function projectBucket(name) {
-            if (!projects.has(name)) projects.set(name, { expected: 0, unexpected: 0, skipped: 0, flaky: 0 });
-            return projects.get(name);
-          }
+          const lines = [`ROUTING STATS expected=${stats.expected ?? 0} unexpected=${stats.unexpected ?? 0} skipped=${stats.skipped ?? 0} flaky=${stats.flaky ?? 0}`];
           function walk(suites, parents = []) {
             for (const suite of suites ?? []) {
               const here = suite.title ? [...parents, suite.title] : parents;
               for (const spec of suite.specs ?? []) {
                 for (const test of spec.tests ?? []) {
-                  const project = test.projectName ?? test.projectId ?? 'unknown';
-                  const bucket = projectBucket(project);
-                  const title = [...here, spec.title].filter(Boolean).join(' > ');
-                  const resultStatuses = (test.results ?? []).map((result) => result.status);
-                  const failed = test.status === 'unexpected' || resultStatuses.some((status) => ['failed', 'timedOut', 'interrupted'].includes(status));
-                  const flaky = test.status === 'flaky';
-                  const isSkipped = test.status === 'skipped' || resultStatuses.every((status) => status === 'skipped');
-                  if (failed) bucket.unexpected++;
-                  else if (isSkipped) bucket.skipped++;
-                  else if (flaky) bucket.flaky++;
-                  else bucket.expected++;
-                  if (isSkipped) {
-                    const reason = (test.annotations ?? []).map((annotation) => annotation.description || annotation.type).filter(Boolean).join('; ');
-                    skipped.push(`SKIP [${project}] ${title}${reason ? ` — ${reason}` : ''}`);
-                  }
+                  const failed = test.status === 'unexpected' || (test.results ?? []).some((result) => ['failed', 'timedOut', 'interrupted'].includes(result.status));
                   if (!failed) continue;
-                  lines.push(`FAIL [${project}] ${title}`);
+                  lines.push(`FAIL [${test.projectName ?? test.projectId ?? 'unknown'}] ${[...here, spec.title].filter(Boolean).join(' > ')}`);
                   for (const result of test.results ?? []) {
                     if (!['failed', 'timedOut', 'interrupted'].includes(result.status)) continue;
                     const error = result.error ?? result.errors?.[0] ?? {};
                     const message = String(error.message ?? error.stack ?? error.value ?? 'no error message').replace(/\u001b\[[0-9;]*m/g, '');
-                    lines.push(message.slice(0, 3200));
+                    lines.push(message.slice(0, 4000));
                   }
                 }
               }
@@ -90,36 +74,19 @@ jobs:
             }
           }
           walk(data.suites);
-          for (const [project, counts] of [...projects.entries()].sort()) {
-            lines.splice(1, 0, `PROJECT ${project} expected=${counts.expected} unexpected=${counts.unexpected} skipped=${counts.skipped} flaky=${counts.flaky}`);
-          }
-          if (skipped.length) lines.push('', ...skipped);
           fs.writeFileSync(process.env.SUMMARY_PATH, `${lines.join('\n\n')}\n`);
           NODE
-      - name: Upload complete browser receipt
+          cat .diagnostic/routing-summary.txt
+      - name: Upload exact source and routing receipt
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: complete-browser-receipt
+          name: routing-and-source-receipt
           path: |
-            ${{ runner.temp }}/browser-summary.txt
-            ${{ runner.temp }}/status.txt
-            ${{ runner.temp }}/playwright.stderr
-            ${{ runner.temp }}/vite.log
+            .diagnostic
             test-results
-          if-no-files-found: warn
-          retention-days: 3
-
-  report:
-    if: always()
-    needs: exercise
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: complete-browser-receipt
-          path: receipt
-      - name: Complete desktop/mobile Chromium receipt
-        run: |
-          cat receipt/browser-summary.txt
-          test "$(cat receipt/status.txt)" -eq 0
+          if-no-files-found: error
+          retention-days: 2
+      - name: Preserve exact path status
+        if: steps.routing.outcome == 'failure'
+        run: exit 1
