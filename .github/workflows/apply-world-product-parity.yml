@@ -60,7 +60,6 @@ jobs:
           )
           with urlopen(request, timeout=30) as response:
               comments = json.load(response)
-          print(f"received {len(comments)} issue comments")
 
           parts = []
           for prefix, expected_length in expected_parts:
@@ -73,25 +72,17 @@ jobs:
                   raise SystemExit(
                       f"expected exactly one {expected_length}-byte payload comment beginning {prefix!r}; found {len(matches)}"
                   )
-              print(f"payload part {len(parts)}: {len(matches[0])} bytes")
               parts.append(matches[0])
 
           payload = "".join(parts).encode("ascii")
-          payload_sha = hashlib.sha256(payload).hexdigest()
-          print(f"payload sha256: {payload_sha}")
-          if payload_sha != os.environ["EXPECTED_PAYLOAD_SHA256"]:
+          if hashlib.sha256(payload).hexdigest() != os.environ["EXPECTED_PAYLOAD_SHA256"]:
               raise SystemExit("authenticated payload digest mismatch")
-
           compressed = base64.b64decode(payload, validate=True)
           patch = gzip.decompress(compressed)
-          patch_sha = hashlib.sha256(patch).hexdigest()
-          print(f"patch sha256: {patch_sha}")
-          if patch_sha != os.environ["EXPECTED_PATCH_SHA256"]:
+          if hashlib.sha256(patch).hexdigest() != os.environ["EXPECTED_PATCH_SHA256"]:
               raise SystemExit("authenticated patch digest mismatch")
 
           root = Path(os.environ["RUNNER_TEMP"]) / "world-parity"
-          (root / "world-parity.patch.gz.b64").write_bytes(payload)
-          (root / "world-parity.patch.gz").write_bytes(compressed)
           (root / "world-parity.patch").write_bytes(patch)
           PY
 
@@ -124,14 +115,31 @@ jobs:
         if: env.already_applied == 'false'
         run: npm ci
 
-      - name: Verify complete World product parity
+      - name: Clear generated TypeScript output
         if: env.already_applied == 'false'
         run: |
           find src tests e2e \( -name "*.js" -o -name "*.js.map" -o -name "*.d.ts" \) -delete
           rm -f tsconfig.tsbuildinfo
-          npm run check
-          npm run build
-          git diff --cached --check
+
+      - name: Verify exact Arc source drift
+        if: env.already_applied == 'false'
+        run: npm run engine:check
+
+      - name: Verify TypeScript
+        if: env.already_applied == 'false'
+        run: npm run typecheck
+
+      - name: Verify complete Vitest suite
+        if: env.already_applied == 'false'
+        run: npm test
+
+      - name: Verify production build
+        if: env.already_applied == 'false'
+        run: npm run build
+
+      - name: Verify patch hygiene
+        if: env.already_applied == 'false'
+        run: git diff --cached --check
 
       - name: Publish reviewed source commit
         if: env.already_applied == 'false'
