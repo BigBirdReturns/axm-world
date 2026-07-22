@@ -1,115 +1,139 @@
-# Rodoh 1.0 acceptance — one owned cartridge, one carried run
+# RODOH 1.0 acceptance contract
 
-This document is the production gate for the first complete Rodoh loop. It is
-not a feature backlog. A claim closes only when the same authored cartridge and
-holder-owned run survive every boundary below without a second decision
-authority or a lossy export.
+**Status:** product boundary frozen at Gate 0. Individual implementation gates remain governed by their exact repository receipts.
 
-## Dependency chain
+RODOH 1.0 is the first coordinated `axm-arc` and `axm-world` release that proves one creator-owned cartridge and run contract across three materially different playable grammars. It is a local-first simulation and story-game platform release. It is not a claim that every future service, medium, or AXM family product has shipped.
 
-1. `axm-arc#128` owns `axm-cartridge-run/v3`, exact engine restore, lossless
-   namespaced extensions, immutable installed revisions, and the calibrated
-   First Charter 1.2.0 campaign.
-2. `clifford-number#69` owns the neutral Aperture interaction kit: semantic zoom,
-   deterministic layout, bounded selection, explicit pins, and versioned exact
-   address state. Clifford's evidence and public-record ontology do not cross
-   this boundary.
-3. This World change vendors both exact source planes, adapts them to Rodoh, and
-   proves the player path below.
+## Authority and custody
 
-## Required player path
+- `axm-arc` owns authored law, the Arc schema, creator source planes, founding, deterministic resolution, state transition, portable runs, validation, compilation, and authoring.
+- `axm-world` is the spatial runtime player whose player-facing identity is **Rodoh**. It renders faithful representations and holder-owned run memory. It does not invent outcomes or maintain a second resolver.
+- A **cartridge** is the creator-owned authored artifact. A **run** is the holder-owned mutable record. The runtime does not absorb either identity.
+- World consumes one exact reviewed Arc source plane through the reconciliation and drift contract.
+- Every acceptance claim names the exact cartridge bytes, runtime bytes, engine and save versions, browser journey, and artifact receipts that support it.
 
-```text
-pick up The First Charter
-→ resolve the Arc-owned founding decision
-→ meet the founded Hall and its people
-→ commit the exact Cellar plan
-→ resolve through the canonical engine
-→ read the exact consequence receipt
-→ resolve the Arc-owned reward decision
-→ return to the changed Hall
-→ enter the reusable Board / Map / Hall / Aperture / Globe runtime
-→ finish all six authored challenges
-→ return to the completed cartridge
-```
+## Current accepted baseline
 
-The focused first-contract experience is a digest-bound entry direction for
-Program 001. It is not a second runtime and it does not identify cartridges by
-an untrusted manifest id. Once the first consequence is understood, the same
-`ArcWorld` continues in the reusable shell.
+The following are already accepted in the local-first browser product and remain mandatory regressions throughout the 1.0 train:
 
-## Custody round trip
+1. **The First Charter**, including directed cold entry, complete campaign, changed Hall, exact run custody, and production Hall asset slice.
+2. **The Waking Tower**, including its original player-facing identity, distinct large-roster grammar, Heroic posture, attunement chains, complete campaign, and cartridge-owned expression.
+3. **The Kind Gods of Ilyon**, including `godscar-pocket/1` creator source, evidence and faction receipts, deterministic campaign acceptance, Godscar Aperture projection, and cartridge-owned expression.
 
-The release claim requires this exact boundary:
+Every accepted cartridge must continue to support Board, Map, Hall, Encounter, Globe, and Aperture where those representations are declared, desktop and mobile operation, offline boot, accessibility and sensory controls, exact `axm-cartridge-run/v3` custody, and neutral fallback for imported cartridges.
 
-```text
-Arc exports v3
-→ World validates, imports, saves, and resumes
-→ World changes engine and Rodoh extension state
-→ World exports v3
-→ all local storage is cleared
-→ Arc or another compatible player restores the exact engine save
-→ unknown runtime extensions remain byte-faithful JSON values
-→ World may restore the same run again
-```
+## Frozen first-party 1.0 references
 
-The common envelope owns the validated Arc, exact engine save, pending engine
-choices, authored digest, and integrity digest. Rodoh owns only namespaced
-extensions:
+RODOH 1.0 ships and accepts five first-party references:
 
-- `rodoh.ledger@2`
-- `rodoh.opening@1`
-- `rodoh.experience@1`
-- `rodoh.runtime@1`
-- `rodoh.cartridge@1`
+1. **The First Charter**
+2. **The Waking Tower**
+3. **The Kind Gods of Ilyon**
+4. **The Lamp District**, the canonical Book II Dark Tomb reference
+5. **The Relief Circuit**, the canonical Book III Common Ship reference
 
-A runtime may reject an invalid extension. It may not discard an unknown valid
-extension merely because it cannot render it.
+The two new references must use the same cartridge, deterministic engine, custody, evidence, and receiver law as the existing three.
 
-## Representation truth
+### The Lamp District
 
-Board, Map, Hall, Aperture, Globe, encounter, result, and record are projections
-of one cartridge and one continuing run.
+The Lamp District must prove ordinary neighborhood life, maintained misclassification, the Long Alarm, signature allocation, political depth, authorized descent, breach, return, and a mechanically changed hub. Its complete acceptance journey is:
 
-Aperture provides three truthful modes:
+> Enter the district, resolve an ordinary civic need, authorize a delve, compose the expedition, cross at least two forms of depth, encounter a classification reversal, return to a visibly and mechanically altered hub, export the run, load it in a fresh holder context, and resume with the changed Alarm, visibility, map, and constituencies intact.
 
-- **Map** changes represented scale from cartridge to progression to contracts to
-  exact recorded consequences.
-- **Trace** explains authored access requirements and the receipts that satisfy
-  them; it does not manufacture a path the Arc does not author.
-- **Surface** bounds and pins the people relevant to one selected contract rather
-  than manufacturing all-to-all adjacency.
+### The Relief Circuit
 
-## Failure behavior
+The Relief Circuit must prove embodied operation aboard a Common Ship. Its crew must include materially different scale, environment, sensorium, temporal, continuity, and interface profiles whose differences alter feasible watches and system allocation. Its complete acceptance journey is:
 
-- A failed cartridge-bay or run write is visible as unsaved state.
-- Exact v3 export remains available as the recovery path.
-- A new bundled revision installs beside held bytes; it does not relabel or
-  overwrite the old cartridge.
-- Playing and resuming require no third-party font or network request.
-- Unknown or incompatible run versions fail explicitly.
+> Inspect the mission and decision horizon, read body and role profiles, compose a lawful watch, identify the excluded actor and dependency, allocate habitat and translation systems, resolve the pressure, perform a handoff, establish precedent, reach the Lamp District, conduct a connected relief and descent operation, return with changed ship and Tomb state, export the run, and resume it exactly.
 
-## Automated acceptance in this change
+## Clean-room generalization proof
 
-The repository gate covers:
+RODOH 1.0 also requires one unbundled cartridge authored after the five references are complete. Its creator may use the public Workshop, exact source editor, generic Arc format, or a registered creator source plane, but may not edit Arc or World implementation code.
 
-- strict Arc vendoring against `axm-arc@75608ddb56d3af020f699d0599e8eadbc69711ec`;
-- exact v3 import, restore, re-export, integrity, and extension preservation;
-- a World-side six-challenge First Charter campaign from canonical founding law;
-- a clear-storage v3 custody crossing during that campaign;
-- Arc-owned reward assignment with a player-facing mechanical-fit recommendation;
-- the completed-cartridge state;
-- RuntimeRouter entry and representation persistence;
-- the vendored Aperture conformance vector and Rodoh adapter;
-- offline document assets and service-worker registration;
-- type checking, unit/integration suites, and production build.
+Acceptance requires:
 
-## Evidence boundary still requiring a human
+- source validation and exact source recovery;
+- compiled cartridge identity and deterministic execution;
+- neutral World fallback without an id-specific receiver branch;
+- complete campaign reachability;
+- exact changed-run export, fresh-context import, and resume;
+- preservation of unknown namespaced run memory;
+- legible refusal of malformed or incompatible artifacts;
+- no runtime-authored outcome, rule, or trust claim.
 
-Automated completion establishes execution, persistence, compatibility, and
-structural campaign reachability. It does not establish that a cold person finds
-the complete campaign memorable or understands every later management decision.
-Before a public 1.0 readiness claim, one independent operator must complete the
-current production wording on desktop or mobile without repository knowledge,
-including the shell handoff, at least one recovery decision, final completion,
-export, clear-storage import, and resume.
+A new cartridge that requires a new switch statement, resolver, schema exception, or hardcoded role vocabulary fails this proof.
+
+## Engine and source-plane floor
+
+The 1.0 release must carry an additive engine contract capable of executing the distinctive facts declared by Books II and III:
+
+- creator-authored state definitions, bounded transitions, exact before-and-after receipts, persistence, and migration;
+- declarative composition profiles and constraints with deterministic feasibility and rejection reasons;
+- Dark Tomb Alarm, signature, visibility, jurisdiction, habitat, route, and consequence state;
+- Common Ship habitat, time, translation, roster, care, continuity, visibility, and compatibility-debt state;
+- structured embodiment profiles covering somatic scale, passage, occupied volume, environment, sensorium, interface, temporal structure, and lineage dependency;
+- one Arc-owned authority for direct resolution, cycle resolution, authoring preview, and World projection.
+
+The receiver may expose those facts. It may not infer or resolve them independently.
+
+## Production dignity floor
+
+Every first-party reference must have:
+
+- cartridge-owned role and cast appearances;
+- cartridge-owned motifs and material treatment across shared representations;
+- one runtime-loaded hero environment;
+- one lead portrait;
+- one framing, cross-section, or environmental-depth layer;
+- machine-readable original-authorship provenance;
+- responsive desktop and mobile treatment;
+- keyboard, forced-colors, high-contrast, reduced-motion, and target-size acceptance;
+- a neutral import fallback that does not borrow another cartridge's identity.
+
+This floor uses local pixel and vector assets. Cinematic media and high-resolution painted illustration are not concealed prerequisites.
+
+## Permanent release supergate
+
+The coordinated 1.0 candidate is accepted only when one exact Arc head and one exact World head pass:
+
+1. Arc TypeScript, complete unit and integration suite, and production build.
+2. Every registered source-plane conformance suite and exact source round trip.
+3. Complete deterministic campaign acceptance for all five first-party references.
+4. Save migration and portable-run regression fixtures.
+5. World exact Arc provenance and drift verification.
+6. World complete test suite and production build.
+7. Desktop and mobile Chromium journeys for all five references.
+8. Offline boot, persistence-failure recovery, export, fresh-context import, and exact resume.
+9. Clean-room unbundled cartridge acceptance.
+10. Accessibility, sensory, identity-custody, neutral-fallback, and production-asset receipts.
+11. A compatibility manifest naming engine, save, portable-run, source-plane, Arc, and World versions.
+
+A passing subsystem on a different SHA is not a release receipt.
+
+## Explicitly separate products
+
+The following remain valuable expansion products and do not reopen the 1.0 local-first boundary:
+
+- multiplayer and real-time netcode;
+- cloud identity and account sync;
+- hosted convenience and discovery;
+- marketplace economics;
+- cryptographic publisher signing and certification;
+- cinematic video, orchestral score, or high-resolution painted media;
+- authored-content translation packs beyond runtime chrome;
+- the separate neutral enterprise decision-kernel program;
+- arbitrary executable code inside cartridges.
+
+Accounts and external services may later add convenience. They may never become prerequisites for opening, playing, exporting, or preserving a cartridge and run.
+
+## Change control
+
+- Books I through III and their accepted source planes are the first 1.0 canon set.
+- New discoveries may enter canon bulletins while Lamp District and Relief Circuit are being completed.
+- No Book IV source plane enters the 1.0 critical path.
+- Additive compatible changes remain preferred. Incompatible engine, save, source, or receipt changes require a versioned migration event and explicit release decision.
+- The current three-cartridge release remains accepted while Books II and III are developed. Source-plane existence alone does not imply a World runtime or bundled cartridge.
+
+## Completion question
+
+RODOH 1.0 is complete when a holder can pick up any accepted cartridge, enter its world through a compatible player, make only actions the cartridge actually authors, see deterministic consequences alter the world, carry the exact run elsewhere, and continue without surrendering custody to the runtime.
