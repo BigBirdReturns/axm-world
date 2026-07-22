@@ -207,27 +207,43 @@ export function ExperienceHost({ world, onExit, onEnterRuntime }: Props): JSX.El
 
   return (
     <main className="axm-experience" data-testid="axm-experience" data-stage={checkpoint.stage}>
-      {!isMobile && (
+      {isMobile ? (
+        <div className="axm-experience__mobile-toolbar" data-testid="mobile-cartridge-toolbar">
+          <div>
+            <span>Active cartridge</span>
+            <strong>{world.arc.meta.name}</strong>
+          </div>
+          <button
+            type="button"
+            data-testid="cartridge-object-button"
+            aria-label={`Open run record, ${ledgerSummary.entryCount} recorded`}
+            onClick={() => setShowRecord(true)}
+          >
+            <span>Run record</span>
+            <b aria-hidden="true">{String(ledgerSummary.entryCount).padStart(2, "0")}</b>
+          </button>
+        </div>
+      ) : (
         <header className="axm-experience__identity" data-testid="program-identity-strip">
-        <div>
-          <span className="axm-experience__receiver">{t("shell.runtimeName")} WORLD · RECEIVER</span>
-          {program && (
-            <span data-testid="strip-program" className="axm-experience__program">
-              {program.programId.replaceAll("-", " ").toUpperCase()} · {t("boot.programOfRecord")}
+          <div>
+            <span className="axm-experience__receiver">{t("shell.runtimeName")} WORLD · RECEIVER</span>
+            {program && (
+              <span data-testid="strip-program" className="axm-experience__program">
+                {program.programId.replaceAll("-", " ").toUpperCase()} · {t("boot.programOfRecord")}
+              </span>
+            )}
+            <strong>{world.arc.meta.name}</strong>
+          </div>
+          <div className="axm-experience__custody">
+            <span>ARC LAW</span>
+            <code data-testid="strip-digest" title={world.cartridgeDigest}>{world.cartridgeDigest.slice(0, 18)}…</code>
+            <span data-testid="strip-ledger">
+              {ledgerSummary.entryCount > 0
+                ? `${t("shell.identityRecorded", { count: ledgerSummary.entryCount })}${ledgerSummary.lastResult ? ` · ${ledgerSummary.lastResult.challengeName}` : ""}`
+                : t("shell.identityFresh")}
             </span>
-          )}
-          <strong>{world.arc.meta.name}</strong>
-        </div>
-        <div className="axm-experience__custody">
-          <span>ARC LAW</span>
-          <code data-testid="strip-digest" title={world.cartridgeDigest}>{world.cartridgeDigest.slice(0, 18)}…</code>
-          <span data-testid="strip-ledger">
-            {ledgerSummary.entryCount > 0
-              ? `${t("shell.identityRecorded", { count: ledgerSummary.entryCount })}${ledgerSummary.lastResult ? ` · ${ledgerSummary.lastResult.challengeName}` : ""}`
-              : t("shell.identityFresh")}
-          </span>
-          <button type="button" data-testid="cartridge-object-button" onClick={() => setShowRecord(true)}>Run record</button>
-        </div>
+            <button type="button" data-testid="cartridge-object-button" onClick={() => setShowRecord(true)}>Run record</button>
+          </div>
         </header>
       )}
 

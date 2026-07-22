@@ -15,6 +15,9 @@ test("the program identity strip is desktop-only and carries Program 001's compu
   const strip = page.getByTestId("program-identity-strip");
   if (testInfo.project.name === "mobile") {
     await expect(strip).toHaveCount(0);
+    await expect(page.getByTestId("mobile-cartridge-toolbar")).toBeVisible();
+    await page.getByTestId("cartridge-object-button").click();
+    await expect(page.getByTestId("cartridge-digest")).toHaveText(DIGEST);
     return;
   }
 
@@ -49,6 +52,7 @@ test("the desktop strip ledger updates after a resolved contract without appeari
 
   if (testInfo.project.name === "mobile") {
     await expect(page.getByTestId("program-identity-strip")).toHaveCount(0);
+    await expect(page.getByTestId("cartridge-object-button")).toBeVisible();
     return;
   }
 
