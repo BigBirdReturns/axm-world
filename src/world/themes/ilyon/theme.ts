@@ -1,5 +1,6 @@
 import { RODOH_BASE_THEME, type RodohTheme } from "../rodoh.js";
 import { ILYON_DOLL_APPEARANCES, ILYON_ROLE_BINDINGS } from "./portrait-icons.js";
+import "./ilyon.css";
 
 export const ILYON_THEME: RodohTheme = {
   ...RODOH_BASE_THEME,
