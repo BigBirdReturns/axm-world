@@ -88,7 +88,7 @@ export function PixelRosterCard(props: PixelRosterCardProps): JSX.Element {
           {/* The appearance pack owns both the staged body and this close-up.
               A cartridge-specific face therefore follows the same role binding
               everywhere instead of falling back to generic Rodoh art. */}
-          <PixelDollPortrait appearance={resolvedAppearance} state={dollState} label={`${name}, ${role}`} size={32} data-testid="roster-card-doll" style={{ marginRight: 8 }} />
+          <PixelDollPortrait appearance={resolvedAppearance} state={dollState} label={`${name}, ${role}`} size={32} data-testid="roster-card-doll" data-identity={identity} style={{ marginRight: 8 }} />
           <div className="pixel-roster-card__identity">
             <strong className="pixel-roster-card__name">{name}</strong>
             <div className="pixel-roster-card__badges">
