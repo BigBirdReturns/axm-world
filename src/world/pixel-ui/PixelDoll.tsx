@@ -16,7 +16,7 @@ type PixelDollProps = Omit<HTMLAttributes<HTMLSpanElement>, "children"> & {
 
 const TOKENS = {
   shadow: new Set(["d"]),
-  body: new Set(["o", "s", "h"]),
+  body: new Set(["o", "s", "h", "e", "m"]),
   clothes: new Set(["c", "t", "w"]),
 };
 
@@ -33,12 +33,15 @@ function cellsFor(tokens: Set<string>, grid: string[], palette: Record<string, s
   return cells;
 }
 
-/** Original, state-driven doll renderer. The body, clothes, ground, and status
- * overlay are separate SVG layers even when a starter appearance shares a grid. */
+/** State-driven doll renderer. A cartridge may supply a full 16x16 body spec;
+ * neutral cartridges continue to use the shared Rodoh silhouettes. Body,
+ * clothes, ground, and status remain separate SVG layers. */
 export function PixelDoll({ appearance, identity, state = "idle", label, size = 40, className = "", style, ...props }: PixelDollProps): JSX.Element {
-  const spec = SPRITES[appearance.body] ?? SPRITES.person;
+  const spec = appearance.bodySpec ?? SPRITES[appearance.body] ?? SPRITES.person;
   const identityColors = identityPalette(identity);
-  const palette = { ...spec.palette, t: identityColors.accent, w: identityColors.highlight };
+  const palette = appearance.identityTreatment === "authored"
+    ? spec.palette
+    : { ...spec.palette, t: identityColors.accent, w: identityColors.highlight };
   const bodyTransform = state === "downed"
     ? "translate(0 16) rotate(-90 8 9)"
     : state === "strain"

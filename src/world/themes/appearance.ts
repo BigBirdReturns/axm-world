@@ -1,4 +1,5 @@
 import type { PixelPortraitName } from "../pixel-ui/PixelPortrait.js";
+import type { PortraitSpec } from "../pixel-ui/PixelPortrait.js";
 import type { PixelSpriteName } from "../pixel-ui/PixelSprite.js";
 
 /** Presentation data owned by a theme. Role ids and labels stay opaque to the
@@ -8,6 +9,13 @@ export interface DollAppearance {
   body: PixelSpriteName;
   portrait: PixelPortraitName;
   renderMode: "layered" | "baked";
+  /** Cartridge-owned grids override the neutral Rodoh silhouette without
+   * widening the engine or generic pixel-ui role vocabulary. */
+  bodySpec?: PortraitSpec;
+  portraitSpec?: PortraitSpec;
+  /** Neutral appearances keep identity-derived trim. Fully authored cartridge
+   * art may preserve its declared palette instead. */
+  identityTreatment?: "derived" | "authored";
 }
 
 export interface DollAppearancePack {
@@ -28,6 +36,7 @@ export function resolveDollAppearance(theme: AppearanceTheme, role: string): Dol
     body: "person",
     portrait: "person",
     renderMode: "layered",
+    identityTreatment: "derived",
   };
 }
 
@@ -47,8 +56,8 @@ export function identityPalette(identity: string): { accent: string; highlight: 
 }
 
 export const RODOH_DOLL_APPEARANCES: Record<string, DollAppearance> = {
-  "rodoh:bare-doll": { id: "rodoh:bare-doll", body: "person", portrait: "person", renderMode: "layered" },
-  "rodoh:plated": { id: "rodoh:plated", body: "vanguard", portrait: "vanguard", renderMode: "layered" },
-  "rodoh:hooded": { id: "rodoh:hooded", body: "skirmisher", portrait: "skirmisher", renderMode: "layered" },
-  "rodoh:robed": { id: "rodoh:robed", body: "mender", portrait: "mender", renderMode: "layered" },
+  "rodoh:bare-doll": { id: "rodoh:bare-doll", body: "person", portrait: "person", renderMode: "layered", identityTreatment: "derived" },
+  "rodoh:plated": { id: "rodoh:plated", body: "vanguard", portrait: "vanguard", renderMode: "layered", identityTreatment: "derived" },
+  "rodoh:hooded": { id: "rodoh:hooded", body: "skirmisher", portrait: "skirmisher", renderMode: "layered", identityTreatment: "derived" },
+  "rodoh:robed": { id: "rodoh:robed", body: "mender", portrait: "mender", renderMode: "layered", identityTreatment: "derived" },
 };

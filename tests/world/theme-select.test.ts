@@ -8,8 +8,8 @@
 // cartridge's clothes.
 //
 // Style-matched to tests/world/karazhan-theme.test.ts, which already covers
-// the two bundled cartridges' own scoping; this file adds the missing pin on
-// the DEFAULT branch, exercised against a real, validated, unknown arc rather
+// bundled cartridges' own scoping; this file adds the missing pin on the
+// DEFAULT branch, exercised against a real, validated, unknown arc rather
 // than a hand-fabricated one.
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Arc } from "../../src/engine/types.js";
@@ -29,10 +29,6 @@ import {
   hasCartridgeMotifs,
 } from "../../src/world/themes/index.js";
 
-// Same in-memory localStorage stand-in as the other appliance tests
-// (tests/world/appliance-boot.test.ts, appliance-first-lockout.test.ts) — the
-// bay's import seam persists to localStorage, which vitest's `node`
-// environment doesn't provide.
 class MemoryStorage implements Storage {
   private store = new Map<string, string>();
   get length(): number {
@@ -60,10 +56,9 @@ beforeEach(() => {
 });
 
 /** A real, validated, UNKNOWN arc — first-lockout, imported through the actual
- *  boot seam exactly as a player's cartridge would be. Its `meta.id` is
- *  "first-lockout", which neither bundled theme claims (confirmed below), so
- *  it stands in for any imported cartridge (e.g. Operations Lab) without
- *  fabricating an arc shape by hand. */
+ * boot seam exactly as a player's cartridge would be. Its `meta.id` is
+ * "first-lockout", which no bundled theme claims, so it stands in for any
+ * imported cartridge without fabricating an arc shape. */
 function importFirstLockout(): Arc {
   const result = importCartridgeFromJson(firstLockoutCartridgeJson());
   if (!result.ok) throw new Error(`import failed: ${result.errors.join(", ")}`);
@@ -71,7 +66,7 @@ function importFirstLockout(): Arc {
 }
 
 describe("theme selection default: unknown/imported arcs", () => {
-  it("first-lockout's id is neither bundled theme's id (a genuine unknown)", () => {
+  it("first-lockout's id is no bundled theme's id (a genuine unknown)", () => {
     const arc = importFirstLockout();
     expect(arc.meta.id).not.toBe(KARAZHAN_THEME.id);
     expect(arc.meta.id).not.toBe(FIRST_CHARTER_THEME.id);
@@ -80,8 +75,6 @@ describe("theme selection default: unknown/imported arcs", () => {
 
   it("resolves to the base Rodoh theme — the very singleton, not a copy", () => {
     const arc = importFirstLockout();
-    // Identity, not deep-equal: the seam must return the one shared theme
-    // object, so nothing downstream can hold a lookalike that later drifts.
     expect(themeForArc(arc)).toBe(RODOH_BASE_THEME);
   });
 
@@ -96,18 +89,18 @@ describe("theme selection default: unknown/imported arcs", () => {
   });
 });
 
-describe("theme selection positive dispatch (pinned so the default branch above can't be reached by accident)", () => {
+describe("theme selection positive dispatch", () => {
   it("Karazhan's own id resolves to KARAZHAN_THEME", () => {
     expect(KARAZHAN.meta.id).toBe(KARAZHAN_THEME.id);
     expect(themeForArc(KARAZHAN)).toBe(KARAZHAN_THEME);
     expect(themeForArc(KARAZHAN).id).toBe(KARAZHAN_THEME.id);
   });
 
-  it("Ilyon's own id resolves to ILYON_THEME", () => {
+  it("Ilyon's own id resolves to ILYON_THEME with a complete motif pack", () => {
     expect(KIND_GODS_OF_ILYON.meta.id).toBe(ILYON_THEME.id);
     expect(themeForArc(KIND_GODS_OF_ILYON)).toBe(ILYON_THEME);
     expect(cartridgePaletteScope(KIND_GODS_OF_ILYON)).toBe("ilyon");
-    expect(hasCartridgeMotifs(KIND_GODS_OF_ILYON)).toBe(false);
+    expect(hasCartridgeMotifs(KIND_GODS_OF_ILYON)).toBe(true);
   });
 
   it("First Charter's own id resolves to FIRST_CHARTER_THEME", () => {
