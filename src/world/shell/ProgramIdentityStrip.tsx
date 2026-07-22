@@ -13,6 +13,7 @@
 
 import { type CSSProperties } from "react";
 import type { ArcWorld } from "../useArcWorld.js";
+import { useIsMobile } from "../use-viewport.js";
 import { programForCartridge } from "../program-of-record.js";
 import { summarizeLedger, type ContractOutcome } from "../ledger.js";
 import { t } from "../i18n/index.js";
@@ -35,9 +36,27 @@ function Sep(): JSX.Element {
 }
 
 export function ProgramIdentityStrip({ world }: { world: ArcWorld }): JSX.Element {
+  const isMobile = useIsMobile();
   const program = programForCartridge(world.cartridge);
   const summary = summarizeLedger(world.ledger);
   const shortDigest = `${world.cartridgeDigest.slice(0, 12)}…`;
+
+  // Mobile's one-panel turn flow keeps its limited vertical budget on the active
+  // play surface. Preserve only the viewport safe-area inset; program identity
+  // remains available in the bay and cartridge object instead of duplicating a
+  // horizontally scrolling desktop strip above every mobile step.
+  if (isMobile) {
+    return (
+      <div
+        aria-hidden="true"
+        style={{
+          flex: "none",
+          height: "env(safe-area-inset-top, 0px)",
+          background: "rgba(11,10,8,0.96)",
+        }}
+      />
+    );
+  }
 
   return (
     <div
