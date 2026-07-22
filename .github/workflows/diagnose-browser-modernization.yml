@@ -11,7 +11,7 @@ permissions:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,31 +23,25 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: Package exact PR head
-        run: |
-          tar --exclude=.git -czf "$RUNNER_TEMP/axm-world-pr121-source.tgz" .
-          sha256sum "$RUNNER_TEMP/axm-world-pr121-source.tgz" > "$RUNNER_TEMP/axm-world-pr121-source.sha256"
-      - name: Run identity-strip path
-        id: identity
+      - name: Run shell representation path
+        id: shell
         continue-on-error: true
         env:
           PW_BASE_URL: http://localhost:5173
         run: |
           set -o pipefail
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
-          npx playwright test e2e/program-001-identity-strip.spec.ts --workers=1 --reporter=line 2>&1 | tee "$RUNNER_TEMP/program-001-identity-strip.log"
+          npx playwright test e2e/shell.spec.ts --workers=1 --reporter=line 2>&1 | tee "$RUNNER_TEMP/shell.log"
       - name: Upload diagnostic receipts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: program-001-identity-strip-diagnostic
+          name: shell-diagnostic
           path: |
-            ${{ runner.temp }}/program-001-identity-strip.log
-            ${{ runner.temp }}/axm-world-pr121-source.tgz
-            ${{ runner.temp }}/axm-world-pr121-source.sha256
+            ${{ runner.temp }}/shell.log
             test-results
           if-no-files-found: warn
           retention-days: 1
       - name: Preserve failure status
-        if: steps.identity.outcome == 'failure'
+        if: steps.shell.outcome == 'failure'
         run: exit 1
