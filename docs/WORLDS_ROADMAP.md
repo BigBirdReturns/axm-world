@@ -22,10 +22,14 @@ it is no longer the current queue. Since it was written:
 - Karazhan proves a second cartridge; The Kind Gods of Ilyon adds the first
   `godscar-pocket/1` creator source and constitutional Aperture projection.
 
-The active release gates are one unaided human campaign completion and the
-modernization of ten older mobile-only browser receipts. New platform work must
-continue to preserve exact files, engine authority, offline play, bounded
-rendering, and explicit uncertainty.
+The implemented Godscar scope has no outstanding human acceptance gate. Ilyon
+is accepted by Codex conformance, deterministic full-campaign completion,
+faithful receiver projection, desktop/mobile entry, and the model-based
+narrative record in axm-arc. Future human sessions are telemetry and regression
+discovery. The ten older mobile-only browser receipts remain a modernization
+backlog rather than a Godscar release blocker. New platform work must continue
+to preserve exact files, engine authority, offline play, bounded rendering, and
+explicit uncertainty.
 
 ---
 
