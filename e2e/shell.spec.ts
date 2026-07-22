@@ -1,9 +1,20 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page, type TestInfo } from "@playwright/test";
 import { enterCartridge, enterFullRuntime } from "./helpers";
 
 // Proves the shell contract the branch claims: one cartridge state, switched between
 // representations without reset; a true modal that representation labels can't bleed
 // through. Runs on both a desktop and a mobile viewport (see playwright.config.ts).
+
+/** Mobile deliberately lands on the Board without treating cold-start focus as a
+ * user selection. The Contract sheet opens only after the player selects the focused
+ * card; desktop already owns the persistent detail rail. */
+async function openMobileContractSheet(page: Page, testInfo: TestInfo): Promise<void> {
+  if (testInfo.project.name !== "mobile") return;
+  const selectedCard = page.locator('[data-testid^="contract-board-card-"][data-selected="true"]');
+  await expect(selectedCard).toBeVisible();
+  await selectedCard.click();
+  await expect(page.getByTestId("selected-contract-title")).toBeVisible();
+}
 
 test("decision modal is a true layer — no representation labels render through it", async ({ page }) => {
   await page.goto("/axm-world/game/");
@@ -14,8 +25,9 @@ test("decision modal is a true layer — no representation labels render through
   await expect(page.locator(".node-label")).toHaveCount(0);
 });
 
-test("Run Graph and Planet are pure representations of the same cartridge state", async ({ page }) => {
+test("Run Graph and Planet are pure representations of the same cartridge state", async ({ page }, testInfo) => {
   await enterFullRuntime(page);
+  await openMobileContractSheet(page, testInfo);
 
   await expect(page.getByTestId("selected-contract-title")).toBeVisible();
   const selectedBefore = await page.getByTestId("selected-contract-title").innerText();
@@ -36,8 +48,9 @@ test("Run Graph and Planet are pure representations of the same cartridge state"
   await expect(page.getByTestId("party-count")).toHaveText(partyBefore);
 });
 
-test("a selected contract has one player-facing commit path", async ({ page }) => {
+test("a selected contract has one player-facing commit path", async ({ page }, testInfo) => {
   await enterFullRuntime(page);
+  await openMobileContractSheet(page, testInfo);
   await expect(page.getByTestId("play-encounter-button")).toBeVisible();
   await expect(page.getByTestId("play-encounter-button")).toBeEnabled();
   await expect(page.getByTestId("run-contract-button")).toHaveCount(0);
