@@ -1,4 +1,4 @@
-name: Apply World product parity
+name: Apply World browser modernization
 
 on:
   pull_request:
@@ -15,7 +15,7 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: world-product-parity-publication
+  group: world-browser-modernization-publication
   cancel-in-progress: false
 
 jobs:
@@ -23,12 +23,14 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'agent/local-first-product-parity'
     runs-on: ubuntu-latest
     steps:
-      - name: Reconstruct authenticated parity patch
+      - name: Reconstruct authenticated browser-modernization patch
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: '120'
-          EXPECTED_PAYLOAD_SHA256: 5a67822831be07bafb0208005061a7747bb45b23327a345fecf0b256429266cb
-          EXPECTED_PATCH_SHA256: 0ce737f65773d8327d7c394a9ecc3af38aaa5b8171f92dae7c27359dc74847c2
+          PAYLOAD_PREFIX: H4sICKtLYGoCA3dvcmxkLWJyb3dz
+          EXPECTED_PAYLOAD_LENGTH: '12032'
+          EXPECTED_PAYLOAD_SHA256: 84ac067e4fd7fe6eab3ed66922c2ef89a68143f570ae6f478c0ec45910c8b34b
+          EXPECTED_PATCH_SHA256: 2f073895780031a37551f04cd82e79c5eebada03439558e863c715e43571a9e3
         run: |
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/world-parity"
@@ -41,15 +43,6 @@ jobs:
           from pathlib import Path
           from urllib.request import Request, urlopen
 
-          expected_parts = [
-              ("H4sICBhDYGoCA3dvcmxk", 20000),
-              ("TcAPihQHWyJyp+h/9Ti1", 20000),
-              ("k5URbiBHWc7InuF7K60S", 20000),
-              ("ewnP8yd//qN/8/Wf/vPs", 20000),
-              ("Mze3Ac8fu8vJIv0K5f4oYSaj", 5000),
-              ("0EFEG5DLfefsDjYGhq0AGTFl", 5000),
-              ("yl4u0fAyyD+AMGm6xeMlhKky", 632),
-          ]
           request = Request(
               f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/issues/{os.environ['ISSUE_NUMBER']}/comments?per_page=100",
               headers={
@@ -61,27 +54,24 @@ jobs:
           with urlopen(request, timeout=30) as response:
               comments = json.load(response)
 
-          parts = []
-          for prefix, expected_length in expected_parts:
-              matches = []
-              for comment in comments:
-                  body = str(comment.get("body", "")).replace("\r", "").replace("\n", "")
-                  if body.startswith(prefix) and len(body) == expected_length:
-                      matches.append(body)
-              if len(matches) != 1:
-                  raise SystemExit(
-                      f"expected exactly one {expected_length}-byte payload comment beginning {prefix!r}; found {len(matches)}"
-                  )
-              parts.append(matches[0])
+          prefix = os.environ["PAYLOAD_PREFIX"]
+          expected_length = int(os.environ["EXPECTED_PAYLOAD_LENGTH"])
+          matches = []
+          for comment in comments:
+              body = str(comment.get("body", "")).replace("\r", "").replace("\n", "")
+              if body.startswith(prefix) and len(body) == expected_length:
+                  matches.append(body)
+          if len(matches) != 1:
+              raise SystemExit(f"expected exactly one browser payload; found {len(matches)}")
 
-          payload = "".join(parts).encode("ascii")
+          payload = matches[0].encode("ascii")
           if hashlib.sha256(payload).hexdigest() != os.environ["EXPECTED_PAYLOAD_SHA256"]:
-              raise SystemExit("authenticated payload digest mismatch")
+              raise SystemExit("browser payload digest mismatch")
           compressed = base64.b64decode(payload, validate=True)
           patch = gzip.decompress(compressed)
           if hashlib.sha256(patch).hexdigest() != os.environ["EXPECTED_PATCH_SHA256"]:
-              raise SystemExit("authenticated patch digest mismatch")
-          (Path(os.environ["RUNNER_TEMP"]) / "world-parity" / "world-parity.patch").write_bytes(patch)
+              raise SystemExit("browser patch digest mismatch")
+          (Path(os.environ["RUNNER_TEMP"]) / "world-parity" / "browser-modernization.patch").write_bytes(patch)
           PY
 
       - name: Check out publication branch
@@ -90,32 +80,13 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
-      - name: Apply and publish verified source
+      - name: Apply and publish browser modernization
         run: |
           set -euo pipefail
-          git apply --check "${RUNNER_TEMP}/world-parity/world-parity.patch"
-          git apply --index "${RUNNER_TEMP}/world-parity/world-parity.patch"
-
-          python - <<'PY'
-          from pathlib import Path
-          for relative in (
-              "src/world/Player.tsx",
-              "src/world/shell/Shell.tsx",
-              "src/world/useArcInteraction.ts",
-          ):
-              path = Path(relative)
-              path.write_bytes(path.read_bytes().replace(b"\r\n", b"\n"))
-          PY
-          git add src/world/Player.tsx src/world/shell/Shell.tsx src/world/useArcInteraction.ts
-
-          # GitHub's workflow token cannot add a new workflow file. Publish the
-          # already-verified source first; the permanent parity gate is added by
-          # the controller immediately afterward through the repository API.
-          git reset HEAD -- .github/workflows/bundled-parity.yml
-          rm -f .github/workflows/bundled-parity.yml
-
+          git apply --check "${RUNNER_TEMP}/world-parity/browser-modernization.patch"
+          git apply --index "${RUNNER_TEMP}/world-parity/browser-modernization.patch"
           git diff --cached --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Complete World local-first product parity"
+          git commit -m "Modernize guided-entry browser receipts"
           git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
