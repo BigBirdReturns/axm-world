@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { fileURLToPath } from "node:url";
-import { runSelectedContract } from "./helpers";
+import { openMobileContractSheet, runSelectedContract } from "./helpers";
 
 // PR 060 — the RFC_APPLIANCE_EXPANSION capstone receipt: a cartridge world has
 // NEVER named (arc's `severed-march`, a war-campaign arc authored purely to
@@ -85,21 +85,26 @@ test("severed-march (never named in world's source) imports, boots, plays, and r
   // skin — a second unknown cartridge, same guard as first-lockout's.
   await expect(page.locator("html")).not.toHaveAttribute("data-cartridge");
 
+  // Mobile's Board does not manufacture a player selection. Open the Up next
+  // Contract sheet through the required card action before reading its party.
+  await openMobileContractSheet(page);
+
   // The shared engine's frozen legacy founding law reads severed-march's own
-  // challenges, which top out at a 4-6 agent roster. The cold-start
-  // selection lands on the arc's own first reachable challenge — the
-  // crossroads-picket (2-4 agents, no role requirements, the opening fight of
-  // Chapter I) — and auto-seeds the party with the engine's own recommendation,
-  // so the shell landing here, no extra clicks, is itself the receipt that a
-  // cartridge world never named boots exactly as generously as one world does
-  // know by name.
-  const partyCount = page.getByTestId("party-count");
-  await expect(partyCount).toBeVisible();
-  await expect(partyCount).toContainText(/need 2–4/);
-  const partyCountText = await partyCount.innerText();
-  const fielded = Number(partyCountText.match(/Party (\d+)/)?.[1] ?? 0);
-  expect(fielded).toBeGreaterThanOrEqual(2);
-  expect(fielded).toBeLessThanOrEqual(4);
+  // challenges. Desktop exposes its detail rail; mobile proves the same
+  // recommendation on the visible mission stage.
+  if (testInfo.project.name === "mobile") {
+    const fielded = await page.getByTestId("mobile-mission-party").locator("figure").count();
+    expect(fielded).toBeGreaterThanOrEqual(2);
+    expect(fielded).toBeLessThanOrEqual(4);
+  } else {
+    const partyCount = page.getByTestId("party-count");
+    await expect(partyCount).toBeVisible();
+    await expect(partyCount).toContainText(/need 2–4/);
+    const partyCountText = await partyCount.innerText();
+    const fielded = Number(partyCountText.match(/Party (\d+)/)?.[1] ?? 0);
+    expect(fielded).toBeGreaterThanOrEqual(2);
+    expect(fielded).toBeLessThanOrEqual(4);
+  }
 
   // The run button honestly reflects that the party fits the requirement: it
   // is enabled — the encounter is genuinely attemptable from a fresh boot.
