@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { fileURLToPath } from "node:url";
-import { runSelectedContract } from "./helpers";
+import { openMobileContractSheet, runSelectedContract } from "./helpers";
 
 // PR 010 — the appliance capstone receipt: first-lockout, authored in axm-arc,
 // imported into world through the real boot importer, boots in the embodied
@@ -87,18 +87,25 @@ test("first-lockout imports and boots in the appliance client under arc's digest
   // the "PROGRAM 001 / program of record" framing must not attach to it.
   await expect(page.getByTestId("strip-program")).toHaveCount(0);
 
+  // Mobile's Board does not manufacture a player selection. Open the Up next
+  // Contract sheet through the required card action before reading its party.
+  await openMobileContractSheet(page);
+
   // The shared engine's frozen legacy founding law reads first-lockout's own
-  // encounters, which need an 8-10 agent party. The cold-start selection
-  // auto-seeds the party with the engine's own
-  // recommendation, so the shell landing here — no extra clicks — is itself
-  // the receipt that the fresh-booted org was sized from the cartridge's real
-  // requirement, not a fixed constant.
-  const partyCount = page.getByTestId("party-count");
-  await expect(partyCount).toBeVisible();
-  await expect(partyCount).toContainText(/need 8–10/);
-  const partyCountText = await partyCount.innerText();
-  const fielded = Number(partyCountText.match(/Party (\d+)/)?.[1] ?? 0);
-  expect(fielded).toBeGreaterThanOrEqual(8);
+  // encounters, which need an 8-10 agent party. Desktop exposes the persistent
+  // detail rail; mobile proves the same recommendation on its visible mission stage.
+  if (testInfo.project.name === "mobile") {
+    const fielded = await page.getByTestId("mobile-mission-party").locator("figure").count();
+    expect(fielded).toBeGreaterThanOrEqual(8);
+    expect(fielded).toBeLessThanOrEqual(10);
+  } else {
+    const partyCount = page.getByTestId("party-count");
+    await expect(partyCount).toBeVisible();
+    await expect(partyCount).toContainText(/need 8–10/);
+    const partyCountText = await partyCount.innerText();
+    const fielded = Number(partyCountText.match(/Party (\d+)/)?.[1] ?? 0);
+    expect(fielded).toBeGreaterThanOrEqual(8);
+  }
 
   // The run button honestly reflects that the party fits the requirement: it
   // is enabled (not stuck on "ASSIGN 8–10"), i.e. the encounter is actually
