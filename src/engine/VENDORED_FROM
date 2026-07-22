@@ -1,26 +1,15 @@
-# Provenance for the surface shared with axm-arc.
+# Provenance for the complete source and execution plane shared with axm-arc.
 #
-# The following paths are vendored verbatim from axm-arc so world's
-# build/deploy stay self-contained (no axm-arc access required at build time):
+# The listed paths are vendored verbatim so World builds and runs offline without
+# repository access. VENDORED_FROM itself is receiver-owned provenance and is
+# excluded from byte comparison.
 #
-#   src/engine  src/arcs  tests/engine  tests/fixtures
-#   src/godscar  tests/godscar  cartridges
-#
-# This file records exactly which axm-arc commit the copies correspond to, so
-# drift can be detected. The reconciliation contract (what is shared, and the
-# rule that shared-surface changes land in axm-arc first) lives in axm-arc's
-# RECONCILIATION.md; see this repo's RECONCILIATION.md for the world-side
-# workflow.
-#
-# To re-sync after axm-arc changes:
+# To update:
 #   scripts/sync-engine.sh [<axm-arc ref, default: main>]
-#
-# To check for silent drift against the pinned commit:
+# To verify:
 #   scripts/check-engine-drift.sh
-#
-# Both are wired as npm scripts: `npm run engine:sync`, `npm run engine:check`.
 
 repo: BigBirdReturns/axm-arc
-paths: src/engine src/arcs tests/engine tests/fixtures src/godscar tests/godscar cartridges
-commit: ac3c4f620cf5df802567c7dd10d3ee972cabfa46
+paths: src/engine src/arcs src/godscar src/dark-tomb src/common-ship src/source-planes tests/engine tests/fixtures tests/godscar tests/dark-tomb tests/common-ship tests/source-planes cartridges
+commit: dd688a0e5db8228998de310347c505b7a0d7bfe5
 synced: 2026-07-22
