@@ -11,6 +11,7 @@ import { CartridgePortrait, CartridgeSprite } from "../themes/CartridgeMotif.js"
 import { programForCartridge } from "../program-of-record.js";
 import { summarizeLedger } from "../ledger.js";
 import { t } from "../i18n/index.js";
+import { useIsMobile } from "../use-viewport.js";
 import {
   RODOH_EXPERIENCE_EXTENSION,
   downloadPortableRun,
@@ -80,6 +81,7 @@ function playThresholdCue(): void {
 }
 
 export function ExperienceHost({ world, onExit, onEnterRuntime }: Props): JSX.Element {
+  const isMobile = useIsMobile();
   const challengeIds = useMemo(() => new Set(world.arc.challenges.map((challenge) => challenge.id)), [world.arc]);
   const agentIds = useMemo(() => new Set(world.roster.map((agent) => agent.id)), [world.roster]);
   const difficultyModeIds = useMemo(() => new Set(world.arc.difficultyModes.map((mode) => mode.id)), [world.arc]);
@@ -205,7 +207,8 @@ export function ExperienceHost({ world, onExit, onEnterRuntime }: Props): JSX.El
 
   return (
     <main className="axm-experience" data-testid="axm-experience" data-stage={checkpoint.stage}>
-      <header className="axm-experience__identity" data-testid="program-identity-strip">
+      {!isMobile && (
+        <header className="axm-experience__identity" data-testid="program-identity-strip">
         <div>
           <span className="axm-experience__receiver">{t("shell.runtimeName")} WORLD · RECEIVER</span>
           {program && (
@@ -225,7 +228,8 @@ export function ExperienceHost({ world, onExit, onEnterRuntime }: Props): JSX.El
           </span>
           <button type="button" data-testid="cartridge-object-button" onClick={() => setShowRecord(true)}>Run record</button>
         </div>
-      </header>
+        </header>
+      )}
 
       <section className="axm-experience__stage">
         <div className="axm-experience__atmosphere" aria-hidden="true">
