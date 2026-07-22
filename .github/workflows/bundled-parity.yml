@@ -9,9 +9,22 @@ on:
       - 'src/arcs/**'
       - 'src/engine/**'
       - 'src/godscar/**'
+      - 'src/dark-tomb/**'
+      - 'src/common-ship/**'
+      - 'src/source-planes/**'
+      - 'cartridges/**'
+      - 'tests/engine/**'
+      - 'tests/fixtures/**'
+      - 'tests/godscar/**'
+      - 'tests/dark-tomb/**'
+      - 'tests/common-ship/**'
+      - 'tests/source-planes/**'
       - 'tests/world/**'
       - 'e2e/**'
       - 'docs/design/**'
+      - 'RECONCILIATION.md'
+      - 'scripts/sync-engine.sh'
+      - 'scripts/check-engine-drift.sh'
       - '.github/workflows/bundled-parity.yml'
 
 concurrency:
@@ -63,7 +76,18 @@ jobs:
       - name: Parity contracts
         run: |
           set -o pipefail
-          npm test -- tests/world/cartridge-parity.test.ts tests/world/bundled-campaign-parity.test.ts tests/world/sensory-prefs.test.ts tests/world/asset-standard.test.ts tests/world/i18n-coverage.test.ts | tee acceptance-receipt/parity-contracts.log
+          npm test -- \
+            tests/world/cartridge-parity.test.ts \
+            tests/world/bundled-campaign-parity.test.ts \
+            tests/world/sensory-prefs.test.ts \
+            tests/world/asset-standard.test.ts \
+            tests/world/i18n-coverage.test.ts \
+            tests/world/source-plane-inspection.test.ts \
+            tests/godscar/godscar.test.ts \
+            tests/dark-tomb/dark-tomb.test.ts \
+            tests/common-ship/common-ship.test.ts \
+            tests/source-planes/registry.test.ts \
+            | tee acceptance-receipt/parity-contracts.log
       - name: Complete World regression suite
         run: |
           set -o pipefail

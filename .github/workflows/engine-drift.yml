@@ -1,27 +1,46 @@
 name: engine-drift
 
-# Fails if the vendored shared surface (src/engine, src/arcs, tests/engine,
-# tests/fixtures) has silently diverged from the axm-arc commit pinned in
-# src/engine/VENDORED_FROM. Intentional changes are fine — land them in
-# axm-arc first, then re-sync with `npm run engine:sync` so the pinned commit
-# moves too. See RECONCILIATION.md.
-
+# Fails if any path in the complete Arc source/execution plane has silently
+# diverged from the exact commit recorded in src/engine/VENDORED_FROM.
 on:
   push:
     paths:
       - "src/engine/**"
       - "src/arcs/**"
+      - "src/godscar/**"
+      - "src/dark-tomb/**"
+      - "src/common-ship/**"
+      - "src/source-planes/**"
       - "tests/engine/**"
       - "tests/fixtures/**"
+      - "tests/godscar/**"
+      - "tests/dark-tomb/**"
+      - "tests/common-ship/**"
+      - "tests/source-planes/**"
+      - "cartridges/**"
       - "scripts/check-engine-drift.sh"
+      - "scripts/sync-engine.sh"
+      - "RECONCILIATION.md"
       - ".github/workflows/engine-drift.yml"
   pull_request:
     paths:
       - "src/engine/**"
       - "src/arcs/**"
+      - "src/godscar/**"
+      - "src/dark-tomb/**"
+      - "src/common-ship/**"
+      - "src/source-planes/**"
       - "tests/engine/**"
       - "tests/fixtures/**"
+      - "tests/godscar/**"
+      - "tests/dark-tomb/**"
+      - "tests/common-ship/**"
+      - "tests/source-planes/**"
+      - "cartridges/**"
       - "scripts/check-engine-drift.sh"
+      - "scripts/sync-engine.sh"
+      - "RECONCILIATION.md"
+      - ".github/workflows/engine-drift.yml"
   workflow_dispatch:
 
 jobs:
@@ -29,11 +48,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check vendored shared surface against pinned axm-arc commit
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Check complete vendored surface against pinned Arc commit
         env:
-          # CI is expected to reach axm-arc; treat unreachable as a failure.
           ENGINE_DRIFT_STRICT: "1"
-          # axm-arc is private: provide a token with read access if needed.
           GITHUB_TOKEN: ${{ secrets.ARC_READ_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
