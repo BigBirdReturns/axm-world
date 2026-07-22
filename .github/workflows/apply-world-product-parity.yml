@@ -23,18 +23,6 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'agent/local-first-product-parity'
     runs-on: ubuntu-latest
     steps:
-      - name: Check out publication branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 0
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
       - name: Reconstruct authenticated parity patch
         env:
           GH_TOKEN: ${{ github.token }}
@@ -70,8 +58,9 @@ jobs:
           )
           with urlopen(request, timeout=30) as response:
               comments = json.load(response)
+          print(f"received {len(comments)} issue comments")
 
-          parts: list[str] = []
+          parts = []
           for prefix in prefixes:
               matches = [str(comment.get("body", "")) for comment in comments if str(comment.get("body", "")).startswith(prefix)]
               if len(matches) != 1:
@@ -99,15 +88,30 @@ jobs:
           (root / "world-parity.patch").write_bytes(patch)
           PY
 
+      - name: Check out publication branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Apply authenticated parity patch
+        run: |
+          set -euo pipefail
           if git apply --reverse --check "${RUNNER_TEMP}/world-parity/world-parity.patch"; then
             echo "World parity patch is already applied."
             echo "already_applied=true" >> "${GITHUB_ENV}"
             exit 0
           fi
-
           git apply --check "${RUNNER_TEMP}/world-parity/world-parity.patch"
           git apply --index "${RUNNER_TEMP}/world-parity/world-parity.patch"
           echo "already_applied=false" >> "${GITHUB_ENV}"
+
+      - name: Set up Node
+        if: env.already_applied == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
 
       - name: Install dependencies
         if: env.already_applied == 'false'
