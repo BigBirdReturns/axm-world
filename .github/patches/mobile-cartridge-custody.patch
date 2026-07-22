@@ -1,0 +1,161 @@
+diff --git a/e2e/program-001-identity-strip.spec.ts b/e2e/program-001-identity-strip.spec.ts
+index b8a31d0..853a9d2 100644
+--- a/e2e/program-001-identity-strip.spec.ts
++++ b/e2e/program-001-identity-strip.spec.ts
+@@ -15,6 +15,9 @@ test("the program identity strip is desktop-only and carries Program 001's compu
+   const strip = page.getByTestId("program-identity-strip");
+   if (testInfo.project.name === "mobile") {
+     await expect(strip).toHaveCount(0);
++    await expect(page.getByTestId("mobile-cartridge-toolbar")).toBeVisible();
++    await page.getByTestId("cartridge-object-button").click();
++    await expect(page.getByTestId("cartridge-digest")).toHaveText(DIGEST);
+     return;
+   }
+ 
+@@ -49,6 +52,7 @@ test("the desktop strip ledger updates after a resolved contract without appeari
+ 
+   if (testInfo.project.name === "mobile") {
+     await expect(page.getByTestId("program-identity-strip")).toHaveCount(0);
++    await expect(page.getByTestId("cartridge-object-button")).toBeVisible();
+     return;
+   }
+ 
+diff --git a/src/world/experience/ExperienceHost.tsx b/src/world/experience/ExperienceHost.tsx
+index 6e699bd..3cb50ee 100644
+--- a/src/world/experience/ExperienceHost.tsx
++++ b/src/world/experience/ExperienceHost.tsx
+@@ -207,27 +207,43 @@ export function ExperienceHost({ world, onExit, onEnterRuntime }: Props): JSX.El
+ 
+   return (
+     <main className="axm-experience" data-testid="axm-experience" data-stage={checkpoint.stage}>
+-      {!isMobile && (
++      {isMobile ? (
++        <div className="axm-experience__mobile-toolbar" data-testid="mobile-cartridge-toolbar">
++          <div>
++            <span>Active cartridge</span>
++            <strong>{world.arc.meta.name}</strong>
++          </div>
++          <button
++            type="button"
++            data-testid="cartridge-object-button"
++            aria-label={`Open run record, ${ledgerSummary.entryCount} recorded`}
++            onClick={() => setShowRecord(true)}
++          >
++            <span>Run record</span>
++            <b aria-hidden="true">{String(ledgerSummary.entryCount).padStart(2, "0")}</b>
++          </button>
++        </div>
++      ) : (
+         <header className="axm-experience__identity" data-testid="program-identity-strip">
+-        <div>
+-          <span className="axm-experience__receiver">{t("shell.runtimeName")} WORLD · RECEIVER</span>
+-          {program && (
+-            <span data-testid="strip-program" className="axm-experience__program">
+-              {program.programId.replaceAll("-", " ").toUpperCase()} · {t("boot.programOfRecord")}
++          <div>
++            <span className="axm-experience__receiver">{t("shell.runtimeName")} WORLD · RECEIVER</span>
++            {program && (
++              <span data-testid="strip-program" className="axm-experience__program">
++                {program.programId.replaceAll("-", " ").toUpperCase()} · {t("boot.programOfRecord")}
++              </span>
++            )}
++            <strong>{world.arc.meta.name}</strong>
++          </div>
++          <div className="axm-experience__custody">
++            <span>ARC LAW</span>
++            <code data-testid="strip-digest" title={world.cartridgeDigest}>{world.cartridgeDigest.slice(0, 18)}…</code>
++            <span data-testid="strip-ledger">
++              {ledgerSummary.entryCount > 0
++                ? `${t("shell.identityRecorded", { count: ledgerSummary.entryCount })}${ledgerSummary.lastResult ? ` · ${ledgerSummary.lastResult.challengeName}` : ""}`
++                : t("shell.identityFresh")}
+             </span>
+-          )}
+-          <strong>{world.arc.meta.name}</strong>
+-        </div>
+-        <div className="axm-experience__custody">
+-          <span>ARC LAW</span>
+-          <code data-testid="strip-digest" title={world.cartridgeDigest}>{world.cartridgeDigest.slice(0, 18)}…</code>
+-          <span data-testid="strip-ledger">
+-            {ledgerSummary.entryCount > 0
+-              ? `${t("shell.identityRecorded", { count: ledgerSummary.entryCount })}${ledgerSummary.lastResult ? ` · ${ledgerSummary.lastResult.challengeName}` : ""}`
+-              : t("shell.identityFresh")}
+-          </span>
+-          <button type="button" data-testid="cartridge-object-button" onClick={() => setShowRecord(true)}>Run record</button>
+-        </div>
++            <button type="button" data-testid="cartridge-object-button" onClick={() => setShowRecord(true)}>Run record</button>
++          </div>
+         </header>
+       )}
+ 
+diff --git a/src/world/experience/experience.css b/src/world/experience/experience.css
+index 55f8327..c06cb1d 100644
+--- a/src/world/experience/experience.css
++++ b/src/world/experience/experience.css
+@@ -59,6 +59,67 @@
+ .axm-back { border: 0; color: var(--axm-gold); background: none; cursor: pointer; font: 700 10px "IBM Plex Mono", monospace; text-transform: uppercase; letter-spacing: .1em; }
+ .axm-experience__footer i { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: var(--axm-teal); box-shadow: 0 0 12px var(--axm-teal); }
+ 
++.axm-experience__mobile-toolbar {
++  position: relative;
++  z-index: 3;
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 12px;
++  min-height: 54px;
++  padding: calc(env(safe-area-inset-top, 0px) + 7px) 12px 7px;
++  background: rgba(7, 9, 11, .96);
++  border-bottom: 1px solid rgba(216, 178, 118, .25);
++  font-family: "IBM Plex Mono", ui-monospace, monospace;
++}
++.axm-experience__mobile-toolbar > div { min-width: 0; }
++.axm-experience__mobile-toolbar > div span {
++  display: block;
++  color: var(--axm-teal);
++  font-size: 8px;
++  font-weight: 800;
++  letter-spacing: .16em;
++  text-transform: uppercase;
++}
++.axm-experience__mobile-toolbar > div strong {
++  display: block;
++  overflow: hidden;
++  color: var(--axm-cream);
++  font: 800 17px "Barlow Condensed", sans-serif;
++  letter-spacing: .04em;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++}
++.axm-experience__mobile-toolbar button {
++  display: inline-flex;
++  flex: 0 0 auto;
++  align-items: center;
++  gap: 8px;
++  min-height: 44px;
++  padding: 6px 7px 6px 12px;
++  color: var(--axm-gold);
++  background: rgba(216, 178, 118, .08);
++  border: 1px solid rgba(216, 178, 118, .35);
++  cursor: pointer;
++  font: 800 9px "IBM Plex Mono", monospace;
++  letter-spacing: .1em;
++  text-transform: uppercase;
++}
++.axm-experience__mobile-toolbar button:focus-visible {
++  border-color: var(--axm-teal);
++  box-shadow: 0 0 0 3px rgba(47, 191, 162, .22);
++  outline: 0;
++}
++.axm-experience__mobile-toolbar button b {
++  display: grid;
++  place-items: center;
++  min-width: 28px;
++  height: 28px;
++  color: #07100e;
++  background: var(--axm-teal);
++  font: 900 11px "IBM Plex Mono", monospace;
++}
++
+ .axm-experience__stage { position: relative; z-index: 1; overflow: auto; }
+ .axm-experience__atmosphere { position: fixed; inset: 56px 0 34px; overflow: hidden; pointer-events: none; background:
+   radial-gradient(circle at 76% 16%, rgba(234, 207, 158, .18), transparent 18%),
