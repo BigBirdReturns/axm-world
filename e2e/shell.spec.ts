@@ -5,14 +5,14 @@ import { enterCartridge, enterFullRuntime } from "./helpers";
 // representations without reset; a true modal that representation labels can't bleed
 // through. Runs on both a desktop and a mobile viewport (see playwright.config.ts).
 
-/** Mobile deliberately lands on the Board without treating cold-start focus as a
- * user selection. The Contract sheet opens only after the player selects the focused
+/** Mobile deliberately lands on the Board without manufacturing a selected contract.
+ * The Contract sheet opens only after the player chooses the Board's derived Up next
  * card; desktop already owns the persistent detail rail. */
 async function openMobileContractSheet(page: Page, testInfo: TestInfo): Promise<void> {
   if (testInfo.project.name !== "mobile") return;
-  const selectedCard = page.locator('[data-testid^="contract-board-card-"][data-selected="true"]');
-  await expect(selectedCard).toBeVisible();
-  await selectedCard.click();
+  const upNextCard = page.locator('[data-testid^="contract-board-card-"][data-upnext="true"]');
+  await expect(upNextCard).toBeVisible();
+  await upNextCard.click();
   await expect(page.getByTestId("selected-contract-title")).toBeVisible();
 }
 
