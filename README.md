@@ -61,8 +61,13 @@ implemented. The bundled proofs are The First Charter, Karazhan, and **The Kind
 Gods of Ilyon**. The engine and creator grammar remain vendored from `axm-arc`
 and pinned to an exact commit — see [RECONCILIATION.md](RECONCILIATION.md).
 
-The remaining release qualification is human rather than architectural: one
-unaided player must complete the revised campaign and understand its consequence
-and custody loop. Ten older mobile-only Playwright receipts also predate the
-guided-entry contract and remain an explicit modernization tranche. See
-[VISION.md](VISION.md) and [docs/WORLDS_ROADMAP.md](docs/WORLDS_ROADMAP.md).
+The implemented Godscar scope is release-qualified: exact Arc provenance,
+deterministic full-campaign completion, faithful receiver projection, and Ilyon
+desktop/mobile entry are proven, and the campaign has a model-based narrative
+acceptance record in
+[axm-arc](https://github.com/BigBirdReturns/axm-arc/blob/main/docs/ILYON_ACCEPTANCE.md).
+Human sessions remain valuable telemetry and regression discovery; they are not
+a prerequisite for calling the cartridge or receiver complete. Ten older
+mobile-only Playwright receipts still predate the guided-entry contract and
+remain modernization work, not a Godscar release gate. See [VISION.md](VISION.md)
+and [docs/WORLDS_ROADMAP.md](docs/WORLDS_ROADMAP.md).
