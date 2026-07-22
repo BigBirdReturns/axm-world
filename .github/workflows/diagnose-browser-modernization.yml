@@ -21,9 +21,175 @@ jobs:
           show-progress: false
       - name: Apply the demonstrated mobile custody boundary
         run: |
-          cat <<'B64' | base64 -d > "$RUNNER_TEMP/mobile-toolbar.patch"
-          ZGlmZiAtLWdpdCBhL2UyZS9wcm9ncmFtLTAwMS1pZGVudGl0eS1zdHJpcC5zcGVjLnRzIGIvZTJlL3Byb2dyYW0tMDAxLWlkZW50aXR5LXN0cmlwLnNwZWMudHMKaW5kZXggYjhhMzFkMC4uODUzYTlkMiAxMDA2NDQKLS0tIGEvZTJlL3Byb2dyYW0tMDAxLWlkZW50aXR5LXN0cmlwLnNwZWMudHMKKysrIGIvZTJlL3Byb2dyYW0tMDAxLWlkZW50aXR5LXN0cmlwLnNwZWMudHMKQEAgLTE1LDYgKzE1LDkgQEAgdGVzdCgidGhlIHByb2dyYW0gaWRlbnRpdHkgc3RyaXAgaXMgZGVza3RvcC1vbmx5IGFuZCBjYXJyaWVzIFByb2dyYW0gMDAxJ3MgY29tcHUKICAgY29uc3Qgc3RyaXAgPSBwYWdlLmdldEJ5VGVzdElkKCJwcm9ncmFtLWlkZW50aXR5LXN0cmlwIik7CiAgIGlmICh0ZXN0SW5mby5wcm9qZWN0Lm5hbWUgPT09ICJtb2JpbGUiKSB7CiAgICAgYXdhaXQgZXhwZWN0KHN0cmlwKS50b0hhdmVDb3VudCgwKTsKKyAgICBhd2FpdCBleHBlY3QocGFnZS5nZXRCeVRlc3RJZCgibW9iaWxlLWNhcnRyaWRnZS10b29sYmFyIikpLnRvQmVWaXNpYmxlKCk7CisgICAgYXdhaXQgcGFnZS5nZXRCeVRlc3RJZCgiY2FydHJpZGdlLW9iamVjdC1idXR0b24iKS5jbGljaygpOworICAgIGF3YWl0IGV4cGVjdChwYWdlLmdldEJ5VGVzdElkKCJjYXJ0cmlkZ2UtZGlnZXN0IikpLnRvSGF2ZVRleHQoRElHRVNUKTsKICAgICByZXR1cm47CiAgIH0KIApAQCAtNDksNiArNTIsNyBAQCB0ZXN0KCJ0aGUgZGVza3RvcCBzdHJpcCBsZWRnZXIgdXBkYXRlcyBhZnRlciBhIHJlc29sdmVkIGNvbnRyYWN0IHdpdGhvdXQgYXBwZWFyaQogCiAgIGlmICh0ZXN0SW5mby5wcm9qZWN0Lm5hbWUgPT09ICJtb2JpbGUiKSB7CiAgICAgYXdhaXQgZXhwZWN0KHBhZ2UuZ2V0QnlUZXN0SWQoInByb2dyYW0taWRlbnRpdHktc3RyaXAiKSkudG9IYXZlQ291bnQoMCk7CisgICAgYXdhaXQgZXhwZWN0KHBhZ2UuZ2V0QnlUZXN0SWQoImNhcnRyaWRnZS1vYmplY3QtYnV0dG9uIikpLnRvQmVWaXNpYmxlKCk7CiAgICAgcmV0dXJuOwogICB9CiAKZGlmZiAtLWdpdCBhL3NyYy93b3JsZC9leHBlcmllbmNlL0V4cGVyaWVuY2VIb3N0LnRzeCBiL3NyYy93b3JsZC9leHBlcmllbmNlL0V4cGVyaWVuY2VIb3N0LnRzeAppbmRleCA2ZTY5OWJkLi4zY2I1MGVlIDEwMDY0NAotLS0gYS9zcmMvd29ybGQvZXhwZXJpZW5jZS9FeHBlcmllbmNlSG9zdC50c3gKKysrIGIvc3JjL3dvcmxkL2V4cGVyaWVuY2UvRXhwZXJpZW5jZUhvc3QudHN4CkBAIC0yMDcsMjcgKzIwNyw0MyBAQCBleHBvcnQgZnVuY3Rpb24gRXhwZXJpZW5jZUhvc3QoeyB3b3JsZCwgb25FeGl0LCBvbkVudGVyUnVudGltZSB9OiBQcm9wcyk6IEpTWC5FbAogCiAgIHJldHVybiAoCiAgICAgPG1haW4gY2xhc3NOYW1lPSJheG0tZXhwZXJpZW5jZSIgZGF0YS10ZXN0aWQ9ImF4bS1leHBlcmllbmNlIiBkYXRhLXN0YWdlPXtjaGVja3BvaW50LnN0YWdlfT4KLSAgICAgIHshaXNNb2JpbGUgJiYgKAorICAgICAge2lzTW9iaWxlID8gKAorICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iYXhtLWV4cGVyaWVuY2VfX21vYmlsZS10b29sYmFyIiBkYXRhLXRlc3RpZD0ibW9iaWxlLWNhcnRyaWRnZS10b29sYmFyIj4KKyAgICAgICAgICA8ZGl2PgorICAgICAgICAgICAgPHNwYW4+QWN0aXZlIGNhcnRyaWRnZTwvc3Bhbj4KKyAgICAgICAgICAgIDxzdHJvbmc+e3dvcmxkLmFyYy5tZXRhLm5hbWV9PC9zdHJvbmc+CisgICAgICAgICAgPC9kaXY+CisgICAgICAgICAgPGJ1dHRvbgorICAgICAgICAgICAgdHlwZT0iYnV0dG9uIgorICAgICAgICAgICAgZGF0YS10ZXN0aWQ9ImNhcnRyaWRnZS1vYmplY3QtYnV0dG9uIgorICAgICAgICAgICAgYXJpYS1sYWJlbD17YE9wZW4gcnVuIHJlY29yZCwgJHtsZWRnZXJTdW1tYXJ5LmVudHJ5Q291bnR9IHJlY29yZGVkYH0KKyAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHNldFNob3dSZWNvcmQodHJ1ZSl9CisgICAgICAgICAgPgorICAgICAgICAgICAgPHNwYW4+UnVuIHJlY29yZDwvc3Bhbj4KKyAgICAgICAgICAgIDxiIGFyaWEtaGlkZGVuPSJ0cnVlIj57U3RyaW5nKGxlZGdlclN1bW1hcnkuZW50cnlDb3VudCkucGFkU3RhcnQoMiwgIjAiKX08L2I+CisgICAgICAgICAgPC9idXR0b24+CisgICAgICAgIDwvZGl2PgorICAgICAgKSA6ICgKICAgICAgICAgPGhlYWRlciBjbGFzc05hbWU9ImF4bS1leHBlcmllbmNlX19pZGVudGl0eSIgZGF0YS10ZXN0aWQ9InByb2dyYW0taWRlbnRpdHktc3RyaXAiPgotICAgICAgICA8ZGl2PgotICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT0iYXhtLWV4cGVyaWVuY2VfX3JlY2VpdmVyIj57dCgic2hlbGwucnVudGltZU5hbWUiKX0gV09STEQgwrcgUkVDRUlWRVI8L3NwYW4+Ci0gICAgICAgICAge3Byb2dyYW0gJiYgKAotICAgICAgICAgICAgPHNwYW4gZGF0YS10ZXN0aWQ9InN0cmlwLXByb2dyYW0iIGNsYXNzTmFtZT0iYXhtLWV4cGVyaWVuY2VfX3Byb2dyYW0iPgotICAgICAgICAgICAgICB7cHJvZ3JhbS5wcm9ncmFtSWQucmVwbGFjZUFsbCgiLSIsICIgIikudG9VcHBlckNhc2UoKX0gwrcge3QoImJvb3QucHJvZ3JhbU9mUmVjb3JkIil9CisgICAgICAgICAgPGRpdj4KKyAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT0iYXhtLWV4cGVyaWVuY2VfX3JlY2VpdmVyIj57dCgic2hlbGwucnVudGltZU5hbWUiKX0gV09STEQgwrcgUkVDRUlWRVI8L3NwYW4+CisgICAgICAgICAgICB7cHJvZ3JhbSAmJiAoCisgICAgICAgICAgICAgIDxzcGFuIGRhdGEtdGVzdGlkPSJzdHJpcC1wcm9ncmFtIiBjbGFzc05hbWU9ImF4bS1leHBlcmllbmNlX19wcm9ncmFtIj4KKyAgICAgICAgICAgICAgICB7cHJvZ3JhbS5wcm9ncmFtSWQucmVwbGFjZUFsbCgiLSIsICIgIikudG9VcHBlckNhc2UoKX0gwrcge3QoImJvb3QucHJvZ3JhbU9mUmVjb3JkIil9CisgICAgICAgICAgICAgIDwvc3Bhbj4KKyAgICAgICAgICAgICl9CisgICAgICAgICAgICA8c3Ryb25nPnt3b3JsZC5hcmMubWV0YS5uYW1lfTwvc3Ryb25nPgorICAgICAgICAgIDwvZGl2PgorICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJheG0tZXhwZXJpZW5jZV9fY3VzdG9keSI+CisgICAgICAgICAgICA8c3Bhbj5BUkMgTEFXPC9zcGFuPgorICAgICAgICAgICAgPGNvZGUgZGF0YS10ZXN0aWQ9InN0cmlwLWRpZ2VzdCIgdGl0bGU9e3dvcmxkLmNhcnRyaWRnZURpZ2VzdH0+e3dvcmxkLmNhcnRyaWRnZURpZ2VzdC5zbGljZSgwLCAxOCl94oCmPC9jb2RlPgorICAgICAgICAgICAgPHNwYW4gZGF0YS10ZXN0aWQ9InN0cmlwLWxlZGdlciI+CisgICAgICAgICAgICAgIHtsZWRnZXJTdW1tYXJ5LmVudHJ5Q291bnQgPiAwCisgICAgICAgICAgICAgICAgPyBgJHt0KCJzaGVsbC5pZGVudGl0eVJlY29yZGVkIiwgeyBjb3VudDogbGVkZ2VyU3VtbWFyeS5lbnRyeUNvdW50IH0pfSR7bGVkZ2VyU3VtbWFyeS5sYXN0UmVzdWx0ID8gYCDCtyAke2xlZGdlclN1bW1hcnkubGFzdFJlc3VsdC5jaGFsbGVuZ2VOYW1lfWAgOiAiIn1gCisgICAgICAgICAgICAgICAgOiB0KCJzaGVsbC5pZGVudGl0eUZyZXNoIil9CiAgICAgICAgICAgICA8L3NwYW4+Ci0gICAgICAgICAgKX0KLSAgICAgICAgICA8c3Ryb25nPnt3b3JsZC5hcmMubWV0YS5uYW1lfTwvc3Ryb25nPgotICAgICAgICA8L2Rpdj4KLSAgICAgICAgPGRpdiBjbGFzc05hbWU9ImF4bS1leHBlcmllbmNlX19jdXN0b2R5Ij4KLSAgICAgICAgICA8c3Bhbj5BUkMgTEFXPC9zcGFuPgotICAgICAgICAgIDxjb2RlIGRhdGEtdGVzdGlkPSJzdHJpcC1kaWdlc3QiIHRpdGxlPXt3b3JsZC5jYXJ0cmlkZ2VEaWdlc3R9Pnt3b3JsZC5jYXJ0cmlkZ2VEaWdlc3Quc2xpY2UoMCwgMTgpfeKApjwvY29kZT4KLSAgICAgICAgICA8c3BhbiBkYXRhLXRlc3RpZD0ic3RyaXAtbGVkZ2VyIj4KLSAgICAgICAgICAgIHtsZWRnZXJTdW1tYXJ5LmVudHJ5Q291bnQgPiAwCi0gICAgICAgICAgICAgID8gYCR7dCgic2hlbGwuaWRlbnRpdHlSZWNvcmRlZCIsIHsgY291bnQ6IGxlZGdlclN1bW1hcnkuZW50cnlDb3VudCB9KX0ke2xlZGdlclN1bW1hcnkubGFzdFJlc3VsdCA/IGAgwrcgJHtsZWRnZXJTdW1tYXJ5Lmxhc3RSZXN1bHQuY2hhbGxlbmdlTmFtZX1gIDogIiJ9YAotICAgICAgICAgICAgICA6IHQoInNoZWxsLmlkZW50aXR5RnJlc2giKX0KLSAgICAgICAgICA8L3NwYW4+Ci0gICAgICAgICAgPGJ1dHRvbiB0eXBlPSJidXR0b24iIGRhdGEtdGVzdGlkPSJjYXJ0cmlkZ2Utb2JqZWN0LWJ1dHRvbiIgb25DbGljaz17KCkgPT4gc2V0U2hvd1JlY29yZCh0cnVlKX0+UnVuIHJlY29yZDwvYnV0dG9uPgotICAgICAgICA8L2Rpdj4KKyAgICAgICAgICAgIDxidXR0b24gdHlwZT0iYnV0dG9uIiBkYXRhLXRlc3RpZD0iY2FydHJpZGdlLW9iamVjdC1idXR0b24iIG9uQ2xpY2s9eygpID0+IHNldFNob3dSZWNvcmQodHJ1ZSl9PlJ1biByZWNvcmQ8L2J1dHRvbj4KKyAgICAgICAgICA8L2Rpdj4KICAgICAgICAgPC9oZWFkZXI+CiAgICAgICApfQogCmRpZmYgLS1naXQgYS9zcmMvd29ybGQvZXhwZXJpZW5jZS9leHBlcmllbmNlLmNzcyBiL3NyYy93b3JsZC9leHBlcmllbmNlL2V4cGVyaWVuY2UuY3NzCmluZGV4IDU1ZjgzMjcuLmMwNmNiMWQgMTAwNjQ0Ci0tLSBhL3NyYy93b3JsZC9leHBlcmllbmNlL2V4cGVyaWVuY2UuY3NzCisrKyBiL3NyYy93b3JsZC9leHBlcmllbmNlL2V4cGVyaWVuY2UuY3NzCkBAIC01OSw2ICs1OSw2NyBAQAogLmF4bS1iYWNrIHsgYm9yZGVyOiAwOyBjb2xvcjogdmFyKC0tYXhtLWdvbGQpOyBiYWNrZ3JvdW5kOiBub25lOyBjdXJzb3I6IHBvaW50ZXI7IGZvbnQ6IDcwMCAxMHB4ICJJQk0gUGxleCBNb25vIiwgbW9ub3NwYWNlOyB0ZXh0LXRyYW5zZm9ybTogdXBwZXJjYXNlOyBsZXR0ZXItc3BhY2luZzogLjFlbTsgfQogLmF4bS1leHBlcmllbmNlX19mb290ZXIgaSB7IGRpc3BsYXk6IGlubGluZS1ibG9jazsgd2lkdGg6IDdweDsgaGVpZ2h0OiA3cHg7IG1hcmdpbi1yaWdodDogN3B4OyBib3JkZXItcmFkaXVzOiA1MCU7IGJhY2tncm91bmQ6IHZhcigtLWF4bS10ZWFsKTsgYm94LXNoYWRvdzogMCAwIDEycHggdmFyKC0tYXhtLXRlYWwpOyB9CiAKKy5heG0tZXhwZXJpZW5jZV9fbW9iaWxlLXRvb2xiYXIgeworICBwb3NpdGlvbjogcmVsYXRpdmU7CisgIHotaW5kZXg6IDM7CisgIGRpc3BsYXk6IGZsZXg7CisgIGFsaWduLWl0ZW1zOiBjZW50ZXI7CisgIGp1c3RpZnktY29udGVudDogc3BhY2UtYmV0d2VlbjsKKyAgZ2FwOiAxMnB4OworICBtaW4taGVpZ2h0OiA1NHB4OworICBwYWRkaW5nOiBjYWxjKGVudihzYWZlLWFyZWEtaW5zZXQtdG9wLCAwcHgpICsgN3B4KSAxMnB4IDdweDsKKyAgYmFja2dyb3VuZDogcmdiYSg3LCA5LCAxMSwgLjk2KTsKKyAgYm9yZGVyLWJvdHRvbTogMXB4IHNvbGlkIHJnYmEoMjE2LCAxNzgsIDExOCwgLjI1KTsKKyAgZm9udC1mYW1pbHk6ICJJQk0gUGxleCBNb25vIiwgdWktbW9ub3NwYWNlLCBtb25vc3BhY2U7Cit9CisuYXhtLWV4cGVyaWVuY2VfX21vYmlsZS10b29sYmFyID4gZGl2IHsgbWluLXdpZHRoOiAwOyB9CisuYXhtLWV4cGVyaWVuY2VfX21vYmlsZS10b29sYmFyID4gZGl2IHNwYW4geworICBkaXNwbGF5OiBibG9jazsKKyAgY29sb3I6IHZhcigtLWF4bS10ZWFsKTsKKyAgZm9udC1zaXplOiA4cHg7CisgIGZvbnQtd2VpZ2h0OiA4MDA7CisgIGxldHRlci1zcGFjaW5nOiAuMTZlbTsKKyAgdGV4dC10cmFuc2Zvcm06IHVwcGVyY2FzZTsKK30KKy5heG0tZXhwZXJpZW5jZV9fbW9iaWxlLXRvb2xiYXIgPiBkaXYgc3Ryb25nIHsKKyAgZGlzcGxheTogYmxvY2s7CisgIG92ZXJmbG93OiBoaWRkZW47CisgIGNvbG9yOiB2YXIoLS1heG0tY3JlYW0pOworICBmb250OiA4MDAgMTdweCAiQmFybG93IENvbmRlbnNlZCIsIHNhbnMtc2VyaWY7CisgIGxldHRlci1zcGFjaW5nOiAuMDRlbTsKKyAgdGV4dC1vdmVyZmxvdzogZWxsaXBzaXM7CisgIHdoaXRlLXNwYWNlOiBub3dyYXA7Cit9CisuYXhtLWV4cGVyaWVuY2VfX21vYmlsZS10b29sYmFyIGJ1dHRvbiB7CisgIGRpc3BsYXk6IGlubGluZS1mbGV4OworICBmbGV4OiAwIDAgYXV0bzsKKyAgYWxpZ24taXRlbXM6IGNlbnRlcjsKKyAgZ2FwOiA4cHg7CisgIG1pbi1oZWlnaHQ6IDQ0cHg7CisgIHBhZGRpbmc6IDZweCA3cHggNnB4IDEycHg7CisgIGNvbG9yOiB2YXIoLS1heG0tZ29sZCk7CisgIGJhY2tncm91bmQ6IHJnYmEoMjE2LCAxNzgsIDExOCwgLjA4KTsKKyAgYm9yZGVyOiAxcHggc29saWQgcmdiYSgyMTYsIDE3OCwgMTE4LCAuMzUpOworICBjdXJzb3I6IHBvaW50ZXI7CisgIGZvbnQ6IDgwMCA5cHggIklCTSBQbGV4IE1vbm8iLCBtb25vc3BhY2U7CisgIGxldHRlci1zcGFjaW5nOiAuMWVtOworICB0ZXh0LXRyYW5zZm9ybTogdXBwZXJjYXNlOworfQorLmF4bS1leHBlcmllbmNlX19tb2JpbGUtdG9vbGJhciBidXR0b246Zm9jdXMtdmlzaWJsZSB7CisgIGJvcmRlci1jb2xvcjogdmFyKC0tYXhtLXRlYWwpOworICBib3gtc2hhZG93OiAwIDAgMCAzcHggcmdiYSg0NywgMTkxLCAxNjIsIC4yMik7CisgIG91dGxpbmU6IDA7Cit9CisuYXhtLWV4cGVyaWVuY2VfX21vYmlsZS10b29sYmFyIGJ1dHRvbiBiIHsKKyAgZGlzcGxheTogZ3JpZDsKKyAgcGxhY2UtaXRlbXM6IGNlbnRlcjsKKyAgbWluLXdpZHRoOiAyOHB4OworICBoZWlnaHQ6IDI4cHg7CisgIGNvbG9yOiAjMDcxMDBlOworICBiYWNrZ3JvdW5kOiB2YXIoLS1heG0tdGVhbCk7CisgIGZvbnQ6IDkwMCAxMXB4ICJJQk0gUGxleCBNb25vIiwgbW9ub3NwYWNlOworfQorCiAuYXhtLWV4cGVyaWVuY2VfX3N0YWdlIHsgcG9zaXRpb246IHJlbGF0aXZlOyB6LWluZGV4OiAxOyBvdmVyZmxvdzogYXV0bzsgfQogLmF4bS1leHBlcmllbmNlX19hdG1vc3BoZXJlIHsgcG9zaXRpb246IGZpeGVkOyBpbnNldDogNTZweCAwIDM0cHg7IG92ZXJmbG93OiBoaWRkZW47IHBvaW50ZXItZXZlbnRzOiBub25lOyBiYWNrZ3JvdW5kOgogICByYWRpYWwtZ3JhZGllbnQoY2lyY2xlIGF0IDc2JSAxNiUsIHJnYmEoMjM0LCAyMDcsIDE1OCwgLjE4KSwgdHJhbnNwYXJlbnQgMTglKSwK          B64
-          git apply --index "$RUNNER_TEMP/mobile-toolbar.patch"
+          if grep -q 'mobile-cartridge-toolbar' src/world/experience/ExperienceHost.tsx; then
+            echo 'Mobile cartridge custody is already present.'
+            exit 0
+          fi
+          cat > "$RUNNER_TEMP/mobile-toolbar.patch" <<'PATCH'
+          diff --git a/e2e/program-001-identity-strip.spec.ts b/e2e/program-001-identity-strip.spec.ts
+          index b8a31d0..853a9d2 100644
+          --- a/e2e/program-001-identity-strip.spec.ts
+          +++ b/e2e/program-001-identity-strip.spec.ts
+          @@ -15,6 +15,9 @@ test("the program identity strip is desktop-only and carries Program 001's compu
+             const strip = page.getByTestId("program-identity-strip");
+             if (testInfo.project.name === "mobile") {
+               await expect(strip).toHaveCount(0);
+          +    await expect(page.getByTestId("mobile-cartridge-toolbar")).toBeVisible();
+          +    await page.getByTestId("cartridge-object-button").click();
+          +    await expect(page.getByTestId("cartridge-digest")).toHaveText(DIGEST);
+               return;
+             }
+           
+          @@ -49,6 +52,7 @@ test("the desktop strip ledger updates after a resolved contract without appeari
+           
+             if (testInfo.project.name === "mobile") {
+               await expect(page.getByTestId("program-identity-strip")).toHaveCount(0);
+          +    await expect(page.getByTestId("cartridge-object-button")).toBeVisible();
+               return;
+             }
+           
+          diff --git a/src/world/experience/ExperienceHost.tsx b/src/world/experience/ExperienceHost.tsx
+          index 6e699bd..3cb50ee 100644
+          --- a/src/world/experience/ExperienceHost.tsx
+          +++ b/src/world/experience/ExperienceHost.tsx
+          @@ -207,27 +207,43 @@ export function ExperienceHost({ world, onExit, onEnterRuntime }: Props): JSX.El
+           
+             return (
+               <main className="axm-experience" data-testid="axm-experience" data-stage={checkpoint.stage}>
+          -      {!isMobile && (
+          +      {isMobile ? (
+          +        <div className="axm-experience__mobile-toolbar" data-testid="mobile-cartridge-toolbar">
+          +          <div>
+          +            <span>Active cartridge</span>
+          +            <strong>{world.arc.meta.name}</strong>
+          +          </div>
+          +          <button
+          +            type="button"
+          +            data-testid="cartridge-object-button"
+          +            aria-label={`Open run record, ${ledgerSummary.entryCount} recorded`}
+          +            onClick={() => setShowRecord(true)}
+          +          >
+          +            <span>Run record</span>
+          +            <b aria-hidden="true">{String(ledgerSummary.entryCount).padStart(2, "0")}</b>
+          +          </button>
+          +        </div>
+          +      ) : (
+                   <header className="axm-experience__identity" data-testid="program-identity-strip">
+          -        <div>
+          -          <span className="axm-experience__receiver">{t("shell.runtimeName")} WORLD · RECEIVER</span>
+          -          {program && (
+          -            <span data-testid="strip-program" className="axm-experience__program">
+          -              {program.programId.replaceAll("-", " ").toUpperCase()} · {t("boot.programOfRecord")}
+          +          <div>
+          +            <span className="axm-experience__receiver">{t("shell.runtimeName")} WORLD · RECEIVER</span>
+          +            {program && (
+          +              <span data-testid="strip-program" className="axm-experience__program">
+          +                {program.programId.replaceAll("-", " ").toUpperCase()} · {t("boot.programOfRecord")}
+          +              </span>
+          +            )}
+          +            <strong>{world.arc.meta.name}</strong>
+          +          </div>
+          +          <div className="axm-experience__custody">
+          +            <span>ARC LAW</span>
+          +            <code data-testid="strip-digest" title={world.cartridgeDigest}>{world.cartridgeDigest.slice(0, 18)}…</code>
+          +            <span data-testid="strip-ledger">
+          +              {ledgerSummary.entryCount > 0
+          +                ? `${t("shell.identityRecorded", { count: ledgerSummary.entryCount })}${ledgerSummary.lastResult ? ` · ${ledgerSummary.lastResult.challengeName}` : ""}`
+          +                : t("shell.identityFresh")}
+                       </span>
+          -          )}
+          -          <strong>{world.arc.meta.name}</strong>
+          -        </div>
+          -        <div className="axm-experience__custody">
+          -          <span>ARC LAW</span>
+          -          <code data-testid="strip-digest" title={world.cartridgeDigest}>{world.cartridgeDigest.slice(0, 18)}…</code>
+          -          <span data-testid="strip-ledger">
+          -            {ledgerSummary.entryCount > 0
+          -              ? `${t("shell.identityRecorded", { count: ledgerSummary.entryCount })}${ledgerSummary.lastResult ? ` · ${ledgerSummary.lastResult.challengeName}` : ""}`
+          -              : t("shell.identityFresh")}
+          -          </span>
+          -          <button type="button" data-testid="cartridge-object-button" onClick={() => setShowRecord(true)}>Run record</button>
+          -        </div>
+          +            <button type="button" data-testid="cartridge-object-button" onClick={() => setShowRecord(true)}>Run record</button>
+          +          </div>
+                   </header>
+                 )}
+           
+          diff --git a/src/world/experience/experience.css b/src/world/experience/experience.css
+          index 55f8327..c06cb1d 100644
+          --- a/src/world/experience/experience.css
+          +++ b/src/world/experience/experience.css
+          @@ -59,6 +59,67 @@
+           .axm-back { border: 0; color: var(--axm-gold); background: none; cursor: pointer; font: 700 10px "IBM Plex Mono", monospace; text-transform: uppercase; letter-spacing: .1em; }
+           .axm-experience__footer i { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: var(--axm-teal); box-shadow: 0 0 12px var(--axm-teal); }
+           
+          +.axm-experience__mobile-toolbar {
+          +  position: relative;
+          +  z-index: 3;
+          +  display: flex;
+          +  align-items: center;
+          +  justify-content: space-between;
+          +  gap: 12px;
+          +  min-height: 54px;
+          +  padding: calc(env(safe-area-inset-top, 0px) + 7px) 12px 7px;
+          +  background: rgba(7, 9, 11, .96);
+          +  border-bottom: 1px solid rgba(216, 178, 118, .25);
+          +  font-family: "IBM Plex Mono", ui-monospace, monospace;
+          +}
+          +.axm-experience__mobile-toolbar > div { min-width: 0; }
+          +.axm-experience__mobile-toolbar > div span {
+          +  display: block;
+          +  color: var(--axm-teal);
+          +  font-size: 8px;
+          +  font-weight: 800;
+          +  letter-spacing: .16em;
+          +  text-transform: uppercase;
+          +}
+          +.axm-experience__mobile-toolbar > div strong {
+          +  display: block;
+          +  overflow: hidden;
+          +  color: var(--axm-cream);
+          +  font: 800 17px "Barlow Condensed", sans-serif;
+          +  letter-spacing: .04em;
+          +  text-overflow: ellipsis;
+          +  white-space: nowrap;
+          +}
+          +.axm-experience__mobile-toolbar button {
+          +  display: inline-flex;
+          +  flex: 0 0 auto;
+          +  align-items: center;
+          +  gap: 8px;
+          +  min-height: 44px;
+          +  padding: 6px 7px 6px 12px;
+          +  color: var(--axm-gold);
+          +  background: rgba(216, 178, 118, .08);
+          +  border: 1px solid rgba(216, 178, 118, .35);
+          +  cursor: pointer;
+          +  font: 800 9px "IBM Plex Mono", monospace;
+          +  letter-spacing: .1em;
+          +  text-transform: uppercase;
+          +}
+          +.axm-experience__mobile-toolbar button:focus-visible {
+          +  border-color: var(--axm-teal);
+          +  box-shadow: 0 0 0 3px rgba(47, 191, 162, .22);
+          +  outline: 0;
+          +}
+          +.axm-experience__mobile-toolbar button b {
+          +  display: grid;
+          +  place-items: center;
+          +  min-width: 28px;
+          +  height: 28px;
+          +  color: #07100e;
+          +  background: var(--axm-teal);
+          +  font: 900 11px "IBM Plex Mono", monospace;
+          +}
+          +
+           .axm-experience__stage { position: relative; z-index: 1; overflow: auto; }
+           .axm-experience__atmosphere { position: fixed; inset: 56px 0 34px; overflow: hidden; pointer-events: none; background:
+             radial-gradient(circle at 76% 16%, rgba(234, 207, 158, .18), transparent 18%),
+          PATCH
+          sed -i 's/^          //' "$RUNNER_TEMP/mobile-toolbar.patch"
+          git apply --index --verbose "$RUNNER_TEMP/mobile-toolbar.patch"
           git diff --cached --check
       - uses: actions/setup-node@v4
         with:
@@ -61,6 +227,10 @@ jobs:
             | tee mobile-custody-receipt/playwright.log
       - name: Commit verified mobile custody
         run: |
+          if git diff --cached --quiet; then
+            echo 'Verified branch already contains mobile cartridge custody.'
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Restore mobile run custody without duplicating program identity"
