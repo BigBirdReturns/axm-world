@@ -1,0 +1,78 @@
+name: Diagnose browser modernization
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reconstruct authenticated patch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: '120'
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/world-browser"
+          python - <<'PY'
+          import base64, gzip, json, os
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+          parts = [
+              ("H4sICKtLYGoCA3dvcmxkLWJyb3dz", 2000),
+              ("1VGNsHRDXUCIKw6mJxqwg5dH", 2000),
+              ("gs81Id/YK/ElFhxm4N/E1y6M", 2000),
+              ("rltx7jvV3qMfpJMgTdFRbL8G", 2000),
+              ("kWcLLR/LRhGakhe15akCCGnK", 2000),
+              ("V3un+T9fwlpCRP0RwuyGb6pQ", 2000),
+              ("gzq6I418eLu7fSd6Rxv/C8u0", 32),
+          ]
+          req = Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/issues/120/comments?per_page=100", headers={"Authorization": f"Bearer {os.environ['GH_TOKEN']}", "Accept": "application/vnd.github+json"})
+          with urlopen(req, timeout=30) as response: comments = json.load(response)
+          out=[]
+          for prefix, size in parts:
+              found=[str(c.get('body','')).replace('\r','').replace('\n','') for c in comments if str(c.get('body','')).replace('\r','').replace('\n','').startswith(prefix) and len(str(c.get('body','')).replace('\r','').replace('\n',''))==size]
+              if len(found)!=1: raise SystemExit(f"part {prefix}: {len(found)}")
+              out.append(found[0])
+          patch=gzip.decompress(base64.b64decode(''.join(out), validate=True))
+          (Path(os.environ['RUNNER_TEMP'])/'world-browser'/'modernization.patch').write_bytes(patch)
+          PY
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/local-first-product-parity
+          fetch-depth: 0
+      - name: Diagnose apply
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          {
+            echo 'git apply --check:'
+            git apply --check "$RUNNER_TEMP/world-browser/modernization.patch"
+            echo "status=$?"
+            echo
+            echo 'git apply --3way --check:'
+            git apply --3way --check "$RUNNER_TEMP/world-browser/modernization.patch"
+            echo "status=$?"
+            echo
+            echo 'changed files:'
+            git apply --numstat "$RUNNER_TEMP/world-browser/modernization.patch"
+            echo
+            echo 'branch head:'
+            git rev-parse HEAD
+          } > "$RUNNER_TEMP/world-browser/diagnostic.txt" 2>&1
+          cat "$RUNNER_TEMP/world-browser/diagnostic.txt"
+          body=$(python - <<'PY'
+          import json, os
+          text=open(os.environ['RUNNER_TEMP']+'/world-browser/diagnostic.txt', encoding='utf-8', errors='replace').read()
+          print(json.dumps({'body':'Browser modernization diagnostic:\n```text\n'+text[:60000]+'\n```'}))
+          PY
+          )
+          curl -fsSL -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/120/comments" -d "$body"
