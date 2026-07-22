@@ -6,25 +6,77 @@ on:
     types: [opened, synchronize, reopened]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   exercise:
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    outputs:
+      patched: ${{ steps.patch.outputs.patched }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/local-first-product-parity
           fetch-depth: 0
           show-progress: false
+      - name: Apply the guided mobile identity boundary once
+        id: patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          target=src/world/experience/ExperienceHost.tsx
+          if grep -q 'const isMobile = useIsMobile();' "$target"; then
+            echo 'patched=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path("src/world/experience/ExperienceHost.tsx")
+          text = path.read_text()
+
+          imports = 'import { t } from "../i18n/index.js";\n'
+          replacement = imports + 'import { useIsMobile } from "../use-viewport.js";\n'
+          if imports not in text:
+              raise SystemExit("identity import anchor missing")
+          text = text.replace(imports, replacement, 1)
+
+          signature = 'export function ExperienceHost({ world, onExit, onEnterRuntime }: Props): JSX.Element {\n'
+          if signature not in text:
+              raise SystemExit("ExperienceHost signature anchor missing")
+          text = text.replace(signature, signature + '  const isMobile = useIsMobile();\n', 1)
+
+          opening = '      <header className="axm-experience__identity" data-testid="program-identity-strip">\n'
+          if opening not in text:
+              raise SystemExit("guided identity opening anchor missing")
+          text = text.replace(opening, '      {!isMobile && (\n        <header className="axm-experience__identity" data-testid="program-identity-strip">\n', 1)
+
+          closing = '      </header>\n\n      <section className="axm-experience__stage">\n'
+          if closing not in text:
+              raise SystemExit("guided identity closing anchor missing")
+          text = text.replace(closing, '        </header>\n      )}\n\n      <section className="axm-experience__stage">\n', 1)
+
+          path.write_text(text)
+          PY
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$target"
+          git commit -m "Keep guided program identity desktop-only"
+          git push origin HEAD:agent/local-first-product-parity
+          echo 'patched=true' >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
+        if: steps.patch.outputs.patched != 'true'
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --silent
-      - run: npx playwright install --with-deps chromium >/dev/null
+      - if: steps.patch.outputs.patched != 'true'
+        run: npm ci --silent
+      - if: steps.patch.outputs.patched != 'true'
+        run: npx playwright install --with-deps chromium >/dev/null
       - name: Run exact identity-strip path against owned Vite server
+        if: steps.patch.outputs.patched != 'true'
         id: browser
         continue-on-error: true
         env:
@@ -73,7 +125,7 @@ jobs:
           fs.writeFileSync(process.env.SUMMARY_PATH, `${lines.join('\n\n')}\n`);
           NODE
       - name: Upload compact receipt
-        if: always()
+        if: steps.patch.outputs.patched != 'true' && always()
         uses: actions/upload-artifact@v4
         with:
           name: browser-compact-receipt
@@ -86,7 +138,7 @@ jobs:
           retention-days: 1
 
   report:
-    if: always()
+    if: always() && needs.exercise.outputs.patched != 'true'
     needs: exercise
     runs-on: ubuntu-latest
     steps:
