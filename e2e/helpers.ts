@@ -10,6 +10,24 @@ export async function enterCartridge(page: Page): Promise<void> {
   await resolveOpeningDecision(page);
 }
 
+
+/** Complete Program 001's directed first-contract teaching loop and cross the
+ * explicit handoff into the reusable multi-representation shell. Cartridges
+ * that already boot directly into the shell are returned unchanged. */
+export async function enterFullRuntime(page: Page): Promise<void> {
+  await enterCartridge(page);
+  if (await page.getByTestId("engine-shell").isVisible().catch(() => false)) return;
+
+  const handoff = page.getByTestId("enter-rodoh-runtime");
+  if (!(await handoff.isVisible().catch(() => false))) {
+    await runSelectedContract(page);
+    await resolvePendingDecisions(page);
+  }
+  await expect(handoff).toBeVisible();
+  await handoff.click();
+  await expect(page.getByTestId("engine-shell")).toBeVisible();
+}
+
 /** Resolve the authored opening decision (pick the first option, then Continue). */
 export async function resolveOpeningDecision(page: Page): Promise<void> {
   const card = page.getByTestId("pending-decision-card");
@@ -23,16 +41,40 @@ export async function resolveOpeningDecision(page: Page): Promise<void> {
  * The compiled encounter resolves through world.runChallenge and leaves any
  * post-run decision for the caller. */
 export async function runSelectedContract(page: Page): Promise<void> {
-  const hallHandoff = page.getByTestId("hall-enter-contract");
-  if (await hallHandoff.isVisible().catch(() => false)) {
-    await hallHandoff.click();
-  } else {
-    await page.getByTestId("play-encounter-button").click();
-  }
   const encounter = page.getByTestId("encounter-shell");
+  if (!(await encounter.isVisible().catch(() => false))) {
+    const hallHandoff = page.getByTestId("hall-enter-contract");
+    if (await hallHandoff.isVisible().catch(() => false)) {
+      await hallHandoff.click();
+    } else {
+      await page.getByTestId("play-encounter-button").click();
+    }
+  }
   await expect(encounter).toBeVisible();
+
+  // Program 001's directed opening now makes the deployment decision explicit:
+  // briefing -> commit exact plan -> resolve. Imported/shell encounters still
+  // open directly on their existing resolve control, so this remains one helper
+  // for both routes without inventing a second action path.
+  const commitPlan = page.getByTestId("commit-plan");
+  if (await commitPlan.isVisible().catch(() => false)) {
+    await commitPlan.click();
+    await expect(encounter).toHaveAttribute("data-encounter-state", "committed");
+  }
+
   await page.getByTestId("encs-resolve").click();
   await expect(page.getByTestId("encs-receipt")).toBeVisible();
+
+  // The First Charter can emit an Arc-owned required reward choice. Generic
+  // loop receipts are not testing that choice's deliberation (the dedicated
+  // honest-opening journey does), so choose the first legal candidate here to
+  // complete the shared contract loop instead of hanging on a disabled Leave.
+  const reward = page.getByTestId("reward-choice");
+  if (await reward.count()) {
+    await reward.locator('[data-testid^="reward-candidate-"]').first().click();
+    await expect(reward).toHaveCount(0);
+  }
+
   await page.getByTestId("encs-leave").click();
   await expect(encounter).toHaveCount(0);
 }

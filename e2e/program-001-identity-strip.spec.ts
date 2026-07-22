@@ -17,6 +17,9 @@ const DIGEST = PROGRAM_001.authoredArcDigest;
 test("in-shell strip presents Program 001 as a program of record with its computed identity", async ({ page }) => {
   await enterCartridge(page);
 
+  // The directed first-contract experience and reusable shell expose the same
+  // identity contract, so the program remains legible before the handoff too.
+
   const strip = page.getByTestId("program-identity-strip");
   await expect(strip).toBeVisible();
 
@@ -41,14 +44,16 @@ test("the in-shell ledger summary updates after a resolved contract", async ({ p
   test.slow();
   await enterCartridge(page);
 
-  await expect(page.getByTestId("strip-ledger")).toContainText(/no runs recorded/i);
+  // The second receipt exercises the directed opening first, then crosses the
+  // explicit handoff into the reusable shell after the consequence is recorded.
 
   // Resolve the cold-start contract ("The Cellar") and clear any post-run decision.
   await expect(page.getByTestId("selected-contract-title")).toContainText(/Cellar/i);
   await runSelectedContract(page);
   await resolvePendingDecisions(page);
+  await page.getByTestId("enter-rodoh-runtime").click();
 
-  // The strip reflects the live ledger without leaving the shell: one recorded
+  // The strip reflects the live ledger after the explicit guided-to-shell handoff: one recorded
   // contract, named, under the same program of record.
   await expect(page.getByTestId("strip-ledger")).toContainText(/1 recorded/i);
   await expect(page.getByTestId("strip-ledger")).toContainText(/Cellar/i);

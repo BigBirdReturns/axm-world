@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { enterCartridge, resolvePendingDecisions, runSelectedContract } from "./helpers";
+import { enterCartridge, enterFullRuntime } from "./helpers";
 
 // Proves the shell contract the branch claims: one cartridge state, switched between
 // representations without reset; a true modal that representation labels can't bleed
@@ -15,16 +15,20 @@ test("decision modal is a true layer — no representation labels render through
 });
 
 test("Run Graph and Planet are pure representations of the same cartridge state", async ({ page }) => {
-  await enterCartridge(page);
+  await enterFullRuntime(page);
 
-  await expect(page.getByTestId("selected-contract-title")).toContainText(/Cellar/i);
+  await expect(page.getByTestId("selected-contract-title")).toBeVisible();
   const selectedBefore = await page.getByTestId("selected-contract-title").innerText();
   const partyBefore = await page.getByTestId("party-count").innerText();
+  const marksBefore = await page.getByTestId("cartridge-mark-count").innerText();
+  const digestBefore = await page.getByTestId("strip-digest").getAttribute("title");
 
   await page.getByTestId("view-planet").click();
   await expect(page.getByTestId("pending-decision-card")).toHaveCount(0); // decision does not replay
-  await expect(page.getByTestId("selected-contract-title")).toHaveText(selectedBefore);
-  await expect(page.getByTestId("party-count")).toHaveText(partyBefore);
+  // Planet intentionally hides off-proximity contract controls. The carried run
+  // identity and recorded marks remain visible while the spatial surface owns focus.
+  await expect(page.getByTestId("strip-digest")).toHaveAttribute("title", digestBefore ?? "");
+  await expect(page.getByTestId("cartridge-mark-count")).toHaveText(marksBefore);
 
   await page.getByTestId("view-run-graph").click();
   await expect(page.getByTestId("pending-decision-card")).toHaveCount(0);
@@ -33,7 +37,7 @@ test("Run Graph and Planet are pure representations of the same cartridge state"
 });
 
 test("a selected contract has one player-facing commit path", async ({ page }) => {
-  await enterCartridge(page);
+  await enterFullRuntime(page);
   await expect(page.getByTestId("play-encounter-button")).toBeVisible();
   await expect(page.getByTestId("play-encounter-button")).toBeEnabled();
   await expect(page.getByTestId("run-contract-button")).toHaveCount(0);
@@ -41,14 +45,9 @@ test("a selected contract has one player-facing commit path", async ({ page }) =
 
 test("post-run outcome and cartridge marks persist across a representation switch", async ({ page }, testInfo) => {
   test.slow();
-  await enterCartridge(page);
-
-  // Play "The Cellar" (first available node) through the compiled encounter;
-  // runSelectedContract drives it to its receipt and back to the shell.
-  await runSelectedContract(page);
-  // A run may enqueue a post-run decision, which gates the view switcher by design;
-  // resolve it before switching representations.
-  await resolvePendingDecisions(page);
+  // The directed Program 001 opening records The Cellar, resolves any queued
+  // decision, and crosses the explicit handoff into the reusable shell.
+  await enterFullRuntime(page);
 
   // The board recorded the run as a persistent cartridge mark; that count is what must
   // survive switching between representations of the same cartridge state.
@@ -72,7 +71,7 @@ test("post-run outcome and cartridge marks persist across a representation switc
 });
 
 test("the cartridge title is legible (not near-black on black)", async ({ page }) => {
-  await enterCartridge(page);
+  await enterFullRuntime(page);
   const title = page.getByTestId("cartridge-title");
   await expect(title).toBeVisible();
   const color = await title.evaluate((el) => getComputedStyle(el as HTMLElement).color);
