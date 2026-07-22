@@ -28,6 +28,30 @@ export async function enterFullRuntime(page: Page): Promise<void> {
   await expect(page.getByTestId("engine-shell")).toBeVisible();
 }
 
+/** Mobile stages Board, Contract, and Party as separate player actions. Open the
+ * focused Up next contract through the same Board click a player must make. If a
+ * user-selected card is already focused, its first click clears selection; click
+ * it once more to make the reopening act. Desktop has no staged sheet and is a no-op. */
+export async function openMobileContractSheet(page: Page): Promise<void> {
+  const sheet = page.getByTestId("mobile-step-contract");
+  if (await sheet.isVisible().catch(() => false)) return;
+
+  const boardStep = page.getByTestId("mobile-step-board");
+  if ((await boardStep.count()) === 0) return;
+  if (!(await page.getByTestId("contract-board").isVisible().catch(() => false))) {
+    await page.getByTestId("view-run-graph").click();
+  }
+  await expect(page.getByTestId("contract-board")).toBeVisible();
+
+  const upNextCard = page.locator('[data-testid^="contract-board-card-"][data-upnext="true"]').first();
+  await expect(upNextCard).toBeVisible();
+  await upNextCard.click();
+  const opened = await sheet.waitFor({ state: "visible", timeout: 1_000 }).then(() => true, () => false);
+  if (!opened) await upNextCard.click();
+  await expect(sheet).toBeVisible();
+  await expect(page.getByTestId("mobile-mission-stage")).toBeVisible();
+}
+
 /** Resolve the authored opening decision (pick the first option, then Continue). */
 export async function resolveOpeningDecision(page: Page): Promise<void> {
   const card = page.getByTestId("pending-decision-card");
