@@ -14,13 +14,19 @@ on:
       - 'docs/design/**'
       - '.github/workflows/bundled-parity.yml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
   parity:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 75
+    env:
+      CI: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,19 +34,120 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Record candidate identity
+        run: |
+          mkdir -p acceptance-receipt
+          git rev-parse HEAD | tee acceptance-receipt/world-candidate-sha.txt
+          cat src/engine/VENDORED_FROM | tee acceptance-receipt/arc-source-plane.txt
       - name: Exact Arc provenance
         env:
           ENGINE_DRIFT_STRICT: '1'
         run: npm run engine:check
+      - name: TypeScript
+        run: npm run typecheck
       - name: Parity contracts
         run: npm test -- tests/world/cartridge-parity.test.ts tests/world/bundled-campaign-parity.test.ts tests/world/sensory-prefs.test.ts tests/world/asset-standard.test.ts tests/world/i18n-coverage.test.ts
       - name: Complete World regression suite
         run: npm test
-      - run: npm run build
-      - run: npx playwright install --with-deps chromium
+      - name: Production build
+        run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
       - name: Complete desktop and mobile browser suite
+        id: browser
+        continue-on-error: true
         env:
-          PW_BASE_URL: http://localhost:5173
+          PW_BASE_URL: http://127.0.0.1:5173
         run: |
+          set -euo pipefail
+          npm run dev -- --host 127.0.0.1 >acceptance-receipt/vite.log 2>&1 &
+          vite_pid=$!
+          cleanup() {
+            kill "$vite_pid" 2>/dev/null || true
+            wait "$vite_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          ready=0
+          for attempt in $(seq 1 90); do
+            if curl -fsS "$PW_BASE_URL/axm-world/game/" >/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            echo 'Owned Vite server did not become ready.' | tee acceptance-receipt/playwright-summary.txt
+            exit 1
+          fi
+
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
-          npx playwright test --workers=1
+          set +e
+          npx playwright test --workers=1 --reporter=json --trace=retain-on-failure \
+            >acceptance-receipt/playwright.json \
+            2>acceptance-receipt/playwright.stderr
+          status=$?
+          set -e
+          printf '%s\n' "$status" >acceptance-receipt/playwright.status
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'acceptance-receipt/playwright.json';
+          const lines = [];
+          let data = {};
+          try {
+            data = JSON.parse(fs.readFileSync(path, 'utf8'));
+          } catch (error) {
+            lines.push(`PLAYWRIGHT REPORT UNREADABLE: ${String(error)}`);
+          }
+          const stats = data.stats ?? {};
+          lines.unshift(
+            `PLAYWRIGHT STATS expected=${stats.expected ?? 0} unexpected=${stats.unexpected ?? 0} skipped=${stats.skipped ?? 0} flaky=${stats.flaky ?? 0} durationMs=${stats.duration ?? 0}`,
+          );
+          function walk(suites, parents = []) {
+            for (const suite of suites ?? []) {
+              const here = suite.title ? [...parents, suite.title] : parents;
+              for (const spec of suite.specs ?? []) {
+                for (const test of spec.tests ?? []) {
+                  const name = [...here, spec.title].filter(Boolean).join(' > ');
+                  const project = test.projectName ?? test.projectId ?? 'unknown';
+                  if (test.status === 'skipped') {
+                    const reasons = (test.annotations ?? [])
+                      .map((annotation) => annotation.description ?? annotation.type)
+                      .filter(Boolean)
+                      .join('; ');
+                    lines.push(`SKIP [${project}] ${name}${reasons ? ` :: ${reasons}` : ''}`);
+                  }
+                  const failed = test.status === 'unexpected' || (test.results ?? []).some((result) => ['failed', 'timedOut', 'interrupted'].includes(result.status));
+                  if (!failed) continue;
+                  lines.push(`FAIL [${project}] ${name}`);
+                  for (const result of test.results ?? []) {
+                    if (!['failed', 'timedOut', 'interrupted'].includes(result.status)) continue;
+                    const error = result.error ?? result.errors?.[0] ?? {};
+                    const message = String(error.message ?? error.stack ?? error.value ?? 'no error message')
+                      .replace(/\u001b\[[0-9;]*m/g, '');
+                    lines.push(message.slice(0, 5000));
+                  }
+                }
+              }
+              walk(suite.suites, here);
+            }
+          }
+          walk(data.suites);
+          fs.writeFileSync('acceptance-receipt/playwright-summary.txt', `${lines.join('\n\n')}\n`);
+          NODE
+          cat acceptance-receipt/playwright-summary.txt
+          exit "$status"
+      - name: Upload permanent acceptance receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundled-product-parity-receipt
+          path: |
+            acceptance-receipt
+            test-results
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Preserve browser gate status
+        if: steps.browser.outcome == 'failure'
+        run: exit 1
