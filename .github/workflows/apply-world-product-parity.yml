@@ -104,6 +104,26 @@ jobs:
           git apply --index "${RUNNER_TEMP}/world-parity/world-parity.patch"
           echo "already_applied=false" >> "${GITHUB_ENV}"
 
+      - name: Normalize reviewed TypeScript line endings
+        if: env.already_applied == 'false'
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          for relative in (
+              "src/world/Player.tsx",
+              "src/world/shell/Shell.tsx",
+              "src/world/useArcInteraction.ts",
+          ):
+              path = Path(relative)
+              raw = path.read_bytes()
+              normalized = raw.replace(b"\r\n", b"\n")
+              if normalized != raw:
+                  path.write_bytes(normalized)
+          PY
+          git add src/world/Player.tsx src/world/shell/Shell.tsx src/world/useArcInteraction.ts
+          git diff --cached --check
+
       - name: Set up Node
         if: env.already_applied == 'false'
         uses: actions/setup-node@v4
