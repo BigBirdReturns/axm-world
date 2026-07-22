@@ -24,8 +24,8 @@ jobs:
           cache: npm
       - run: npm ci --silent
       - run: npx playwright install --with-deps chromium >/dev/null
-      - name: Run exact shell path against owned Vite server
-        id: shell
+      - name: Run exact first-lockout path against owned Vite server
+        id: browser
         continue-on-error: true
         env:
           PW_BASE_URL: http://127.0.0.1:5173
@@ -40,16 +40,16 @@ jobs:
           done
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
           set +e
-          npx playwright test e2e/shell.spec.ts --workers=1 --reporter=json >"$RUNNER_TEMP/playwright.json" 2>"$RUNNER_TEMP/playwright.stderr"
+          npx playwright test e2e/appliance-first-lockout.spec.ts --workers=1 --reporter=json >"$RUNNER_TEMP/playwright.json" 2>"$RUNNER_TEMP/playwright.stderr"
           status=$?
           set -e
           printf '%s\n' "$status" >"$RUNNER_TEMP/status.txt"
-          JSON_PATH="$RUNNER_TEMP/playwright.json" SUMMARY_PATH="$RUNNER_TEMP/shell-summary.txt" node <<'NODE'
+          JSON_PATH="$RUNNER_TEMP/playwright.json" SUMMARY_PATH="$RUNNER_TEMP/browser-summary.txt" node <<'NODE'
           const fs = require('node:fs');
           const data = JSON.parse(fs.readFileSync(process.env.JSON_PATH, 'utf8'));
           const lines = [];
           const stats = data.stats ?? {};
-          lines.push(`SHELL STATS expected=${stats.expected ?? 0} unexpected=${stats.unexpected ?? 0} skipped=${stats.skipped ?? 0} flaky=${stats.flaky ?? 0}`);
+          lines.push(`FIRST-LOCKOUT STATS expected=${stats.expected ?? 0} unexpected=${stats.unexpected ?? 0} skipped=${stats.skipped ?? 0} flaky=${stats.flaky ?? 0}`);
           function walk(suites, parents = []) {
             for (const suite of suites ?? []) {
               const here = suite.title ? [...parents, suite.title] : parents;
@@ -76,9 +76,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: shell-compact-receipt
+          name: browser-compact-receipt
           path: |
-            ${{ runner.temp }}/shell-summary.txt
+            ${{ runner.temp }}/browser-summary.txt
             ${{ runner.temp }}/status.txt
             ${{ runner.temp }}/playwright.stderr
             ${{ runner.temp }}/vite.log
@@ -92,9 +92,9 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: shell-compact-receipt
+          name: browser-compact-receipt
           path: receipt
-      - name: Exact shell receipt
+      - name: Exact first-lockout receipt
         run: |
-          cat receipt/shell-summary.txt
+          cat receipt/browser-summary.txt
           test "$(cat receipt/status.txt)" -eq 0
