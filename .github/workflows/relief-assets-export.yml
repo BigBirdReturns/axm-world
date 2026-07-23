@@ -5,6 +5,10 @@ on:
     branches: [art/relief-circuit-production-pack]
     paths:
       - '.github/workflows/relief-assets-export.yml'
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - '.github/workflows/relief-assets-export.yml'
   workflow_dispatch:
 
 permissions:
@@ -12,12 +16,13 @@ permissions:
 
 jobs:
   export:
+    if: github.head_ref == 'art/relief-circuit-production-pack' || github.ref == 'refs/heads/art/relief-circuit-production-pack'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
       - name: Record exact source identity
         run: git rev-parse HEAD > relief-assets-source-sha.txt
