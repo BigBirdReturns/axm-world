@@ -37,6 +37,55 @@ describe("constitution: Article 1 — the cartridge belongs to its holder", () =
     }
     expect(offenders, `network primitives found in runtime code:\n${offenders.join("\n")}`).toEqual([]);
   });
+
+  it("boot documents contain no external font or stylesheet dependency", () => {
+    const offenders: string[] = [];
+    for (const rel of ["index.html", "docs/index.html"]) {
+      const document = read(rel);
+      if (/fonts\.(?:googleapis|gstatic)\.com/i.test(document)) offenders.push(rel);
+      if (/https?:\/\/[^\s"'()]+\.(?:woff2?|ttf|otf)/i.test(document)) offenders.push(rel);
+      for (const tag of document.match(/<link\b[^>]*>/gi) ?? []) {
+        const loadsStyleOrFont = /\b(?:stylesheet|preconnect|dns-prefetch)\b/i.test(tag)
+          || /\bas\s*=\s*["']?font\b/i.test(tag);
+        if (loadsStyleOrFont && /(?:https?:)?\/\//i.test(tag)) {
+          offenders.push(rel);
+        }
+      }
+    }
+    expect([...new Set(offenders)], `external boot dependencies found in:\n${offenders.join("\n")}`).toEqual([]);
+  });
+
+  it("the authored runtime faces are pinned, bundled, and artifact-guarded", () => {
+    const entry = read("src/game/fonts.ts");
+    expect(read("src/game/main.tsx")).toContain('import "./fonts.js";');
+    const packageJson = JSON.parse(read("package.json")) as {
+      dependencies: Record<string, string>;
+      scripts: Record<string, string>;
+    };
+    const imports = [
+      "@fontsource/barlow-condensed/latin-500.css",
+      "@fontsource/barlow-condensed/latin-600.css",
+      "@fontsource/barlow-condensed/latin-700.css",
+      "@fontsource/barlow-condensed/latin-800.css",
+      "@fontsource/lora/latin-400.css",
+      "@fontsource/lora/latin-400-italic.css",
+      "@fontsource/lora/latin-600.css",
+      "@fontsource/ibm-plex-mono/latin-400.css",
+      "@fontsource/ibm-plex-mono/latin-500.css",
+      "@fontsource/ibm-plex-mono/latin-600.css",
+    ];
+    for (const specifier of imports) expect(entry).toContain(`import "${specifier}";`);
+    for (const dependency of [
+      "@fontsource/barlow-condensed",
+      "@fontsource/lora",
+      "@fontsource/ibm-plex-mono",
+    ]) {
+      expect(packageJson.dependencies[dependency], `${dependency} must be exact for reproducible custody`)
+        .toMatch(/^\d+\.\d+\.\d+$/);
+    }
+    expect(packageJson.scripts.build).toContain("check:offline-build");
+    expect(fs.existsSync(path.join(REPO_ROOT, "scripts/check-offline-build.mjs"))).toBe(true);
+  });
 });
 
 describe("constitution: Article 2 — trust is a layer, never a gate", () => {

@@ -29,3 +29,6 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Build and verify the offline artifact
+        run: npm run build

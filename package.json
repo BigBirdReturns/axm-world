@@ -6,7 +6,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && npm run check:offline-build",
+    "check:offline-build": "node scripts/check-offline-build.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
@@ -16,6 +17,9 @@
     "check": "npm run typecheck && npm test"
   },
   "dependencies": {
+    "@fontsource/barlow-condensed": "5.2.8",
+    "@fontsource/ibm-plex-mono": "5.2.7",
+    "@fontsource/lora": "5.2.8",
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
     "react": "^18.3.1",

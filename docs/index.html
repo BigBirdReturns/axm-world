@@ -8,9 +8,6 @@
     <meta property="og:title" content="axm-world — a player for AXM cartridges" />
     <meta property="og:description" content="Cartridge in → world out. Drop in a cartridge, play it. The creator keeps the thing." />
     <meta property="og:type" content="website" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <style>
       :root {
         --paper: #17150f;
@@ -25,9 +22,11 @@
         --accent-dp: #8a160f;
         --gold: #c9a14a;
         --positive: #74ad77;
-        --display: "Barlow Condensed", system-ui, sans-serif;
-        --serif: "Lora", Georgia, serif;
-        --mono: "IBM Plex Mono", ui-monospace, monospace;
+        /* The static landing page uses host fonts by design. The playable
+           runtime bundles its authored faces; neither surface phones home. */
+        --display: "Arial Narrow", "Aptos Narrow", system-ui, sans-serif;
+        --serif: Georgia, Cambria, "Times New Roman", serif;
+        --mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
       }
       * { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; }

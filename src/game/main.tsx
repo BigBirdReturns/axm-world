@@ -1,3 +1,4 @@
+import "./fonts.js";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { Player } from "../world/Player.js";
