@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: art/production-asset-wave-one
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -48,11 +48,28 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Desktop and mobile asset acceptance
+        id: browser
+        continue-on-error: true
         env:
           PW_BASE_URL: http://127.0.0.1:5173
         run: |
+          set -o pipefail
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
-          npx playwright test e2e/production-asset-wave-one.spec.ts --workers=1 --trace=retain-on-failure
+          npx playwright test e2e/production-asset-wave-one.spec.ts --workers=1 --trace=retain-on-failure 2>&1 | tee production-assets-e2e.log
+      - name: Upload browser acceptance receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-asset-wave-one-browser-receipt
+          path: |
+            production-assets-e2e.log
+            test-results
+            playwright-report
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Preserve browser failure
+        if: steps.browser.outcome == 'failure'
+        run: exit 1
       - name: Keep generated deployment output outside source authority
         run: git restore --source=HEAD --staged --worktree docs/game || true
       - name: Publish the verified player binding
