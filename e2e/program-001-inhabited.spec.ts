@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { enterCartridge, resolvePendingDecisions } from "./helpers";
+import { enterShellRuntime, resolvePendingDecisions, runSelectedContract } from "./helpers";
 import { PROGRAM_001 } from "../src/world/program-of-record";
 
 // First inhabited-world slice receipt (ADR 0001). The player enters The First
@@ -8,9 +8,10 @@ import { PROGRAM_001 } from "../src/world/program-of-record";
 // back to the same digest-stamped Program 001 ledger — surviving reload. The
 // board path and this scene path converge (both resolve through the engine).
 //
-// Runs on desktop AND mobile (playwright.config.ts). On mobile the representation
-// lives in the "board" step and cold-start auto-selects a contract (advancing to
-// the contract step), so the helper steps back to the board first.
+// Runs on desktop AND mobile (playwright.config.ts). Every fresh Program 001 run
+// enters through the guided First Charter experience (the Cellar resolves there),
+// so the Shell's hall is proven against the post-charter world: the steward now
+// holds The Bridge Troll, and the hall already remembers the recorded Cellar.
 //
 // Authored receipt: `npm run test:e2e`, not CI-gated. The pure derivation
 // (deriveHallView) is covered by vitest.
@@ -32,12 +33,15 @@ async function openCartridgeObject(page: Page): Promise<void> {
 }
 
 test("the hall presents the cartridge as an inhabited scene: a steward holding an authored contract", async ({ page }) => {
-  await enterCartridge(page);
+  test.slow();
+  await enterShellRuntime(page);
   await showHall(page, { switchCostume: true });
 
-  // Fresh: the steward holds a contract (unresolved) and the world has not changed.
+  // The steward holds the NEXT contract (unresolved), while the hall already
+  // carries the memory of the guided First Charter — the two axes never blur.
   await expect(page.getByTestId("hall-npc")).toHaveAttribute("data-resolved", "false");
-  await expect(page.getByTestId("hall-world-change")).toHaveCount(0);
+  await expect(page.getByTestId("hall-world-change")).toBeVisible();
+  await expect(page.getByTestId("hall-last-recorded")).toContainText(/Cellar/i);
 
   // The steward is an authored person, not a generic runtime figure: the First
   // Charter names "Maren Vos, Charter-Keeper".
@@ -56,17 +60,18 @@ test("the hall presents the cartridge as an inhabited scene: a steward holding a
   await expect(page.getByTestId("hall-party-bodies")).toBeVisible();
 
   // Talk: the dialogue presents the authored person, their spoken line, and the
-  // authored contract name (cold-start focus, "The Cellar").
+  // authored contract name (post-charter focus, "The Bridge Troll").
   await page.getByTestId("hall-talk").click();
   await expect(page.getByTestId("hall-dialogue")).toBeVisible();
   await expect(page.getByTestId("hall-dialogue-speaker")).toContainText(/Maren Vos/);
   await expect(page.getByTestId("hall-dialogue-bio")).toBeVisible();
   await expect(page.getByTestId("hall-dialogue-line")).toContainText(/Take the contract/i);
-  await expect(page.getByTestId("hall-dialogue-contract")).toContainText(/Cellar/i);
+  await expect(page.getByTestId("hall-dialogue-contract")).toContainText(/Bridge Troll/i);
 });
 
 test("the steward's contract and the map's next pin are one place: same region, same up-next marker", async ({ page }) => {
-  await enterCartridge(page);
+  test.slow();
+  await enterShellRuntime(page);
   await showHall(page, { switchCostume: true });
 
   // In the hall, the steward's contract is named by its region and wears the
@@ -74,42 +79,39 @@ test("the steward's contract and the map's next pin are one place: same region, 
   await expect(page.getByTestId("hall-contract-region")).toContainText(/Proving Grounds/i);
   await expect(page.getByTestId("hall-contract-region-next")).toBeVisible();
 
-  // Switch to the strategic map: the SAME contract (The Cellar) is the next pin,
-  // in the SAME region — one place, not two competing navigation systems.
+  // Switch to the strategic map: the SAME contract (The Bridge Troll) is the next
+  // pin, in the SAME region — one place, not two competing navigation systems.
   await page.getByTestId("view-map").click();
   await expect(page.getByTestId("world-map")).toBeVisible();
-  await expect(page.getByTestId("wm-next-cellar")).toBeVisible();
+  await expect(page.getByTestId("wm-next-bridge-troll")).toBeVisible();
   const provingGrounds = page.getByTestId("wm-region-0");
   await expect(provingGrounds).toContainText(/Proving Grounds/i);
-  await expect(provingGrounds.getByTestId("wm-pin-cellar")).toBeVisible();
+  await expect(provingGrounds.getByTestId("wm-pin-bridge-troll")).toBeVisible();
 });
 
 test("resolving a contract in the hall writes one digest-stamped ledger entry, changes the world, and survives reload", async ({ page }) => {
   test.slow();
-  await enterCartridge(page);
+  await enterShellRuntime(page);
   await showHall(page, { switchCostume: true });
 
-  // Enter the contract in person — the briefing hands off to the SAME playable
-  // EncounterShell the board opens (no quick resolve). Play it through to a result.
+  // Enter the steward's contract (The Bridge Troll) in person — the briefing hands
+  // off to the SAME playable EncounterShell the board opens (no quick resolve).
   if (!(await page.getByTestId("hall-dialogue").count())) await page.getByTestId("hall-talk").click();
-  await page.getByTestId("hall-enter-contract").click();
-  await expect(page.getByTestId("encounter-shell")).toBeVisible();
-  await page.getByTestId("encs-resolve").click();
-  await expect(page.getByTestId("encs-receipt")).toBeVisible();
-  await page.getByTestId("encs-leave").click();
+  await expect(page.getByTestId("hall-enter-contract")).toBeVisible();
+  await runSelectedContract(page);
   await resolvePendingDecisions(page);
 
-  // The world visibly changed, and exactly one entry was written under the same digest.
+  // The world visibly changed, and the new entry was written under the same digest.
   await showHall(page, { switchCostume: false });
   await expect(page.getByTestId("hall-world-change")).toBeVisible();
   // #67: the hall now NAMES what it just recorded and how many the ledger holds —
   // you returned to a place that knows something happened.
-  await expect(page.getByTestId("hall-last-recorded")).toContainText(/Cellar/i);
-  await expect(page.getByTestId("hall-last-recorded")).toContainText(/1 in the ledger/i);
+  await expect(page.getByTestId("hall-last-recorded")).toContainText(/Bridge Troll/i);
+  await expect(page.getByTestId("hall-last-recorded")).toContainText(/2 in the ledger/i);
   await openCartridgeObject(page);
   await expect(page.getByTestId("cartridge-digest")).toHaveText(DIGEST);
-  await expect(page.getByTestId("ledger-entry")).toHaveCount(1);
-  await expect(page.getByTestId("ledger-entry").first()).toContainText(/Cellar/i);
+  await expect(page.getByTestId("ledger-entry")).toHaveCount(2);
+  await expect(page.getByTestId("ledger-entry").filter({ hasText: /Bridge Troll/i })).toHaveCount(1);
   await page.getByRole("button", { name: /resume/i }).click();
   await expect(page.getByTestId("cartridge-digest")).toHaveCount(0);
 
@@ -121,7 +123,7 @@ test("resolving a contract in the hall writes one digest-stamped ledger entry, c
   await expect(page.getByTestId("pending-decision-card")).toHaveCount(0);
   await openCartridgeObject(page);
   await expect(page.getByTestId("cartridge-digest")).toHaveText(DIGEST);
-  await expect(page.getByTestId("ledger-entry")).toHaveCount(1);
+  await expect(page.getByTestId("ledger-entry")).toHaveCount(2);
   await page.getByRole("button", { name: /resume/i }).click();
   await expect(page.getByTestId("cartridge-digest")).toHaveCount(0);
 
@@ -133,7 +135,7 @@ test("resolving a contract in the hall writes one digest-stamped ledger entry, c
 
 test("walk into the encounter from the hall: the same EncounterShell the board uses, resolving to the same digest-stamped ledger", async ({ page }) => {
   test.slow();
-  await enterCartridge(page);
+  await enterShellRuntime(page);
   await showHall(page, { switchCostume: true });
 
   // The briefing auto-opens after the oath and suppresses the floor actions;
@@ -147,16 +149,21 @@ test("walk into the encounter from the hall: the same EncounterShell the board u
   // runs the real engine (encs-resolve → world.runChallenge), not a duplicate.
   await expect(page.getByTestId("encounter-shell")).toBeVisible();
   await page.getByTestId("encs-resolve").click();
-  await expect(page.getByTestId("encs-receipt")).toBeVisible();
+  await expect(page.getByTestId("encs-receipt")).toBeVisible({ timeout: 15_000 });
+  if (await page.getByTestId("reward-choice").count()) {
+    await page.locator('[data-testid^="reward-candidate-"]').first().click();
+  }
+  await expect(page.getByTestId("encs-leave")).toBeEnabled();
   await page.getByTestId("encs-leave").click();
   await expect(page.getByTestId("encounter-shell")).toHaveCount(0);
   await resolvePendingDecisions(page);
 
-  // Same authored result: one digest-stamped ledger entry, world changed, survives reload.
+  // Same authored result: a second digest-stamped ledger entry, world changed,
+  // survives reload.
   await openCartridgeObject(page);
   await expect(page.getByTestId("cartridge-digest")).toHaveText(DIGEST);
-  await expect(page.getByTestId("ledger-entry")).toHaveCount(1);
-  await expect(page.getByTestId("ledger-entry").first()).toContainText(/Cellar/i);
+  await expect(page.getByTestId("ledger-entry")).toHaveCount(2);
+  await expect(page.getByTestId("ledger-entry").filter({ hasText: /Bridge Troll/i })).toHaveCount(1);
   await page.getByRole("button", { name: /resume/i }).click();
   await expect(page.getByTestId("cartridge-digest")).toHaveCount(0);
 
@@ -165,5 +172,5 @@ test("walk into the encounter from the hall: the same EncounterShell the board u
   await expect(page.getByTestId("pending-decision-card")).toHaveCount(0);
   await openCartridgeObject(page);
   await expect(page.getByTestId("cartridge-digest")).toHaveText(DIGEST);
-  await expect(page.getByTestId("ledger-entry")).toHaveCount(1);
+  await expect(page.getByTestId("ledger-entry")).toHaveCount(2);
 });

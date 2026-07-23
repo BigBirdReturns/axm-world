@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { fileURLToPath } from "node:url";
-import { runSelectedContract } from "./helpers";
+import { openContractSheet, runSelectedContract } from "./helpers";
 
 // PR 060 — the RFC_APPLIANCE_EXPANSION capstone receipt: a cartridge world has
 // NEVER named (arc's `severed-march`, a war-campaign arc authored purely to
@@ -66,18 +66,25 @@ test("severed-march (never named in world's source) imports, boots, plays, and r
   // straight in the embodied shell — no opening decision to resolve.
   await page.getByTestId("play-cartridge-severed-march").click();
 
-  // The embodied shell loaded, carrying severed-march's own authored name.
-  const strip = page.getByTestId("program-identity-strip");
-  await expect(strip).toBeVisible();
-  await expect(strip).toContainText(/The Severed March/i);
+  // The embodied shell loaded, carrying severed-march's own authored name. The
+  // identity strip is desktop-only chrome (Shell.tsx); mobile stages the same
+  // in-shell state behind the user-act-gated contract sheet checked below.
+  if (testInfo.project.name === "desktop") {
+    const strip = page.getByTestId("program-identity-strip");
+    await expect(strip).toBeVisible();
+    await expect(strip).toContainText(/The Severed March/i);
 
-  // THE PROOF: the in-shell identity is the exact computed digest arc pins for
-  // this same file — one cartridge, two independent clients, one identity.
-  await expect(page.getByTestId("strip-digest")).toHaveAttribute("title", ARC_PINNED_DIGEST);
+    // THE PROOF: the in-shell identity is the exact computed digest arc pins for
+    // this same file — one cartridge, two independent clients, one identity.
+    await expect(page.getByTestId("strip-digest")).toHaveAttribute("title", ARC_PINNED_DIGEST);
 
-  // Honesty check: severed-march is imported, NOT a program of record, so the
-  // "PROGRAM 001" framing must not attach to it.
-  await expect(page.getByTestId("strip-program")).toHaveCount(0);
+    // Honesty check: severed-march is imported, NOT a program of record, so the
+    // "PROGRAM 001" framing must not attach to it.
+    await expect(page.getByTestId("strip-program")).toHaveCount(0);
+  } else {
+    // Mobile: the contract sheet only opens on an explicit player act.
+    await openContractSheet(page);
+  }
 
   // PR 055 — the neutral-skin default, live: severed-march is unknown to the
   // theme seam (src/world/themes/select.ts), so Shell's palette-scope effect

@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { fileURLToPath } from "node:url";
-import { runSelectedContract } from "./helpers";
+import { openContractSheet, runSelectedContract } from "./helpers";
 
 // PR 010 — the appliance capstone receipt: first-lockout, authored in axm-arc,
 // imported into world through the real boot importer, boots in the embodied
@@ -74,18 +74,25 @@ test("first-lockout imports and boots in the appliance client under arc's digest
   // straight in the embodied shell — no opening decision to resolve.
   await page.getByTestId("play-cartridge-first-lockout").click();
 
-  // The embodied shell loaded, carrying first-lockout's own authored name.
-  const strip = page.getByTestId("program-identity-strip");
-  await expect(strip).toBeVisible();
-  await expect(strip).toContainText(/First Lockout/i);
+  // The embodied shell loaded, carrying first-lockout's own authored name. The
+  // identity strip is desktop-only chrome (Shell.tsx); mobile stages the same
+  // in-shell state behind the user-act-gated contract sheet checked below.
+  if (testInfo.project.name === "desktop") {
+    const strip = page.getByTestId("program-identity-strip");
+    await expect(strip).toBeVisible();
+    await expect(strip).toContainText(/First Lockout/i);
 
-  // THE PROOF: the in-shell identity is the exact computed digest arc pins —
-  // same content, same identity, a different client (the two-client model, live).
-  await expect(page.getByTestId("strip-digest")).toHaveAttribute("title", FIRST_LOCKOUT_DIGEST);
+    // THE PROOF: the in-shell identity is the exact computed digest arc pins —
+    // same content, same identity, a different client (the two-client model, live).
+    await expect(page.getByTestId("strip-digest")).toHaveAttribute("title", FIRST_LOCKOUT_DIGEST);
 
-  // Honesty check: first-lockout is imported, NOT world's program of record, so
-  // the "PROGRAM 001 / program of record" framing must not attach to it.
-  await expect(page.getByTestId("strip-program")).toHaveCount(0);
+    // Honesty check: first-lockout is imported, NOT world's program of record, so
+    // the "PROGRAM 001 / program of record" framing must not attach to it.
+    await expect(page.getByTestId("strip-program")).toHaveCount(0);
+  } else {
+    // Mobile: the contract sheet only opens on an explicit player act.
+    await openContractSheet(page);
+  }
 
   // The shared engine's frozen legacy founding law reads first-lockout's own
   // encounters, which need an 8-10 agent party. The cold-start selection

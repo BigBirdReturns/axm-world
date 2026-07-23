@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { enterCartridge } from "./helpers";
+import { enterShellRuntime } from "./helpers";
 
 // One world, one route (#71): Board / Map / Hall are surfaces of ONE navigable place.
 // This receipt walks the full loop — detail panel → map → hall → board — proving each
@@ -13,12 +13,12 @@ import { enterCartridge } from "./helpers";
 test("the routing loop: detail → map → hall → board, one contract all the way around", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "detail panel is a desktop right-rail");
   test.slow();
-  await enterCartridge(page);
+  await enterShellRuntime(page);
 
-  // Cold start auto-selects the steward's next contract (The Cellar): the detail
-  // panel is the action hub — it can route to the map, and (because this IS the
-  // steward's contract, same deriveHallView) to the hall.
-  await expect(page.getByTestId("selected-contract-title")).toContainText(/Cellar/i);
+  // Post-charter cold start focuses the steward's next contract (The Bridge Troll):
+  // the detail panel is the action hub — it can route to the map, and (because this
+  // IS the steward's contract, same deriveHallView) to the hall.
+  await expect(page.getByTestId("selected-contract-title")).toContainText(/Bridge Troll/i);
   await expect(page.getByTestId("detail-see-on-map")).toBeVisible();
   await expect(page.getByTestId("detail-take-in-person")).toBeVisible();
 
@@ -26,12 +26,12 @@ test("the routing loop: detail → map → hall → board, one contract all the 
   // roll-up counts the states the pins below already show.
   await page.getByTestId("detail-see-on-map").click();
   await expect(page.getByTestId("world-map")).toBeVisible();
-  await expect(page.getByTestId("wm-next-cellar")).toBeVisible();
+  await expect(page.getByTestId("wm-next-bridge-troll")).toBeVisible();
   await expect(page.getByTestId("wm-state-summary")).toBeVisible();
   await expect(page.getByTestId("wm-count-next")).toHaveAttribute("data-count", "1");
 
   // Map → Hall. The next pin routes to the steward who holds that same contract.
-  await page.getByTestId("wm-go-hall-cellar").click();
+  await page.getByTestId("wm-go-hall-bridge-troll").click();
   await expect(page.getByTestId("hall-scene")).toBeVisible();
   await expect(page.getByTestId("hall-contract-region-next")).toBeVisible();
   // The hall's party status is the board's own projection (evaluateParty).
@@ -41,5 +41,5 @@ test("the routing loop: detail → map → hall → board, one contract all the 
   // with its detail open — the loop closes on the same contract it started with.
   await page.getByTestId("hall-view-on-board").click();
   await expect(page.getByTestId("contract-board")).toBeVisible();
-  await expect(page.getByTestId("selected-contract-title")).toContainText(/Cellar/i);
+  await expect(page.getByTestId("selected-contract-title")).toContainText(/Bridge Troll/i);
 });

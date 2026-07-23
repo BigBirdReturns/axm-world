@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { enterCartridge, resolvePendingDecisions, runSelectedContract } from "./helpers";
+import {
+  enterShellRuntime,
+  openContractSheet,
+  resolvePendingDecisions,
+  runSelectedContract,
+} from "./helpers";
 
 // Proves the shell contract the branch claims: one cartridge state, switched between
 // representations without reset; a true modal that representation labels can't bleed
@@ -14,26 +19,42 @@ test("decision modal is a true layer — no representation labels render through
   await expect(page.locator(".node-label")).toHaveCount(0);
 });
 
-test("Run Graph and Planet are pure representations of the same cartridge state", async ({ page }) => {
-  await enterCartridge(page);
+test("Run Graph and Planet are pure representations of the same cartridge state", async ({ page }, testInfo) => {
+  test.slow();
+  await enterShellRuntime(page);
+  const mobile = testInfo.project.name === "mobile";
 
-  await expect(page.getByTestId("selected-contract-title")).toContainText(/Cellar/i);
-  const selectedBefore = await page.getByTestId("selected-contract-title").innerText();
-  const partyBefore = await page.getByTestId("party-count").innerText();
+  // Read the selection through the honest surface for the viewport: the desktop
+  // right-rail, or the user-act-gated mobile contract sheet (opened from the board).
+  const readSelection = async (): Promise<{ title: string; party: string }> => {
+    if (mobile) await openContractSheet(page);
+    const title = await page.getByTestId("selected-contract-title").innerText();
+    const party = await page.getByTestId("party-count").innerText();
+    if (mobile) await page.getByTestId("mobile-step-back").click();
+    return { title, party };
+  };
+
+  // Post-charter cold focus is the steward's next contract.
+  const before = await readSelection();
+  expect(before.title).toMatch(/Bridge Troll/i);
 
   await page.getByTestId("view-planet").click();
   await expect(page.getByTestId("pending-decision-card")).toHaveCount(0); // decision does not replay
-  await expect(page.getByTestId("selected-contract-title")).toHaveText(selectedBefore);
-  await expect(page.getByTestId("party-count")).toHaveText(partyBefore);
+  // Planet hides contract detail until the player reaches the selected location;
+  // absence here is the honest proximity gate, not lost selection.
+  await expect(page.getByTestId("selected-contract-title")).toHaveCount(0);
 
   await page.getByTestId("view-run-graph").click();
   await expect(page.getByTestId("pending-decision-card")).toHaveCount(0);
-  await expect(page.getByTestId("selected-contract-title")).toHaveText(selectedBefore);
-  await expect(page.getByTestId("party-count")).toHaveText(partyBefore);
+  // Returning to the board proves the same selection and party survived the
+  // representation round trip.
+  expect(await readSelection()).toEqual(before);
 });
 
-test("a selected contract has one player-facing commit path", async ({ page }) => {
-  await enterCartridge(page);
+test("a selected contract has one player-facing commit path", async ({ page }, testInfo) => {
+  test.slow();
+  await enterShellRuntime(page);
+  if (testInfo.project.name === "mobile") await openContractSheet(page);
   await expect(page.getByTestId("play-encounter-button")).toBeVisible();
   await expect(page.getByTestId("play-encounter-button")).toBeEnabled();
   await expect(page.getByTestId("run-contract-button")).toHaveCount(0);
@@ -41,10 +62,10 @@ test("a selected contract has one player-facing commit path", async ({ page }) =
 
 test("post-run outcome and cartridge marks persist across a representation switch", async ({ page }, testInfo) => {
   test.slow();
-  await enterCartridge(page);
+  await enterShellRuntime(page);
 
-  // Play "The Cellar" (first available node) through the compiled encounter;
-  // runSelectedContract drives it to its receipt and back to the shell.
+  // Play the focused next contract ("The Bridge Troll") through the compiled
+  // encounter; runSelectedContract drives it to its receipt and back to the shell.
   await runSelectedContract(page);
   // A run may enqueue a post-run decision, which gates the view switcher by design;
   // resolve it before switching representations.
@@ -65,14 +86,15 @@ test("post-run outcome and cartridge marks persist across a representation switc
   // omits this desktop-only chrome.
   if (testInfo.project.name === "desktop") {
     await page.getByTestId("record-history-button").click();
-    await expect(page.getByTestId("outcome-region")).toContainText(/Cellar/i);
+    await expect(page.getByTestId("outcome-region")).toContainText(/Bridge Troll/i);
   } else {
     await expect(page.getByTestId("record-history-button")).toHaveCount(0);
   }
 });
 
 test("the cartridge title is legible (not near-black on black)", async ({ page }) => {
-  await enterCartridge(page);
+  test.slow();
+  await enterShellRuntime(page);
   const title = page.getByTestId("cartridge-title");
   await expect(title).toBeVisible();
   const color = await title.evaluate((el) => getComputedStyle(el as HTMLElement).color);

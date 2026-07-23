@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { enterCartridge, resolvePendingDecisions } from "./helpers";
+import { enterShellRuntime, resolvePendingDecisions } from "./helpers";
 import { PROGRAM_001 } from "../src/world/program-of-record";
 
 // Map-art polish receipt. The World-map is a STRATEGIC OVERLAY over the same
@@ -11,9 +11,11 @@ import { PROGRAM_001 } from "../src/world/program-of-record";
 // and the map's state advances to match — surviving nothing new: no second
 // resolver, save path, or ledger.
 //
-// Runs on desktop AND mobile (playwright.config.ts). On mobile the representation
-// lives in the "board" step and cold-start auto-selects a contract (advancing to
-// the contract step), so the helper steps back to the board first.
+// Runs on desktop AND mobile (playwright.config.ts). Every fresh Program 001 run
+// enters through the guided First Charter experience (the Cellar resolves there),
+// so the Shell's map is proven against the post-charter world: 1/6 recorded and
+// The Bridge Troll up next. On mobile the representation lives in the "board"
+// step; the helpers step back to the board if a contract sheet is open.
 //
 // Authored receipt: `npm run test:e2e`, not CI-gated. The pure derivation
 // (deriveWorldMap) is covered by vitest.
@@ -48,27 +50,32 @@ async function showBoard(page: Page): Promise<void> {
 }
 
 test("the map presents Program 001 as a cartridge surface: named world, region state, steepness, and the next contract", async ({ page }) => {
-  await enterCartridge(page);
+  test.slow();
+  await enterShellRuntime(page);
   await showMap(page);
 
   // The map frames itself as THIS cartridge's world (authored name flows verbatim),
-  // not a generic node graph — with an arc-wide recorded roll-up starting at 0/6.
+  // not a generic node graph — the arc-wide roll-up counts the guided Cellar: 1/6.
   await expect(page.getByTestId("wm-world-name")).toHaveText(/The First Charter/);
-  await expect(page.getByTestId("wm-progress")).toHaveAttribute("data-recorded", "0");
+  await expect(page.getByTestId("wm-progress")).toHaveAttribute("data-recorded", "1");
   await expect(page.getByTestId("wm-progress")).toHaveAttribute("data-total", "6");
 
   // Regions carry a rolled-up status: Proving Grounds is open, the later tier locked.
   await expect(page.getByTestId("wm-region-0")).toHaveAttribute("data-status", "active");
   await expect(page.getByTestId("wm-region-1")).toHaveAttribute("data-status", "locked");
 
-  // Exactly one "next" contract, and it is The Cellar — the same contract the hall's
-  // steward holds (shared derivation). The steep gradient marks the hard, late
-  // contracts (authored difficulty), not the easy opener.
-  await expect(page.getByTestId("wm-next-cellar")).toBeVisible();
-  await expect(page.getByTestId("wm-pin-cellar")).toHaveAttribute("data-next", "true");
+  // The Cellar reads recorded — the map remembers the guided first contract.
+  await expect(page.getByTestId("wm-recorded-cellar")).toBeVisible();
+
+  // Exactly one "next" contract, and it is The Bridge Troll — the same contract the
+  // hall's steward now holds (shared derivation). The steep gradient marks the hard,
+  // late contracts (authored difficulty), not the easy openers.
+  await expect(page.getByTestId("wm-next-bridge-troll")).toBeVisible();
+  await expect(page.getByTestId("wm-pin-bridge-troll")).toHaveAttribute("data-next", "true");
   await expect(page.getByTestId("wm-pin-steep-wardens-keep")).toBeVisible();
   await expect(page.getByTestId("wm-pin-steep-bandit-camp")).toBeVisible();
   await expect(page.getByTestId("wm-pin-steep-cellar")).toHaveCount(0);
+  await expect(page.getByTestId("wm-pin-steep-bridge-troll")).toHaveCount(0);
 
   // A state key rides on the map surface so every marker reads without leaving it:
   // all six visible states are explained in place (acceptance for the legend PR).
@@ -79,21 +86,25 @@ test("the map presents Program 001 as a cartridge surface: named world, region s
 });
 
 test("the board speaks the same marker language as the map: the same 'Up next' and 'Steep' contracts", async ({ page }) => {
-  await enterCartridge(page);
+  test.slow();
+  await enterShellRuntime(page);
   await showBoard(page);
 
-  // The map's next pin (cellar) and steep pins (wardens-keep, bandit-camp) read
-  // identically on the board cards — one shared projection (deriveNodeMarkers), not
-  // a parallel interpretation. Markers are display-only: the card still selects.
-  await expect(page.getByTestId("contract-board-card-cellar")).toHaveAttribute("data-upnext", "true");
-  await expect(page.getByTestId("contract-board-card-cellar")).not.toHaveAttribute("data-steep", "true");
-  await expect(page.getByTestId("contract-board-card-cellar").getByTestId("contract-card-marker-next")).toBeVisible();
+  // The map's next pin (bridge-troll) and steep pins (wardens-keep, bandit-camp)
+  // read identically on the board cards — one shared projection (deriveNodeMarkers),
+  // not a parallel interpretation. Markers are display-only: the card still selects.
+  await expect(page.getByTestId("contract-board-card-bridge-troll")).toHaveAttribute("data-upnext", "true");
+  await expect(page.getByTestId("contract-board-card-bridge-troll")).not.toHaveAttribute("data-steep", "true");
+  await expect(page.getByTestId("contract-board-card-bridge-troll").getByTestId("contract-card-marker-next")).toBeVisible();
   await expect(page.getByTestId("contract-board-card-wardens-keep")).toHaveAttribute("data-steep", "true");
   await expect(page.getByTestId("contract-board-card-bandit-camp")).toHaveAttribute("data-steep", "true");
+  // The recorded Cellar is memory, not the next thing to do.
+  await expect(page.getByTestId("contract-board-card-cellar")).toHaveAttribute("data-state", "recorded");
 });
 
 test("board card separates world state from squad fit: a readiness verdict is never the contract state", async ({ page }) => {
-  await enterCartridge(page);
+  test.slow();
+  await enterShellRuntime(page);
   await showBoard(page);
 
   // An open contract's header state reads its WORLD state — never the squad verdict.
@@ -114,15 +125,16 @@ test("world-state markers travel to the commit surface: the detail panel carries
   // The detail panel is the desktop right-rail; on mobile it's staged into separate
   // steps, so this cross-surface check runs on desktop.
   test.skip(testInfo.project.name !== "desktop", "detail panel is a desktop right-rail");
-  await enterCartridge(page);
+  test.slow();
+  await enterShellRuntime(page);
   await showBoard(page);
   const detail = page.getByTestId("contract-detail-stack");
 
-  // Selecting the next contract (cellar) carries ▸ Up next and both bands onto the
-  // commit surface — the player never has to remember them from the board.
-  await page.getByTestId("contract-board-card-cellar").click();
+  // Selecting the next contract (bridge-troll) carries ▸ Up next and both bands onto
+  // the commit surface — the player never has to remember them from the board.
+  await page.getByTestId("contract-board-card-bridge-troll").click();
   if (!(await page.getByTestId("selected-contract-title").isVisible().catch(() => false))) {
-    await page.getByTestId("contract-board-card-cellar").click();
+    await page.getByTestId("contract-board-card-bridge-troll").click();
   }
   await expect(page.getByTestId("selected-contract-title")).toBeVisible();
   await expect(detail.getByTestId("detail-up-next")).toBeVisible();
@@ -137,13 +149,13 @@ test("world-state markers travel to the commit surface: the detail panel carries
 
 test("entering an encounter from the map records it, advances progress, and moves the next marker — same digest-stamped ledger", async ({ page }) => {
   test.slow();
-  await enterCartridge(page);
+  await enterShellRuntime(page);
   await showMap(page);
 
-  // Walk into the encounter from the map pin: the SAME EncounterShell the board's
-  // PLAY ENCOUNTER and the hall's threshold open (onEnterEncounter → engine), not a
-  // duplicate resolver.
-  await page.getByTestId("wm-enter-cellar").click();
+  // Walk into the next encounter (The Bridge Troll) from the map pin: the SAME
+  // EncounterShell the board's PLAY ENCOUNTER and the hall's threshold open
+  // (onEnterEncounter → engine), not a duplicate resolver.
+  await page.getByTestId("wm-enter-bridge-troll").click();
   await expect(page.getByTestId("encounter-shell")).toBeVisible();
 
   // #68: before committing, the encounter stages the confrontation as bodies — the
@@ -159,24 +171,29 @@ test("entering an encounter from the map records it, advances progress, and move
   await expect(page.getByTestId("encounter-shell")).toHaveCount(0);
   await resolvePendingDecisions(page);
 
-  // The map's own state advanced to match: The Cellar reads recorded, the arc-wide
-  // progress moved to 1/6, and "next" is no longer The Cellar.
+  // The map's own state advanced to match: The Bridge Troll reads recorded, the
+  // arc-wide progress moved to 2/6, and "next" is no longer The Bridge Troll.
   await showMap(page);
-  await expect(page.getByTestId("wm-recorded-cellar")).toBeVisible();
-  await expect(page.getByTestId("wm-progress")).toHaveAttribute("data-recorded", "1");
-  await expect(page.getByTestId("wm-next-cellar")).toHaveCount(0);
-  await expect(page.getByTestId("wm-pin-cellar")).not.toHaveAttribute("data-next", "true");
+  await expect(page.getByTestId("wm-recorded-bridge-troll")).toBeVisible();
+  await expect(page.getByTestId("wm-progress")).toHaveAttribute("data-recorded", "2");
+  await expect(page.getByTestId("wm-next-bridge-troll")).toHaveCount(0);
+  await expect(page.getByTestId("wm-pin-bridge-troll")).not.toHaveAttribute("data-next", "true");
 
   // And the writeback is the one digest-stamped Program 001 ledger — no new shape.
   await openCartridgeObject(page);
   await expect(page.getByTestId("cartridge-digest")).toHaveText(DIGEST);
-  await expect(page.getByTestId("ledger-entry")).toHaveCount(1);
-  await expect(page.getByTestId("ledger-entry").first()).toContainText(/Cellar/i);
+  await expect(page.getByTestId("ledger-entry")).toHaveCount(2);
+  await expect(page.getByTestId("ledger-entry").filter({ hasText: /Bridge Troll/i })).toHaveCount(1);
 
   // The ledger reads as memory + provenance over the SAME fields: a cumulative
   // count, a per-entry recording order (seq), and a closing line recording it under
   // the authored identity. Display-only — no new schema, just the record made legible.
-  await expect(page.getByTestId("ledger-count")).toHaveText(/1 recorded/i);
-  await expect(page.getByTestId("ledger-entry").first().getByTestId("ledger-entry-seq")).toHaveText("01");
+  await expect(page.getByTestId("ledger-count")).toHaveText(/2 recorded/i);
+  await expect(
+    page.getByTestId("ledger-entry").filter({ hasText: /Cellar/i }).getByTestId("ledger-entry-seq"),
+  ).toHaveText("01");
+  await expect(
+    page.getByTestId("ledger-entry").filter({ hasText: /Bridge Troll/i }).getByTestId("ledger-entry-seq"),
+  ).toHaveText("02");
   await expect(page.getByTestId("ledger-provenance")).toBeVisible();
 });
