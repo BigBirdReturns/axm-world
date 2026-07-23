@@ -6,6 +6,11 @@ on:
     paths:
       - 'tools/apply-production-asset-wave-one.py'
       - '.github/workflows/production-asset-wave-one-apply.yml'
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - 'tools/apply-production-asset-wave-one.py'
+      - '.github/workflows/production-asset-wave-one-apply.yml'
   workflow_dispatch:
 
 permissions:
@@ -17,6 +22,7 @@ concurrency:
 
 jobs:
   apply:
+    if: github.head_ref == 'art/production-asset-wave-one' || github.ref == 'refs/heads/art/production-asset-wave-one'
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
