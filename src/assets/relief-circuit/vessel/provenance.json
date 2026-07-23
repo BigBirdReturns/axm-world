@@ -6,7 +6,7 @@
   "owner": "BigBirdReturns/axm-world",
   "authorship": "Original vector compositions authored for The Relief Circuit Common Ship runtime. No external art, stock imagery, model weights, or third-party source files were incorporated.",
   "license": "Project-owned; distributed under the repository license for this runtime use.",
-  "releaseBoundary": "This pack prepares the principal vessel environment, lead aquatic portrait, vessel cross-section, and direct operational symbol atlas. It does not claim Gate 6 is executable, assign Program 005, or bind any presentation before the exact accepted Gate 5 Arc bytes exist.",
+  "releaseBoundary": "This pack prepares the principal vessel environment, all six founding cast portraits, vessel cross-section, and direct operational symbol atlas. It does not claim Gate 6 is executable, assign Program 005, or bind any presentation before the exact accepted Gate 5 Arc bytes are vendored into World.",
   "assets": [
     {
       "path": "src/assets/relief-circuit/vessel/relief-circuit-environment.svg",
@@ -16,11 +16,46 @@
       "responsiveIntent": "cover crop preserves the common threshold table and at least four visibly incompatible habitat systems"
     },
     {
+      "path": "src/assets/relief-circuit/vessel/ilya-venn-portrait.svg",
+      "role": "runtime authored-person portrait",
+      "viewBox": "0 0 640 800",
+      "subject": "Ilya Venn, rapid-response pilot",
+      "responsiveIntent": "direct helm, manual abort, and host-baseline dependence remain visible from profile card to decision panel"
+    },
+    {
       "path": "src/assets/relief-circuit/vessel/nima-quell-portrait.svg",
       "role": "runtime authored-person portrait",
       "viewBox": "0 0 640 800",
       "subject": "Nima Quell, aquatic care worker",
-      "responsiveIntent": "portrait remains legible from mobile profile card to full decision-horizon panel"
+      "responsiveIntent": "pressure medium, electroreceptive communication, and mediated dry-space access remain legible"
+    },
+    {
+      "path": "src/assets/relief-circuit/vessel/orun-sable-portrait.svg",
+      "role": "runtime authored-person portrait",
+      "viewBox": "0 0 640 800",
+      "subject": "Orun Sable, high-gravity maintainer",
+      "responsiveIntent": "mass, load harness, and direct structural contact remain legible without shrinking Orun into a human-normal silhouette"
+    },
+    {
+      "path": "src/assets/relief-circuit/vessel/tessara-one-portrait.svg",
+      "role": "runtime authored-person portrait",
+      "viewBox": "0 0 640 800",
+      "subject": "Tessara One, Manyborn mediator",
+      "responsiveIntent": "carrier, microbial cloud, chemical vessels, and topological rendering remain simultaneous rather than implying one true body"
+    },
+    {
+      "path": "src/assets/relief-circuit/vessel/arden-pell-portrait.svg",
+      "role": "runtime authored-person portrait",
+      "viewBox": "0 0 640 800",
+      "subject": "Arden Pell, nine-year analyst",
+      "responsiveIntent": "compressed calendars and life-fraction cost remain visible around the short-lived body"
+    },
+    {
+      "path": "src/assets/relief-circuit/vessel/cinder-continuing-portrait.svg",
+      "role": "runtime authored-person portrait",
+      "viewBox": "0 0 640 800",
+      "subject": "Cinder Continuing, Counterborn vessel fork",
+      "responsiveIntent": "several divergent embodiments remain connected to one contested continuity claim"
     },
     {
       "path": "src/assets/relief-circuit/vessel/relief-circuit-cross-section.svg",
@@ -41,6 +76,7 @@
     "required": [
       "every SVG has semantic title and description metadata",
       "no asset contains embedded raster or remote dependencies",
+      "all six founding cast members have distinct authored portraits bound to their actual embodiment claims",
       "the cross-section names all seven ship systems",
       "the symbol atlas covers exactly six watch tests, seven systems, and eight state tracks",
       "no asset is imported by World before Gate 5 source authority is accepted",
