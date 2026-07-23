@@ -51,16 +51,6 @@ jobs:
         run: |
           set -o pipefail
           python tools/gate6-finalize/apply_gate6.py 2>&1 | tee gate6-apply.log
-      - name: Upload Gate 6 application diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: gate6-finalize-diagnostics
-          path: |
-            gate6-apply.log
-            tools/gate6-finalize/payload/01.txt
-          if-no-files-found: error
-          retention-days: 7
       - name: Preserve application failure
         if: steps.apply.outcome == 'failure'
         run: exit 1
@@ -72,15 +62,33 @@ jobs:
       - name: TypeScript
         run: npm run typecheck
       - name: Focused Gate 6 contracts
-        run: >-
-          npm test --
-          tests/world/common-ship-receiver-prep.test.ts
-          tests/world/common-ship-preparation-cycle.test.ts
-          tests/world/relief-circuit-production-assets.test.ts
-          tests/world/cartridge-parity.test.ts
-          tests/world/program-of-record.test.ts
-          tests/world/bundled-campaign-parity.test.ts
-          tests/engine/connected-operation-fixture.test.ts
+        id: focused
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm test -- \
+            tests/world/common-ship-receiver-prep.test.ts \
+            tests/world/common-ship-preparation-cycle.test.ts \
+            tests/world/relief-circuit-production-assets.test.ts \
+            tests/world/cartridge-parity.test.ts \
+            tests/world/program-of-record.test.ts \
+            tests/world/bundled-campaign-parity.test.ts \
+            tests/engine/connected-operation-fixture.test.ts \
+            2>&1 | tee gate6-focused.log
+      - name: Upload Gate 6 application diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate6-finalize-diagnostics
+          path: |
+            gate6-apply.log
+            gate6-focused.log
+            tools/gate6-finalize/payload/01.txt
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Preserve focused contract failure
+        if: steps.focused.outcome == 'failure'
+        run: exit 1
       - name: Complete World regression suite
         run: npm test
       - name: Production build
