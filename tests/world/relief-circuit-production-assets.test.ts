@@ -17,6 +17,8 @@ describe("Relief Circuit production asset preparation", () => {
     for (const path of ASSETS) {
       const source = read(path);
       expect(source, path).toContain("<svg");
+      // The required W3C namespace is declarative SVG syntax. The actual offline
+      // custody guard rejects only network-bearing href and xlink:href values.
       expect(source, path).toContain('xmlns="http://www.w3.org/2000/svg"');
       expect(source, path).toContain('role="img"');
       expect(source, path).toMatch(/viewBox="0 0 \d+ \d+"/);
