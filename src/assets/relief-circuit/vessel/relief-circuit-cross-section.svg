@@ -23,6 +23,7 @@
   <path d="M160 472H60M1500 472h72" stroke="#84919a" stroke-width="28"/><path d="M82 442v60M1550 442v60" stroke="#e6ba63" stroke-width="8"/>
 
   <!-- transit body -->
+  <text x="550" y="154" fill="#d8e3ea" font-family="monospace" font-size="19" font-weight="700" letter-spacing="3">TRANSIT BODY</text>
   <path d="M230 330c96-108 246-160 438-170M230 614c96 108 246 160 438 170M1390 330c-82-92-210-142-382-162M1390 614c-82 92-210 142-382 162" fill="none" stroke="#697984" stroke-width="24" opacity=".5"/>
   <path d="M280 284h1040M280 660h1040" stroke="#e6ba63" stroke-width="4" opacity=".42"/>
 
