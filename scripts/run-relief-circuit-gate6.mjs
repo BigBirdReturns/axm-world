@@ -3,18 +3,22 @@ import process from "node:process";
 
 const ROOT = new URL("../", import.meta.url);
 const BASE_URL = process.env.PW_BASE_URL ?? "http://127.0.0.1:5173";
-const server = spawn("npm", ["run", "dev", "--", "--host", "127.0.0.1", "--port", "5173", "--strictPort"], {
+const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
+const server = spawn(npmCommand, ["run", "dev", "--", "--host", "127.0.0.1", "--port", "5173", "--strictPort"], {
   cwd: ROOT,
   env: process.env,
   stdio: ["ignore", "pipe", "pipe"],
   detached: process.platform !== "win32",
 });
 let serverLog = "";
+let serverError = null;
+server.on("error", (error) => { serverError = error; });
 server.stdout.on("data", (chunk) => { serverLog += chunk; process.stdout.write(chunk); });
 server.stderr.on("data", (chunk) => { serverLog += chunk; process.stderr.write(chunk); });
 
 async function ready() {
   for (let attempt = 0; attempt < 120; attempt += 1) {
+    if (serverError) throw serverError;
     try {
       const response = await fetch(`${BASE_URL}/axm-world/game/`);
       if (response.ok) return;

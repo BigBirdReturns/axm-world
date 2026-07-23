@@ -3,8 +3,12 @@ import { PixelButton } from "../pixel-ui/index.js";
 import { EXPECTED_BUNDLED_DIGESTS } from "../bundled-digests.js";
 import { deriveCommonShipView, inspectCommonShipWorld } from "./common-ship.js";
 import { readConnectedReliefOperation } from "./connected-relief.js";
-import type { CommonShipEmbodimentProfile } from "../../common-ship/embodiment.js";
-import type { CommonShipWatchBlueprintV2 } from "../../common-ship/embodiment.js";
+import type {
+  CommonShipCastMemberV2,
+  CommonShipEmbodimentProfile,
+  CommonShipWatchBlueprintV2,
+} from "../../common-ship/embodiment.js";
+import type { CommonShipProfileView } from "./common-ship.js";
 import "./common-ship.css";
 
 const ASSET = {
@@ -34,6 +38,30 @@ const STATE_LABEL: Record<string, string> = {
 
 function rangeText(range: { min: number; max: number } | null, unit: string): string {
   return range ? `${range.min}–${range.max}${unit}` : "variable";
+}
+
+export interface CommonShipProfileCardEntry<T extends { id: string; name: string }> {
+  profile: CommonShipEmbodimentProfile;
+  member: CommonShipCastMemberV2 | undefined;
+  agent: T | undefined;
+}
+
+export function expandCommonShipProfileCards<T extends { id: string; name: string }>(
+  profiles: readonly CommonShipProfileView[],
+  roster: readonly T[],
+): CommonShipProfileCardEntry<T>[] {
+  return profiles.flatMap((entry) => {
+    const members: Array<CommonShipCastMemberV2 | undefined> = entry.cast.length > 0
+      ? entry.cast
+      : [undefined];
+    return members.map((member) => ({
+      profile: entry.source,
+      member,
+      agent: member
+        ? roster.find((candidate) => candidate.name === member.name || candidate.id.endsWith(`:${member.id}`) || candidate.id === member.id)
+        : undefined,
+    }));
+  });
 }
 
 function ProfileCard({
@@ -258,23 +286,17 @@ export function CommonShipScene({ world, interaction, onEnterEncounter }: SceneP
           </section>
 
           <section className="commonship__profiles" aria-label="embodiment profiles">
-            {view.profiles.map((entry) => {
-              const member = entry.cast[0];
-              const agent = member
-                ? world.roster.find((candidate) => candidate.name === member.name || candidate.id.endsWith(`:${member.id}`) || candidate.id === member.id)
-                : undefined;
-              return (
-                <ProfileCard
-                  key={entry.source.id}
-                  profile={entry.source}
-                  member={member}
-                  agentId={agent?.id ?? null}
-                  portrait={isReliefCircuitProgram && member ? ASSET.portraits[member.id] : undefined}
-                  selected={agent ? party.has(agent.id) : false}
-                  onToggle={() => agent && interaction.toggleAgent(agent.id)}
-                />
-              );
-            })}
+            {expandCommonShipProfileCards(view.profiles, world.roster).map(({ profile, member, agent }) => (
+              <ProfileCard
+                key={`${profile.id}:${member?.id ?? "unassigned"}`}
+                profile={profile}
+                member={member}
+                agentId={agent?.id ?? null}
+                portrait={isReliefCircuitProgram && member ? ASSET.portraits[member.id] : undefined}
+                selected={agent ? party.has(agent.id) : false}
+                onToggle={() => agent && interaction.toggleAgent(agent.id)}
+              />
+            ))}
           </section>
 
           {isReliefCircuitProgram ? (

@@ -254,6 +254,10 @@ export type MessageId =
   | "presentations.underworld.blurb"
   | "presentations.underworld.controlsHint"
   | "presentations.underworld.purpose"
+  | "presentations.commonShip.label"
+  | "presentations.commonShip.blurb"
+  | "presentations.commonShip.controlsHint"
+  | "presentations.commonShip.purpose"
   | "underworld.metadataRefused"
   | "underworld.invalidHeading"
   | "underworld.invalidBody"
@@ -773,6 +777,10 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.underworld.blurb": "Civic hub and layered Tomb map — ordinary life, descent, breach, return, and exact inherited state",
     "presentations.underworld.controlsHint": "choose a layer, inspect its expedition ledger, then enter the authored encounter",
     "presentations.underworld.purpose": "The Dark Tomb as an inhabited political architecture. Read the hub, Long Alarm, signature budget, layers, and persistent consequences without replacing Arc law.",
+    "presentations.commonShip.label": "Common Ship",
+    "presentations.commonShip.blurb": "Compose watches across bodies, clocks, habitats, and inherited obligations.",
+    "presentations.commonShip.controlsHint": "Select an operation, compose the watch, inspect the Arc verdict, then commit.",
+    "presentations.commonShip.purpose": "Manage the vessel as a shared polity rather than a human-normal vehicle.",
     "underworld.metadataRefused": "DARK TOMB METADATA REFUSED",
     "underworld.invalidHeading": "The cartridge claims a Dark Tomb source it cannot validate.",
     "underworld.invalidBody": "Play law remains the validated Arc. Rodoh will not infer layers, Alarm state, or consequences from malformed source.",
@@ -1249,6 +1257,10 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.underworld.blurb": "市民樞紐與分層墓域地圖 — 日常生活、下降、破口、返回與精確繼承狀態",
     "presentations.underworld.controlsHint": "選擇一層、檢視遠征帳本，再進入作者設定的遭遇",
     "presentations.underworld.purpose": "將黑暗墓域呈現為有人居住的政治建築。讀取樞紐、長期警報、訊號預算、層次與持續後果，不取代 Arc 規則。",
+    "presentations.commonShip.label": "共同船艦",
+    "presentations.commonShip.blurb": "跨越不同身體、時鐘、棲地與繼承義務編組值班。",
+    "presentations.commonShip.controlsHint": "選擇一項行動、編組值班、檢視 Arc 判定，然後提交。",
+    "presentations.commonShip.purpose": "將船艦作為共享政體管理，而非以人類常態為基準的載具。",
     "underworld.metadataRefused": "黑暗墓域中繼資料已拒絕",
     "underworld.invalidHeading": "此卡匣聲稱使用的黑暗墓域來源無法通過驗證。",
     "underworld.invalidBody": "遊玩規則仍以已驗證的 Arc 為準。Rodoh 不會從格式錯誤的來源推測層次、警報狀態或後果。",

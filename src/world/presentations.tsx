@@ -160,11 +160,11 @@ export function getPresentations(): Representation[] {
     },
     {
       id: "common-ship",
-      label: "Common Ship",
-      blurb: "Compose watches across bodies, clocks, habitats, and inherited obligations.",
+      label: t("presentations.commonShip.label"),
+      blurb: t("presentations.commonShip.blurb"),
       Scene: CommonShipScene,
-      controlsHint: "Select an operation, compose the watch, inspect the Arc verdict, then commit.",
-      purpose: "Manage the vessel as a shared polity rather than a human-normal vehicle.",
+      controlsHint: t("presentations.commonShip.controlsHint"),
+      purpose: t("presentations.commonShip.purpose"),
       legend,
     },
     {

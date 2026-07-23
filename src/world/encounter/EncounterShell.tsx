@@ -70,6 +70,12 @@ const GRADE_KEY = {
   failure: "outcome.failed",
 } as const;
 
+export function hasCompositionVerdict(
+  composition: { results: readonly unknown[] } | null | undefined,
+): boolean {
+  return (composition?.results.length ?? 0) > 0;
+}
+
 interface Props {
   world: ArcWorld;
   challengeId: string;
@@ -122,6 +128,7 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
     () => world.evaluateCompositionFor(challengeId, committed),
     [world, challengeId, committed],
   );
+  const showCompositionVerdict = hasCompositionVerdict(composition);
   const tokenBalance = world.resources.tokens;
   const offer = spendOffer(spec?.spendLever ?? null, baseReadiness, tokenBalance);
   const spendValue = offer.available ? Math.min(spend, offer.maxSpend) : 0;
@@ -141,7 +148,7 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
 
   const committedSet = new Set(committed);
   const countOk = committed.length >= spec.minAgents && committed.length <= spec.maxAgents;
-  const compositionOk = composition?.feasible ?? true;
+  const compositionOk = showCompositionVerdict ? (composition?.feasible ?? false) : true;
   const projectedOutcome = readiness?.projectedOutcome ?? "none";
   const projection = PROJECTION[projectedOutcome];
   // The single most useful "why" line for the current squad (missing role, thin
@@ -322,7 +329,7 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
                 {projectionReason && <span className="encs-projection-why">— {projectionReason}</span>}
               </div>
 
-              {composition && (
+              {showCompositionVerdict && composition && (
                 <div className={`encs-composition encs-composition--${composition.feasible ? "pass" : "fail"}`} data-testid="encs-composition" data-feasible={composition.feasible ? "true" : "false"}>
                   <div className="encs-composition-head">
                     <strong>{composition.feasible ? "Common Watch viable" : "Common Watch refused"}</strong>
