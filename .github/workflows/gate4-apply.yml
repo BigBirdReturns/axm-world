@@ -1,8 +1,8 @@
 name: Gate 4 Lamp District application
 
 on:
-  push:
-    branches: [codex/gate4-lamp-district-world]
+  pull_request:
+    types: [ready_for_review, reopened]
     paths:
       - '.github/workflows/gate4-apply.yml'
   workflow_dispatch:
@@ -12,10 +12,11 @@ permissions:
 
 concurrency:
   group: gate4-lamp-district-application
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   apply:
+    if: github.head_ref == 'codex/gate4-lamp-district-world'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
