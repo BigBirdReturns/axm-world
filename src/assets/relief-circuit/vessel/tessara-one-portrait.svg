@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 800" role="img" aria-labelledby="title desc">
+  <title id="title">Tessara One, Manyborn mediator</title>
+  <desc id="desc">A distributed Manyborn person rendered across a human-scale carrier, a microbial cloud, chemical vessels, and topological light, none of which is presented as the original body.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#233426"/><stop offset=".5" stop-color="#101b14"/><stop offset="1" stop-color="#060a07"/></linearGradient>
+    <linearGradient id="carrier" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c8dfbd"/><stop offset=".48" stop-color="#7fa77e"/><stop offset="1" stop-color="#3f654d"/></linearGradient>
+    <linearGradient id="vessel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d7f0d0" stop-opacity=".9"/><stop offset=".5" stop-color="#65a86c" stop-opacity=".68"/><stop offset="1" stop-color="#234b36" stop-opacity=".94"/></linearGradient>
+    <radialGradient id="cloud" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#e5ffd7" stop-opacity=".86"/><stop offset=".34" stop-color="#9bd58e" stop-opacity=".5"/><stop offset="1" stop-color="#65a86c" stop-opacity="0"/></radialGradient>
+    <radialGradient id="signal" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff0b8" stop-opacity=".8"/><stop offset=".42" stop-color="#e6ba63" stop-opacity=".28"/><stop offset="1" stop-color="#e6ba63" stop-opacity="0"/></radialGradient>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="20"/></filter>
+    <filter id="grain" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".78" numOctaves="3" seed="103"/><feComponentTransfer><feFuncA type="table" tableValues="0 .06"/></feComponentTransfer></filter>
+  </defs>
+  <rect width="640" height="800" fill="url(#bg)"/>
+  <path d="M44 700V106h552v594z" fill="#09120c" stroke="#65a86c" stroke-width="10"/>
+  <path d="M74 134h492v516H74z" fill="#0e2015" stroke="#9bd58e" stroke-width="4" opacity=".82"/>
+  <circle cx="320" cy="366" r="250" fill="url(#cloud)" filter="url(#glow)" opacity=".72"/>
+
+  <!-- distributed microbial cloud -->
+  <g fill="#b8e7a8" opacity=".78"><circle cx="150" cy="210" r="12"/><circle cx="214" cy="158" r="9"/><circle cx="286" cy="190" r="15"/><circle cx="362" cy="150" r="11"/><circle cx="438" cy="206" r="14"/><circle cx="492" cy="284" r="8"/><circle cx="464" cy="378" r="13"/><circle cx="508" cy="468" r="10"/><circle cx="418" cy="530" r="14"/><circle cx="330" cy="506" r="9"/><circle cx="246" cy="552" r="13"/><circle cx="176" cy="486" r="10"/><circle cx="126" cy="398" r="14"/><circle cx="170" cy="316" r="8"/></g>
+  <g fill="none" stroke="#d7f0d0" stroke-width="4" opacity=".62"><path d="M150 210l64-52 72 32 76-40 76 56 54 78-28 94 44 90-90 62-88-24-84 46-70-66-50-88 44-82z"/><path d="M214 158l32 394M362 150l56 380M126 398l382 70M170 316l294 62M286 190l44 316"/></g>
+
+  <!-- one human-scale carrier, deliberately incomplete -->
+  <path d="M190 800c10-158 50-274 120-334h20c70 60 110 176 120 334z" fill="url(#carrier)" stroke="#0a140d" stroke-width="12" opacity=".88"/>
+  <path d="M258 300c12-44 34-68 62-68s50 24 62 68l-16 144h-92z" fill="#b7cfaa" stroke="#294536" stroke-width="7"/>
+  <path d="M252 310c16-54 38-82 68-84 30 2 52 30 68 84l-10-90-58-46-58 46z" fill="#416b4d"/>
+  <path d="M278 350c12 7 24 7 36 0M326 350c12 7 24 7 36 0" stroke="#1f3428" stroke-width="5" stroke-linecap="round"/><path d="M298 398c14 7 30 7 44 0" stroke="#708b65" stroke-width="5" stroke-linecap="round"/>
+  <path d="M254 458c44 30 88 30 132 0" fill="none" stroke="#e6ba63" stroke-width="9"/><path d="M270 486l50 44 50-44" fill="#365944" stroke="#d7f0d0" stroke-width="7"/>
+
+  <!-- chemical vessels -->
+  <g transform="translate(82 548)"><path d="M0 0h128v172H0z" fill="#08110b" stroke="#65a86c" stroke-width="7"/><path d="M22 32h84v112H22z" fill="url(#vessel)"/><path d="M30 66c22-14 42 12 64-2M30 104c24-16 46 10 64-4" fill="none" stroke="#e5ffd7" stroke-width="5"/><circle cx="64" cy="88" r="13" fill="#e6ba63" opacity=".78"/></g>
+  <g transform="translate(430 548)"><path d="M0 0h128v172H0z" fill="#08110b" stroke="#65a86c" stroke-width="7"/><path d="M22 32h84v112H22z" fill="url(#vessel)"/><path d="M30 64h64M30 92h64M30 120h64" stroke="#e5ffd7" stroke-width="5" opacity=".72"/><circle cx="64" cy="92" r="13" fill="#6ed3e6" opacity=".74"/></g>
+
+  <!-- topological rendering and refusal marker -->
+  <g transform="translate(320 618)"><circle r="112" fill="url(#signal)" filter="url(#glow)"/><circle r="66" fill="#102018" stroke="#e6ba63" stroke-width="8"/><path d="M0-58L50-29v58L0 58l-50-29v-58zM0-58v116M-50-29l100 58M50-29L-50 29" fill="none" stroke="#b8e7a8" stroke-width="5"/><circle r="11" fill="#fff0b8"/></g>
+  <path d="M92 724c44-28 82-28 118 0M430 724c36-28 74-28 118 0" fill="none" stroke="#9bd58e" stroke-width="9"/>
+  <path d="M112 800h416" stroke="#050906" stroke-width="30"/>
+  <rect width="640" height="800" filter="url(#grain)" opacity=".52"/>
+</svg>
