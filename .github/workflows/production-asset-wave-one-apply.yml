@@ -1,0 +1,59 @@
+name: Production asset wave one application
+
+on:
+  push:
+    branches: [art/production-asset-wave-one]
+    paths:
+      - 'tools/apply-production-asset-wave-one.py'
+      - '.github/workflows/production-asset-wave-one-apply.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: production-asset-wave-one-application
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: art/production-asset-wave-one
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Bind assets into the player
+        run: python tools/apply-production-asset-wave-one.py
+      - run: npm ci
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Focused asset contracts
+        run: npm test -- tests/world/production-asset-wave-one.test.ts
+      - name: Complete World regression suite
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Desktop and mobile asset acceptance
+        env:
+          PW_BASE_URL: http://127.0.0.1:5173
+        run: |
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npx playwright test e2e/production-asset-wave-one.spec.ts --workers=1 --trace=retain-on-failure
+      - name: Keep generated deployment output outside source authority
+        run: git restore --source=HEAD --staged --worktree docs/game || true
+      - name: Publish the verified player binding
+        run: |
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/world/Player.tsx
+          git commit -m "Bind production asset wave one into Rodoh"
+          git push origin HEAD:art/production-asset-wave-one
