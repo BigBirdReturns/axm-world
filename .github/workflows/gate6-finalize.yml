@@ -46,7 +46,22 @@ jobs:
           cp gate6-assets-source/tests/world/relief-circuit-production-assets.test.ts tests/world/
           rm -rf gate6-assets-source
       - name: Apply the World-specific Gate 6 implementation
-        run: python tools/gate6-finalize/apply_gate6.py
+        id: apply
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          python tools/gate6-finalize/apply_gate6.py 2>&1 | tee gate6-apply.log
+      - name: Upload Gate 6 application diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate6-finalize-diagnostics
+          path: gate6-apply.log
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve application failure
+        if: steps.apply.outcome == 'failure'
+        run: exit 1
       - run: npm ci
       - name: Exact Arc provenance
         env:
