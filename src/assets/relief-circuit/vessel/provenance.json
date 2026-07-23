@@ -1,0 +1,50 @@
+{
+  "format": "axm-runtime-asset-provenance/1",
+  "slice": "relief-circuit-vessel/1",
+  "status": "production-asset-pack-prepared",
+  "createdAt": "2026-07-23",
+  "owner": "BigBirdReturns/axm-world",
+  "authorship": "Original vector compositions authored for The Relief Circuit Common Ship runtime. No external art, stock imagery, model weights, or third-party source files were incorporated.",
+  "license": "Project-owned; distributed under the repository license for this runtime use.",
+  "releaseBoundary": "This pack prepares the principal vessel environment, lead aquatic portrait, vessel cross-section, and direct operational symbol atlas. It does not claim Gate 6 is executable, assign Program 005, or bind any presentation before the exact accepted Gate 5 Arc bytes exist.",
+  "assets": [
+    {
+      "path": "src/assets/relief-circuit/vessel/relief-circuit-environment.svg",
+      "role": "runtime vessel environment",
+      "viewBox": "0 0 1600 900",
+      "surface": "Common Ship vessel-management scene",
+      "responsiveIntent": "cover crop preserves the common threshold table and at least four visibly incompatible habitat systems"
+    },
+    {
+      "path": "src/assets/relief-circuit/vessel/nima-quell-portrait.svg",
+      "role": "runtime authored-person portrait",
+      "viewBox": "0 0 640 800",
+      "subject": "Nima Quell, aquatic care worker",
+      "responsiveIntent": "portrait remains legible from mobile profile card to full decision-horizon panel"
+    },
+    {
+      "path": "src/assets/relief-circuit/vessel/relief-circuit-cross-section.svg",
+      "role": "runtime systems cross-section",
+      "viewBox": "0 0 1600 900",
+      "surface": "vessel-management representation",
+      "responsiveIntent": "desktop shows the full systems relation; mobile uses a zoomable or scrollable authored map rather than dropping system labels"
+    },
+    {
+      "path": "src/assets/relief-circuit/vessel/relief-circuit-symbol-atlas.svg",
+      "role": "production symbol atlas",
+      "viewBox": "0 0 1600 900",
+      "surface": "six watch tests, seven ship systems, and eight state tracks",
+      "responsiveIntent": "source atlas may be sliced into exact direct symbols; labels remain documentation rather than runtime law"
+    }
+  ],
+  "validation": {
+    "required": [
+      "every SVG has semantic title and description metadata",
+      "no asset contains embedded raster or remote dependencies",
+      "the cross-section names all seven ship systems",
+      "the symbol atlas covers exactly six watch tests, seven systems, and eight state tracks",
+      "no asset is imported by World before Gate 5 source authority is accepted",
+      "future Gate 6 browser acceptance proves responsive, forced-colors, reduced-motion, and keyboard behavior"
+    ]
+  }
+}
