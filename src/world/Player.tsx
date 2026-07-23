@@ -29,6 +29,7 @@ import { CartridgeEnterTransition } from "./components/CartridgeEnterTransition.
 import { RodohRuntimeMark } from "./brand/RodohRuntimeMark.js";
 import "./themes/karazhan/karazhan.css";
 import "./themes/ilyon/ilyon.css";
+import "./themes/lamp-district/lamp-district.css";
 import { PixelButton, PixelIcon } from "./pixel-ui/index.js";
 import { t, useLocale } from "./i18n/index.js";
 

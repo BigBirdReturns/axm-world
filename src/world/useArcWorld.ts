@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Arc, DramaCard, Organization, RunReport } from "../engine/types.js";
+import type { CartridgeStateValue } from "../engine/abi13.js";
 import { normalizePortableRunExtensions, type JsonValue, type PortableRunExtensions, type PortableRunV3 } from "../engine/portable-run.js";
 import type { ChallengeAssignment, PendingRewardChoice } from "../engine/cycle.js";
 import { runCycle } from "../engine/cycle.js";
@@ -127,6 +128,8 @@ export interface ArcWorld {
     tokenName: string;
     reputationName: string;
   };
+  /** Exact engine-owned creator state. Receivers may display it, never infer or mutate it. */
+  cartridgeState: Readonly<Record<string, CartridgeStateValue>>;
   roster: RosterMember[];
   clearedCount: number;
   totalNodes: number;
@@ -575,6 +578,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     nodes: layout.nodes,
     cycle: scene.cycle,
     resources: scene.resources,
+    cartridgeState: org.cartridgeState ?? {},
     roster,
     clearedCount,
     totalNodes,

@@ -358,7 +358,7 @@ describe("bundled campaign parity", () => {
       };
 
       let crossedCustodyBoundary = false;
-      const maxCycles = cartridge.arc.meta.id === "karazhan" ? 100 : 60;
+      const maxCycles = cartridge.arc.meta.id === "karazhan" || cartridge.arc.meta.id === "lamp-district" ? 100 : 60;
       for (let cycle = 0; cycle < maxCycles; cycle += 1) {
         state = advanceCampaign(state);
         const cleared = clearedChallengeIds(state.org);

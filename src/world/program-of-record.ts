@@ -8,12 +8,12 @@
 // world state, and saved results all resolve to the same anchor.
 
 import { cartridgeIdentity } from "./cartridge-identity.js";
-import { FIRST_CHARTER_CARTRIDGE } from "./cartridge.js";
+import { FIRST_CHARTER_CARTRIDGE, LAMP_DISTRICT_CARTRIDGE } from "./cartridge.js";
 import type { Cartridge } from "./cartridge.js";
 
 /** Runtime surfaces a program may project. Presentation-only labels — the engine
  *  owns outcomes, RODOH owns rendering. */
-export type RuntimeSurface = "board" | "encounter" | "result" | "ledger" | "world" | "aperture";
+export type RuntimeSurface = "board" | "encounter" | "result" | "ledger" | "world" | "aperture" | "underworld";
 export type EntryExperience = "guided-first-contract" | "direct-to-runtime";
 
 export interface ProgramOfRecord {
@@ -78,12 +78,26 @@ export const PROGRAM_001: ProgramOfRecord = defineProgram("program-001", FIRST_C
   ledgerSchemaVersion: 2,
 });
 
+/** Program 004 — The Lamp District. It enters the common Underworld receiver
+ * directly and carries one exact engine-owned Tomb state through every surface. */
+export const PROGRAM_004: ProgramOfRecord = defineProgram("program-004", LAMP_DISTRICT_CARTRIDGE, {
+  runtimeSurfaces: ["underworld", "board", "encounter", "result", "ledger", "world", "aperture"],
+  entryExperience: "direct-to-runtime",
+  saveSchemaVersion: 1,
+  ledgerSchemaVersion: 2,
+  extraAssets: {
+    "lamp-district-environment": "original:lamp-district-environment@1",
+    "anja-vei-portrait": "original:anja-vei-portrait@1",
+    "lamp-district-cross-section": "original:lamp-district-cross-section@1",
+  },
+});
+
 /** Every cartridge RODOH treats as a controlled program of record. Keyed by
  *  authored-arc digest at lookup, never by manifest claim. Today: just Program
  *  001 (The First Charter). A cartridge NOT in this registry is still fully
  *  playable — it simply boots as an ordinary cartridge, not a program of
  *  record. */
-export const PROGRAMS_OF_RECORD: readonly ProgramOfRecord[] = [PROGRAM_001];
+export const PROGRAMS_OF_RECORD: readonly ProgramOfRecord[] = [PROGRAM_001, PROGRAM_004];
 
 /** The program of record a cartridge IS, matched by its COMPUTED authored
  *  identity (cartridgeIdentity) — never a claimed manifest value — or null if

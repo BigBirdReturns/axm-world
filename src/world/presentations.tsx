@@ -8,6 +8,7 @@ import { ContractBoardScene } from "./contract-board/ContractBoard.js";
 import { WorldMapScene } from "./worldmap/WorldMap.js";
 import { HallScene } from "./inhabited/HallScene.js";
 import { RodohAperture } from "./aperture/RodohAperture.js";
+import { UnderworldScene } from "./underworld/UnderworldScene.js";
 import type { CostumeId } from "./presentation-prefs.js";
 import type { ArcInteraction } from "./useArcInteraction.js";
 import type { ArcWorld } from "./useArcWorld.js";
@@ -145,6 +146,15 @@ export function getPresentations(): Representation[] {
       Scene: RodohAperture,
       controlsHint: t("presentations.aperture.controlsHint"),
       purpose: t("presentations.aperture.purpose"),
+      legend,
+    },
+    {
+      id: "underworld",
+      label: t("presentations.underworld.label"),
+      blurb: t("presentations.underworld.blurb"),
+      Scene: UnderworldScene,
+      controlsHint: t("presentations.underworld.controlsHint"),
+      purpose: t("presentations.underworld.purpose"),
       legend,
     },
     {

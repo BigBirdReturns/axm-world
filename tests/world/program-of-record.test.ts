@@ -5,8 +5,8 @@
 // every other surface resolves to.
 
 import { describe, it, expect } from "vitest";
-import { PROGRAM_001, PROGRAMS_OF_RECORD, defineProgram, programForCartridge } from "../../src/world/program-of-record";
-import { FIRST_CHARTER_CARTRIDGE, KARAZHAN_CARTRIDGE } from "../../src/world/cartridge";
+import { PROGRAM_001, PROGRAM_004, PROGRAMS_OF_RECORD, defineProgram, programForCartridge } from "../../src/world/program-of-record";
+import { FIRST_CHARTER_CARTRIDGE, KARAZHAN_CARTRIDGE, LAMP_DISTRICT_CARTRIDGE } from "../../src/world/cartridge";
 import { cartridgeIdentity } from "../../src/world/cartridge-identity";
 import { EXPECTED_BUNDLED_DIGESTS } from "../../src/world/bundled-digests";
 
@@ -67,5 +67,7 @@ describe("programForCartridge — registry lookup by computed identity", () => {
       expect(program.authoredArcDigest).toBe(EXPECTED_BUNDLED_DIGESTS[program.cartridgeId] ?? program.authoredArcDigest);
     }
     expect(PROGRAMS_OF_RECORD).toContain(PROGRAM_001);
+    expect(PROGRAMS_OF_RECORD).toContain(PROGRAM_004);
+    expect(programForCartridge(LAMP_DISTRICT_CARTRIDGE)).toBe(PROGRAM_004);
   });
 });

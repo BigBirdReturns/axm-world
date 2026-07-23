@@ -6,7 +6,7 @@
 import type { Arc, AuthoredOpening, TrustLabel } from "../engine/types.js";
 import { validateArc } from "../engine/schema.js";
 import { canonicalizeArc } from "../engine/cartridge-digest.js";
-import { FIRST_CHARTER, KARAZHAN, KIND_GODS_OF_ILYON } from "../arcs/index.js";
+import { FIRST_CHARTER, KARAZHAN, KIND_GODS_OF_ILYON, LAMP_DISTRICT } from "../arcs/index.js";
 import { isCostumeId, type CostumeId } from "./presentation-prefs.js";
 
 export type TrustLevel = TrustLabel;
@@ -107,6 +107,25 @@ export const KIND_GODS_OF_ILYON_PEOPLE: AuthoredPerson[] = [
   },
 ];
 
+export const LAMP_DISTRICT_PEOPLE: AuthoredPerson[] = [
+  {
+    id: "anja-vei",
+    name: "Anja Vei",
+    role: "Teacher and Interlocutor",
+    bio: "Carries testimony between the school, clinic, surface houses, and offices that prefer each group to remain a separate technical problem.",
+    greeting: "The school lamps are still on. That does not mean the district is safe. It means somebody paid for the light, and the ledger has to say who.",
+    fulfilledLine: "The map now names the people and systems the old classification spent. The next expedition inherits that fact.",
+  },
+  {
+    id: "black-lamp-nine",
+    name: "Black Lamp Nine",
+    role: "Counterborn Guardian",
+    bio: "A damaged guardian carrying partial memory of the Meridian search lattice and an unresolved claim to decide when contact becomes a target signal.",
+    greeting: "I can tell you the listener answered. I cannot tell you the answer means peace.",
+    fulfilledLine: "The Alarm is awake and witnessed. My memory is evidence now, not a private command.",
+  },
+];
+
 export const FIRST_CHARTER_CARTRIDGE: Cartridge = {
   manifest: manifestForArc(FIRST_CHARTER, "bundled", "board"),
   arc: FIRST_CHARTER,
@@ -125,10 +144,17 @@ export const KIND_GODS_OF_ILYON_CARTRIDGE: Cartridge = {
   people: KIND_GODS_OF_ILYON_PEOPLE,
 };
 
+export const LAMP_DISTRICT_CARTRIDGE: Cartridge = {
+  manifest: manifestForArc(LAMP_DISTRICT, "bundled", "underworld"),
+  arc: LAMP_DISTRICT,
+  people: LAMP_DISTRICT_PEOPLE,
+};
+
 export const BUNDLED_CARTRIDGES: Cartridge[] = [
   FIRST_CHARTER_CARTRIDGE,
   KARAZHAN_CARTRIDGE,
   KIND_GODS_OF_ILYON_CARTRIDGE,
+  LAMP_DISTRICT_CARTRIDGE,
 ];
 
 function sameOpening(left: AuthoredOpening, right: AuthoredOpening): boolean {

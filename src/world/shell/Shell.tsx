@@ -1,3 +1,4 @@
+import "../themes/lamp-district/lamp-district.css";
 // The player shell: ONE runtime shell across breakpoints. It owns every engine region
 // (status, view switcher, active representation, roster/assignment, selected contract +
 // readiness, outcome/report, coach) and the chrome (cartridge object, decisions). The
@@ -19,6 +20,7 @@ import { getPresentations, type Representation } from "../presentations.js";
 import { deriveNodeMarkers } from "../worldmap/derive.js";
 import { deriveHallView } from "../inhabited/hall.js";
 import { hallSteward } from "../inhabited/people.js";
+import { programForCartridge } from "../program-of-record.js";
 import { CartridgePortrait } from "../themes/CartridgeMotif.js";
 import { loadCostume, saveCostume, isCostumeId, type CostumeId } from "../presentation-prefs.js";
 import { useIsMobile } from "../use-viewport.js";
@@ -212,8 +214,9 @@ export function Shell({ world, interaction: ix, onExit, initialCostumeId, onCost
   const playerPresentations = useMemo(
     // Planet/world is a player surface, not developer chrome. Keep it reachable
     // everywhere; only the dependency graph is a development-only renderer.
-    () => presentations.filter((presentation) => presentation.id !== "graph"),
-    [presentations],
+    () => presentations.filter((presentation) => presentation.id !== "graph"
+      && (presentation.id !== "underworld" || world.arc.meta.domain === "godscar-dark-tomb")),
+    [presentations, world.arc.meta.domain],
   );
   const active = useMemo(() => presentations.find((p) => p.id === costumeId) ?? presentations[0]!, [presentations, costumeId]);
   const modalOpen = world.pendingDecision !== null || decisionResponse !== null || encounterChallengeId !== null;
@@ -229,7 +232,10 @@ export function Shell({ world, interaction: ix, onExit, initialCostumeId, onCost
     // Seed with the recommended party for THIS challenge explicitly: ix.select's
     // party reseed runs in a later effect, so ix.party can still hold the previous
     // selection's party when EncounterShell snapshots it at mount.
-    setEncounterParty(world.recommendedParty(challengeId));
+    const committedParty = ix.selectedId === challengeId && ix.party.length > 0
+      ? ix.party
+      : world.recommendedParty(challengeId);
+    setEncounterParty(committedParty);
     setEncounterChallengeId(challengeId);
   };
 
@@ -630,7 +636,7 @@ export function Shell({ world, interaction: ix, onExit, initialCostumeId, onCost
           onContinue={() => {
             const closesOpening = decisionResponse.cardId.startsWith("opening:");
             setDecisionResponse(null);
-            if (closesOpening && hallSteward(world.cartridge)) {
+            if (closesOpening && programForCartridge(world.cartridge)?.entryExperience === "guided-first-contract" && hallSteward(world.cartridge)) {
               // This is scene direction, not a preference write: the player's saved
               // representation remains theirs after the one-shot handoff.
               setCostumeId("hall");
