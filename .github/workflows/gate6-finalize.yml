@@ -38,13 +38,32 @@ jobs:
           fetch-depth: 1
       - name: Vendor exact Arc Gate 5
         run: bash scripts/sync-engine.sh 2abf84e4b79c8196bcfa213bca2e920e7d36caa5
-      - name: Absorb the accepted production asset pack
+      - name: Absorb and finish the accepted production asset pack
         run: |
           rm -rf src/assets/relief-circuit
           mkdir -p src/assets
           cp -a gate6-assets-source/src/assets/relief-circuit src/assets/
           cp gate6-assets-source/tests/world/relief-circuit-production-assets.test.ts tests/world/
           rm -rf gate6-assets-source
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/assets/relief-circuit/vessel/relief-circuit-cross-section.svg')
+          source = path.read_text()
+          replacements = {
+              'shell: transit body': 'shell: TRANSIT BODY',
+              'colored cells: habitat bands': 'colored cells: HABITAT BANDS',
+              'gold locks: common thresholds': 'gold locks: COMMON THRESHOLDS',
+              'cyan web: translation mesh': 'cyan web: TRANSLATION MESH',
+              'central wheel: watch lattice': 'central wheel: WATCH LATTICE',
+              'top store: continuity commons': 'top store: CONTINUITY COMMONS',
+              'lower seal: sovereign core': 'lower seal: COMMON CHARTER',
+          }
+          for old, new in replacements.items():
+              if old not in source:
+                  raise SystemExit(f'Missing Relief Circuit cross-section label: {old}')
+              source = source.replace(old, new, 1)
+          path.write_text(source)
+          PY
       - name: Apply the World-specific Gate 6 implementation
         id: apply
         continue-on-error: true
