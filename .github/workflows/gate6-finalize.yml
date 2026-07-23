@@ -1,0 +1,96 @@
+name: Gate 6 Relief Circuit finalization
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - '.github/workflows/gate6-finalize.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gate6-relief-circuit-finalization
+  cancel-in-progress: true
+
+jobs:
+  finalize:
+    if: github.head_ref == 'codex/gate6-common-ship-prep' || github.ref == 'refs/heads/codex/gate6-common-ship-prep'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Check out exact Gate 6 candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Check out accepted Relief Circuit assets
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-world
+          ref: 3b6e369de3127b746115d16b6a43c4c8492ca40c
+          path: gate6-assets-source
+          fetch-depth: 1
+      - name: Vendor exact Arc Gate 5
+        run: scripts/sync-engine.sh 2abf84e4b79c8196bcfa213bca2e920e7d36caa5
+      - name: Absorb the accepted production asset pack
+        run: |
+          rm -rf src/assets/relief-circuit
+          mkdir -p src/assets
+          cp -a gate6-assets-source/src/assets/relief-circuit src/assets/
+          cp gate6-assets-source/tests/world/relief-circuit-production-assets.test.ts tests/world/
+          rm -rf gate6-assets-source
+      - name: Apply the World-specific Gate 6 implementation
+        run: python tools/gate6-finalize/apply_gate6.py
+      - run: npm ci
+      - name: Exact Arc provenance
+        env:
+          ENGINE_DRIFT_STRICT: '1'
+        run: npm run engine:check
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Focused Gate 6 contracts
+        run: >-
+          npm test --
+          tests/world/common-ship-receiver-prep.test.ts
+          tests/world/common-ship-preparation-cycle.test.ts
+          tests/world/relief-circuit-production-assets.test.ts
+          tests/world/cartridge-parity.test.ts
+          tests/world/program-of-record.test.ts
+          tests/world/bundled-campaign-parity.test.ts
+          tests/engine/connected-operation-fixture.test.ts
+      - name: Complete World regression suite
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Complete desktop and mobile Gate 6 browser custody
+        env:
+          PW_CHROMIUM_PATH: ${{ github.workspace }}/node_modules/.cache/ms-playwright/chromium/chrome-linux/chrome
+        run: npm run test:gate6
+      - name: Upload Gate 6 acceptance receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate6-relief-circuit-receipts
+          path: test-results/gate6-browser-receipt
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Keep generated deployment output outside source authority
+        run: git restore --source=HEAD --staged --worktree docs/game || true
+      - name: Publish the verified Gate 6 source candidate
+        run: |
+          rm -rf tools/gate6-finalize tools/gate6-publish-payload
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git reset -- .github/workflows
+          git commit -m "Ship Gate 6 Relief Circuit Common Ship receiver"
+          git push origin HEAD:codex/gate6-common-ship-prep
