@@ -1,0 +1,13 @@
+{
+  "format": "rodoh-gate6-compact-carrier/1",
+  "arcCommit": "2abf84e4b79c8196bcfa213bca2e920e7d36caa5",
+  "assetCommit": "3b6e369de3127b746115d16b6a43c4c8492ca40c",
+  "parts": [
+    "00.txt",
+    "01.txt"
+  ],
+  "encodedChars": 39344,
+  "encodedSha256": "6b6cee701d1e3b4689b44a0594d050ab0ccbc43d68605227f090793672714104",
+  "patchBytes": 108167,
+  "patchSha256": "209f84f39658119a2af128964aaa1fa561f3064ea7a2a9404836e2d6052277aa"
+}
