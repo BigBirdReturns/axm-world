@@ -1,0 +1,98 @@
+/* Waking Tower production Hall pack. These selectors bind the authored vector
+   environment, Seren Vale portrait, and framing overlay into the existing Hall
+   without changing Arc law, navigation, or imported-cartridge presentation. */
+
+:root[data-cartridge="karazhan"] .axm-hall,
+:root[data-cartridge="karazhan"] [data-testid="hall-scene"] {
+  position: relative;
+  isolation: isolate;
+  background-image:
+    linear-gradient(180deg, rgba(5, 3, 8, .12), rgba(5, 3, 8, .58)),
+    url("../../../assets/karazhan/hall/waking-tower-environment.svg") !important;
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+  background-size: cover !important;
+}
+
+:root[data-cartridge="karazhan"] .axm-hall > *,
+:root[data-cartridge="karazhan"] [data-testid="hall-scene"] > * {
+  position: relative;
+  z-index: 2;
+}
+
+:root[data-cartridge="karazhan"] .axm-hall::after,
+:root[data-cartridge="karazhan"] [data-testid="hall-scene"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: url("../../../assets/karazhan/hall/waking-tower-foreground.svg") center/cover no-repeat;
+  opacity: .94;
+}
+
+:root[data-cartridge="karazhan"] .axm-hall .axm-steward {
+  background: rgba(10, 7, 15, .91);
+  border-color: rgba(138, 121, 184, .68);
+  backdrop-filter: blur(4px);
+}
+
+:root[data-cartridge="karazhan"] .axm-hall .axm-steward__portrait {
+  width: 118px;
+  height: 148px;
+  flex-basis: 118px;
+  overflow: hidden;
+  color: transparent;
+  background:
+    linear-gradient(rgba(0, 0, 0, 0), rgba(5, 3, 8, .08)),
+    url("../../../assets/karazhan/hall/seren-vale-portrait.svg") center 16%/cover no-repeat !important;
+  border: 4px double #8a79b8;
+  box-shadow: 6px 7px 0 rgba(0, 0, 0, .42), inset 0 0 0 1px rgba(111, 174, 219, .46);
+}
+
+:root[data-cartridge="karazhan"] .axm-hall .axm-steward__portrait > * {
+  opacity: 0;
+}
+
+@media (max-width: 780px) {
+  :root[data-cartridge="karazhan"] .axm-hall,
+  :root[data-cartridge="karazhan"] [data-testid="hall-scene"] {
+    background-position: 50% center !important;
+  }
+
+  :root[data-cartridge="karazhan"] .axm-hall::after,
+  :root[data-cartridge="karazhan"] [data-testid="hall-scene"]::after {
+    background-position: 50% center;
+    opacity: .7;
+  }
+
+  :root[data-cartridge="karazhan"] .axm-hall .axm-steward__portrait {
+    width: 94px;
+    height: 118px;
+    flex-basis: 94px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-cartridge="karazhan"] .axm-hall::after,
+  :root[data-cartridge="karazhan"] [data-testid="hall-scene"]::after {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  :root[data-cartridge="karazhan"] .axm-hall,
+  :root[data-cartridge="karazhan"] [data-testid="hall-scene"] {
+    background-image: none !important;
+  }
+
+  :root[data-cartridge="karazhan"] .axm-hall::after,
+  :root[data-cartridge="karazhan"] [data-testid="hall-scene"]::after {
+    display: none;
+  }
+
+  :root[data-cartridge="karazhan"] .axm-hall .axm-steward__portrait {
+    background-image: none !important;
+    border-color: CanvasText;
+  }
+}

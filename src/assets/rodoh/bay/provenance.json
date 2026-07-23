@@ -1,0 +1,36 @@
+{
+  "format": "axm-runtime-asset-provenance/1",
+  "slice": "rodoh-cartridge-bay/1",
+  "status": "production-system-asset-pack",
+  "createdAt": "2026-07-23",
+  "owner": "BigBirdReturns/axm-world",
+  "authorship": "Original vector compositions authored for the Rodoh local-first cartridge player. No external art, stock imagery, model weights, or third-party source files were incorporated.",
+  "license": "Project-owned; distributed under the repository license for this runtime use.",
+  "releaseBoundary": "This pack completes the cartridge-bay environment and foreground framing for the local-first player shell. It does not replace cartridge-owned environments or imply that Rodoh owns the identity of imported worlds.",
+  "assets": [
+    {
+      "path": "src/assets/rodoh/bay/rodoh-bay-environment.svg",
+      "role": "runtime system environment",
+      "viewBox": "0 0 1600 900",
+      "surface": "Rodoh cartridge bay",
+      "responsiveIntent": "cover crop preserves the central loading dais and leaves the cartridge list readable"
+    },
+    {
+      "path": "src/assets/rodoh/bay/rodoh-bay-foreground.svg",
+      "role": "runtime system framing overlay",
+      "viewBox": "0 0 1600 900",
+      "surface": "Rodoh cartridge bay",
+      "responsiveIntent": "vault jambs and status lamps may crop while every import, enter, resume, and remove control remains unobstructed"
+    }
+  ],
+  "validation": {
+    "required": [
+      "Vite production build resolves both system asset URLs",
+      "desktop Chromium renders a readable five-cartridge shelf",
+      "mobile Chromium preserves scrolling and minimum touch targets",
+      "keyboard focus remains visible above decorative framing",
+      "forced-colors removes decorative image dependence",
+      "neutral imported cartridges retain their own visual identity after entry"
+    ]
+  }
+}

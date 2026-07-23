@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 800" role="img" aria-labelledby="title desc">
+  <title id="title">Aster Neral, astronomer of Ilyon</title>
+  <desc id="desc">An Ilyon astronomer in deep teal and nacre robes, holding a brass lens before an ocean observatory and the dead neighboring star.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#144555"/><stop offset=".52" stop-color="#0b2d3b"/><stop offset="1" stop-color="#031019"/></linearGradient>
+    <linearGradient id="robe" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f7f80"/><stop offset=".48" stop-color="#174956"/><stop offset="1" stop-color="#092633"/></linearGradient>
+    <linearGradient id="nacre" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff5d7"/><stop offset=".36" stop-color="#d2e8df"/><stop offset=".68" stop-color="#d9c7a8"/><stop offset="1" stop-color="#78a7aa"/></linearGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e5bc97"/><stop offset=".55" stop-color="#c98f70"/><stop offset="1" stop-color="#8b584f"/></linearGradient>
+    <radialGradient id="lens" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#eafff9" stop-opacity=".96"/><stop offset=".28" stop-color="#7dd3cd" stop-opacity=".72"/><stop offset="1" stop-color="#48b7b0" stop-opacity="0"/></radialGradient>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="18"/></filter>
+    <filter id="grain" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".73" numOctaves="3" seed="23"/><feComponentTransfer><feFuncA type="table" tableValues="0 .07"/></feComponentTransfer></filter>
+  </defs>
+  <rect width="640" height="800" fill="url(#bg)"/>
+  <path d="M54 610V198Q54 62 190 38h260q136 24 136 160v412z" fill="#071827" stroke="#48b7b0" stroke-width="10"/>
+  <circle cx="432" cy="164" r="84" fill="#d6bd82" opacity=".88"/><circle cx="432" cy="164" r="112" fill="#d68165" opacity=".13" filter="url(#glow)"/>
+  <path d="M92 454c120-54 228-28 320-54 92-26 146-72 174-92v300H54z" fill="#0d6d78" opacity=".46"/><path d="M96 492c122-38 236 16 346-18 110-34 132-62 144-70" fill="none" stroke="#7dd3cd" stroke-width="5" opacity=".64"/>
+  <path d="M112 800c20-182 74-318 170-382h76c96 64 150 200 170 382z" fill="url(#robe)" stroke="#06131d" stroke-width="12"/>
+  <path d="M236 236c18-48 50-72 84-72s66 24 84 72l-22 172H258z" fill="url(#skin)" stroke="#2b3030" stroke-width="8"/>
+  <path d="M232 246c20-42 50-70 88-82 38 12 68 40 88 82l-10-94-78-42-78 42z" fill="#153847"/><path d="M248 214c34-44 112-44 144 0" fill="none" stroke="#c9a45d" stroke-width="9"/>
+  <path d="M268 294c16 7 32 7 48 0M328 294c16 7 32 7 48 0" stroke="#2c2a28" stroke-width="6" stroke-linecap="round"/><path d="M292 350c20 10 40 10 58 0" stroke="#9e6253" stroke-width="6" stroke-linecap="round"/><path d="M320 294v34" stroke="#a66f5d" stroke-width="5"/>
+  <path d="M232 426c58 38 118 48 176 0" fill="none" stroke="#d68165" stroke-width="11"/><path d="M248 458l72 62 72-62" fill="#0d3542" stroke="url(#nacre)" stroke-width="8"/>
+  <path d="M320 520v220" stroke="#c9a45d" stroke-width="6"/><path d="M206 560c58 12 94 4 114-26M434 560c-58 12-94 4-114-26" fill="none" stroke="#48b7b0" stroke-width="6"/>
+  <g transform="translate(320 636)"><circle r="112" fill="url(#lens)" filter="url(#glow)"/><circle r="64" fill="#0c5865" stroke="#c9a45d" stroke-width="9"/><circle r="42" fill="#b9f0e7" opacity=".86"/><path d="M0-64V64M-64 0H64M-45-45L45 45M45-45L-45 45" stroke="#d68165" stroke-width="5"/><circle r="10" fill="#fff5d7"/></g>
+  <path d="M164 720c46-62 90-82 126-56M476 720c-46-62-90-82-126-56" fill="none" stroke="#c98f70" stroke-width="26" stroke-linecap="round"/>
+  <path d="M146 800h348" stroke="#031019" stroke-width="28"/><rect width="640" height="800" filter="url(#grain)" opacity=".5"/>
+</svg>

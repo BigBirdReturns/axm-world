@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">The Waking Tower survey hall</title>
+  <desc id="desc">A violet-night tower hall with blue survey lanterns, a moonlit orrery window, spiral galleries, chains, and a long raid table.</desc>
+  <defs>
+    <linearGradient id="nightWall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#261c38"/>
+      <stop offset=".52" stop-color="#151020"/>
+      <stop offset="1" stop-color="#08050d"/>
+    </linearGradient>
+    <linearGradient id="stone" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#635977"/>
+      <stop offset=".46" stop-color="#3b3348"/>
+      <stop offset="1" stop-color="#17131d"/>
+    </linearGradient>
+    <linearGradient id="table" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5b3d2b"/>
+      <stop offset=".52" stop-color="#342219"/>
+      <stop offset="1" stop-color="#17100d"/>
+    </linearGradient>
+    <radialGradient id="moon" cx="38%" cy="32%" r="74%">
+      <stop offset="0" stop-color="#f3f2ff"/>
+      <stop offset=".58" stop-color="#b9cce2"/>
+      <stop offset="1" stop-color="#64758e"/>
+    </radialGradient>
+    <radialGradient id="lantern" cx="50%" cy="42%" r="68%">
+      <stop offset="0" stop-color="#d9f1ff" stop-opacity=".98"/>
+      <stop offset=".2" stop-color="#83c8ee" stop-opacity=".72"/>
+      <stop offset=".58" stop-color="#4f7d9e" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#4f7d9e" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rift" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#b9add9" stop-opacity=".64"/>
+      <stop offset=".48" stop-color="#574a7a" stop-opacity=".24"/>
+      <stop offset="1" stop-color="#574a7a" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="masonry" width="110" height="54" patternUnits="userSpaceOnUse">
+      <rect width="110" height="54" fill="#201827"/>
+      <path d="M0 1H110M0 53H110M55 1V27M0 27H110M0 27V53M110 27V53" stroke="#43384f" stroke-width="3" opacity=".7"/>
+      <path d="M8 9h35M65 37h35" stroke="#746f7c" stroke-width="2" opacity=".2"/>
+    </pattern>
+    <filter id="softGlow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="22"/></filter>
+    <filter id="grain" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency=".72" numOctaves="3" seed="31" result="noise"/>
+      <feColorMatrix in="noise" type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="table" tableValues="0 .07"/></feComponentTransfer>
+    </filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#nightWall)"/>
+  <rect x="0" y="110" width="1600" height="560" fill="url(#masonry)" opacity=".8"/>
+  <ellipse cx="800" cy="410" rx="650" ry="390" fill="url(#rift)" opacity=".32"/>
+  <path d="M70 660V220Q70 82 210 30M1530 660V220Q1530 82 1390 30" fill="none" stroke="#15101c" stroke-width="72"/>
+  <path d="M84 660V228Q84 110 216 48M1516 660V228Q1516 110 1384 48" fill="none" stroke="#574a7a" stroke-width="9"/>
+  <path d="M150 250H560M1040 250H1450M120 476H510M1090 476H1480" stroke="#756985" stroke-width="18" opacity=".75"/>
+  <path d="M150 256H560M1040 256H1450M120 482H510M1090 482H1480" stroke="#4f7d9e" stroke-width="3" opacity=".7"/>
+  <g stroke="#282030" stroke-width="16"><path d="M190 250v390M310 250v390M430 250v390M1170 250v390M1290 250v390M1410 250v390"/></g>
+  <g transform="translate(590 58)">
+    <path d="M0 506V168C0 73 77 0 172 0h76c95 0 172 73 172 168v338z" fill="#05070c" stroke="#8a79b8" stroke-width="10"/>
+    <path d="M26 478V174C26 93 91 28 172 28h76c81 0 146 65 146 146v304z" fill="#111a27"/>
+    <circle cx="210" cy="198" r="116" fill="url(#moon)"/>
+    <circle cx="210" cy="198" r="140" fill="#6faedb" opacity=".16" filter="url(#softGlow)"/>
+    <g fill="none" stroke-linecap="round">
+      <ellipse cx="210" cy="198" rx="166" ry="62" stroke="#d19a3d" stroke-width="5" transform="rotate(-14 210 198)"/>
+      <ellipse cx="210" cy="198" rx="150" ry="46" stroke="#6faedb" stroke-width="4" transform="rotate(48 210 198)"/>
+      <circle cx="210" cy="198" r="48" stroke="#574a7a" stroke-width="7"/>
+      <path d="M210 38v322M48 198h324" stroke="#8a79b8" stroke-width="4" opacity=".72"/>
+    </g>
+    <g fill="#d19a3d" stroke="#17131d" stroke-width="4"><circle cx="64" cy="235" r="13"/><circle cx="332" cy="145" r="12"/><circle cx="252" cy="58" r="10"/></g>
+    <path d="M42 430h336M210 368v96" stroke="#8a79b8" stroke-width="8"/>
+    <path d="M160 432h100l22 46H138z" fill="#2a2034" stroke="#4f7d9e" stroke-width="5"/>
+  </g>
+  <g fill="none" stroke-linecap="round">
+    <path d="M90 610c170-20 260-80 300-172 36-84 28-172-26-264" stroke="#0b0810" stroke-width="34"/>
+    <path d="M1510 610c-170-20-260-80-300-172-36-84-28-172 26-264" stroke="#0b0810" stroke-width="34"/>
+    <path d="M92 608c170-20 258-80 298-170 36-84 28-170-26-262" stroke="#746f7c" stroke-width="7"/>
+    <path d="M1508 608c-170-20-258-80-298-170-36-84-28-170 26-262" stroke="#746f7c" stroke-width="7"/>
+  </g>
+  <g>
+    <path d="M190 122h190v258l-95-54-95 54zM1220 122h190v258l-95-54-95 54z" fill="#342549" stroke="#8a79b8" stroke-width="6"/>
+    <path d="M285 154v126M1315 154v126" stroke="#d19a3d" stroke-width="7"/>
+    <g fill="none" stroke="#6faedb" stroke-width="5"><circle cx="285" cy="226" r="50"/><path d="M245 226h80M285 186v80"/><circle cx="1315" cy="226" r="50"/><path d="M1275 226h80M1315 186v80"/></g>
+  </g>
+  <g>
+    <ellipse cx="258" cy="494" rx="132" ry="112" fill="url(#lantern)"/>
+    <ellipse cx="1342" cy="494" rx="132" ry="112" fill="url(#lantern)"/>
+    <path d="M230 476h56l-10 62h-36zM1314 476h56l-10 62h-36z" fill="#8cc9ea" stroke="#221a2c" stroke-width="7"/>
+    <path d="M258 386v90M1342 386v90" stroke="#746f7c" stroke-width="8"/>
+  </g>
+  <path d="M0 646h1600v254H0z" fill="url(#stone)"/>
+  <path d="M0 650h1600" stroke="#4f7d9e" stroke-width="5" opacity=".8"/>
+  <path d="M120 710h1360M170 788h1260" stroke="#7d748a" stroke-width="3" opacity=".32"/>
+  <ellipse cx="800" cy="782" rx="500" ry="82" fill="#040207" opacity=".6"/>
+  <path d="M380 650h840l94 126H286z" fill="url(#table)" stroke="#8a79b8" stroke-width="9"/>
+  <path d="M432 682h736l42 56H390z" fill="#1b1825" stroke="#4f7d9e" stroke-width="4"/>
+  <g fill="none" stroke-width="4"><circle cx="800" cy="709" r="30" stroke="#d19a3d"/><path d="M755 709h90M800 664v90" stroke="#6faedb"/><path d="M520 700h120M960 700h120" stroke="#8a79b8"/></g>
+  <path d="M410 776l-36 124M1190 776l36 124" stroke="#15100e" stroke-width="28"/>
+  <rect width="1600" height="900" filter="url(#grain)" opacity=".55"/>
+</svg>

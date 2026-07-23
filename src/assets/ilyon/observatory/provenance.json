@@ -1,0 +1,42 @@
+{
+  "format": "axm-runtime-asset-provenance/1",
+  "slice": "ilyon-observatory/1",
+  "status": "production-asset-pack",
+  "createdAt": "2026-07-23",
+  "owner": "BigBirdReturns/axm-world",
+  "authorship": "Original vector compositions authored for The Kind Gods of Ilyon runtime. No external art, stock imagery, model weights, or third-party source files were incorporated.",
+  "license": "Project-owned; distributed under the repository license for this runtime use.",
+  "releaseBoundary": "This pack completes the Confluence Observatory environment, Aster Neral lead portrait, and observatory framing layer. Existing cartridge-owned pixel cast and motif assets remain authoritative for the wider campaign.",
+  "assets": [
+    {
+      "path": "src/assets/ilyon/observatory/ilyon-observatory-environment.svg",
+      "role": "runtime environment",
+      "viewBox": "0 0 1600 900",
+      "surface": "Ilyon Hall and civic observatory",
+      "responsiveIntent": "cover crop preserves the central tide orrery, ocean horizon, and public council table"
+    },
+    {
+      "path": "src/assets/ilyon/observatory/aster-neral-portrait.svg",
+      "role": "runtime authored-person portrait",
+      "viewBox": "0 0 640 800",
+      "subject": "Aster Neral, astronomer of Ilyon",
+      "responsiveIntent": "portrait crop remains legible in the Godscar cast ledger on desktop and mobile"
+    },
+    {
+      "path": "src/assets/ilyon/observatory/ilyon-observatory-foreground.svg",
+      "role": "runtime framing overlay",
+      "viewBox": "0 0 1600 900",
+      "surface": "Ilyon Hall and civic observatory",
+      "responsiveIntent": "nacre arches, coral, and tideglass may crop while council and navigation controls remain unobstructed"
+    }
+  ],
+  "validation": {
+    "required": [
+      "Vite production build resolves every asset URL",
+      "desktop Chromium renders the observatory and Aster Neral portrait",
+      "mobile Chromium preserves Godscar evidence and navigation controls",
+      "forced-colors removes decorative image dependence",
+      "existing Ilyon campaign, evidence, and custody receipts remain green"
+    ]
+  }
+}
