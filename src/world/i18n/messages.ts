@@ -254,6 +254,95 @@ export type MessageId =
   | "presentations.underworld.blurb"
   | "presentations.underworld.controlsHint"
   | "presentations.underworld.purpose"
+  | "presentations.commonShip.label"
+  | "presentations.commonShip.blurb"
+  | "presentations.commonShip.controlsHint"
+  | "presentations.commonShip.purpose"
+  | "commonShip.variable"
+  | "commonShip.unassigned"
+  | "commonShip.profile.passage"
+  | "commonShip.profile.gravity"
+  | "commonShip.profile.life"
+  | "commonShip.decisionHorizon"
+  | "commonShip.closesWhen"
+  | "commonShip.physical"
+  | "commonShip.informational"
+  | "commonShip.institutional"
+  | "commonShip.manufactured"
+  | "commonShip.compositionReceipt"
+  | "commonShip.absentActor"
+  | "commonShip.excludedBody"
+  | "commonShip.dependency"
+  | "commonShip.allocation.heading"
+  | "commonShip.allocation.habitatBands"
+  | "commonShip.allocation.translationPaths"
+  | "commonShip.allocation.directInterfaces"
+  | "commonShip.allocation.standby"
+  | "commonShip.allocation.stores"
+  | "commonShip.allocation.emergencyAuthority"
+  | "commonShip.handoff.heading"
+  | "commonShip.handoff.dissent"
+  | "commonShip.handoff.injury"
+  | "commonShip.handoff.readinessDebt"
+  | "commonShip.handoff.promises"
+  | "commonShip.handoff.missingPersons"
+  | "commonShip.handoff.uncertainty"
+  | "commonShip.precedent.heading"
+  | "commonShip.precedent.newlyPossible"
+  | "commonShip.precedent.newlyImpossible"
+  | "commonShip.precedent.newlyGovernable"
+  | "commonShip.precedent.inherited"
+  | "commonShip.noSource"
+  | "commonShip.sourceRefused"
+  | "commonShip.program.firstParty"
+  | "commonShip.program.holderOwned"
+  | "commonShip.progressAria"
+  | "commonShip.operationsRecorded"
+  | "commonShip.state.habitatIntegrity"
+  | "commonShip.state.temporalCoherence"
+  | "commonShip.state.translationTrust"
+  | "commonShip.state.rosterResilience"
+  | "commonShip.state.storesAndCare"
+  | "commonShip.state.continuity"
+  | "commonShip.state.visibility"
+  | "commonShip.state.compatibilityDebt"
+  | "commonShip.operationsAria"
+  | "commonShip.watchSequence"
+  | "commonShip.system.transitBody"
+  | "commonShip.system.habitatBands"
+  | "commonShip.system.commonThresholds"
+  | "commonShip.system.translationMesh"
+  | "commonShip.system.watchLattice"
+  | "commonShip.system.continuityCommons"
+  | "commonShip.system.sovereignCore"
+  | "commonShip.verdict.heading"
+  | "commonShip.verdict.viable"
+  | "commonShip.verdict.refused"
+  | "commonShip.selectedCount"
+  | "commonShip.dependencies"
+  | "commonShip.singlePoints"
+  | "commonShip.engineProjection"
+  | "commonShip.currentCycle"
+  | "commonShip.readinessClear"
+  | "commonShip.prepareCycle"
+  | "commonShip.commitWatch"
+  | "commonShip.profilesAria"
+  | "commonShip.vesselAnatomy"
+  | "commonShip.onePolity"
+  | "commonShip.crossSectionAria"
+  | "commonShip.crossSectionAlt"
+  | "commonShip.atlasSummary"
+  | "commonShip.atlasAria"
+  | "commonShip.atlasAlt"
+  | "commonShip.creatorAnatomy"
+  | "commonShip.currentUse"
+  | "commonShip.revisionAuthority"
+  | "commonShip.connection.selectedWatch"
+  | "commonShip.connection.people"
+  | "commonShip.connection.stores"
+  | "commonShip.connection.exposure"
+  | "commonShip.connection.outbound"
+  | "commonShip.connection.returned"
   | "underworld.metadataRefused"
   | "underworld.invalidHeading"
   | "underworld.invalidBody"
@@ -773,6 +862,95 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.underworld.blurb": "Civic hub and layered Tomb map — ordinary life, descent, breach, return, and exact inherited state",
     "presentations.underworld.controlsHint": "choose a layer, inspect its expedition ledger, then enter the authored encounter",
     "presentations.underworld.purpose": "The Dark Tomb as an inhabited political architecture. Read the hub, Long Alarm, signature budget, layers, and persistent consequences without replacing Arc law.",
+    "presentations.commonShip.label": "Common Ship",
+    "presentations.commonShip.blurb": "Compose watches across bodies, clocks, habitats, and inherited obligations.",
+    "presentations.commonShip.controlsHint": "Select an operation, compose the watch, inspect the Arc verdict, then commit.",
+    "presentations.commonShip.purpose": "Manage the vessel as a shared polity rather than a human-normal vehicle.",
+    "commonShip.variable": "variable",
+    "commonShip.unassigned": "unassigned",
+    "commonShip.profile.passage": "Passage",
+    "commonShip.profile.gravity": "Gravity",
+    "commonShip.profile.life": "Life",
+    "commonShip.decisionHorizon": "Decision horizon",
+    "commonShip.closesWhen": "Closes when",
+    "commonShip.physical": "Physical",
+    "commonShip.informational": "Informational",
+    "commonShip.institutional": "Institutional",
+    "commonShip.manufactured": "Manufactured",
+    "commonShip.compositionReceipt": "Composition receipt",
+    "commonShip.absentActor": "Absent actor",
+    "commonShip.excludedBody": "Excluded body",
+    "commonShip.dependency": "Dependency",
+    "commonShip.allocation.heading": "Common systems allocation",
+    "commonShip.allocation.habitatBands": "Habitat bands",
+    "commonShip.allocation.translationPaths": "Translation paths",
+    "commonShip.allocation.directInterfaces": "Direct interfaces",
+    "commonShip.allocation.standby": "Standby",
+    "commonShip.allocation.stores": "Stores",
+    "commonShip.allocation.emergencyAuthority": "Emergency authority",
+    "commonShip.handoff.heading": "Handoff",
+    "commonShip.handoff.dissent": "Dissent",
+    "commonShip.handoff.injury": "Injury",
+    "commonShip.handoff.readinessDebt": "Readiness debt",
+    "commonShip.handoff.promises": "Promises",
+    "commonShip.handoff.missingPersons": "Missing persons",
+    "commonShip.handoff.uncertainty": "Uncertainty",
+    "commonShip.precedent.heading": "Precedent",
+    "commonShip.precedent.newlyPossible": "Newly possible",
+    "commonShip.precedent.newlyImpossible": "Newly impossible",
+    "commonShip.precedent.newlyGovernable": "Newly governable",
+    "commonShip.precedent.inherited": "Inherited",
+    "commonShip.noSource": "This cartridge does not carry a Common Ship source plane.",
+    "commonShip.sourceRefused": "Common Ship source refused",
+    "commonShip.program.firstParty": "PROGRAM 005 · COMMON SHIP",
+    "commonShip.program.holderOwned": "COMMON SHIP · HOLDER-OWNED CARTRIDGE",
+    "commonShip.progressAria": "Campaign progress",
+    "commonShip.operationsRecorded": "operations recorded",
+    "commonShip.state.habitatIntegrity": "Habitat Integrity",
+    "commonShip.state.temporalCoherence": "Temporal Coherence",
+    "commonShip.state.translationTrust": "Translation Trust",
+    "commonShip.state.rosterResilience": "Roster Resilience",
+    "commonShip.state.storesAndCare": "Stores and Care",
+    "commonShip.state.continuity": "Continuity",
+    "commonShip.state.visibility": "Visibility",
+    "commonShip.state.compatibilityDebt": "Compatibility Debt",
+    "commonShip.operationsAria": "Common Ship operations",
+    "commonShip.watchSequence": "Watch sequence",
+    "commonShip.system.transitBody": "transit body",
+    "commonShip.system.habitatBands": "habitat bands",
+    "commonShip.system.commonThresholds": "common thresholds",
+    "commonShip.system.translationMesh": "translation mesh",
+    "commonShip.system.watchLattice": "watch lattice",
+    "commonShip.system.continuityCommons": "continuity commons",
+    "commonShip.system.sovereignCore": "sovereign core",
+    "commonShip.verdict.heading": "Arc-owned Common Watch verdict",
+    "commonShip.verdict.viable": "Viable watch",
+    "commonShip.verdict.refused": "Watch refused",
+    "commonShip.selectedCount": (params) => `${num(params, "n")}/${num(params, "max")} selected`,
+    "commonShip.dependencies": "Dependencies:",
+    "commonShip.singlePoints": "Single points:",
+    "commonShip.engineProjection": "Engine projection",
+    "commonShip.currentCycle": "Current cycle",
+    "commonShip.readinessClear": "The selected watch clears the current reliability projection.",
+    "commonShip.prepareCycle": "Run one preparation cycle",
+    "commonShip.commitWatch": "Commit this watch",
+    "commonShip.profilesAria": "Embodiment profiles",
+    "commonShip.vesselAnatomy": "Vessel anatomy",
+    "commonShip.onePolity": "One polity across incompatible environments",
+    "commonShip.crossSectionAria": "Scrollable Relief Circuit vessel cross-section",
+    "commonShip.crossSectionAlt": "Relief Circuit cross-section with seven operating systems and route to the Lamp District",
+    "commonShip.atlasSummary": "Operational symbol atlas · six watch tests · seven systems · eight state tracks",
+    "commonShip.atlasAria": "Scrollable Relief Circuit operational symbol atlas",
+    "commonShip.atlasAlt": "Operational symbols for Common Watch tests, vessel systems, and ship-state tracks",
+    "commonShip.creatorAnatomy": "Creator-authored vessel anatomy",
+    "commonShip.currentUse": "Current use",
+    "commonShip.revisionAuthority": "Revision authority",
+    "commonShip.connection.selectedWatch": "Selected watch",
+    "commonShip.connection.people": "People",
+    "commonShip.connection.stores": "Stores",
+    "commonShip.connection.exposure": "Exposure",
+    "commonShip.connection.outbound": "outbound",
+    "commonShip.connection.returned": "returned",
     "underworld.metadataRefused": "DARK TOMB METADATA REFUSED",
     "underworld.invalidHeading": "The cartridge claims a Dark Tomb source it cannot validate.",
     "underworld.invalidBody": "Play law remains the validated Arc. Rodoh will not infer layers, Alarm state, or consequences from malformed source.",
@@ -1249,6 +1427,95 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.underworld.blurb": "市民樞紐與分層墓域地圖 — 日常生活、下降、破口、返回與精確繼承狀態",
     "presentations.underworld.controlsHint": "選擇一層、檢視遠征帳本，再進入作者設定的遭遇",
     "presentations.underworld.purpose": "將黑暗墓域呈現為有人居住的政治建築。讀取樞紐、長期警報、訊號預算、層次與持續後果，不取代 Arc 規則。",
+    "presentations.commonShip.label": "共同船艦",
+    "presentations.commonShip.blurb": "跨越不同身體、時鐘、棲地與繼承義務編組值班。",
+    "presentations.commonShip.controlsHint": "選擇一項行動、編組值班、檢視 Arc 判定，然後提交。",
+    "presentations.commonShip.purpose": "將船艦作為共享政體管理，而非以人類常態為基準的載具。",
+    "commonShip.variable": "可變",
+    "commonShip.unassigned": "未指派",
+    "commonShip.profile.passage": "通行寬度",
+    "commonShip.profile.gravity": "重力",
+    "commonShip.profile.life": "預期壽命",
+    "commonShip.decisionHorizon": "決策時限",
+    "commonShip.closesWhen": "截止條件",
+    "commonShip.physical": "物理急迫性",
+    "commonShip.informational": "資訊急迫性",
+    "commonShip.institutional": "制度急迫性",
+    "commonShip.manufactured": "人為急迫性",
+    "commonShip.compositionReceipt": "編組收據",
+    "commonShip.absentActor": "缺席行動者",
+    "commonShip.excludedBody": "被排除身體",
+    "commonShip.dependency": "依賴",
+    "commonShip.allocation.heading": "共同系統配置",
+    "commonShip.allocation.habitatBands": "棲地帶",
+    "commonShip.allocation.translationPaths": "翻譯路徑",
+    "commonShip.allocation.directInterfaces": "直接介面",
+    "commonShip.allocation.standby": "待命",
+    "commonShip.allocation.stores": "儲備",
+    "commonShip.allocation.emergencyAuthority": "緊急權限",
+    "commonShip.handoff.heading": "交班",
+    "commonShip.handoff.dissent": "異議",
+    "commonShip.handoff.injury": "傷害",
+    "commonShip.handoff.readinessDebt": "戰備債務",
+    "commonShip.handoff.promises": "承諾",
+    "commonShip.handoff.missingPersons": "失聯人員",
+    "commonShip.handoff.uncertainty": "不確定性",
+    "commonShip.precedent.heading": "先例",
+    "commonShip.precedent.newlyPossible": "新增可能",
+    "commonShip.precedent.newlyImpossible": "新增不可能",
+    "commonShip.precedent.newlyGovernable": "新增可治理事項",
+    "commonShip.precedent.inherited": "已繼承",
+    "commonShip.noSource": "此卡匣不含共同船艦來源平面。",
+    "commonShip.sourceRefused": "共同船艦來源已拒絕",
+    "commonShip.program.firstParty": "計畫 005 · 共同船艦",
+    "commonShip.program.holderOwned": "共同船艦 · 持有人所有卡匣",
+    "commonShip.progressAria": "戰役進度",
+    "commonShip.operationsRecorded": "項行動已記錄",
+    "commonShip.state.habitatIntegrity": "棲地完整性",
+    "commonShip.state.temporalCoherence": "時間協調性",
+    "commonShip.state.translationTrust": "翻譯信任",
+    "commonShip.state.rosterResilience": "值班韌性",
+    "commonShip.state.storesAndCare": "儲備與照護",
+    "commonShip.state.continuity": "延續性",
+    "commonShip.state.visibility": "可見度",
+    "commonShip.state.compatibilityDebt": "相容性債務",
+    "commonShip.operationsAria": "共同船艦行動",
+    "commonShip.watchSequence": "值班序列",
+    "commonShip.system.transitBody": "轉運船體",
+    "commonShip.system.habitatBands": "棲地帶",
+    "commonShip.system.commonThresholds": "共同門檻",
+    "commonShip.system.translationMesh": "翻譯網",
+    "commonShip.system.watchLattice": "值班格網",
+    "commonShip.system.continuityCommons": "延續公域",
+    "commonShip.system.sovereignCore": "主權核心",
+    "commonShip.verdict.heading": "Arc 所有的共同值班判定",
+    "commonShip.verdict.viable": "可行值班",
+    "commonShip.verdict.refused": "值班已拒絕",
+    "commonShip.selectedCount": (params) => `已選 ${num(params, "n")}/${num(params, "max")}`,
+    "commonShip.dependencies": "依賴：",
+    "commonShip.singlePoints": "單點故障：",
+    "commonShip.engineProjection": "引擎推估",
+    "commonShip.currentCycle": "目前週期",
+    "commonShip.readinessClear": "選定值班符合目前的可靠性推估。",
+    "commonShip.prepareCycle": "執行一個準備週期",
+    "commonShip.commitWatch": "提交此值班",
+    "commonShip.profilesAria": "具身設定檔",
+    "commonShip.vesselAnatomy": "船艦結構",
+    "commonShip.onePolity": "一個跨越不相容環境的政體",
+    "commonShip.crossSectionAria": "可捲動的救援迴路船艦剖面圖",
+    "commonShip.crossSectionAlt": "救援迴路剖面圖，顯示七個運作系統與通往燈區的路線",
+    "commonShip.atlasSummary": "運作符號圖集 · 六項值班測試 · 七個系統 · 八條狀態軌",
+    "commonShip.atlasAria": "可捲動的救援迴路運作符號圖集",
+    "commonShip.atlasAlt": "共同值班測試、船艦系統與船艦狀態軌的運作符號",
+    "commonShip.creatorAnatomy": "作者定義的船艦結構",
+    "commonShip.currentUse": "目前用途",
+    "commonShip.revisionAuthority": "修訂權限",
+    "commonShip.connection.selectedWatch": "選定值班",
+    "commonShip.connection.people": "人員",
+    "commonShip.connection.stores": "儲備",
+    "commonShip.connection.exposure": "暴露後果",
+    "commonShip.connection.outbound": "已出發",
+    "commonShip.connection.returned": "已返回",
     "underworld.metadataRefused": "黑暗墓域中繼資料已拒絕",
     "underworld.invalidHeading": "此卡匣聲稱使用的黑暗墓域來源無法通過驗證。",
     "underworld.invalidBody": "遊玩規則仍以已驗證的 Arc 為準。Rodoh 不會從格式錯誤的來源推測層次、警報狀態或後果。",

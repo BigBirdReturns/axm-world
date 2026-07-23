@@ -97,4 +97,4 @@ Gate 4 requires one exact World head to pass:
 
 ## Boundary after Gate 4
 
-Gate 4 completes The Lamp District in World. RODOH 1.0 is still open. Gate 5 must ship The Relief Circuit as a Common Ship cartridge and vessel-management receiver, after which the clean-room cartridge and coordinated 1.0 release gates remain.
+Gate 4 completes The Lamp District in World. Gates 5 and 6 subsequently connect it to The Relief Circuit through a versioned Arc-owned operation that preserves both state sets in one portable run. The remaining RODOH 1.0 work is the clean-room cartridge proof and coordinated release gate.

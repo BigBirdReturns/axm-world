@@ -20,9 +20,13 @@ The numbered sequence below records the design path that produced the runtime; i
 - The Lamp District ships as Program 004 and the fourth bundled World cartridge, with original role appearances, movement motifs, all-surface material treatment, hero environment, Anja Vei portrait, cross-section asset, and provenance.
 - Desktop and mobile Chromium complete all eight movements through Ordinary Life, Descent, Breach, and Return, then export, clear the holder context, import, and resume the exact changed Tomb.
 - Gate 4 introduces no second Dark Tomb compiler or resolver. World enters the ordinary compiled encounter and reads the resulting Arc state receipts.
+- **The Relief Circuit now proves `common-ship-pocket/1` in World.** Its Common Ship representation renders six embodied founding profiles, Arc-owned watch feasibility, readiness and preparation, eight engine-owned ship-state tracks, handoff, precedent, and the connected Lamp District operation.
+- The Relief Circuit ships as Program 005 and the fifth bundled World cartridge, with a vessel environment, six founding portraits, cross-section, operational symbol atlas, and provenance.
+- Desktop and mobile complete all nine operations, preserve outbound and returned Lamp District custody, export, clear the holder context, import, and resume the exact changed run.
+- Gate 6 introduces no second Common Ship compiler, composition evaluator, state economy, handoff resolver, or cross-cartridge authority.
 - The parity matrix and dedicated workflow are the current release gate.
 
-Gates 0 through 4 are closed. The next product train is Gate 5: The Relief Circuit Common Ship cartridge and vessel-management receiver. Human sessions remain telemetry and regression discovery rather than ceremonial vetoes.
+Gates 0 through 6 are closed. The next product train is Gate 7: the clean-room unbundled-cartridge generalization proof. Human sessions remain telemetry and regression discovery rather than ceremonial vetoes.
 
 ---
 
@@ -159,7 +163,7 @@ founding choice, Maren handoff, exact committed plan, reload, resolution, reward
 ledger, changed Hall, leave/re-enter, and reusable-runtime handoff.
 
 **2. Finish every bundled campaign — complete.** The real World projections and
-engine clear all required content for First Charter, Waking Tower, and Ilyon,
+engine clear all required content for First Charter, Waking Tower, Ilyon, Lamp District, and Relief Circuit,
 including attunement/item chains, rewards, failure continuations, and bounded
 cycle budgets.
 
@@ -179,7 +183,7 @@ with authored Heroic posture, attunement chains, full campaign proof, and its
 own art pack. The legacy internal id remains only for held-run compatibility.
 
 **6. Polish expression — complete at the local-first pixel-runtime scope.** All
-four cartridges own role art, motifs, every-surface material identity, globe
+five cartridges own role and cast art, motifs, every-surface material identity, globe
 palettes or their grammar-specific equivalent, mobile result flow, local procedural sound, reduced motion,
 high-contrast/forced-color fallbacks, and visible keyboard focus.
 

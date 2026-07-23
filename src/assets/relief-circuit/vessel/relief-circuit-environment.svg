@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">The Relief Circuit common threshold</title>
+  <desc id="desc">A multispecies ship interior where dry command, aquatic care, high-gravity maintenance, microbial mediation, short-life analysis, and machine continuity meet around one contested operating table.</desc>
+  <defs>
+    <linearGradient id="hull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c2430"/><stop offset=".54" stop-color="#10161f"/><stop offset="1" stop-color="#070b10"/></linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#73818c"/><stop offset=".45" stop-color="#3f4c58"/><stop offset="1" stop-color="#171e26"/></linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6ed3e6" stop-opacity=".9"/><stop offset=".45" stop-color="#187c9a" stop-opacity=".8"/><stop offset="1" stop-color="#083b59" stop-opacity=".96"/></linearGradient>
+    <linearGradient id="heavy" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a66a46"/><stop offset=".5" stop-color="#5e3d31"/><stop offset="1" stop-color="#251d1b"/></linearGradient>
+    <linearGradient id="continuity" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d7d0ff"/><stop offset=".42" stop-color="#8472c6"/><stop offset="1" stop-color="#352b68"/></linearGradient>
+    <radialGradient id="commonLight" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff0b8" stop-opacity=".88"/><stop offset=".3" stop-color="#e6ba63" stop-opacity=".42"/><stop offset="1" stop-color="#e6ba63" stop-opacity="0"/></radialGradient>
+    <radialGradient id="cloud" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#c7efb1" stop-opacity=".66"/><stop offset=".46" stop-color="#65a86c" stop-opacity=".24"/><stop offset="1" stop-color="#65a86c" stop-opacity="0"/></radialGradient>
+    <pattern id="deck" width="96" height="48" patternUnits="userSpaceOnUse"><rect width="96" height="48" fill="#111820"/><path d="M0 1H96M0 47H96M48 0v48" stroke="#34414b" stroke-width="2"/><path d="M12 14h28M56 34h26" stroke="#e6ba63" stroke-width="2" opacity=".12"/></pattern>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="22"/></filter>
+    <filter id="grain" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".76" numOctaves="3" seed="73"/><feComponentTransfer><feFuncA type="table" tableValues="0 .06"/></feComponentTransfer></filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#hull)"/>
+  <path d="M0 92L800 0l800 92v78L800 92 0 170z" fill="#090d12"/>
+  <path d="M72 164H1528M40 468H1560" stroke="#566571" stroke-width="22" opacity=".75"/>
+  <path d="M82 170H1518M50 474H1550" stroke="#e6ba63" stroke-width="3" opacity=".38"/>
+  <path d="M96 0v650M380 0v650M1220 0v650M1504 0v650" stroke="#27343f" stroke-width="36"/>
+
+  <!-- dry command habitat -->
+  <g transform="translate(76 214)">
+    <path d="M0 0h430v324H0z" fill="#121d27" stroke="#58717f" stroke-width="9"/>
+    <path d="M20 26h390v126H20z" fill="#06121d" stroke="#4d91a1" stroke-width="5"/>
+    <circle cx="118" cy="88" r="44" fill="#bde8ff" opacity=".34"/><path d="M190 62h182M190 88h148M190 114h168" stroke="#79b7cc" stroke-width="8" opacity=".74"/>
+    <path d="M28 188h374v108H28z" fill="#1e2932" stroke="#73818c" stroke-width="5"/>
+    <g fill="#e6ba63"><circle cx="72" cy="222" r="9"/><circle cx="106" cy="222" r="9"/><circle cx="140" cy="222" r="9"/></g>
+    <g fill="#6ed3e6"><rect x="190" y="208" width="74" height="22" rx="4"/><rect x="282" y="208" width="84" height="22" rx="4"/></g>
+    <text x="28" y="316" fill="#a8bcc8" font-family="monospace" font-size="18">DRY COMMAND / HOST BASELINE</text>
+  </g>
+
+  <!-- aquatic care habitat -->
+  <g transform="translate(1094 206)">
+    <path d="M0 0h430v332H0z" fill="#071a26" stroke="#3ba7be" stroke-width="9"/>
+    <path d="M24 26h382v236Q215 318 24 262z" fill="url(#water)" stroke="#6ed3e6" stroke-width="5"/>
+    <path d="M34 84c90-28 172 26 264 0 54-15 86-32 98-42M34 154c100-34 178 22 270-8 44-14 72-28 92-42" fill="none" stroke="#b8eff7" stroke-width="5" opacity=".6"/>
+    <g fill="none" stroke="#c7efb1" stroke-width="6"><path d="M86 240c-10-70 18-116 58-154M144 86c-24-20-38-46-42-76M144 86c30-18 50-42 62-72"/><path d="M316 240c10-70-18-116-58-154M258 86c24-20 38-46 42-76M258 86c-30-18-50-42-62-72"/></g>
+    <text x="24" y="310" fill="#aee8ef" font-family="monospace" font-size="18">AQUATIC CARE / PRESSURE CONTINUITY</text>
+  </g>
+
+  <!-- high-gravity maintenance well -->
+  <g transform="translate(70 564)">
+    <path d="M0 0h422v248H0z" fill="#1e1716" stroke="#8f5d42" stroke-width="9"/>
+    <path d="M22 24h378v170H22z" fill="url(#heavy)"/>
+    <path d="M52 58h318M52 102h318M52 146h318" stroke="#c28a5f" stroke-width="12" opacity=".62"/>
+    <path d="M92 32v160M210 32v160M328 32v160" stroke="#291f1b" stroke-width="18"/>
+    <circle cx="210" cy="102" r="46" fill="#e6ba63" opacity=".26"/><circle cx="210" cy="102" r="18" fill="#e6ba63"/>
+    <text x="22" y="226" fill="#d3a27e" font-family="monospace" font-size="18">HIGH-GRAVITY WORK / LOAD-RATED ROUTE</text>
+  </g>
+
+  <!-- continuity core -->
+  <g transform="translate(1110 562)">
+    <path d="M0 0h420v250H0z" fill="#151129" stroke="#6e60a7" stroke-width="9"/>
+    <path d="M28 26h364v164H28z" fill="url(#continuity)" opacity=".68"/>
+    <g fill="none" stroke="#d7d0ff" stroke-width="5"><circle cx="210" cy="108" r="68"/><circle cx="210" cy="108" r="42"/><path d="M210 34v148M136 108h148M158 56l104 104M262 56L158 160"/></g>
+    <g fill="#e6ba63"><circle cx="210" cy="108" r="12"/><circle cx="150" cy="66" r="8"/><circle cx="272" cy="150" r="8"/></g>
+    <text x="28" y="226" fill="#d7d0ff" font-family="monospace" font-size="18">COUNTERBORN CONTINUITY / DIVERGENT FORKS</text>
+  </g>
+
+  <!-- Manyborn mediator cloud -->
+  <ellipse cx="800" cy="340" rx="238" ry="188" fill="url(#cloud)" filter="url(#glow)" opacity=".64"/>
+  <g fill="#8bc98c" opacity=".75"><circle cx="706" cy="294" r="12"/><circle cx="756" cy="252" r="9"/><circle cx="838" cy="272" r="14"/><circle cx="890" cy="326" r="10"/><circle cx="734" cy="374" r="14"/><circle cx="828" cy="396" r="11"/><circle cx="914" cy="408" r="8"/></g>
+  <g stroke="#c7efb1" stroke-width="4" opacity=".6"><path d="M706 294l50-42 82 20 52 54-62 70-94-22z" fill="none"/><path d="M756 252l-22 122M838 272l-10 124M890 326l-156 48"/></g>
+
+  <!-- common threshold and watch table -->
+  <path d="M0 650h1600v250H0z" fill="url(#deck)"/>
+  <path d="M0 654h1600" stroke="#e6ba63" stroke-width="5" opacity=".56"/>
+  <ellipse cx="800" cy="774" rx="450" ry="84" fill="#020408" opacity=".62"/>
+  <path d="M470 642h660l92 126H378z" fill="url(#metal)" stroke="#e6ba63" stroke-width="9"/>
+  <path d="M526 676h548l42 54H484z" fill="#121a22" stroke="#6ed3e6" stroke-width="4"/>
+  <circle cx="800" cy="704" r="72" fill="url(#commonLight)" filter="url(#glow)"/>
+  <circle cx="800" cy="704" r="30" fill="#16232c" stroke="#e6ba63" stroke-width="6"/>
+  <path d="M800 674v60M770 704h60" stroke="#c7efb1" stroke-width="5"/>
+  <g fill="none" stroke-width="4"><path d="M570 694h136" stroke="#6ed3e6"/><path d="M894 694h136" stroke="#d7d0ff"/><path d="M630 714h92" stroke="#c28a5f"/><path d="M878 714h92" stroke="#8bc98c"/></g>
+  <path d="M438 768l-30 132M1162 768l30 132" stroke="#080d12" stroke-width="28"/>
+
+  <!-- temporal bands -->
+  <g fill="none" stroke-linecap="round" opacity=".7"><path d="M520 172c96-48 194-52 280-8 86-44 184-40 280 8" stroke="#6ed3e6" stroke-width="5"/><path d="M560 194c82-32 162-34 240-2 78-32 158-30 240 2" stroke="#e6ba63" stroke-width="4"/><path d="M610 216c64-20 126-20 190 0 64-20 126-20 190 0" stroke="#d7d0ff" stroke-width="3"/></g>
+  <rect width="1600" height="900" filter="url(#grain)" opacity=".52"/>
+</svg>

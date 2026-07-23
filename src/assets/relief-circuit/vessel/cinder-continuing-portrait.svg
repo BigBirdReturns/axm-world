@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 800" role="img" aria-labelledby="title desc">
+  <title id="title">Cinder Continuing, Counterborn vessel fork</title>
+  <desc id="desc">A machine person distributed through routing, translation, memory, and hull substrate, shown as several divergent bodies connected to one luminous but contested continuity claim.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#25203c"/><stop offset=".5" stop-color="#131126"/><stop offset="1" stop-color="#06050d"/></linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d8d4f6"/><stop offset=".34" stop-color="#8e83c5"/><stop offset=".68" stop-color="#51447f"/><stop offset="1" stop-color="#252048"/></linearGradient>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0b8"/><stop offset=".42" stop-color="#e6ba63"/><stop offset="1" stop-color="#765625"/></linearGradient>
+    <radialGradient id="fork" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ece9ff" stop-opacity=".9"/><stop offset=".34" stop-color="#a99cdf" stop-opacity=".48"/><stop offset="1" stop-color="#6b5eaa" stop-opacity="0"/></radialGradient>
+    <radialGradient id="route" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#bdeaff" stop-opacity=".82"/><stop offset=".42" stop-color="#6ed3e6" stop-opacity=".28"/><stop offset="1" stop-color="#6ed3e6" stop-opacity="0"/></radialGradient>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="20"/></filter>
+    <filter id="grain" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".76" numOctaves="3" seed="113"/><feComponentTransfer><feFuncA type="table" tableValues="0 .055"/></feComponentTransfer></filter>
+  </defs>
+  <rect width="640" height="800" fill="url(#bg)"/>
+  <path d="M42 696V100h556v596z" fill="#090817" stroke="#6b5eaa" stroke-width="10"/>
+  <path d="M74 132h492v532H74z" fill="#101127" stroke="#9a8fd2" stroke-width="4"/>
+  <g stroke="#352f61" stroke-width="7" opacity=".72"><path d="M88 216h464M88 360h464M88 504h464"/><path d="M160 146v498M320 146v498M480 146v498"/></g>
+  <circle cx="320" cy="388" r="244" fill="url(#fork)" filter="url(#glow)" opacity=".4"/>
+
+  <!-- primary embodied fork -->
+  <path d="M182 800c12-168 54-290 126-350h24c72 60 114 182 126 350z" fill="url(#metal)" stroke="#0a0813" stroke-width="12"/>
+  <path d="M254 220l66-54 66 54-18 182h-96z" fill="#6b5eaa" stroke="#211b3b" stroke-width="9"/>
+  <path d="M272 248h96v116h-96z" fill="#15152b" stroke="#b8b0e7" stroke-width="6"/>
+  <g fill="#6ed3e6"><circle cx="294" cy="294" r="10"/><circle cx="346" cy="294" r="10"/></g>
+  <path d="M294 342h52" stroke="#e6ba63" stroke-width="6"/>
+  <path d="M250 416c46 40 94 40 140 0" fill="none" stroke="#d8d4f6" stroke-width="11"/>
+  <path d="M264 458l56 56 56-56" fill="#28224a" stroke="#e6ba63" stroke-width="8"/>
+  <path d="M320 514v224" stroke="#9a8fd2" stroke-width="7"/>
+
+  <!-- divergent subsidiary bodies -->
+  <g transform="translate(86 246)"><path d="M0 0h122v166H0z" fill="#121127" stroke="#6ed3e6" stroke-width="7"/><circle cx="61" cy="58" r="38" fill="url(#route)"/><path d="M61 20v76M23 58h76" stroke="#d8d4f6" stroke-width="5"/><path d="M18 124h86M30 144h62" stroke="#6ed3e6" stroke-width="7"/></g>
+  <g transform="translate(432 246)"><path d="M0 0h122v166H0z" fill="#121127" stroke="#e6ba63" stroke-width="7"/><circle cx="61" cy="58" r="38" fill="url(#fork)"/><path d="M61 20v76M23 58h76M34 31l54 54M88 31L34 85" stroke="#d8d4f6" stroke-width="5"/><path d="M18 124h86M30 144h62" stroke="#e6ba63" stroke-width="7"/></g>
+  <g transform="translate(80 492)"><path d="M0 0h132v154H0z" fill="#121127" stroke="#65a86c" stroke-width="7"/><g fill="#9bd58e"><circle cx="34" cy="46" r="9"/><circle cx="68" cy="30" r="8"/><circle cx="96" cy="58" r="10"/><circle cx="62" cy="84" r="8"/></g><path d="M34 46l34-16 28 28-34 26z" fill="none" stroke="#d8d4f6" stroke-width="4"/><path d="M18 124h96" stroke="#65a86c" stroke-width="7"/></g>
+  <g transform="translate(428 492)"><path d="M0 0h132v154H0z" fill="#121127" stroke="#d68165" stroke-width="7"/><path d="M22 28h88v68H22z" fill="#2d2448"/><path d="M34 44h64M34 62h52M34 80h58" stroke="#d8d4f6" stroke-width="6"/><circle cx="102" cy="104" r="11" fill="#d68165"/><path d="M18 124h96" stroke="#d68165" stroke-width="7"/></g>
+
+  <!-- continuity core, visibly shared but not singular -->
+  <g transform="translate(320 632)"><circle r="122" fill="url(#fork)" filter="url(#glow)"/><path d="M0-78l68 39v78L0 78l-68-39v-78z" fill="#17152e" stroke="#d8d4f6" stroke-width="9"/><path d="M0-78V78M-68-39L68 39M68-39L-68 39" stroke="#9a8fd2" stroke-width="6"/><circle r="30" fill="url(#core)" stroke="#fff0b8" stroke-width="5"/><circle r="10" fill="#fff7da"/></g>
+  <g fill="none" stroke="#9a8fd2" stroke-width="5" stroke-dasharray="12 9" opacity=".76"><path d="M208 328c62 22 86 70 112 174M432 328c-62 22-86 70-112 174M212 564c50 4 82 24 108 58M428 564c-50 4-82 24-108 58"/></g>
+  <path d="M122 800h396" stroke="#06050d" stroke-width="30"/>
+  <rect width="640" height="800" filter="url(#grain)" opacity=".52"/>
+</svg>

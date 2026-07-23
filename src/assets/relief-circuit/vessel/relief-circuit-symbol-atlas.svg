@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">The Relief Circuit operational symbol atlas</title>
+  <desc id="desc">Twenty-one direct production symbols for the six Common Watch tests, seven vessel systems, and eight ship-state tracks.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#121a23"/><stop offset="1" stop-color="#06090d"/></linearGradient>
+    <style>
+      .panel{fill:#0b1118;stroke:#354550;stroke-width:3}.label{font:16px monospace;fill:#c7d3da}.group{font:700 24px monospace;fill:#f0dfac}.watch{stroke:#6ed3e6}.system{stroke:#e6ba63}.state{stroke:#9bd58e}.icon{fill:none;stroke-width:7;stroke-linecap:round;stroke-linejoin:round}.dot{fill:#d7d0ff;stroke:none}.warn{fill:#d58a65;stroke:none}
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <text x="64" y="58" class="group">COMMON WATCH TESTS</text>
+  <text x="64" y="342" class="group">SEVEN VESSEL SYSTEMS</text>
+  <text x="64" y="626" class="group">EIGHT SHIP-STATE TRACKS</text>
+
+  <!-- six watch tests -->
+  <g transform="translate(64 84)">
+    <g transform="translate(0 0)"><rect class="panel" width="232" height="210" rx="12"/><g class="icon watch" transform="translate(56 36)"><circle cx="60" cy="54" r="42"/><path d="M60 12v84M18 54h84M30 24l60 60M90 24L30 84"/><circle class="dot" cx="60" cy="54" r="10"/></g><text class="label" x="24" y="184">ROLE COVERAGE</text></g>
+    <g transform="translate(250 0)"><rect class="panel" width="232" height="210" rx="12"/><g class="icon watch" transform="translate(44 36)"><circle cx="50" cy="54" r="36"/><circle cx="92" cy="54" r="36"/><path d="M71 18v72"/><circle class="dot" cx="71" cy="54" r="9"/></g><text class="label" x="22" y="184">TEMPORAL OVERLAP</text></g>
+    <g transform="translate(500 0)"><rect class="panel" width="232" height="210" rx="12"/><g class="icon watch" transform="translate(50 32)"><path d="M10 82V30h54v52M74 82V10h54v72M4 82h132"/><path d="M34 30v52M100 10v72"/><circle class="dot" cx="68" cy="82" r="9"/></g><text class="label" x="16" y="184">HABITAT COMPAT.</text></g>
+    <g transform="translate(750 0)"><rect class="panel" width="232" height="210" rx="12"/><g class="icon watch" transform="translate(46 34)"><circle cx="36" cy="48" r="24"/><circle cx="104" cy="48" r="24"/><path d="M60 48h20M70 24v48M16 92h108"/><circle class="dot" cx="70" cy="48" r="8"/></g><text class="label" x="13" y="184">TRANSLATION RESILIENCE</text></g>
+    <g transform="translate(1000 0)"><rect class="panel" width="232" height="210" rx="12"/><g class="icon watch" transform="translate(46 34)"><path d="M14 36h70l-16-16M84 36L68 52M126 86H56l16-16M56 86l16 16"/><circle class="dot" cx="70" cy="61" r="8"/></g><text class="label" x="15" y="184">HANDOFF CONTINUITY</text></g>
+    <g transform="translate(1250 0)"><rect class="panel" width="232" height="210" rx="12"/><g class="icon watch" transform="translate(42 34)"><circle cx="70" cy="60" r="52"/><path d="M70 8v104M18 60h104M70 60l32-26"/><circle class="warn" cx="70" cy="60" r="9"/></g><text class="label" x="8" y="184">LIFE-FRACTION FAIRNESS</text></g>
+  </g>
+
+  <!-- seven ship systems -->
+  <g transform="translate(64 368)">
+    <g transform="translate(0 0)"><rect class="panel" width="202" height="210" rx="12"/><g class="icon system" transform="translate(36 36)"><path d="M8 58c24-48 58-58 116-40 30 10 42 24 48 40-6 16-18 30-48 40-58 18-92 8-116-40z"/><path d="M0 58h24M156 58h24"/></g><text class="label" x="28" y="184">TRANSIT BODY</text></g>
+    <g transform="translate(218 0)"><rect class="panel" width="202" height="210" rx="12"/><g class="icon system" transform="translate(38 30)"><path d="M4 96V20h38v76M50 96V4h38v92M96 96V34h38v62M0 96h140"/><path d="M18 58h18M64 38h18M110 68h18"/></g><text class="label" x="27" y="184">HABITAT BANDS</text></g>
+    <g transform="translate(436 0)"><rect class="panel" width="202" height="210" rx="12"/><g class="icon system" transform="translate(42 30)"><path d="M6 18h108v88H6zM60 18v88M6 62h108"/><circle class="dot" cx="60" cy="62" r="9"/></g><text class="label" x="17" y="184">COMMON THRESHOLDS</text></g>
+    <g transform="translate(654 0)"><rect class="panel" width="202" height="210" rx="12"/><g class="icon system" transform="translate(35 30)"><circle cx="20" cy="28" r="10"/><circle cx="112" cy="22" r="10"/><circle cx="68" cy="92" r="10"/><path d="M30 30l72-6M26 36l36 48M104 30L74 84"/></g><text class="label" x="22" y="184">TRANSLATION MESH</text></g>
+    <g transform="translate(872 0)"><rect class="panel" width="202" height="210" rx="12"/><g class="icon system" transform="translate(38 30)"><circle cx="64" cy="60" r="52"/><path d="M64 8v104M12 60h104M27 23l74 74M101 23L27 97"/><circle class="dot" cx="64" cy="60" r="10"/></g><text class="label" x="27" y="184">WATCH LATTICE</text></g>
+    <g transform="translate(1090 0)"><rect class="panel" width="202" height="210" rx="12"/><g class="icon system" transform="translate(30 30)"><path d="M6 28h136v76H6zM26 28v76M74 28v76M122 28v76"/><circle class="dot" cx="18" cy="18" r="8"/><circle class="dot" cx="54" cy="18" r="8"/></g><text class="label" x="16" y="184">CONTINUITY COMMONS</text></g>
+    <g transform="translate(1308 0)"><rect class="panel" width="202" height="210" rx="12"/><g class="icon system" transform="translate(42 30)"><path d="M60 6l52 30v60l-52 30L8 96V36z"/><path d="M60 6v120M8 36l104 60M112 36L8 96"/><circle class="warn" cx="60" cy="66" r="10"/></g><text class="label" x="31" y="184">SOVEREIGN CORE</text></g>
+  </g>
+
+  <!-- eight state tracks -->
+  <g transform="translate(64 652)">
+    <g transform="translate(0 0)"><rect class="panel" width="178" height="190" rx="12"/><g class="icon state" transform="translate(32 24)"><path d="M8 82V24h92v58M0 82h108M32 24v58M76 24v58"/><circle class="dot" cx="54" cy="82" r="8"/></g><text class="label" x="18" y="164">HABITAT INTEGRITY</text></g>
+    <g transform="translate(190 0)"><rect class="panel" width="178" height="190" rx="12"/><g class="icon state" transform="translate(32 24)"><circle cx="54" cy="58" r="48"/><path d="M54 10v96M6 58h96M54 58l28-22"/></g><text class="label" x="10" y="164">TEMPORAL COHERENCE</text></g>
+    <g transform="translate(380 0)"><rect class="panel" width="178" height="190" rx="12"/><g class="icon state" transform="translate(28 24)"><path d="M6 34h112M18 34v56M106 34v56M18 90h88"/><path d="M42 62h40"/><circle class="dot" cx="62" cy="62" r="8"/></g><text class="label" x="16" y="164">TRANSLATION TRUST</text></g>
+    <g transform="translate(570 0)"><rect class="panel" width="178" height="190" rx="12"/><g class="icon state" transform="translate(30 24)"><circle cx="28" cy="42" r="18"/><circle cx="86" cy="42" r="18"/><path d="M4 96c8-28 26-42 48-42s40 14 48 42M48 96c8-24 24-36 44-36 14 0 26 6 36 18"/></g><text class="label" x="12" y="164">ROSTER RESILIENCE</text></g>
+    <g transform="translate(760 0)"><rect class="panel" width="178" height="190" rx="12"/><g class="icon state" transform="translate(30 24)"><path d="M8 30h100v64H8zM30 30V12h56v18"/><path d="M58 44v36M40 62h36"/></g><text class="label" x="20" y="164">STORES AND CARE</text></g>
+    <g transform="translate(950 0)"><rect class="panel" width="178" height="190" rx="12"/><g class="icon state" transform="translate(30 24)"><path d="M18 84c10-52 70-52 80 0M18 84c10 26 70 26 80 0"/><path d="M58 20v96"/><circle class="dot" cx="58" cy="84" r="9"/></g><text class="label" x="36" y="164">CONTINUITY</text></g>
+    <g transform="translate(1140 0)"><rect class="panel" width="178" height="190" rx="12"/><g class="icon state" transform="translate(30 24)"><path d="M4 60c24-38 84-38 108 0-24 38-84 38-108 0z"/><circle cx="58" cy="60" r="22"/><path d="M58 38v44"/></g><text class="label" x="43" y="164">VISIBILITY</text></g>
+    <g transform="translate(1330 0)"><rect class="panel" width="178" height="190" rx="12"/><g class="icon state" transform="translate(30 24)"><path d="M14 20h88v80H14zM34 40h48v40H34"/><path d="M104 26l18-18M104 94l18 18"/><circle class="warn" cx="96" cy="60" r="9"/></g><text class="label" x="7" y="164">COMPATIBILITY DEBT</text></g>
+  </g>
+</svg>

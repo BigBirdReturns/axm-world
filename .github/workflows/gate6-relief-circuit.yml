@@ -1,0 +1,117 @@
+name: Gate 6 Relief Circuit
+
+on:
+  pull_request:
+    paths:
+      - 'src/world/**'
+      - 'src/arcs/**'
+      - 'src/engine/**'
+      - 'src/common-ship/**'
+      - 'src/dark-tomb/**'
+      - 'src/source-planes/**'
+      - 'src/assets/relief-circuit/**'
+      - 'src/assets/lamp-district/**'
+      - 'cartridges/**'
+      - 'tests/common-ship/**'
+      - 'tests/engine/connected-operation*.test.ts'
+      - 'tests/world/common-ship*.test.ts'
+      - 'tests/world/relief-circuit*.test.ts'
+      - 'scripts/run-relief-circuit-gate6.mjs'
+      - 'scripts/verify-relief-circuit-gate6.mjs'
+      - 'docs/RELIEF_CIRCUIT_WORLD_ACCEPTANCE.md'
+      - 'RECONCILIATION.md'
+      - 'scripts/sync-engine.sh'
+      - 'scripts/check-engine-drift.sh'
+      - '.github/workflows/gate6-relief-circuit.yml'
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gate6:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      CI: 'true'
+      PW_BASE_URL: http://127.0.0.1:5173
+      GATE6_RECEIPT_DIR: gate6-receipt/browser
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Record exact Gate 6 candidate
+        env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p gate6-receipt
+          actual_sha="$(git rev-parse HEAD)"
+          printf '%s\n' "$CANDIDATE_SHA" | tee gate6-receipt/world-candidate-sha.txt
+          printf '%s\n' "$actual_sha" | tee gate6-receipt/checkout-sha.txt
+          test "$actual_sha" = "$CANDIDATE_SHA"
+          cat src/engine/VENDORED_FROM | tee gate6-receipt/arc-source-plane.txt
+          grep -F '2abf84e4b79c8196bcfa213bca2e920e7d36caa5' src/engine/VENDORED_FROM
+          git diff --check
+      - name: Exact Arc Gate 5 provenance
+        env:
+          ENGINE_DRIFT_STRICT: '1'
+        run: |
+          set -o pipefail
+          npm run engine:check | tee gate6-receipt/engine-drift.log
+      - name: TypeScript
+        run: |
+          set -o pipefail
+          npm run typecheck | tee gate6-receipt/typecheck.log
+      - name: Gate 6 authority and custody contracts
+        run: |
+          set -o pipefail
+          npm test -- \
+            tests/common-ship/relief-circuit.test.ts \
+            tests/engine/connected-operation.test.ts \
+            tests/engine/connected-operation-fixture.test.ts \
+            tests/world/common-ship-receiver-prep.test.ts \
+            tests/world/common-ship-preparation-cycle.test.ts \
+            tests/world/relief-circuit-production-assets.test.ts \
+            tests/world/cartridge-parity.test.ts \
+            tests/world/bundled-campaign-parity.test.ts \
+            tests/world/program-of-record.test.ts \
+            tests/world/presentation-prefs.test.ts \
+            | tee gate6-receipt/focused-tests.log
+      - name: Complete World regression suite
+        run: |
+          set -o pipefail
+          npm test | tee gate6-receipt/vitest.log
+      - name: Production build
+        run: |
+          set -o pipefail
+          npm run build | tee gate6-receipt/build.log
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Desktop and mobile Common Ship journey
+        run: |
+          set -euo pipefail
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npm run test:gate6 | tee gate6-receipt/browser.log
+      - name: Upload Gate 6 acceptance receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate6-relief-circuit-receipt
+          path: |
+            gate6-receipt
+            test-results/gate6-browser-receipt
+          if-no-files-found: warn
+          retention-days: 14

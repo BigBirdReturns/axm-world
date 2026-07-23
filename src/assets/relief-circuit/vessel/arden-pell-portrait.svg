@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 800" role="img" aria-labelledby="title desc">
+  <title id="title">Arden Pell, nine-year analyst</title>
+  <desc id="desc">A short-lived analyst surrounded by compressed calendars, overlapping decision horizons, and a life-fraction ledger that makes routine standby visibly expensive.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2d2439"/><stop offset=".5" stop-color="#171321"/><stop offset="1" stop-color="#08070c"/></linearGradient>
+    <linearGradient id="coat" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a18ac8"/><stop offset=".48" stop-color="#665382"/><stop offset="1" stop-color="#2a2338"/></linearGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f0d8b6"/><stop offset=".55" stop-color="#d3a97f"/><stop offset="1" stop-color="#956a57"/></linearGradient>
+    <radialGradient id="clock" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff1bf" stop-opacity=".9"/><stop offset=".34" stop-color="#e6ba63" stop-opacity=".42"/><stop offset="1" stop-color="#e6ba63" stop-opacity="0"/></radialGradient>
+    <radialGradient id="thought" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#d7d0ff" stop-opacity=".82"/><stop offset=".44" stop-color="#8472c6" stop-opacity=".28"/><stop offset="1" stop-color="#8472c6" stop-opacity="0"/></radialGradient>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="18"/></filter>
+    <filter id="grain" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="3" seed="109"/><feComponentTransfer><feFuncA type="table" tableValues="0 .055"/></feComponentTransfer></filter>
+  </defs>
+  <rect width="640" height="800" fill="url(#bg)"/>
+  <path d="M48 688V112h544v576z" fill="#0d0b13" stroke="#665382" stroke-width="10"/>
+  <g fill="none" stroke-linecap="round">
+    <circle cx="152" cy="176" r="74" stroke="#e6ba63" stroke-width="7"/><path d="M152 102v148M78 176h148M152 176l32-26" stroke="#e6ba63" stroke-width="5"/>
+    <circle cx="488" cy="186" r="62" stroke="#6ed3e6" stroke-width="6"/><path d="M488 124v124M426 186h124M488 186l-30 34" stroke="#6ed3e6" stroke-width="4"/>
+    <circle cx="112" cy="472" r="50" stroke="#d7d0ff" stroke-width="5"/><path d="M112 422v100M62 472h100M112 472l20-34" stroke="#d7d0ff" stroke-width="4"/>
+    <circle cx="526" cy="492" r="46" stroke="#d68165" stroke-width="5"/><path d="M526 446v92M480 492h92M526 492l-24-24" stroke="#d68165" stroke-width="4"/>
+  </g>
+  <path d="M78 302h484M78 348h484M78 394h484" stroke="#8472c6" stroke-width="4" opacity=".36"/>
+  <g fill="#e6ba63"><rect x="86" y="292" width="104" height="18" rx="5"/><rect x="206" y="292" width="168" height="18" rx="5" opacity=".72"/><rect x="390" y="292" width="74" height="18" rx="5" opacity=".45"/></g>
+  <g fill="#6ed3e6"><rect x="86" y="338" width="72" height="18" rx="5"/><rect x="174" y="338" width="122" height="18" rx="5" opacity=".72"/><rect x="312" y="338" width="202" height="18" rx="5" opacity=".42"/></g>
+  <circle cx="320" cy="384" r="224" fill="url(#thought)" filter="url(#glow)" opacity=".34"/>
+
+  <!-- young short-life body -->
+  <path d="M138 800c18-172 70-300 166-360h32c96 60 148 188 166 360z" fill="url(#coat)" stroke="#09070e" stroke-width="12"/>
+  <path d="M256 230c12-42 34-66 64-66s52 24 64 66l-18 168h-92z" fill="url(#skin)" stroke="#33252a" stroke-width="8"/>
+  <path d="M250 244c16-62 40-92 70-92 30 0 54 30 70 92l-10-96-60-42-60 42z" fill="#49365b"/>
+  <path d="M276 294c14 7 28 7 42 0M326 294c14 7 28 7 42 0" stroke="#33252a" stroke-width="5" stroke-linecap="round"/><path d="M298 346c14 8 30 8 44 0" stroke="#9c6659" stroke-width="5" stroke-linecap="round"/><path d="M320 294v30" stroke="#b38468" stroke-width="4"/>
+  <path d="M244 418c50 34 102 34 152 0" fill="none" stroke="#e6ba63" stroke-width="10"/>
+  <path d="M260 456l60 54 60-54" fill="#362b49" stroke="#d7d0ff" stroke-width="7"/>
+  <path d="M320 510v230" stroke="#8472c6" stroke-width="7"/>
+
+  <!-- life-fraction ledger -->
+  <g transform="translate(320 626)"><circle r="118" fill="url(#clock)" filter="url(#glow)"/><circle r="72" fill="#171421" stroke="#e6ba63" stroke-width="9"/><path d="M0-72v144M-72 0h144" stroke="#8472c6" stroke-width="5"/><path d="M0 0l36-42" stroke="#fff1bf" stroke-width="7"/><path d="M-48 42h96" stroke="#6ed3e6" stroke-width="6"/><circle r="11" fill="#fff1bf"/></g>
+  <path d="M154 712c48-54 88-66 120-38M486 712c-48-54-88-66-120-38" fill="none" stroke="#d3a97f" stroke-width="24" stroke-linecap="round"/>
+  <path d="M138 800h364" stroke="#08070c" stroke-width="30"/>
+  <rect width="640" height="800" filter="url(#grain)" opacity=".5"/>
+</svg>

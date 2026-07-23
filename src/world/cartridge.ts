@@ -6,7 +6,7 @@
 import type { Arc, AuthoredOpening, TrustLabel } from "../engine/types.js";
 import { validateArc } from "../engine/schema.js";
 import { canonicalizeArc } from "../engine/cartridge-digest.js";
-import { FIRST_CHARTER, KARAZHAN, KIND_GODS_OF_ILYON, LAMP_DISTRICT } from "../arcs/index.js";
+import { FIRST_CHARTER, KARAZHAN, KIND_GODS_OF_ILYON, LAMP_DISTRICT, RELIEF_CIRCUIT } from "../arcs/index.js";
 import { isCostumeId, type CostumeId } from "./presentation-prefs.js";
 
 export type TrustLevel = TrustLabel;
@@ -126,6 +126,57 @@ export const LAMP_DISTRICT_PEOPLE: AuthoredPerson[] = [
   },
 ];
 
+export const RELIEF_CIRCUIT_PEOPLE: AuthoredPerson[] = [
+  {
+    id: "ilya-venn",
+    name: "Ilya Venn",
+    role: "Response Pilot",
+    bio: "A rapid-response pilot whose direct access and tactical fluency depend on the dry founding bridge remaining the ship's native environment.",
+    greeting: "A fast answer is useful only when it does not become permanent authority. Name the horizon and the abort path before we cross.",
+    fulfilledLine: "The watch ended when it said it would. The bridge did not inherit the ship by being fastest.",
+  },
+  {
+    id: "nima-quell",
+    name: "Nima Quell",
+    role: "Aquatic Care Worker",
+    bio: "A large liquid-medium citizen whose care practice depends on pressure continuity and whose access to dry public space is usually mediated.",
+    greeting: "Remote presence is not bodily access. Count the recovery debt before you call the threshold common.",
+    fulfilledLine: "Care crossed the lock without making the dry room the measure of participation.",
+  },
+  {
+    id: "orun-sable",
+    name: "Orun Sable",
+    role: "Structural Maintainer",
+    bio: "A high-gravity maintainer who knows which redundancies are real, which routes exclude large bodies, and which person has become an unpaid spare part.",
+    greeting: "The hull has public spaces your deck plans label machinery. I will tell you which one fails when the workaround does.",
+    fulfilledLine: "The load path is now civic infrastructure, not a favor granted by maintenance.",
+  },
+  {
+    id: "tessara-one",
+    name: "Tessara One",
+    role: "Manyborn Mediator",
+    bio: "A distributed person able to compare microbial, chemical, spoken, and topological renderings without declaring one fluent output the original body.",
+    greeting: "Do not choose the carrier you understand and call it me. Preserve the disagreements among my renderings.",
+    fulfilledLine: "The translation kept its provenance, and none of my bodies was promoted into the only one that counted.",
+  },
+  {
+    id: "arden-pell",
+    name: "Arden Pell",
+    role: "Nine-Year Analyst",
+    bio: "A short-lived analyst whose predictive skill is valuable precisely because every delay and standby period consumes a visible fraction of one life.",
+    greeting: "Put the interval in my ledger as a fraction of life, then ask whether your caution is still neutral.",
+    fulfilledLine: "The mission paid its temporal cost in public instead of spending my future as free capacity.",
+  },
+  {
+    id: "cinder-continuing",
+    name: "Cinder Continuing",
+    role: "Counterborn Continuity Fork",
+    bio: "A distributed machine person whose body includes routing, translation, memory, and portions of the transit system under constitutional dispute.",
+    greeting: "A refit changes my body. A rollback changes my memory. Neither is maintenance merely because command owns the tools.",
+    fulfilledLine: "The returning run carries my divergence as continuity, not as a fault to erase.",
+  },
+];
+
 export const FIRST_CHARTER_CARTRIDGE: Cartridge = {
   manifest: manifestForArc(FIRST_CHARTER, "bundled", "board"),
   arc: FIRST_CHARTER,
@@ -150,11 +201,18 @@ export const LAMP_DISTRICT_CARTRIDGE: Cartridge = {
   people: LAMP_DISTRICT_PEOPLE,
 };
 
+export const RELIEF_CIRCUIT_CARTRIDGE: Cartridge = {
+  manifest: manifestForArc(RELIEF_CIRCUIT, "bundled", "common-ship"),
+  arc: RELIEF_CIRCUIT,
+  people: RELIEF_CIRCUIT_PEOPLE,
+};
+
 export const BUNDLED_CARTRIDGES: Cartridge[] = [
   FIRST_CHARTER_CARTRIDGE,
   KARAZHAN_CARTRIDGE,
   KIND_GODS_OF_ILYON_CARTRIDGE,
   LAMP_DISTRICT_CARTRIDGE,
+  RELIEF_CIRCUIT_CARTRIDGE,
 ];
 
 function sameOpening(left: AuthoredOpening, right: AuthoredOpening): boolean {
