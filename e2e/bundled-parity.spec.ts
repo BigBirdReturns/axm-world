@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { resolveOpeningDecision, resolvePendingDecisions } from "./helpers";
+import { resolvePendingDecisions } from "./helpers";
 
 const CASES = [
   { id: "karazhan", scope: "karazhan", title: /The Waking Tower/i },
@@ -26,7 +26,17 @@ async function coldBoot(page: Page, id: string): Promise<void> {
   await page.reload();
   await expect(page.getByTestId("sensory-switcher")).toBeVisible();
   await page.getByTestId(`play-cartridge-${id}`).click();
-  await resolveOpeningDecision(page);
+
+  // Cartridge-owned bodies are rendered by the authored opening response. On
+  // mobile the post-opening Board is intentionally a compact list and does not
+  // keep those bodies mounted, so prove the art at the exact stage that owns it
+  // rather than requiring decorative hidden DOM after the decision is closed.
+  const decision = page.getByTestId("pending-decision-card");
+  await expect(decision).toBeVisible();
+  await decision.getByRole("button").first().click();
+  await expect(page.locator('[data-appearance]:not([data-appearance^="rodoh:"])').first()).toBeAttached();
+  await decision.getByRole("button", { name: /continue/i }).click();
+  await expect(decision).toHaveCount(0);
   await expect(page.getByTestId("engine-shell")).toBeVisible();
 }
 
@@ -43,7 +53,6 @@ async function enterFirstSharedEncounter(page: Page): Promise<void> {
   await expect(page.getByTestId("world-map")).toBeVisible();
   await page.locator('[data-testid^="wm-enter-"]').first().click();
 }
-
 
 async function assertEveryRepresentation(page: Page): Promise<void> {
   await page.getByTestId("view-run-graph").click();
@@ -65,7 +74,6 @@ for (const item of CASES) {
     await coldBoot(page, item.id);
     await expect(page.getByTestId("cartridge-title")).toContainText(item.title);
     await expect(page.locator("html")).toHaveAttribute("data-cartridge", item.scope);
-    await expect(page.locator('[data-appearance]:not([data-appearance^="rodoh:"])').first()).toBeAttached();
 
     await enterFirstSharedEncounter(page);
     const encounter = page.getByTestId("encounter-shell");
