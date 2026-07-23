@@ -17,12 +17,17 @@ permissions:
 jobs:
   export:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
       - name: Record exact source identity
         run: git rev-parse HEAD > gate4-source-sha.txt
       - name: Upload complete source tree
@@ -35,3 +40,10 @@ jobs:
             !node_modules/**
           include-hidden-files: true
           retention-days: 7
+      - name: Upload exact dependency tree
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate4-world-node-modules
+          path: node_modules
+          include-hidden-files: true
+          retention-days: 2
