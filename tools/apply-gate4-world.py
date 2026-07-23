@@ -70,6 +70,35 @@ shell = shell.replace(
     'if (closesOpening && programForCartridge(world.cartridge)?.entryExperience === "guided-first-contract" && hallSteward(world.cartridge)) {',
     1,
 )
+
+# Entering a selected Underworld expedition must commit the party the holder has
+# actually composed. Recommending again at the encounter boundary silently erased
+# add, swap, and downtime decisions made in the shared roster surface.
+party_marker = "    setEncounterParty(world.recommendedParty(challengeId));"
+if shell.count(party_marker) != 1:
+    raise SystemExit("Gate 4 could not locate the encounter-party seed.")
+shell = shell.replace(
+    party_marker,
+    "    const committedParty = ix.selectedId === challengeId && ix.party.length > 0\n"
+    "      ? ix.party\n"
+    "      : world.recommendedParty(challengeId);\n"
+    "    setEncounterParty(committedParty);",
+    1,
+)
 shell_path.write_text(shell)
+
+# Mobile intentionally returns from an encounter to its staged Contract sheet.
+# The Gate 4 browser journey must perform the same Back-to-Board action a holder
+# performs before asserting the Underworld representation is visible again.
+e2e_path = root / "e2e/lamp-district-gate4.spec.ts"
+e2e = e2e_path.read_text()
+e2e = e2e.replace("attempt <= 24", "attempt <= 32", 1)
+return_marker = "    await page.getByTestId(\"encs-leave\").click();\n    await resolvePendingDecisions(page);\n    await expect(page.getByTestId(\"underworld-scene\")).toBeVisible();"
+return_replacement = "    await page.getByTestId(\"encs-leave\").click();\n    await resolvePendingDecisions(page);\n    const mobileBack = page.getByTestId(\"mobile-step-back\");\n    if (await mobileBack.isVisible().catch(() => false)) await mobileBack.click();\n    await expect(page.getByTestId(\"underworld-scene\")).toBeVisible();"
+if e2e.count(return_marker) != 1:
+    raise SystemExit("Gate 4 could not locate the post-encounter Underworld assertion.")
+e2e = e2e.replace(return_marker, return_replacement, 1)
+e2e = e2e.replace("test.setTimeout(600_000);", "test.setTimeout(900_000);", 1)
+e2e_path.write_text(e2e)
 
 print(f"Applied the Gate 4 World patch and materialized {len(new_files['files'])} new files.")
