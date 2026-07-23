@@ -1,0 +1,120 @@
+/* Rodoh system environment for the local-first cartridge shelf. Decorative
+   framing remains behind every cartridge control and disappears in forced
+   colors. Cartridge-owned identity begins only after a holder enters a world. */
+
+.rodoh-bay-screen {
+  position: absolute;
+  inset: 0;
+  isolation: isolate;
+  place-items: start center !important;
+  overflow: auto;
+  padding: clamp(18px, 4vh, 42px) 0;
+  box-sizing: border-box;
+  background-image:
+    linear-gradient(180deg, rgba(5, 5, 4, .18), rgba(5, 5, 4, .62)),
+    url("../assets/rodoh/bay/rodoh-bay-environment.svg") !important;
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+  background-size: cover !important;
+}
+
+.rodoh-bay-screen::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url("../assets/rodoh/bay/rodoh-bay-foreground.svg") center/cover no-repeat;
+  opacity: .94;
+}
+
+.rodoh-bay-shell {
+  position: relative;
+  z-index: 1;
+  width: min(620px, 92vw) !important;
+  margin: auto 0;
+  padding: clamp(16px, 3vw, 26px);
+  box-sizing: border-box;
+  border: 1px solid rgba(141, 106, 50, .72);
+  border-radius: 10px;
+  background: rgba(8, 8, 6, .88);
+  box-shadow:
+    0 20px 70px rgba(0, 0, 0, .58),
+    inset 0 0 0 1px rgba(116, 173, 119, .12);
+  backdrop-filter: blur(5px);
+}
+
+.rodoh-bay-shell [data-testid^="cartridge-entry-"] {
+  position: relative;
+  z-index: 1;
+}
+
+.rodoh-bay-shell button,
+.rodoh-bay-shell input,
+.rodoh-bay-shell label {
+  position: relative;
+  z-index: 2;
+}
+
+.rodoh-bay-shell button:focus-visible,
+.rodoh-bay-shell input:focus-visible,
+.rodoh-bay-shell label:focus-within {
+  outline: 3px solid #b4e6a8;
+  outline-offset: 3px;
+}
+
+@media (max-width: 700px) {
+  .rodoh-bay-screen {
+    padding: 12px 0 28px;
+    background-position: center top !important;
+  }
+
+  .rodoh-bay-screen::before {
+    position: absolute;
+    background-position: center top;
+    opacity: .58;
+  }
+
+  .rodoh-bay-shell {
+    width: min(100% - 18px, 620px) !important;
+    padding: 14px;
+    margin: 0;
+    backdrop-filter: blur(3px);
+  }
+
+  .rodoh-bay-shell [data-testid^="play-cartridge-"] {
+    min-width: 84px;
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rodoh-bay-screen,
+  .rodoh-bay-screen::before {
+    background-attachment: scroll;
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .rodoh-bay-screen {
+    background-image: none !important;
+    background: Canvas !important;
+  }
+
+  .rodoh-bay-screen::before {
+    display: none;
+  }
+
+  .rodoh-bay-shell {
+    background: Canvas;
+    border-color: CanvasText;
+    box-shadow: none;
+  }
+
+  .rodoh-bay-shell button:focus-visible,
+  .rodoh-bay-shell input:focus-visible,
+  .rodoh-bay-shell label:focus-within {
+    outline-color: Highlight;
+  }
+}
