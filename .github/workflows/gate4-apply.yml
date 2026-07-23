@@ -1,0 +1,93 @@
+name: Gate 4 Lamp District application
+
+on:
+  push:
+    branches: [codex/gate4-lamp-district-world]
+    paths:
+      - '.github/workflows/gate4-apply.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gate4-lamp-district-application
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/gate4-lamp-district-world
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Vendor the exact accepted Gate 3 Arc source plane
+        run: bash scripts/sync-engine.sh 364c4a7acab170a53bd52821587492a4385acf0e
+      - name: Apply the World Underworld product slice
+        run: python tools/apply-gate4-world.py
+      - name: Remove one-shot carriers
+        run: |
+          rm -f tools/apply-gate4-world.py
+          rm -rf tools/gate4-payload
+          rm -f .github/workflows/gate4-apply.yml
+          rm -f .github/workflows/gate4-export-source.yml
+          rm -f gate4-source-sha.txt
+      - run: npm ci
+      - name: Verify exact Arc provenance and source-plane drift
+        env:
+          ENGINE_DRIFT_STRICT: '1'
+        run: npm run engine:check
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Focused Lamp District contracts
+        run: >-
+          npm test --
+          tests/world/underworld-receiver.test.ts
+          tests/world/lamp-district-assets.test.ts
+          tests/world/lamp-district-cartridge.test.ts
+          tests/world/bundled-campaign-parity.test.ts
+          tests/world/cartridge-parity.test.ts
+          tests/world/program-of-record.test.ts
+          tests/world/presentation-prefs.test.ts
+      - name: Complete World regression suite
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Complete desktop and mobile Lamp District journey
+        env:
+          PW_BASE_URL: http://127.0.0.1:5173
+        run: |
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npx playwright test e2e/lamp-district-gate4.spec.ts --workers=1 --trace=retain-on-failure
+      - name: Upload Gate 4 browser receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate4-lamp-district-receipts
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Keep generated deployment output outside the source commit
+        run: git restore --source=HEAD --staged --worktree docs/game || true
+      - name: Publish the verified Gate 4 candidate
+        run: |
+          git diff --check
+          test ! -e .github/workflows/gate4-apply.yml
+          test ! -e .github/workflows/gate4-export-source.yml
+          test ! -e tools/apply-gate4-world.py
+          test ! -e tools/gate4-payload
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Ship the Lamp District Underworld receiver"
+          git push origin HEAD:codex/gate4-lamp-district-world
