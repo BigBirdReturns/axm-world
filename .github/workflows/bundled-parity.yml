@@ -13,6 +13,7 @@ on:
       - 'src/common-ship/**'
       - 'src/source-planes/**'
       - 'src/assets/lamp-district/**'
+      - 'src/assets/relief-circuit/**'
       - 'cartridges/**'
       - 'tests/engine/**'
       - 'tests/fixtures/**'
@@ -26,6 +27,11 @@ on:
       - 'RECONCILIATION.md'
       - 'scripts/sync-engine.sh'
       - 'scripts/check-engine-drift.sh'
+      - 'scripts/verify-relief-circuit-gate6.mjs'
+      - 'scripts/run-relief-circuit-gate6.mjs'
+      - 'package.json'
+      - 'docs/RELIEF_CIRCUIT_WORLD_ACCEPTANCE.md'
+      - 'docs/RODOH_1_0_ACCEPTANCE.md'
       - '.github/workflows/bundled-parity.yml'
 
 concurrency:
@@ -87,6 +93,12 @@ jobs:
             tests/world/underworld-receiver.test.ts \
             tests/world/lamp-district-cartridge.test.ts \
             tests/world/lamp-district-assets.test.ts \
+            tests/world/common-ship-receiver-prep.test.ts \
+            tests/world/common-ship-preparation-cycle.test.ts \
+            tests/world/relief-circuit-production-assets.test.ts \
+            tests/world/program-of-record.test.ts \
+            tests/engine/connected-operation.test.ts \
+            tests/engine/connected-operation-fixture.test.ts \
             tests/godscar/godscar.test.ts \
             tests/dark-tomb/dark-tomb.test.ts \
             tests/common-ship/common-ship.test.ts \
@@ -109,7 +121,7 @@ jobs:
           PW_BASE_URL: http://127.0.0.1:5173
         run: |
           set -euo pipefail
-          npm run dev -- --host 127.0.0.1 >acceptance-receipt/vite.log 2>&1 &
+          npm run dev -- --host 127.0.0.1 --port 5173 --strictPort >acceptance-receipt/vite.log 2>&1 &
           vite_pid=$!
           cleanup() {
             kill "$vite_pid" 2>/dev/null || true
@@ -136,8 +148,25 @@ jobs:
             >acceptance-receipt/playwright.json \
             2>acceptance-receipt/playwright.stderr
           status=$?
-          set -e
           printf '%s\n' "$status" >acceptance-receipt/playwright.status
+
+          gate6_desktop=99
+          gate6_mobile=99
+          if [ "$status" -eq 0 ]; then
+            GATE6_RECEIPT_DIR=acceptance-receipt/gate6/desktop \
+              node scripts/verify-relief-circuit-gate6.mjs all desktop \
+              >acceptance-receipt/gate6-desktop.log 2>&1
+            gate6_desktop=$?
+            if [ "$gate6_desktop" -eq 0 ]; then
+              GATE6_RECEIPT_DIR=acceptance-receipt/gate6/mobile \
+                node scripts/verify-relief-circuit-gate6.mjs all mobile \
+                >acceptance-receipt/gate6-mobile.log 2>&1
+              gate6_mobile=$?
+            fi
+          fi
+          printf '%s\n' "$gate6_desktop" >acceptance-receipt/gate6-desktop.status
+          printf '%s\n' "$gate6_mobile" >acceptance-receipt/gate6-mobile.status
+          set -e
 
           node <<'NODE'
           const fs = require('node:fs');
@@ -183,10 +212,20 @@ jobs:
             }
           }
           walk(data.suites);
+          const readStatus = (name) => {
+            try { return fs.readFileSync(`acceptance-receipt/${name}.status`, 'utf8').trim(); }
+            catch { return 'missing'; }
+          };
+          lines.push(`GATE6 DESKTOP status=${readStatus('gate6-desktop')}`);
+          lines.push(`GATE6 MOBILE status=${readStatus('gate6-mobile')}`);
           fs.writeFileSync('acceptance-receipt/playwright-summary.txt', `${lines.join('\n\n')}\n`);
           NODE
           cat acceptance-receipt/playwright-summary.txt
-          exit "$status"
+          cat acceptance-receipt/gate6-desktop.log 2>/dev/null || true
+          cat acceptance-receipt/gate6-mobile.log 2>/dev/null || true
+          test "$status" -eq 0
+          test "$gate6_desktop" -eq 0
+          test "$gate6_mobile" -eq 0
       - name: Upload permanent acceptance receipt
         if: always()
         uses: actions/upload-artifact@v4
