@@ -1,0 +1,41 @@
+name: Relief Circuit asset preparation
+
+on:
+  push:
+    branches: [art/relief-circuit-production-pack]
+    paths:
+      - 'src/assets/relief-circuit/vessel/**'
+      - 'tests/world/relief-circuit-production-assets.test.ts'
+      - '.github/workflows/relief-circuit-assets-prep.yml'
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - 'src/assets/relief-circuit/vessel/**'
+      - 'tests/world/relief-circuit-production-assets.test.ts'
+      - '.github/workflows/relief-circuit-assets-prep.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Exact Relief Circuit asset contracts
+        run: npm test -- tests/world/relief-circuit-production-assets.test.ts
+      - name: Complete World regression suite
+        run: npm test
+      - name: Production build
+        run: npm run build
