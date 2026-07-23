@@ -1,0 +1,42 @@
+{
+  "format": "axm-runtime-asset-provenance/1",
+  "slice": "waking-tower-hall/1",
+  "status": "production-asset-pack",
+  "createdAt": "2026-07-23",
+  "owner": "BigBirdReturns/axm-world",
+  "authorship": "Original vector compositions authored for The Waking Tower runtime. No external art, stock imagery, model weights, or third-party source files were incorporated.",
+  "license": "Project-owned; distributed under the repository license for this runtime use.",
+  "releaseBoundary": "This pack completes the authored Waking Tower Hall environment, lead portrait, and framing layer. It does not claim every encounter, item, or planetary surface has a bespoke full-frame illustration.",
+  "assets": [
+    {
+      "path": "src/assets/karazhan/hall/waking-tower-environment.svg",
+      "role": "runtime environment",
+      "viewBox": "0 0 1600 900",
+      "surface": "Waking Tower Hall",
+      "responsiveIntent": "cover crop preserves the orrery window, lanterns, and raid table"
+    },
+    {
+      "path": "src/assets/karazhan/hall/seren-vale-portrait.svg",
+      "role": "runtime authored-person portrait",
+      "viewBox": "0 0 640 800",
+      "subject": "Seren Vale, Warden of the Lamplit Survey",
+      "responsiveIntent": "portrait crop remains legible from mobile steward card to desktop Hall panel"
+    },
+    {
+      "path": "src/assets/karazhan/hall/waking-tower-foreground.svg",
+      "role": "runtime framing overlay",
+      "viewBox": "0 0 1600 900",
+      "surface": "Waking Tower Hall",
+      "responsiveIntent": "vault jambs and balcony rails may crop while the central interaction field remains clear"
+    }
+  ],
+  "validation": {
+    "required": [
+      "Vite production build resolves every asset URL",
+      "desktop Chromium renders the authored environment and lead portrait",
+      "mobile Chromium preserves controls and readable focal crops",
+      "forced-colors removes decorative image dependence",
+      "existing Waking Tower campaign and custody receipts remain green"
+    ]
+  }
+}
