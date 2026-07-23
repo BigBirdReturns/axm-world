@@ -15,6 +15,21 @@ missing = [path.name for path in parts if not path.is_file()]
 if missing:
     raise SystemExit(f"Incomplete Gate 6 payload: {missing}")
 
+expected_parts = {
+    "00.txt": (20000, "c88fdf8ac25e4b0b9f8e17cd30663df05a82c2ec48b609c08d0d0cb478c7fb29"),
+    "01.txt": (19344, "9f94cee85732652cb47f81f3f2090cf12f9bd408ae6898483435bbf0905002d9"),
+}
+for path in parts:
+    text = path.read_text().strip()
+    digest = hashlib.sha256(text.encode()).hexdigest()
+    print(f"Gate 6 part {path.name} chars={len(text)} sha256={digest}")
+    expected_length, expected_digest = expected_parts[path.name]
+    if len(text) != expected_length or digest != expected_digest:
+        raise SystemExit(
+            f"Gate 6 part identity mismatch for {path.name}: "
+            f"expected chars={expected_length} sha256={expected_digest}"
+        )
+
 encoded = "".join(path.read_text().strip() for path in parts)
 encoded_sha = hashlib.sha256(encoded.encode()).hexdigest()
 print(f"Gate 6 encoded chars={len(encoded)} sha256={encoded_sha}")
