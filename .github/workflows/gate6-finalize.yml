@@ -37,7 +37,7 @@ jobs:
           path: gate6-assets-source
           fetch-depth: 1
       - name: Vendor exact Arc Gate 5
-        run: scripts/sync-engine.sh 2abf84e4b79c8196bcfa213bca2e920e7d36caa5
+        run: bash scripts/sync-engine.sh 2abf84e4b79c8196bcfa213bca2e920e7d36caa5
       - name: Absorb the accepted production asset pack
         run: |
           rm -rf src/assets/relief-circuit
@@ -71,9 +71,9 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Complete desktop and mobile Gate 6 browser custody
-        env:
-          PW_CHROMIUM_PATH: ${{ github.workspace }}/node_modules/.cache/ms-playwright/chromium/chrome-linux/chrome
-        run: npm run test:gate6
+        run: |
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npm run test:gate6
       - name: Upload Gate 6 acceptance receipts
         if: always()
         uses: actions/upload-artifact@v4
