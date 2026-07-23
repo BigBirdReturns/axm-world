@@ -10,12 +10,13 @@ import { preferredCostumeForArc } from "../../src/world/presentation-prefs.js";
 import { cartridgePaletteScope, themeForArc } from "../../src/world/themes/select.js";
 
 describe("Lamp District World cartridge", () => {
-  it("ships as the fourth first-party cartridge with authored residents", () => {
+  it("remains the fourth first-party cartridge with authored residents", () => {
     expect(BUNDLED_CARTRIDGES.map((cartridge) => cartridge.manifest.id)).toEqual([
       "first-charter",
       "karazhan",
       "kind-gods-of-ilyon",
       "lamp-district",
+      "relief-circuit",
     ]);
     expect(LAMP_DISTRICT_CARTRIDGE.arc).toBe(LAMP_DISTRICT);
     expect(LAMP_DISTRICT_PEOPLE.map((person) => person.id)).toEqual(["anja-vei", "black-lamp-nine"]);

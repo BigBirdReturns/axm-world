@@ -1,6 +1,6 @@
 # RODOH 1.0 acceptance contract
 
-**Status:** Gates 0 through 4 are closed. The Common Ship, clean-room cartridge, and coordinated release gates remain.
+**Status:** Gates 0 through 6 are closed. The clean-room generalization proof and coordinated release gate remain.
 
 RODOH 1.0 is the first coordinated `axm-arc` and `axm-world` release that proves one creator-owned cartridge and run contract across three materially different playable grammars. It is a local-first simulation and story-game platform release. It is not a claim that every future service, medium, or AXM family product has shipped.
 
@@ -20,6 +20,7 @@ The following are already accepted in the local-first browser product and remain
 2. **The Waking Tower**, including its original player-facing identity, distinct large-roster grammar, Heroic posture, attunement chains, complete campaign, and cartridge-owned expression.
 3. **The Kind Gods of Ilyon**, including `godscar-pocket/1` creator source, evidence and faction receipts, deterministic campaign acceptance, Godscar Aperture projection, and cartridge-owned expression.
 4. **The Lamp District**, including `dark-tomb-pocket/1` source, engine-owned Long Alarm and visibility state, the Underworld civic hub and seven-layer map, complete desktop/mobile campaign acceptance, production assets, and exact changed-run resume.
+5. **The Relief Circuit**, including `common-ship-pocket/1` source, six materially distinct embodiment profiles, Arc-owned Common Watch feasibility, preparation through ordinary cycle law, eight engine-owned ship-state tracks, the Common Ship representation, connected Lamp District custody, production assets, and exact desktop/mobile changed-run resume.
 
 Every accepted cartridge must continue to support Board, Map, Hall, Encounter, Globe, and Aperture where those representations are declared, plus any registered grammar-specific representation required by its source plane. Desktop and mobile operation, offline boot, accessibility and sensory controls, exact `axm-cartridge-run/v3` custody, and neutral fallback for imported cartridges remain mandatory.
 
@@ -33,7 +34,7 @@ RODOH 1.0 ships and accepts five first-party references:
 4. **The Lamp District**, the canonical Book II Dark Tomb reference
 5. **The Relief Circuit**, the canonical Book III Common Ship reference
 
-The two new references must use the same cartridge, deterministic engine, custody, evidence, and receiver law as the existing three.
+The two Codex extensions use the same cartridge, deterministic engine, custody, evidence, and receiver law as the original three references.
 
 ### The Lamp District
 
@@ -41,7 +42,7 @@ Gate 4 is closed. The Lamp District proves ordinary neighborhood life, maintaine
 
 ### The Relief Circuit
 
-The Relief Circuit must prove embodied operation aboard a Common Ship. Its crew must include materially different scale, environment, sensorium, temporal, continuity, and interface profiles whose differences alter feasible watches and system allocation. Its complete acceptance journey is:
+Gates 5 and 6 close the Common Ship proof. The Relief Circuit provides embodied operation aboard one moving polity. Its crew includes materially different scale, environment, sensorium, temporal, continuity, and interface profiles whose differences alter feasible watches, readiness, and system allocation. Its accepted desktop and mobile journey is:
 
 > Inspect the mission and decision horizon, read body and role profiles, compose a lawful watch, identify the excluded actor and dependency, allocate habitat and translation systems, resolve the pressure, perform a handoff, establish precedent, reach the Lamp District, conduct a connected relief and descent operation, return with changed ship and Tomb state, export the run, and resume it exactly.
 
@@ -128,10 +129,10 @@ Accounts and external services may later add convenience. They may never become 
 ## Change control
 
 - Books I through III and their accepted source planes are the first 1.0 canon set.
-- New discoveries may enter canon bulletins while The Relief Circuit and the remaining 1.0 gates are completed.
+- New discoveries may enter canon bulletins while the clean-room and coordinated release gates are completed.
 - No Book IV source plane enters the 1.0 critical path.
 - Additive compatible changes remain preferred. Incompatible engine, save, source, or receipt changes require a versioned migration event and explicit release decision.
-- The current four-cartridge World release remains accepted while Book III is completed. Common Ship source-plane existence does not imply a Relief Circuit runtime or bundled cartridge.
+- The current five-cartridge World release remains accepted while the clean-room and coordinated release gates are completed. The Common Ship source plane, Program 005, connected-operation custody, and vessel-management receiver are all executable parts of that baseline.
 
 ## Completion question
 

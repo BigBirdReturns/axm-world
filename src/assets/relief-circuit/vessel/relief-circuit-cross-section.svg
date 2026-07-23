@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">The Relief Circuit vessel cross-section</title>
+  <desc id="desc">A cutaway of the Common Ship showing its transit body, habitat bands, exchange thresholds, translation mesh, watch lattice, continuity commons, sovereign core, and route to the Lamp District.</desc>
+  <defs>
+    <linearGradient id="space" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#070b12"/><stop offset="1" stop-color="#020305"/></linearGradient>
+    <linearGradient id="shell" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#84919a"/><stop offset=".4" stop-color="#42505c"/><stop offset="1" stop-color="#161d25"/></linearGradient>
+    <linearGradient id="dry" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ed4e5"/><stop offset="1" stop-color="#28586d"/></linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#78e1ee"/><stop offset="1" stop-color="#0d5376"/></linearGradient>
+    <linearGradient id="heavy" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d49668"/><stop offset="1" stop-color="#5d3529"/></linearGradient>
+    <linearGradient id="many" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c7efb1"/><stop offset="1" stop-color="#4f8b5d"/></linearGradient>
+    <linearGradient id="machine" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d7d0ff"/><stop offset="1" stop-color="#55448f"/></linearGradient>
+    <radialGradient id="core" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff0b8"/><stop offset=".32" stop-color="#e6ba63"/><stop offset="1" stop-color="#705626"/></radialGradient>
+    <radialGradient id="route" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#bdeaff" stop-opacity=".9"/><stop offset=".35" stop-color="#6ed3e6" stop-opacity=".42"/><stop offset="1" stop-color="#6ed3e6" stop-opacity="0"/></radialGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0v48" fill="none" stroke="#60717d" stroke-width="1" opacity=".16"/></pattern>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="22"/></filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#space)"/><rect width="1600" height="900" fill="url(#grid)"/>
+  <g fill="#c7d4df" opacity=".5"><circle cx="120" cy="128" r="2"/><circle cx="260" cy="86" r="3"/><circle cx="470" cy="142" r="2"/><circle cx="1290" cy="118" r="3"/><circle cx="1450" cy="188" r="2"/><circle cx="1360" cy="698" r="3"/><circle cx="236" cy="728" r="2"/></g>
+
+  <!-- ship shell -->
+  <path d="M148 472C254 238 468 134 762 130h222c268 4 450 118 520 338-70 218-252 332-520 336H762c-294-4-508-108-614-332z" fill="url(#shell)" stroke="#b7c1c8" stroke-width="12"/>
+  <path d="M194 472c96-196 286-286 572-290h208c236 4 394 96 470 286-76 190-234 282-470 286H766c-286-4-476-94-572-282z" fill="#0b1118" stroke="#344652" stroke-width="7"/>
+  <path d="M160 472H60M1500 472h72" stroke="#84919a" stroke-width="28"/><path d="M82 442v60M1550 442v60" stroke="#e6ba63" stroke-width="8"/>
+
+  <!-- transit body -->
+  <text x="550" y="154" fill="#d8e3ea" font-family="monospace" font-size="19" font-weight="700" letter-spacing="3">TRANSIT BODY</text>
+  <path d="M230 330c96-108 246-160 438-170M230 614c96 108 246 160 438 170M1390 330c-82-92-210-142-382-162M1390 614c-82 92-210 142-382 162" fill="none" stroke="#697984" stroke-width="24" opacity=".5"/>
+  <path d="M280 284h1040M280 660h1040" stroke="#e6ba63" stroke-width="4" opacity=".42"/>
+
+  <!-- habitat bands -->
+  <g>
+    <path d="M300 330h276v240H300z" fill="url(#dry)" stroke="#a5e5ef" stroke-width="6"/><text x="322" y="360" fill="#06121a" font-family="monospace" font-size="20" font-weight="700">DRY COMMAND</text><path d="M334 404h206M334 442h164M334 480h184" stroke="#0c3448" stroke-width="10" opacity=".7"/>
+    <path d="M604 306h236v286H604z" fill="url(#water)" stroke="#8ee9f2" stroke-width="6"/><text x="626" y="340" fill="#e9fbff" font-family="monospace" font-size="20" font-weight="700">AQUATIC CARE</text><path d="M626 424c50-32 94 18 144-8 24-12 38-26 48-42M626 492c54-30 102 20 150-6 20-10 32-22 42-38" fill="none" stroke="#c8f5f7" stroke-width="5"/>
+    <path d="M864 330h222v240H864z" fill="url(#heavy)" stroke="#e2ac80" stroke-width="6"/><text x="888" y="362" fill="#23140f" font-family="monospace" font-size="19" font-weight="700">HEAVY WORK</text><path d="M900 408h150M900 450h150M900 492h150" stroke="#43241d" stroke-width="14"/>
+    <path d="M1114 306h206v286h-206z" fill="url(#machine)" stroke="#e0dcff" stroke-width="6"/><text x="1136" y="340" fill="#15102b" font-family="monospace" font-size="18" font-weight="700">FORK CORE</text><g fill="none" stroke="#34266e" stroke-width="5"><circle cx="1217" cy="448" r="64"/><circle cx="1217" cy="448" r="38"/><path d="M1217 374v148M1143 448h148"/></g>
+  </g>
+
+  <!-- Manyborn distributed band -->
+  <path d="M372 596c108 72 258 104 448 104 190 0 340-32 448-104" fill="none" stroke="url(#many)" stroke-width="34" opacity=".8"/>
+  <g fill="#c7efb1"><circle cx="470" cy="630" r="10"/><circle cx="608" cy="670" r="8"/><circle cx="754" cy="682" r="12"/><circle cx="902" cy="674" r="9"/><circle cx="1060" cy="638" r="11"/></g>
+
+  <!-- common thresholds -->
+  <g fill="#0d151d" stroke="#e6ba63" stroke-width="6"><rect x="570" y="378" width="34" height="146" rx="10"/><rect x="840" y="378" width="24" height="146" rx="10"/><rect x="1086" y="378" width="28" height="146" rx="10"/></g>
+  <g fill="#e6ba63"><circle cx="587" cy="452" r="8"/><circle cx="852" cy="452" r="8"/><circle cx="1100" cy="452" r="8"/></g>
+
+  <!-- translation mesh -->
+  <g fill="none" stroke="#8fd0c9" stroke-width="4" opacity=".72"><path d="M438 390C620 216 1000 216 1218 390"/><path d="M438 532c182 172 562 172 780 0"/><path d="M722 306v286M974 330v240"/><path d="M438 390l284 58 252-24 244-34M438 532l284-56 252 22 244 34"/></g>
+  <g fill="#8fd0c9"><circle cx="438" cy="390" r="7"/><circle cx="722" cy="448" r="7"/><circle cx="974" cy="424" r="7"/><circle cx="1218" cy="390" r="7"/><circle cx="438" cy="532" r="7"/><circle cx="722" cy="476" r="7"/><circle cx="974" cy="498" r="7"/><circle cx="1218" cy="532" r="7"/></g>
+
+  <!-- watch lattice -->
+  <g transform="translate(694 400)"><circle cx="106" cy="72" r="90" fill="#080d12" stroke="#d7d0ff" stroke-width="7"/><circle cx="106" cy="72" r="58" fill="url(#core)"/><path d="M106-18v180M16 72h180M43 9l126 126M169 9L43 135" stroke="#26313a" stroke-width="5"/><circle cx="106" cy="72" r="14" fill="#f5f3e6"/></g>
+
+  <!-- continuity commons -->
+  <g transform="translate(654 190)"><path d="M0 0h292v84H0z" fill="#18222c" stroke="#65a86c" stroke-width="6"/><g fill="#c7efb1"><circle cx="36" cy="42" r="12"/><circle cx="76" cy="42" r="12"/></g><g fill="#d7d0ff"><rect x="116" y="28" width="54" height="28" rx="4"/><rect x="188" y="28" width="76" height="28" rx="4"/></g><text x="18" y="76" fill="#9fb7a6" font-family="monospace" font-size="14">SCHOOL · STORES · ARCHIVE · SUCCESSION</text></g>
+
+  <!-- sovereign core -->
+  <g transform="translate(702 730)"><path d="M0 0h196l48 42-48 42H0L-48 42z" fill="#161b22" stroke="#e6ba63" stroke-width="6"/><text x="32" y="50" fill="#f6e8b6" font-family="monospace" font-size="20" font-weight="700">COMMON CHARTER</text></g>
+
+  <!-- Lamp District route -->
+  <ellipse cx="1450" cy="680" rx="120" ry="120" fill="url(#route)" filter="url(#glow)"/><circle cx="1450" cy="680" r="64" fill="#071827" stroke="#6ed3e6" stroke-width="7"/><path d="M1416 680h68M1450 646v68" stroke="#e6ba63" stroke-width="6"/><path d="M1326 610c58 4 96 22 124 70" fill="none" stroke="#6ed3e6" stroke-width="7" stroke-dasharray="14 12"/><text x="1308" y="826" fill="#9bd8e5" font-family="monospace" font-size="18">SCARWAY TO LAMP DISTRICT</text>
+
+  <!-- legend -->
+  <g transform="translate(88 88)" font-family="monospace"><rect width="420" height="160" rx="12" fill="#080c12" stroke="#4b5e69" stroke-width="4" opacity=".94"/><text x="22" y="34" fill="#f3e5b0" font-size="20" font-weight="700">SEVEN OPERATING SYSTEMS</text><text x="22" y="64" fill="#aab9c2" font-size="15">shell: TRANSIT BODY</text><text x="22" y="88" fill="#aab9c2" font-size="15">colored cells: HABITAT BANDS</text><text x="22" y="112" fill="#aab9c2" font-size="15">gold locks: COMMON THRESHOLDS</text><text x="222" y="64" fill="#aab9c2" font-size="15">cyan web: TRANSLATION MESH</text><text x="222" y="88" fill="#aab9c2" font-size="15">central wheel: WATCH LATTICE</text><text x="222" y="112" fill="#aab9c2" font-size="15">top store: CONTINUITY COMMONS</text><text x="222" y="136" fill="#aab9c2" font-size="15">lower seal: COMMON CHARTER</text></g>
+</svg>

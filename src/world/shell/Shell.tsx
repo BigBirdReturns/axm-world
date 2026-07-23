@@ -215,7 +215,8 @@ export function Shell({ world, interaction: ix, onExit, initialCostumeId, onCost
     // Planet/world is a player surface, not developer chrome. Keep it reachable
     // everywhere; only the dependency graph is a development-only renderer.
     () => presentations.filter((presentation) => presentation.id !== "graph"
-      && (presentation.id !== "underworld" || world.arc.meta.domain === "godscar-dark-tomb")),
+      && (presentation.id !== "underworld" || world.arc.meta.domain === "godscar-dark-tomb")
+      && (presentation.id !== "common-ship" || world.arc.meta.domain === "godscar-common-ship")),
     [presentations, world.arc.meta.domain],
   );
   const active = useMemo(() => presentations.find((p) => p.id === costumeId) ?? presentations[0]!, [presentations, costumeId]);
@@ -527,7 +528,15 @@ export function Shell({ world, interaction: ix, onExit, initialCostumeId, onCost
               data-testid="mobile-step-back"
               onClick={() => {
                 if (mobileStep === "party") setMobileStep("contract");
-                else { ix.select(null); setMobileStep("board"); }
+                else {
+                  // A Common Ship operation remains the same managed watch after a
+                  // partial outcome. Returning to the vessel must preserve the
+                  // selected people so the holder can prepare or recommit them.
+                  // Other representations retain the established deselect-to-board
+                  // behavior.
+                  if (costumeId !== "common-ship") ix.select(null);
+                  setMobileStep("board");
+                }
               }}
               style={{ flex: "none", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "rgba(15,13,9,0.92)", borderBottom: "1px solid #2a2620", color: "#d8cfbd", fontFamily: "var(--px-font)", fontSize: 12, fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
             >

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 800" role="img" aria-labelledby="title desc">
+  <title id="title">Ilya Venn, rapid-response pilot</title>
+  <desc id="desc">A dry-bodied pilot in a direct-interface flight harness, standing before the Relief Circuit helm with manual abort controls and several incompatible habitat clocks reflected in the canopy.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c3442"/><stop offset=".52" stop-color="#101c27"/><stop offset="1" stop-color="#060a0f"/></linearGradient>
+    <linearGradient id="suit" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#668596"/><stop offset=".48" stop-color="#334e60"/><stop offset="1" stop-color="#152430"/></linearGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#efd0b5"/><stop offset=".55" stop-color="#c89678"/><stop offset="1" stop-color="#825b4b"/></linearGradient>
+    <radialGradient id="helm" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#d9f5ff" stop-opacity=".92"/><stop offset=".34" stop-color="#6ed3e6" stop-opacity=".48"/><stop offset="1" stop-color="#6ed3e6" stop-opacity="0"/></radialGradient>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="18"/></filter>
+    <filter id="grain" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".74" numOctaves="3" seed="89"/><feComponentTransfer><feFuncA type="table" tableValues="0 .06"/></feComponentTransfer></filter>
+  </defs>
+  <rect width="640" height="800" fill="url(#bg)"/>
+  <path d="M48 628V162Q48 54 156 38h328q108 16 108 124v466z" fill="#07121b" stroke="#638495" stroke-width="10"/>
+  <path d="M78 220h484M78 402h484" stroke="#526a78" stroke-width="8"/><path d="M120 86v506M520 86v506" stroke="#273945" stroke-width="20"/>
+  <g fill="none" stroke-linecap="round"><circle cx="142" cy="156" r="54" stroke="#6ed3e6" stroke-width="7"/><circle cx="320" cy="132" r="62" stroke="#e6ba63" stroke-width="7"/><circle cx="494" cy="158" r="48" stroke="#d7d0ff" stroke-width="7"/><path d="M142 102v108M88 156h108M320 70v124M258 132h124M494 110v96M446 158h96" stroke-width="4" opacity=".7"/></g>
+  <circle cx="320" cy="184" r="160" fill="url(#helm)" filter="url(#glow)" opacity=".26"/>
+
+  <path d="M126 800c18-190 78-332 184-398h20c106 66 166 208 184 398z" fill="url(#suit)" stroke="#081019" stroke-width="12"/>
+  <path d="M246 224c16-46 42-72 74-72 34 0 60 26 76 72l-18 174H264z" fill="url(#skin)" stroke="#2b2929" stroke-width="8"/>
+  <path d="M242 246c18-54 48-88 78-94 32 8 60 42 80 94l-8-96-72-52-72 52z" fill="#263c4d"/>
+  <path d="M268 294c16 8 32 8 48 0M330 294c16 8 32 8 48 0" stroke="#302927" stroke-width="6" stroke-linecap="round"/><path d="M292 348c18 9 38 9 56 0" stroke="#985f52" stroke-width="6" stroke-linecap="round"/><path d="M320 294v32" stroke="#a67560" stroke-width="5"/>
+  <path d="M230 420c62 46 118 52 180 0" fill="none" stroke="#6ed3e6" stroke-width="11"/>
+  <path d="M234 462l86 68 86-68" fill="#172936" stroke="#e6ba63" stroke-width="8"/>
+  <path d="M320 530v214" stroke="#6ed3e6" stroke-width="7"/><path d="M206 562c48 18 86 10 114-24M434 562c-48 18-86 10-114-24" fill="none" stroke="#9fb5c1" stroke-width="7"/>
+  <g transform="translate(320 642)"><circle r="112" fill="url(#helm)" filter="url(#glow)"/><path d="M-82-58h164v116H-82z" fill="#0a1720" stroke="#6ed3e6" stroke-width="8"/><path d="M-58-32h116M-58 0h88M-58 32h106" stroke="#bfeaf2" stroke-width="8"/><circle cx="58" cy="32" r="14" fill="#d68165"/><path d="M58 18v28M44 32h28" stroke="#fff0b8" stroke-width="5"/></g>
+  <path d="M142 710c54-58 98-72 136-40M498 710c-54-58-98-72-136-40" fill="none" stroke="#c89678" stroke-width="26" stroke-linecap="round"/>
+  <path d="M138 800h364" stroke="#071018" stroke-width="30"/>
+  <rect width="640" height="800" filter="url(#grain)" opacity=".52"/>
+</svg>

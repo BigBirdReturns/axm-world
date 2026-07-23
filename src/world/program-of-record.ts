@@ -8,12 +8,12 @@
 // world state, and saved results all resolve to the same anchor.
 
 import { cartridgeIdentity } from "./cartridge-identity.js";
-import { FIRST_CHARTER_CARTRIDGE, LAMP_DISTRICT_CARTRIDGE } from "./cartridge.js";
+import { FIRST_CHARTER_CARTRIDGE, LAMP_DISTRICT_CARTRIDGE, RELIEF_CIRCUIT_CARTRIDGE } from "./cartridge.js";
 import type { Cartridge } from "./cartridge.js";
 
 /** Runtime surfaces a program may project. Presentation-only labels — the engine
  *  owns outcomes, RODOH owns rendering. */
-export type RuntimeSurface = "board" | "encounter" | "result" | "ledger" | "world" | "aperture" | "underworld";
+export type RuntimeSurface = "board" | "encounter" | "result" | "ledger" | "world" | "aperture" | "underworld" | "common-ship";
 export type EntryExperience = "guided-first-contract" | "direct-to-runtime";
 
 export interface ProgramOfRecord {
@@ -92,12 +92,28 @@ export const PROGRAM_004: ProgramOfRecord = defineProgram("program-004", LAMP_DI
   },
 });
 
+/** Program 005 — The Relief Circuit. Arc owns Common Watch composition,
+ * ship-state transitions, handoff, precedent, and the connected Lamp District
+ * operation; World presents those receipts through the Common Ship surface. */
+export const PROGRAM_005: ProgramOfRecord = defineProgram("program-005", RELIEF_CIRCUIT_CARTRIDGE, {
+  runtimeSurfaces: ["common-ship", "board", "encounter", "result", "ledger", "world", "aperture"],
+  entryExperience: "direct-to-runtime",
+  saveSchemaVersion: 1,
+  ledgerSchemaVersion: 2,
+  extraAssets: {
+    "relief-circuit-environment": "original:relief-circuit-environment@1",
+    "relief-circuit-cross-section": "original:relief-circuit-cross-section@1",
+    "relief-circuit-symbol-atlas": "original:relief-circuit-symbol-atlas@1",
+    "relief-circuit-cast": "original:relief-circuit-cast@1",
+  },
+});
+
 /** Every cartridge RODOH treats as a controlled program of record. Keyed by
- *  authored-arc digest at lookup, never by manifest claim. Today: just Program
- *  001 (The First Charter). A cartridge NOT in this registry is still fully
- *  playable — it simply boots as an ordinary cartridge, not a program of
- *  record. */
-export const PROGRAMS_OF_RECORD: readonly ProgramOfRecord[] = [PROGRAM_001, PROGRAM_004];
+ *  authored-arc digest at lookup, never by manifest claim. Numbering preserves
+ *  the accepted release lineage, so gaps are historical rather than implicit
+ *  programs. A cartridge outside this registry remains fully playable; it boots
+ *  as an ordinary holder-owned cartridge rather than a program of record. */
+export const PROGRAMS_OF_RECORD: readonly ProgramOfRecord[] = [PROGRAM_001, PROGRAM_004, PROGRAM_005];
 
 /** The program of record a cartridge IS, matched by its COMPUTED authored
  *  identity (cartridgeIdentity) — never a claimed manifest value — or null if

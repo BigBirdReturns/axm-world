@@ -20,21 +20,27 @@ Parity means every bundled local-first cartridge receives the guarantees its aut
 | The Waking Tower | Large roster, role gates, attunement chains, authored Heroic posture | Board |
 | The Kind Gods of Ilyon | `godscar-pocket/1`, evidence and faction receipts, constitutional Aperture | Aperture |
 | The Lamp District | `dark-tomb-pocket/1`, civic hub, seven layers, Long Alarm, signature, visibility, descent and return | Underworld |
-
-The Common Ship reference, The Relief Circuit, remains outside this table until its Gate 5 cartridge and receiver pass their own acceptance contract.
+| The Relief Circuit | `common-ship-pocket/1`, embodied roster ecology, Arc-owned watch feasibility, preparation cycles, eight ship-state tracks, connected Lamp District operation | Common Ship |
 
 ## Gate 4 closure
 
-The Lamp District closes the remaining Book II parity gap by adding:
+The Lamp District closes the Book II parity gap with the exact Gate 3 source, Program 004, the Underworld representation, a complete production identity, and desktop/mobile Ordinary Life, Descent, Breach, Return, export, import, and exact-resume acceptance. World maintains no second Dark Tomb compiler or resolver.
 
-- exact vendoring of the accepted Arc Gate 3 source and cartridge;
-- a fourth bundled World cartridge and Program 004 record;
-- the Underworld representation, driven by the registered source and engine-owned Tomb state;
-- responsive civic hub, layered map, expedition ledger, cast, signature budget, and inheritance views;
-- Lamp District role appearances, motifs, all-surface theme, hero environment, lead portrait, cross-section, and provenance;
-- complete desktop and mobile Ordinary Life, Descent, Breach, Return, export, import, and exact-resume acceptance.
+## Gates 5 and 6 closure
 
-World does not maintain a second Dark Tomb compiler or resolver. Malformed registered source is reported as invalid and remains unaltered.
+The Relief Circuit closes the Book III parity gap with:
+
+- exact vendoring of accepted Arc Gate 5 at `2abf84e4b79c8196bcfa213bca2e920e7d36caa5`;
+- a fifth bundled cartridge and Program 005 record;
+- the Common Ship representation, driven by registered source, Arc-owned composition receipts, and engine-owned state;
+- six founding embodiment profiles kept separate from occupations;
+- a preparation-cycle action executed through ordinary Training and `runCycle` law rather than a receiver-side readiness patch;
+- all eight ship-state tracks with exact transition receipts;
+- versioned outbound and returned Lamp District custody in the portable-run extension plane;
+- vessel environment, six founding portraits, cross-section, operational symbol atlas, and project-owned provenance;
+- complete desktop/mobile campaign, accessibility, neutral imported Common Ship, export, fresh-context import, and exact-resume acceptance.
+
+World does not maintain a second Common Ship compiler, composition evaluator, ship-state economy, handoff resolver, or connected-operation authority.
 
 ## Completion decision
 

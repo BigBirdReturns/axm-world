@@ -1,12 +1,12 @@
 # The Relief Circuit World acceptance contract
 
-**Status:** Gate 6 preparation reconciled onto current World main. Arc Gate 5 is accepted at `2abf84e4b79c8196bcfa213bca2e920e7d36caa5`; this document and the read-only receiver model still do not by themselves bundle The Relief Circuit, assign it a Program number, ship a vessel-management interface, or claim browser acceptance.
+**Status:** Gate 6 implementation and acceptance candidate. World vendors accepted Arc Gate 5 at `2abf84e4b79c8196bcfa213bca2e920e7d36caa5`, bundles The Relief Circuit as Program 005, and qualifies the Common Ship receiver, connected Lamp District custody, production assets, accessibility, and exact desktop/mobile resume on one reviewed head.
 
 **Dependencies:**
 
 1. Gate 4 has merged The Lamp District Underworld receiver and four-cartridge regression baseline.
 2. Gate 5 has accepted the exact Arc head containing the canonical Relief Circuit source, compiled cartridge, authoring product, complete campaign, and connected Lamp District transition.
-3. World must vendor that exact Arc head before the Gate 6 product candidate is qualified.
+3. World vendors that exact Arc head and enforces strict drift verification before qualification.
 
 ## Receiver authority
 
@@ -32,7 +32,7 @@ The module under `src/world/common-ship/` follows the existing Underworld patter
 
 ## Required management surfaces
 
-The Gate 6 player experience must provide one coherent vessel-management representation with access to the following views.
+The Gate 6 player experience provides one coherent vessel-management representation with access to the following views.
 
 ### Mission and decision horizon
 
@@ -84,9 +84,9 @@ The accepted run reaches the Lamp District through the Gate 5 transition object.
 
 ## Representation plan
 
-The Common Ship receiver should introduce one principal vessel-management representation while reusing the neutral shell, encounter, cartridge object, and custody surfaces.
+The Common Ship receiver introduces one principal vessel-management representation while reusing the neutral shell, encounter, cartridge object, and custody surfaces.
 
-The principal representation needs:
+The principal representation provides:
 
 - a vessel cross-section or systems map;
 - habitat-band occupancy and continuity paths;
@@ -102,7 +102,7 @@ The representation must remain usable at desktop and mobile sizes and under keyb
 
 ## Production dignity target
 
-The Relief Circuit requires:
+The Relief Circuit owns:
 
 - cartridge-owned cast appearances for every founding profile;
 - motifs for the six Common Watch tests, seven ship systems, eight state tracks, and handoff or precedent;
@@ -116,7 +116,7 @@ The receiver must not branch on `relief-circuit` to understand Common Ship law. 
 
 ## Gate 6 browser acceptance
 
-One exact World candidate must complete the frozen journey on desktop and mobile:
+One exact World candidate completes the frozen journey on desktop and mobile:
 
 > Inspect the mission and decision horizon, read body and role profiles, compose a lawful watch, identify the excluded actor and dependency, allocate habitat and translation systems, resolve the pressure, perform a handoff, establish precedent, reach the Lamp District, conduct a connected relief and descent operation, return with changed ship and Tomb state, export the run, load it in a fresh holder context, and resume exactly.
 
@@ -131,6 +131,8 @@ Permanent acceptance also requires:
 - neutral imported Common Ship presentation;
 - accessibility and production-asset receipts.
 
-## Reconciled boundary
+## Gate 6 closure boundary
 
-The reconciled branch establishes the receiver data model and acceptance contract on current World main. Program 005, exact Gate 5 vendoring, the Common Ship scene, roster interaction, connected-operation presentation, prepared assets, and browser tests remain the executable Gate 6 train.
+The accepted candidate carries Program 005, exact Gate 5 vendoring, the source-plane-generic Common Ship scene, runtime-to-source person mapping, Arc-authored lawful and unlawful watch receipts, ordinary Training-cycle preparation, all eight state tracks, handoff and precedent, outbound and returned Lamp District custody, six founding portraits, vessel environment, cross-section, symbol atlas, and neutral imported Common Ship presentation.
+
+Desktop and mobile acceptance complete all nine Relief Circuit operations, prepare watches without bypassing Arc law, verify the outbound and returned connection, export `axm-cartridge-run/v3`, clear the holder context, import the exact run, and resume with both state sets and the connected operation intact. Gate 6 adds no World compiler, composition evaluator, state-effect authority, handoff resolver, or cross-cartridge outcome law. The remaining RODOH 1.0 gates are the clean-room generalization proof and coordinated release.

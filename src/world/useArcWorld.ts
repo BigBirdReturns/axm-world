@@ -7,7 +7,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Arc, DramaCard, Organization, RunReport } from "../engine/types.js";
-import type { CartridgeStateValue } from "../engine/abi13.js";
+import type { CartridgeStateValue, CompositionEvaluation } from "../engine/abi13.js";
+import { evaluateComposition } from "../engine/composition.js";
 import { normalizePortableRunExtensions, type JsonValue, type PortableRunExtensions, type PortableRunV3 } from "../engine/portable-run.js";
 import type { ChallengeAssignment, PendingRewardChoice } from "../engine/cycle.js";
 import { runCycle } from "../engine/cycle.js";
@@ -44,6 +45,8 @@ import {
 import { compileEncounter, type EncounterSpec } from "./encounter/compile-encounter.js";
 import { resolveTokensSpent } from "./encounter/spend.js";
 import { resolveWorldDecision, type DecisionResponse } from "./decision.js";
+import { connectedOperationForReport } from "./common-ship/connected-relief.js";
+import { CONNECTED_OPERATION_EXTENSION_KEY } from "../engine/connected-operation.js";
 
 export interface RosterGear {
   id: string;
@@ -155,6 +158,8 @@ export interface ArcWorld {
    * party slots, resolutions) — same source record as the board card. Pass a
    * difficultyModeId to preview the contract under an authored posture. */
   encounterFor: (challengeId: string, difficultyModeId?: string | null) => EncounterSpec | null;
+  /** Arc-owned engine 1.3 composition law for a candidate party. */
+  evaluateCompositionFor: (challengeId: string, agentIds: string[]) => CompositionEvaluation | null;
   /** Faithful projection of the resolver for a candidate party, optionally under
    * an authored difficulty posture and/or resource-spend (tokensSpent narrows the
    * projected risk band without moving the mean). */
@@ -172,6 +177,8 @@ export interface ArcWorld {
   /** Latest Arc-recorded reward precedent. Unlike lastEquip, this survives reload. */
   latestReward: RewardMemory | null;
   lastReport: PlayReportView | null;
+  /** Exact engine report for the last session resolution, including composition and state changes. */
+  lastEngineReport: RunReport | null;
   /** The full ledger entry for the last resolved run THIS SESSION — the SAME record
    *  the ledger persists (challengeName + outcome + cycle + seq + the structured
    *  consequence). Surfaced so the result overlay and revisit modal render stored
@@ -188,8 +195,46 @@ export interface ArcWorld {
   /** Commits through the engine and returns the authoritative presentation receipt. */
   resolveDecision: (optionId: string) => DecisionResponse | null;
   applyDowntime: (agentId: string, action: DowntimeAction) => void;
+  /** Advance one ordinary engine cycle with the selected watch assigned to Training. */
+  runPreparationCycle: (agentIds: string[]) => void;
   /** The exact portable custody object: Arc + engine save + runtime extensions. */
   buildExport: () => CustodyObject;
+}
+
+/** Advance one ordinary engine cycle with the selected watch temporarily
+ * assigned to the existing Training facility. All readiness changes, recovery,
+ * drama, resource costs, and time passage come from Arc-owned cycle law. The
+ * temporary assignment is restored afterward so a one-cycle preparation act does
+ * not silently become a permanent infrastructure policy. */
+export function runWatchPreparationCycle(
+  org: Organization,
+  arc: Arc,
+  agentIds: string[],
+): ReturnType<typeof runCycle> | null {
+  const training = [...new Set(agentIds)]
+    .filter((id) => org.agents[id]?.downedUntilCycle === null)
+    .sort();
+  if (training.length === 0) return null;
+
+  const previousAssigned = [...(org.infrastructure.Training?.assignedAgents ?? [])];
+  const prepared: Organization = {
+    ...org,
+    infrastructure: {
+      ...org.infrastructure,
+      Training: { ...org.infrastructure.Training, assignedAgents: training },
+    },
+  };
+  const result = runCycle({ org: prepared, arc, assignments: [] });
+  return {
+    ...result,
+    org: {
+      ...result.org,
+      infrastructure: {
+        ...result.org.infrastructure,
+        Training: { ...result.org.infrastructure.Training, assignedAgents: previousAssigned },
+      },
+    },
+  };
 }
 
 function roleName(arc: Arc, id: string | null): string {
@@ -216,6 +261,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   });
   const [ledger, setLedger] = useState<Ledger>(() => restored?.ledger ?? emptyLedger(cartridgeDigest));
   const [lastReport, setLastReport] = useState<PlayReportView | null>(null);
+  const [lastEngineReport, setLastEngineReport] = useState<RunReport | null>(null);
   const [difficultyModeId, setDifficultyModeId] = useState<string | null>(null);
   const [pendingRewardChoices, setPendingRewardChoices] = useState<PendingRewardChoice[]>(
     () => restored?.pendingRewardChoices ?? [],
@@ -317,6 +363,18 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     [arc, org, challengeWithMode],
   );
 
+  const evaluateCompositionFor = useCallback(
+    (challengeId: string, agentIds: string[]): CompositionEvaluation | null => {
+      const challenge = arc.challenges.find((candidate) => candidate.id === challengeId);
+      if (!challenge) return null;
+      const agents = agentIds
+        .map((id) => org.agents[id])
+        .filter((agent): agent is NonNullable<typeof agent> => Boolean(agent));
+      return evaluateComposition({ challenge, agents, arc });
+    },
+    [arc, org.agents],
+  );
+
   const evaluateParty = useCallback(
     (challengeId: string, agentIds: string[], difficultyModeId?: string | null, tokensSpent?: number): PartyReadiness | null => {
       const c = challengeWithMode(challengeId, difficultyModeId);
@@ -381,9 +439,14 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
       setOrg(result.org);
       setPendingRewardChoices(result.pendingRewardChoices);
       const report: RunReport | undefined = result.reports[0];
+      setLastEngineReport(report ?? null);
       const agentName = (id: string): string => result.org.agents[id]?.name ?? org.agents[id]?.name ?? id;
       const view = report ? summarizeReport(report, arc, agentName) : null;
       setLastReport(view);
+      if (report) {
+        const connected = connectedOperationForReport({ arc, org: result.org, report, extensions });
+        if (connected) setExtension(CONNECTED_OPERATION_EXTENSION_KEY, connected);
+      }
       if (report && view) {
         // The HONEST post-run unlock delta: contracts available AFTER this run that
         // were not available BEFORE (real access state, not the brief's aspirational
@@ -415,7 +478,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
         );
       }
     },
-    [arc, org, scene, difficultyModeId],
+    [arc, org, scene, difficultyModeId, extensions, setExtension],
   );
 
   const resolveDecision = useCallback(
@@ -455,6 +518,16 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
   const applyDowntime = useCallback((agentId: string, action: DowntimeAction) => {
     setOrg((cur) => applyAgentDowntime(cur, agentId, action));
   }, []);
+
+  const runPreparationCycle = useCallback((agentIds: string[]) => {
+    const result = runWatchPreparationCycle(org, arc, agentIds);
+    if (!result) return;
+    setOrg(result.org);
+    setPendingRewardChoices(result.pendingRewardChoices);
+    setLastReport(null);
+    setLastEngineReport(null);
+    setLastEquip(null);
+  }, [arc, org]);
 
   const pendingLoot = useMemo<PendingLootChoice[]>(
     () => pendingRewardChoices.map((choice) => {
@@ -594,6 +667,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     recommendedParty,
     describeContract,
     encounterFor,
+    evaluateCompositionFor,
     evaluateParty,
     recommendationFor,
     fixPlanFor,
@@ -603,6 +677,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     lastEquip,
     latestReward,
     lastReport,
+    lastEngineReport,
     lastRecord,
     difficultyModes: arc.difficultyModes,
     difficultyModeId,
@@ -610,6 +685,7 @@ export function useArcWorld(cartridge: Cartridge = FIRST_CHARTER_CARTRIDGE): Arc
     runChallenge,
     resolveDecision,
     applyDowntime,
+    runPreparationCycle,
     buildExport,
   };
 }

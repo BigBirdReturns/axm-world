@@ -9,6 +9,7 @@ import { WorldMapScene } from "./worldmap/WorldMap.js";
 import { HallScene } from "./inhabited/HallScene.js";
 import { RodohAperture } from "./aperture/RodohAperture.js";
 import { UnderworldScene } from "./underworld/UnderworldScene.js";
+import { CommonShipScene } from "./common-ship/CommonShipScene.js";
 import type { CostumeId } from "./presentation-prefs.js";
 import type { ArcInteraction } from "./useArcInteraction.js";
 import type { ArcWorld } from "./useArcWorld.js";
@@ -155,6 +156,15 @@ export function getPresentations(): Representation[] {
       Scene: UnderworldScene,
       controlsHint: t("presentations.underworld.controlsHint"),
       purpose: t("presentations.underworld.purpose"),
+      legend,
+    },
+    {
+      id: "common-ship",
+      label: "Common Ship",
+      blurb: "Compose watches across bodies, clocks, habitats, and inherited obligations.",
+      Scene: CommonShipScene,
+      controlsHint: "Select an operation, compose the watch, inspect the Arc verdict, then commit.",
+      purpose: "Manage the vessel as a shared polity rather than a human-normal vehicle.",
       legend,
     },
     {

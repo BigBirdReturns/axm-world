@@ -7,7 +7,7 @@ creator-owned cartridges through the shared deterministic engine without owning
 their authored law or run record. Rodoh is the identity and interaction language
 humans encounter; AXM-WORLD is the implementation name used in this repository.
 
-Inside Rodoh, board, map, hall, globe, aperture, underworld, graph, and report are representations of one cartridge and one run, not separate games. `axm-arc` is both the authoring hub
+Inside Rodoh, board, map, hall, globe, aperture, underworld, common ship, graph, and report are representations of one cartridge and one run, not separate games. `axm-arc` is both the authoring hub
 and another, text-oriented runtime player.
 
 The renderer never reimplements the rules. It calls the engine's pure functions
@@ -29,10 +29,12 @@ stays replaceable.
   delegates to `foundOrganization` and owns no roster/resource/opening policy.
 - `src/world/aperture/**` — the high-information Book I representation: campaign, contracts, bounded people, exact receipts, and validated Godscar Pocket source.
 - `src/world/underworld/**` — the Book II civic-underworld representation: hub, Long Alarm, signature, visibility, seven layers, expedition ledgers, and exact inherited Tomb state.
+- `src/world/common-ship/**` — the Book III vessel-management representation: embodiment profiles, decision horizons, Arc-owned Common Watch verdicts, preparation cycles, eight ship-state tracks, handoff and precedent, and connected Lamp District custody.
 - `src/godscar/**` + `cartridges/kind-gods-of-ilyon.*` — the vendored Pocket grammar and its first creator-owned source/executable cartridge pair.
 - `src/dark-tomb/**` + `cartridges/lamp-district.*` — the exact Gate 3 Dark Tomb source, compiled cartridge, and canonical Book II reference consumed by World.
+- `src/common-ship/**` + `cartridges/relief-circuit.*` — the accepted Book III source, compiled cartridge, connected-operation fixture, and canonical Common Ship reference.
 - `src/world/themes/first-charter/**`, `src/world/themes/karazhan/**`, and
-  `src/world/themes/ilyon/**`, and `src/world/themes/lamp-district/**` — cartridge-owned role portraits/bodies, encounter motifs, emblems, material treatments, and procedural palettes for every bundled cartridge. See the governed asset bibles under `docs/design/`.
+  `src/world/themes/ilyon/**`, `src/world/themes/lamp-district/**`, and the direct Relief Circuit vessel asset pack — cartridge-owned role portraits/bodies, encounter motifs, emblems, material treatments, and procedural palettes for every bundled cartridge. See the governed asset bibles under `docs/design/`.
 
 ## Why canonical founding matters
 
@@ -58,10 +60,10 @@ The cartridge bay, digest-addressed immutable revisions, exact
 `axm-cartridge-run/v3` import/export, transactional restore, guided First Charter
 entry, reusable Board/Map/Hall/Globe/Aperture shell, complete six-contract
 campaign, offline boot, visible save recovery, and multi-cartridge receiver are
-implemented. The bundled proofs are **The First Charter**, **The Waking Tower**, **The Kind Gods of Ilyon**, and **The Lamp District**. The engine and creator grammar remain vendored from `axm-arc`
+implemented. The bundled proofs are **The First Charter**, **The Waking Tower**, **The Kind Gods of Ilyon**, **The Lamp District**, and **The Relief Circuit**. The engine and creator grammar remain vendored from `axm-arc`
 and pinned to an exact commit — see [RECONCILIATION.md](RECONCILIATION.md).
 
-The bundled local-first product scope is release-qualified: all four cartridges now share full-campaign and exact-custody coverage, cartridge-owned role art, every shipped representation, responsive parity, local sensory controls, and focused regression gates. The implemented Godscar scope proves exact Arc provenance and deterministic full campaigns across Book I and Book II. Ilyon owns Aperture. The Lamp District owns Underworld, a seven-layer civic map, exact Tomb-state projection, complete desktop/mobile export-import-resume acceptance, and its production identity pack.
+The bundled local-first product scope is release-qualified: all five cartridges now share full-campaign and exact-custody coverage, cartridge-owned role art, every shipped representation, responsive parity, local sensory controls, and focused regression gates. The implemented Godscar scope proves exact Arc provenance and deterministic full campaigns across Books I through III. Ilyon owns Aperture. The Lamp District owns Underworld, a seven-layer civic map, exact Tomb-state projection, complete desktop/mobile export-import-resume acceptance, and its production identity pack. The Relief Circuit owns Common Ship, six embodied founding profiles, Arc-authoritative roster feasibility, preparation cycles, eight exact ship-state tracks, the connected Lamp District operation, and complete desktop/mobile export-import-resume custody.
 The campaign has a model-based narrative acceptance record in
 [axm-arc](https://github.com/BigBirdReturns/axm-arc/blob/main/docs/ILYON_ACCEPTANCE.md).
 Human sessions remain valuable telemetry and regression discovery; they are not
