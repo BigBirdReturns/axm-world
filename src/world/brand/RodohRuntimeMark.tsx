@@ -30,12 +30,14 @@ const SIZES: Record<RodohRuntimeMarkVariant, number> = {
   micro: 2,
 };
 
-function paintedCells(): Array<{ x: number; y: number; token: Exclude<RodohRootMarkToken, "."> }> {
-  const cells: Array<{ x: number; y: number; token: Exclude<RodohRootMarkToken, "."> }> = [];
+type PaintedRootMarkToken = Exclude<RodohRootMarkToken, ".">;
+
+function paintedCells(): Array<{ x: number; y: number; token: PaintedRootMarkToken }> {
+  const cells: Array<{ x: number; y: number; token: PaintedRootMarkToken }> = [];
   for (const [y, row] of RODOH_ROOT_MARK_MAP.entries()) {
     for (const [x, token] of [...row].entries()) {
       if (token === ".") continue;
-      cells.push({ x, y, token });
+      cells.push({ x, y, token: token as PaintedRootMarkToken });
     }
   }
   return cells;
