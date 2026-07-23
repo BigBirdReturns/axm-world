@@ -28,8 +28,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Vendor the exact accepted Gate 3 Arc source plane
-        run: bash scripts/sync-engine.sh 364c4a7acab170a53bd52821587492a4385acf0e
+      - name: Vendor the exact accepted Gate 4 Arc source plane
+        run: bash scripts/sync-engine.sh 5e934de9b662ea09da225d98d38a9ac7fe6607dc
       - name: Apply the World Underworld product slice
         run: python tools/apply-gate4-world.py
       - name: Remove one-shot carriers
