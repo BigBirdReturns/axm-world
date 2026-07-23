@@ -6,7 +6,7 @@ import type { Arc } from "../engine/types.js";
 import { cartridgeDigest } from "../engine/cartridge-digest.js";
 import { storageWriteFailure, type StorageWriteResult } from "./storage-result.js";
 
-export type CostumeId = "board" | "map" | "globe" | "graph" | "hall" | "aperture";
+export type CostumeId = "board" | "map" | "globe" | "graph" | "hall" | "aperture" | "underworld";
 
 const KEY = "axm-world:costume:v2";
 
@@ -22,12 +22,13 @@ export function isCostumeId(value: string | null | undefined): value is CostumeI
     || value === "globe"
     || value === "graph"
     || value === "hall"
-    || value === "aperture";
+    || value === "aperture"
+    || value === "underworld";
 }
 
 /** Default representation for an arc. 2D contract board is the lightweight floor. */
-export function preferredCostumeForArc(_arc: Arc): CostumeId {
-  return "board";
+export function preferredCostumeForArc(arc: Arc): CostumeId {
+  return arc.meta.domain === "godscar-dark-tomb" ? "underworld" : "board";
 }
 
 export function costumeKey(arc: Arc): string {

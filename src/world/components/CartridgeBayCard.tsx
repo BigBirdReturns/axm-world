@@ -72,7 +72,7 @@ function TrustChip({ entry }: { entry: CartridgeBayEntry }): JSX.Element {
     <span
       data-testid={`trust-chip-${entry.trust}`}
       data-trust={entry.trust}
-      style={{ fontFamily: mono, fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: TRUST_COLOR[entry.trust] ?? "#a59c8b" }}
+      style={{ fontFamily: mono, fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: TRUST_COLOR[entry.trust] ?? "#a59c8b", pointerEvents: "none" }}
     >
       {t(TRUST_LABEL_ID[entry.trust] ?? "boot.trustImportedUnsigned")}
     </span>
@@ -285,6 +285,10 @@ function ClassicRow({ entry, cartridge, digest, save, legacySave, onEnter, onRem
         borderLeft: isWakingTower ? "3px solid #8a79b8" : "1px solid #4a4238",
         background: isWakingTower ? "rgba(48,36,64,0.5)" : "rgba(42,38,32,0.5)",
         color: "#ece4d4",
+        position: "relative",
+        isolation: "isolate",
+        width: "100%",
+        boxSizing: "border-box",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: "1 1 190px" }}>
@@ -300,14 +304,14 @@ function ClassicRow({ entry, cartridge, digest, save, legacySave, onEnter, onRem
           <MemoryLine save={save} />
         </div>
       </div>
-      <div style={{ display: "flex", flex: "1 1 auto", flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center", gap: 10, marginLeft: "auto" }}>
+      <div style={{ display: "flex", flex: "1 1 auto", flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center", gap: 10, marginLeft: "auto", position: "relative", zIndex: 2 }}>
         <RodohRuntimeMark variant="micro" showText={false} />
         <TrustChip entry={entry} />
         {entry.source === "file" && <RemoveButton entry={entry} onRemove={onRemove} />}
         <button
           data-testid={`play-cartridge-${entry.arc.meta.id}`}
           onClick={onEnter}
-          style={{ background: "none", border: "none", cursor: "pointer", fontFamily: condensed, fontWeight: 700, fontSize: 16, color: "#b01c18", padding: 0 }}
+          style={{ background: "rgba(11,10,8,0.72)", border: "1px solid currentColor", borderRadius: 4, cursor: "pointer", fontFamily: condensed, fontWeight: 700, fontSize: 16, color: "#b01c18", minHeight: 44, minWidth: 96, padding: "8px 12px", position: "relative", zIndex: 3, touchAction: "manipulation" }}
         >
           {t("boot.enter")} →
         </button>

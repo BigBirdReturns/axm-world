@@ -250,6 +250,46 @@ export type MessageId =
   | "presentations.aperture.blurb"
   | "presentations.aperture.controlsHint"
   | "presentations.aperture.purpose"
+  | "presentations.underworld.label"
+  | "presentations.underworld.blurb"
+  | "presentations.underworld.controlsHint"
+  | "presentations.underworld.purpose"
+  | "underworld.metadataRefused"
+  | "underworld.invalidHeading"
+  | "underworld.invalidBody"
+  | "underworld.noSource"
+  | "underworld.eyebrow"
+  | "underworld.stateLedger"
+  | "underworld.alarm"
+  | "underworld.signature"
+  | "underworld.visibility"
+  | "underworld.recordedMovements"
+  | "underworld.civicHub"
+  | "underworld.steward"
+  | "underworld.ordinaryLife"
+  | "underworld.exteriorClassification"
+  | "underworld.observer"
+  | "underworld.hubChanged"
+  | "underworld.hubHeld"
+  | "underworld.layeredMap"
+  | "underworld.layeredMapHint"
+  | "underworld.available"
+  | "underworld.recorded"
+  | "underworld.locked"
+  | "underworld.expedition"
+  | "underworld.depthVector"
+  | "underworld.objective"
+  | "underworld.route"
+  | "underworld.authority"
+  | "underworld.claim"
+  | "underworld.signatureBudget"
+  | "underworld.inheritance"
+  | "underworld.enterExpedition"
+  | "underworld.cast"
+  | "underworld.wakeSources"
+  | "underworld.inheritedConsequences"
+  | "underworld.inherited"
+  | "underworld.pending"
   // ── inhabited hall (presentation + scene chrome) ─────────────────────────
   | "presentations.hall.label"
   | "presentations.hall.blurb"
@@ -729,6 +769,46 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.aperture.blurb": "Semantic command deck — campaign, contracts, bounded people, and exact receipts",
     "presentations.aperture.controlsHint": "switch Map / Trace / Surface · zoom between cartridge and receipts · copy an exact view",
     "presentations.aperture.purpose": "A high-information projection of the same run. It exposes authored structure and recorded consequence without manufacturing routes, choices, or relationships.",
+    "presentations.underworld.label": "Underworld",
+    "presentations.underworld.blurb": "Civic hub and layered Tomb map — ordinary life, descent, breach, return, and exact inherited state",
+    "presentations.underworld.controlsHint": "choose a layer, inspect its expedition ledger, then enter the authored encounter",
+    "presentations.underworld.purpose": "The Dark Tomb as an inhabited political architecture. Read the hub, Long Alarm, signature budget, layers, and persistent consequences without replacing Arc law.",
+    "underworld.metadataRefused": "DARK TOMB METADATA REFUSED",
+    "underworld.invalidHeading": "The cartridge claims a Dark Tomb source it cannot validate.",
+    "underworld.invalidBody": "Play law remains the validated Arc. Rodoh will not infer layers, Alarm state, or consequences from malformed source.",
+    "underworld.noSource": "This cartridge does not contain a registered Dark Tomb source.",
+    "underworld.eyebrow": "DARK TOMB · CIVIC UNDERWORLD",
+    "underworld.stateLedger": "Tomb state ledger",
+    "underworld.alarm": "Long Alarm",
+    "underworld.signature": "Signature",
+    "underworld.visibility": "Visibility",
+    "underworld.recordedMovements": "Recorded movements",
+    "underworld.civicHub": "Lamp District civic hub",
+    "underworld.steward": "Local witness",
+    "underworld.ordinaryLife": "Ordinary life",
+    "underworld.exteriorClassification": "Exterior classification",
+    "underworld.observer": "Observer regime",
+    "underworld.hubChanged": "The hub inherited the descent",
+    "underworld.hubHeld": "The previous map still governs",
+    "underworld.layeredMap": "Seven-layer district map",
+    "underworld.layeredMapHint": "Select a layer to focus its current or next movement",
+    "underworld.available": "Available",
+    "underworld.recorded": "Recorded",
+    "underworld.locked": "Locked",
+    "underworld.expedition": "Expedition ledger",
+    "underworld.depthVector": "Depth vector",
+    "underworld.objective": "Objective",
+    "underworld.route": "Authorized route",
+    "underworld.authority": "Authority",
+    "underworld.claim": "Claim to prove",
+    "underworld.signatureBudget": "Signature budget",
+    "underworld.inheritance": "Likely inheritance",
+    "underworld.enterExpedition": "Enter expedition",
+    "underworld.cast": "District cast",
+    "underworld.wakeSources": "Wake sources",
+    "underworld.inheritedConsequences": "Inherited consequences",
+    "underworld.inherited": "Inherited",
+    "underworld.pending": "Pending",
     "presentations.hall.label": "Hall",
     "presentations.hall.blurb": "Inhabited hall — meet the steward and take a contract in person",
     "presentations.hall.controlsHint": "talk to the steward to take a contract",
@@ -1165,6 +1245,46 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.aperture.blurb": "語意指揮台 — 戰役、契約、受限人物與精確收據",
     "presentations.aperture.controlsHint": "切換地圖／追蹤／界面 · 在卡匣與收據間縮放 · 複製精確檢視",
     "presentations.aperture.purpose": "同一執行紀錄的高資訊投影。它揭示作者結構與已記錄後果，不虛構路徑、選擇或關係。",
+    "presentations.underworld.label": "地下世界",
+    "presentations.underworld.blurb": "市民樞紐與分層墓域地圖 — 日常生活、下降、破口、返回與精確繼承狀態",
+    "presentations.underworld.controlsHint": "選擇一層、檢視遠征帳本，再進入作者設定的遭遇",
+    "presentations.underworld.purpose": "將黑暗墓域呈現為有人居住的政治建築。讀取樞紐、長期警報、訊號預算、層次與持續後果，不取代 Arc 規則。",
+    "underworld.metadataRefused": "黑暗墓域中繼資料已拒絕",
+    "underworld.invalidHeading": "此卡匣聲稱使用的黑暗墓域來源無法通過驗證。",
+    "underworld.invalidBody": "遊玩規則仍以已驗證的 Arc 為準。Rodoh 不會從格式錯誤的來源推測層次、警報狀態或後果。",
+    "underworld.noSource": "此卡匣不含已登錄的黑暗墓域來源。",
+    "underworld.eyebrow": "黑暗墓域 · 市民地下世界",
+    "underworld.stateLedger": "墓域狀態帳本",
+    "underworld.alarm": "長期警報",
+    "underworld.signature": "訊號",
+    "underworld.visibility": "可見度",
+    "underworld.recordedMovements": "已記錄行動",
+    "underworld.civicHub": "燈區市民樞紐",
+    "underworld.steward": "在地見證者",
+    "underworld.ordinaryLife": "日常生活",
+    "underworld.exteriorClassification": "外部分類",
+    "underworld.observer": "觀察者制度",
+    "underworld.hubChanged": "樞紐已繼承此次下降",
+    "underworld.hubHeld": "舊地圖仍在治理",
+    "underworld.layeredMap": "七層區域地圖",
+    "underworld.layeredMapHint": "選擇一層以聚焦目前或下一項行動",
+    "underworld.available": "可用",
+    "underworld.recorded": "已記錄",
+    "underworld.locked": "鎖定",
+    "underworld.expedition": "遠征帳本",
+    "underworld.depthVector": "深度向量",
+    "underworld.objective": "目標",
+    "underworld.route": "授權路線",
+    "underworld.authority": "權限",
+    "underworld.claim": "待證明主張",
+    "underworld.signatureBudget": "訊號預算",
+    "underworld.inheritance": "可能繼承",
+    "underworld.enterExpedition": "進入遠征",
+    "underworld.cast": "區域角色",
+    "underworld.wakeSources": "外洩來源",
+    "underworld.inheritedConsequences": "已繼承後果",
+    "underworld.inherited": "已繼承",
+    "underworld.pending": "待處理",
     "presentations.hall.label": "契約堂",
     "presentations.hall.blurb": "有人的契約堂 — 與管事會面，親自承接契約",
     "presentations.hall.controlsHint": "與管事對話以承接契約",

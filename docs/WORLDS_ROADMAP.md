@@ -8,28 +8,21 @@ authored contract compiles into every play surface, derived, not hand-authored.*
 Read alongside: `docs/POSITIONING.md` (the public claim), axm-arc `ROADMAP.md`
 (engine + authoring), axm-arc `STATUS.md` (current checkpoint).
 
-## Current overlay — 2026-07-22
+## Current overlay — 2026-07-23
 
-The numbered sequence below records the design path that produced the runtime;
-it is no longer the current queue. Since it was written:
+The numbered sequence below records the design path that produced the runtime; it is no longer the current queue. Since it was written:
 
-- The First Charter gained a directed cold opening, exact reload boundaries,
-  Arc-owned reward choice, explicit handoff into the reusable shell, a complete
-  six-challenge campaign, and a completed-cartridge return state.
-- Changed-run custody is now exact `axm-cartridge-run/v3` round-trip rather than
-  the historical one-way `v2` export described below.
-- Board, Map, Hall, Encounter, Globe, and Aperture are live representations of one run.
-- The Waking Tower proves a second, original raid grammar; The Kind Gods of Ilyon adds the first `godscar-pocket/1` creator source and constitutional Aperture projection.
-- All three bundled cartridges now carry cartridge-owned role art, motifs, all-surface material identity, distinct planet palettes, full deterministic campaign/custody receipts, responsive browser journeys, and shared local sensory/accessibility controls.
-- The parity matrix and dedicated workflow are the current release gate; the numbered history below is retained as design provenance, not an open queue.
+- The First Charter gained a directed cold opening, exact reload boundaries, Arc-owned reward choice, explicit handoff into the reusable shell, a complete six-challenge campaign, and a completed-cartridge return state.
+- Changed-run custody is exact `axm-cartridge-run/v3` round-trip.
+- Board, Map, Hall, Encounter, Globe, and Aperture remain live representations of one run.
+- The Waking Tower proves a second original raid grammar. The Kind Gods of Ilyon proves `godscar-pocket/1` and constitutional Aperture projection.
+- **The Lamp District now proves `dark-tomb-pocket/1` in World.** Its Underworld representation renders the civic hub, named cast, Long Alarm, signature, visibility, seven-layer map, depth vectors, expedition ledgers, and inherited consequences from the exact registered source and engine-owned state.
+- The Lamp District ships as Program 004 and the fourth bundled World cartridge, with original role appearances, movement motifs, all-surface material treatment, hero environment, Anja Vei portrait, cross-section asset, and provenance.
+- Desktop and mobile Chromium complete all eight movements through Ordinary Life, Descent, Breach, and Return, then export, clear the holder context, import, and resume the exact changed Tomb.
+- Gate 4 introduces no second Dark Tomb compiler or resolver. World enters the ordinary compiled encounter and reads the resulting Arc state receipts.
+- The parity matrix and dedicated workflow are the current release gate.
 
-The bundled local-first scope has no outstanding presentation or human-acceptance gate. Ilyon
-is accepted by Codex conformance, deterministic full-campaign completion,
-faithful receiver projection, desktop/mobile entry, and the model-based
-narrative record in axm-arc. Future human sessions are telemetry and regression
-discovery. Legacy browser receipts are reconciled with the current guided-entry contract and remain ordinary regressions. New platform work must continue
-to preserve exact files, engine authority, offline play, bounded rendering, and
-explicit uncertainty.
+Gates 0 through 4 are closed. The next product train is Gate 5: The Relief Circuit Common Ship cartridge and vessel-management receiver. Human sessions remain telemetry and regression discovery rather than ceremonial vetoes.
 
 ---
 
@@ -186,8 +179,8 @@ with authored Heroic posture, attunement chains, full campaign proof, and its
 own art pack. The legacy internal id remains only for held-run compatibility.
 
 **6. Polish expression — complete at the local-first pixel-runtime scope.** All
-three cartridges own role art, motifs, every-surface material identity, globe
-palettes, mobile result flow, local procedural sound, reduced motion,
+four cartridges own role art, motifs, every-surface material identity, globe
+palettes or their grammar-specific equivalent, mobile result flow, local procedural sound, reduced motion,
 high-contrast/forced-color fallbacks, and visible keyboard focus.
 
 **7. Add broader products later.** Publisher signatures, co-op, social systems,

@@ -1,0 +1,26 @@
+{
+  "format": "rodoh-original-asset-provenance/1",
+  "cartridgeId": "lamp-district",
+  "created": "2026-07-23",
+  "authorship": "Original vector assets authored for RODOH Gate 4. No external image sources or font files are included.",
+  "assets": [
+    {
+      "id": "lamp-district-environment",
+      "path": "src/assets/lamp-district/underworld/lamp-district-environment.svg",
+      "kind": "hero-environment",
+      "source": "original"
+    },
+    {
+      "id": "anja-vei-portrait",
+      "path": "src/assets/lamp-district/underworld/anja-vei-portrait.svg",
+      "kind": "lead-portrait",
+      "source": "original"
+    },
+    {
+      "id": "lamp-district-cross-section",
+      "path": "src/assets/lamp-district/underworld/lamp-district-cross-section.svg",
+      "kind": "environmental-depth-layer",
+      "source": "original"
+    }
+  ]
+}

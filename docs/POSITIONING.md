@@ -11,9 +11,7 @@
 One line: *a cartridge platform for verifiable simulation and story games —
 author data, play anywhere, verify every run.*
 
-Rodoh is one runtime player. Its board, map, hall, globe, and report are
-representations of the same cartridge and run, not separate games or separate
-runtime players.
+Rodoh is one runtime player. Its board, map, hall, globe, aperture, underworld, encounter, and report are representations of the same cartridge and run, not separate games or separate runtime players.
 
 No "killer" language externally. The claim is differentiated precisely
 because it refuses the general-game-engine category and owns the artifact.
@@ -68,8 +66,7 @@ artifact format"**—demonstrated by a game good enough to stand on its own:
 3. Trust-label it.
 4. Click Play in World.
 5. World boots the cartridge.
-6. Rodoh represents the same cartridge and run as Board · Map · Hall ·
-   Encounter · Globe · Aperture without changing authored law or recorded outcomes.
+6. Rodoh represents the same cartridge and run as Board · Map · Hall · Encounter · Globe · Aperture, plus a registered grammar-specific surface such as Underworld, without changing authored law or recorded outcomes.
 7. Finish a run and carry its exact consequence through `axm-cartridge-run/v3`.
 8. Reload, import, resume, and verify the content/run identity.
 
@@ -149,8 +146,7 @@ WORLDS" sheet:
 3. **One-session loop** — what a single sitting feels like.
 4. **Projection pipeline** — `Author → Cartridge → Sim → World → Play`; every
    surface is a projection of the one cartridge.
-5. **Current proof** — `Board → Map → Hall → Encounter → Globe → Aperture →
-   Result → Ledger`, built and verified across all three bundled cartridges.
+5. **Current proof** — `Board → Map → Hall → Encounter → Globe → Aperture / Underworld → Result → Ledger`, built and verified across four bundled cartridges. The Lamp District adds the first source-plane-specific civic underworld without adding a second resolver.
 6. **Future products** — co-op, social, cloud identity, guilds, seasons,
    marketplace services, and cinematic media are marked as expansion products,
    not missing local-runtime mechanics; each must pass the anti-extractive test.
@@ -163,7 +159,7 @@ contract governs them when they do.
 ## Current strategic priorities
 
 1. **Protect parity as a contract.** Every bundled cartridge must keep full
-   campaign/custody proof, cartridge-owned expression, all six representations,
+   campaign/custody proof, cartridge-owned expression, all shared representations and its declared grammar-specific surface,
    desktop/mobile browser coverage, and neutral fallback for imports.
 2. **Keep authoring and runtime law aligned.** Arc owns schema, validation,
    founding, resolution, portable runs, and authored levers; World re-vendors

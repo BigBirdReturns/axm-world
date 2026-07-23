@@ -6,12 +6,15 @@
 import * as FirstCharter from "./first-charter/motif-icons.js";
 import * as Karazhan from "./karazhan/motif-icons.js";
 import * as Ilyon from "./ilyon/motif-icons.js";
+import * as Lamp from "./lamp-district/motif-icons.js";
 import { PersonPortraitIcon, PersonSpriteIcon } from "./first-charter/portrait-icons.js";
 import * as KarazhanPeople from "./karazhan/portrait-icons.js";
 import * as IlyonPeople from "./ilyon/portrait-icons.js";
+import * as LampPeople from "./lamp-district/portrait-icons.js";
 import { FIRST_CHARTER_THEME } from "./first-charter/theme.js";
 import { KARAZHAN_THEME } from "./karazhan/theme.js";
 import { ILYON_THEME } from "./ilyon/theme.js";
+import { LAMP_DISTRICT_THEME } from "./lamp-district/theme.js";
 
 interface CartridgeMotifProps {
   arcId: string;
@@ -21,6 +24,9 @@ interface CartridgeMotifProps {
 }
 
 export function CartridgeMotif({ arcId, challengeId, size = 20, className = "" }: CartridgeMotifProps): JSX.Element | null {
+  if (arcId === LAMP_DISTRICT_THEME.id) {
+    return <Lamp.MotifIcon name={Lamp.locationMotif(challengeId)} size={size} className={className} />;
+  }
   if (arcId === ILYON_THEME.id) {
     return <Ilyon.MotifIcon name={Ilyon.locationMotif(challengeId)} size={size} className={className} />;
   }
@@ -37,6 +43,9 @@ export function CartridgeMotif({ arcId, challengeId, size = 20, className = "" }
  * in the cartridge's people list or in a validated embedded creator source such
  * as godscar.pocket@1; unknown ids still receive no invented face. */
 export function CartridgePortrait({ arcId, personId, size = 32, className = "" }: { arcId: string; personId: string; size?: number; className?: string }): JSX.Element | null {
+  if (arcId === LAMP_DISTRICT_THEME.id) {
+    return <LampPeople.PersonPortraitIcon personId={personId} size={size} className={className} />;
+  }
   if (arcId === ILYON_THEME.id) {
     return <IlyonPeople.PersonPortraitIcon personId={personId} size={size} className={className} />;
   }
@@ -51,6 +60,9 @@ export function CartridgePortrait({ arcId, personId, size = 32, className = "" }
 
 /** Authored standing body for staged scenes — the same honesty rule as portrait. */
 export function CartridgeSprite({ arcId, personId, size = 44, className = "" }: { arcId: string; personId: string; size?: number; className?: string }): JSX.Element | null {
+  if (arcId === LAMP_DISTRICT_THEME.id) {
+    return <LampPeople.PersonSpriteIcon personId={personId} size={size} className={className} />;
+  }
   if (arcId === ILYON_THEME.id) {
     return <IlyonPeople.PersonSpriteIcon personId={personId} size={size} className={className} />;
   }
@@ -65,6 +77,9 @@ export function CartridgeSprite({ arcId, personId, size = 44, className = "" }: 
 
 /** Cartridge identity emblem used by boot/library and the active status strip. */
 export function CartridgeEmblem({ arcId, size = 24, className = "" }: { arcId: string; size?: number; className?: string }): JSX.Element | null {
+  if (arcId === LAMP_DISTRICT_THEME.id) {
+    return <Lamp.MotifIcon name="lamp" size={size} className={`lamp-cartridge-emblem ${className}`.trim()} />;
+  }
   if (arcId === ILYON_THEME.id) {
     return <Ilyon.MotifIcon name="tideAstrolabe" size={size} className={`ilyon-cartridge-emblem ${className}`.trim()} />;
   }

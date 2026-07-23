@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
-import { FIRST_CHARTER, KARAZHAN, KIND_GODS_OF_ILYON } from "../../src/arcs/index.js";
+import { FIRST_CHARTER, KARAZHAN, KIND_GODS_OF_ILYON, LAMP_DISTRICT } from "../../src/arcs/index.js";
 import { resolveDollAppearance } from "../../src/world/themes/appearance.js";
 import { FIRST_CHARTER_THEME } from "../../src/world/themes/first-charter/theme.js";
 import { KARAZHAN_THEME } from "../../src/world/themes/karazhan/theme.js";
 import { ILYON_THEME } from "../../src/world/themes/ilyon/theme.js";
+import { LAMP_DISTRICT_THEME } from "../../src/world/themes/lamp-district/theme.js";
 import { planetPaletteForArc } from "../../src/world/themes/select.js";
 import { locationMotif as firstCharterMotif } from "../../src/world/themes/first-charter/motif-icons.js";
 import { locationMotif as karazhanMotif } from "../../src/world/themes/karazhan/motif-icons.js";
 import { locationMotif as ilyonMotif } from "../../src/world/themes/ilyon/motif-icons.js";
+import { locationMotif as lampMotif } from "../../src/world/themes/lamp-district/motif-icons.js";
 import { KARAZHAN_CARTRIDGE } from "../../src/world/cartridge.js";
 
 
@@ -35,6 +37,7 @@ const CASES = [
   { arc: FIRST_CHARTER, theme: FIRST_CHARTER_THEME, motif: firstCharterMotif, css: "src/world/themes/first-charter/first-charter.css", scope: "first-charter" },
   { arc: KARAZHAN, theme: KARAZHAN_THEME, motif: karazhanMotif, css: "src/world/themes/karazhan/karazhan.css", scope: "karazhan" },
   { arc: KIND_GODS_OF_ILYON, theme: ILYON_THEME, motif: ilyonMotif, css: "src/world/themes/ilyon/ilyon.css", scope: "ilyon" },
+  { arc: LAMP_DISTRICT, theme: LAMP_DISTRICT_THEME, motif: lampMotif, css: "src/world/themes/lamp-district/lamp-district.css", scope: "lamp-district" },
 ] as const;
 
 describe("bundled cartridge presentation parity", () => {
@@ -57,7 +60,7 @@ describe("bundled cartridge presentation parity", () => {
   it("uses distinct cartridge-owned globe material palettes", () => {
     const palettes = CASES.map(({ arc }) => planetPaletteForArc(arc));
     expect(palettes.every((palette) => palette?.length === 7)).toBe(true);
-    expect(new Set(palettes.map((palette) => JSON.stringify(palette))).size).toBe(3);
+    expect(new Set(palettes.map((palette) => JSON.stringify(palette))).size).toBe(4);
   });
 
   it.each(CASES)("$arc.meta.name carries material identity through all shared surfaces", ({ css, scope }) => {
