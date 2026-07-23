@@ -64,7 +64,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Complete desktop and mobile Lamp District journey
         env:
-          PW_BASE_URL: http://127.0.0.1:5173
+          PW_BASE_URL: http://localhost:5173
         run: |
           set -o pipefail
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
