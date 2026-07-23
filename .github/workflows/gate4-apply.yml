@@ -66,14 +66,16 @@ jobs:
         env:
           PW_BASE_URL: http://127.0.0.1:5173
         run: |
+          set -o pipefail
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
-          npx playwright test e2e/lamp-district-gate4.spec.ts --workers=1 --trace=retain-on-failure
+          npx playwright test e2e/lamp-district-gate4.spec.ts --workers=1 --trace=retain-on-failure 2>&1 | tee gate4-e2e.log
       - name: Upload Gate 4 browser receipts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: gate4-lamp-district-receipts
           path: |
+            gate4-e2e.log
             test-results
             playwright-report
           if-no-files-found: warn
