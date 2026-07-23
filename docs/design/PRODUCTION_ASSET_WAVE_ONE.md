@@ -1,6 +1,6 @@
 # Production asset wave one
 
-**Status:** implementation candidate for the RODOH 1.0 production dignity floor.
+**Status:** exact-head release candidate for the RODOH 1.0 production dignity floor.
 
 This wave adds specific, runtime-loaded assets to three shipped surfaces. It does not introduce an asset generator, theme framework, or generalized art abstraction. Each file exists because a named cartridge or system surface still required a finished authored environment.
 
@@ -38,6 +38,8 @@ The bay environment belongs to Rodoh only. It disappears when a holder enters a 
 Every new SVG has semantic title and description metadata, an explicit view box, no embedded raster or remote dependency, and a project-owned provenance manifest. CSS removes decorative images in forced-colors mode, preserves reduced-motion behavior, and keeps pointer events away from foreground art. The mobile bay is scrollable, keeps explicit touch-target floors, and places focus indicators above the framing layer.
 
 The browser acceptance checks the actual Vite-loaded asset URLs on desktop and mobile projects through the existing Playwright matrix. Static contracts verify semantic SVG metadata, exact provenance, cartridge scoping, system hooks, mobile fallbacks, and forced-colors behavior.
+
+The dedicated application run completed TypeScript, the focused asset contracts, the complete World regression suite, production build, Chromium installation, desktop and mobile browser acceptance, and publication of the exact `Player.tsx` binding. The temporary application workflow and binder were then removed before final PR-head qualification.
 
 ## Release boundary
 
