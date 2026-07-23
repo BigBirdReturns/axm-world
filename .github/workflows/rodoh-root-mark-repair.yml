@@ -1,0 +1,57 @@
+name: Rodoh root mark custody repair
+
+on:
+  push:
+    branches: [identity/rodoh-root-mark]
+    paths:
+      - 'tools/apply-rodoh-root-mark-tests.py'
+      - '.github/workflows/rodoh-root-mark-repair.yml'
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - 'tools/apply-rodoh-root-mark-tests.py'
+      - '.github/workflows/rodoh-root-mark-repair.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rodoh-root-mark-custody-repair
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    if: github.head_ref == 'identity/rodoh-root-mark' || github.ref == 'refs/heads/identity/rodoh-root-mark'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Migrate derivative tests to the constitutional root source
+        run: python tools/apply-rodoh-root-mark-tests.py
+      - run: npm ci
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Exact root-mark custody contracts
+        run: npm test -- tests/world/rodoh-root-mark.test.ts tests/world/asset-standard.test.ts
+      - name: Complete World regression suite
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Keep generated deployment output outside source authority
+        run: git restore --source=HEAD --staged --worktree docs/game || true
+      - name: Publish the verified test migration
+        run: |
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/world/asset-standard.test.ts
+          git commit -m "Bind asset guards to the constitutional Rodoh root mark"
+          git push origin HEAD:identity/rodoh-root-mark
