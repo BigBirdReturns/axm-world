@@ -17,12 +17,13 @@ describe("Relief Circuit production asset preparation", () => {
     for (const path of ASSETS) {
       const source = read(path);
       expect(source, path).toContain("<svg");
+      expect(source, path).toContain('xmlns="http://www.w3.org/2000/svg"');
       expect(source, path).toContain('role="img"');
       expect(source, path).toMatch(/viewBox="0 0 \d+ \d+"/);
       expect(source, path).toContain("<title id=\"title\">");
       expect(source, path).toContain("<desc id=\"desc\">");
       expect(source, path).not.toContain("data:image");
-      expect(source, path).not.toContain("http://");
+      expect(source, path).not.toMatch(/(?:href|xlink:href)=["']https?:\/\//);
       expect(source.length, path).toBeGreaterThan(2_000);
     }
   });
