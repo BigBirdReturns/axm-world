@@ -48,6 +48,17 @@ for relative, encoded in sorted(new_files["files"].items()):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(base64.b64decode(encoded))
 
+# The accepted Arc calibration changes authored law and therefore the Program 004
+# golden digest. The program record still derives identity from the cartridge; this
+# literal is only the reviewed expectation used by the golden-digest guard.
+digest_path = root / "src/world/bundled-digests.ts"
+digests = digest_path.read_text()
+old_digest = '"lamp-district": "cart1_3f5484485c8378fddda977fe967bad457cb7d59fc19fc7d78847667aa3361bc3"'
+new_digest = '"lamp-district": "cart1_30f8bd5e8102ae5ebedacbfc59ba8d8c1ab2a2a3177dad5f7781aac3a640f931"'
+if digests.count(old_digest) != 1:
+    raise SystemExit("Gate 4 could not locate the pre-calibration Lamp District golden digest.")
+digest_path.write_text(digests.replace(old_digest, new_digest, 1))
+
 # A steward is ordinary authored content, not authority to redirect every opening
 # into the Hall. Preserve the historical Program 001 handoff only for programs
 # whose entry contract explicitly requests guided-first-contract. Direct-runtime
