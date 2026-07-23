@@ -19,9 +19,27 @@ expected_parts = {
     "00.txt": (20000, "c88fdf8ac25e4b0b9f8e17cd30663df05a82c2ec48b609c08d0d0cb478c7fb29"),
     "01.txt": (19344, "9f94cee85732652cb47f81f3f2090cf12f9bd408ae6898483435bbf0905002d9"),
 }
+known_transport_repairs = {
+    "01.txt": {
+        "length": 19343,
+        "sha256": "25d1bc37da8fc5b7bea9f030a5c556d38a1c371e51a1af779cfa628c37902b9c",
+        "offset": 19071,
+        "insert": "N",
+    },
+}
+part_texts: dict[str, str] = {}
 for path in parts:
     text = path.read_text().strip()
     digest = hashlib.sha256(text.encode()).hexdigest()
+    repair = known_transport_repairs.get(path.name)
+    if repair and len(text) == repair["length"] and digest == repair["sha256"]:
+        offset = repair["offset"]
+        text = text[:offset] + repair["insert"] + text[offset:]
+        digest = hashlib.sha256(text.encode()).hexdigest()
+        print(
+            f"Repaired the audited Gate 6 transport mutation in {path.name} "
+            f"at zero-based offset {offset}."
+        )
     print(f"Gate 6 part {path.name} chars={len(text)} sha256={digest}")
     expected_length, expected_digest = expected_parts[path.name]
     if len(text) != expected_length or digest != expected_digest:
@@ -29,8 +47,9 @@ for path in parts:
             f"Gate 6 part identity mismatch for {path.name}: "
             f"expected chars={expected_length} sha256={expected_digest}"
         )
+    part_texts[path.name] = text
 
-encoded = "".join(path.read_text().strip() for path in parts)
+encoded = "".join(part_texts[name] for name in manifest["parts"])
 encoded_sha = hashlib.sha256(encoded.encode()).hexdigest()
 print(f"Gate 6 encoded chars={len(encoded)} sha256={encoded_sha}")
 if len(encoded) != manifest["encodedChars"] or encoded_sha != manifest["encodedSha256"]:
