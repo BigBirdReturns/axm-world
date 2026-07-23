@@ -1,10 +1,6 @@
 name: Gate 4 Lamp District application
 
 on:
-  pull_request:
-    types: [ready_for_review, reopened]
-    paths:
-      - '.github/workflows/gate4-apply.yml'
   workflow_dispatch:
 
 permissions:
@@ -16,7 +12,6 @@ concurrency:
 
 jobs:
   apply:
-    if: github.head_ref == 'codex/gate4-lamp-district-world'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -80,17 +75,3 @@ jobs:
             playwright-report
           if-no-files-found: warn
           retention-days: 30
-      - name: Keep generated deployment output outside the source commit
-        run: git restore --source=HEAD --staged --worktree docs/game || true
-      - name: Publish the verified Gate 4 candidate
-        run: |
-          git diff --check
-          test ! -e .github/workflows/gate4-apply.yml
-          test ! -e .github/workflows/gate4-export-source.yml
-          test ! -e tools/apply-gate4-world.py
-          test ! -e tools/gate4-payload
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Ship the Lamp District Underworld receiver"
-          git push origin HEAD:codex/gate4-lamp-district-world
