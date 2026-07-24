@@ -27,6 +27,7 @@ const compiledText = readFileSync(new URL("orchard-at-low-tide.arc.json", dir), 
 const malformedText = readFileSync(new URL("orchard-at-low-tide.invalid.arc.json", dir), "utf8");
 const changedRunText = readFileSync(new URL("orchard-at-low-tide.changed.run.json", dir), "utf8");
 const manifestText = readFileSync(new URL("manifest.json", dir), "utf8");
+type CustodyFile = { sha256: string; bytes: number };
 const manifest = JSON.parse(manifestText) as {
   format: string;
   status: string;
@@ -34,7 +35,12 @@ const manifest = JSON.parse(manifestText) as {
   cartridgeDigest: string;
   runIntegrityDigest: string;
   unknownNamespaces: string[];
-  files: Record<string, { sha256: string; bytes: number }>;
+  files: {
+    source: CustodyFile;
+    compiled: CustodyFile;
+    malformed: CustodyFile;
+    changedRun: CustodyFile;
+  };
 };
 
 class MemoryStorage implements CartridgeBayStorage {
