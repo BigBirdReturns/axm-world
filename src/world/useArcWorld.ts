@@ -125,9 +125,11 @@ export interface ArcWorld {
   cycle: number;
   resources: {
     currency: number;
+    materials: number;
     tokens: number;
     reputation: number;
     currencyName: string;
+    materialName: string;
     tokenName: string;
     reputationName: string;
   };

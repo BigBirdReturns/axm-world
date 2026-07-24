@@ -111,7 +111,7 @@ export async function resolvePendingDecisions(page: Page): Promise<void> {
   // One engine cycle can queue several authored relationship/drama decisions.
   // A new card may replace the response immediately, so waiting for count=0 after
   // every Continue is incorrect; wait for the current card text to change instead.
-  for (let i = 0; i < 20 && (await card.count()) > 0; i++) {
+  for (let i = 0; i < 100 && (await card.count()) > 0; i++) {
     const before = await card.textContent();
     const continueButton = card.getByRole("button", { name: /continue/i });
     if (await continueButton.count()) {
