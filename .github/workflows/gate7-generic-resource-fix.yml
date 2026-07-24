@@ -28,98 +28,64 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          from textwrap import dedent
 
           def replace_once(path: str, old: str, new: str) -> None:
               target = Path(path)
               source = target.read_text()
               count = source.count(old)
               if count != 1:
-                  raise SystemExit(f"{path}: expected one replacement, found {count}")
+                  raise SystemExit(f"{path}: expected one replacement, found {count}: {old!r}")
               target.write_text(source.replace(old, new))
 
           replace_once(
               "src/play-pipeline/compile.ts",
-              '''  resources: {
-              currency: number;
-              tokens: number;
-              reputation: number;
-              currencyName: string;
-              tokenName: string;
-              reputationName: string;
-            };'''.replace("            ", ""),
-              '''  resources: {
-              currency: number;
-              materials: number;
-              tokens: number;
-              reputation: number;
-              currencyName: string;
-              materialName: string;
-              tokenName: string;
-              reputationName: string;
-            };'''.replace("            ", ""),
+              "    currency: number;\n    tokens: number;",
+              "    currency: number;\n    materials: number;\n    tokens: number;",
           )
           replace_once(
               "src/play-pipeline/compile.ts",
-              '''    resources: {
-              currency: org.resources.currency,
-              tokens: org.resources.tokens,
-              reputation: org.reputation,
-              currencyName: arc.currencyName,
-              tokenName: arc.tokenName,
-              reputationName: arc.reputationName,
-            },'''.replace("            ", ""),
-              '''    resources: {
-              currency: org.resources.currency,
-              materials: org.resources.materials,
-              tokens: org.resources.tokens,
-              reputation: org.reputation,
-              currencyName: arc.currencyName,
-              materialName: arc.materialName,
-              tokenName: arc.tokenName,
-              reputationName: arc.reputationName,
-            },'''.replace("            ", ""),
+              "    currencyName: string;\n    tokenName: string;",
+              "    currencyName: string;\n    materialName: string;\n    tokenName: string;",
+          )
+          replace_once(
+              "src/play-pipeline/compile.ts",
+              "      currency: org.resources.currency,\n      tokens: org.resources.tokens,",
+              "      currency: org.resources.currency,\n      materials: org.resources.materials,\n      tokens: org.resources.tokens,",
+          )
+          replace_once(
+              "src/play-pipeline/compile.ts",
+              "      currencyName: arc.currencyName,\n      tokenName: arc.tokenName,",
+              "      currencyName: arc.currencyName,\n      materialName: arc.materialName,\n      tokenName: arc.tokenName,",
           )
           replace_once(
               "src/world/useArcWorld.ts",
-              '''  resources: {
-              currency: number;
-              tokens: number;
-              reputation: number;
-              currencyName: string;
-              tokenName: string;
-              reputationName: string;
-            };'''.replace("            ", ""),
-              '''  resources: {
-              currency: number;
-              materials: number;
-              tokens: number;
-              reputation: number;
-              currencyName: string;
-              materialName: string;
-              tokenName: string;
-              reputationName: string;
-            };'''.replace("            ", ""),
+              "    currency: number;\n    tokens: number;",
+              "    currency: number;\n    materials: number;\n    tokens: number;",
+          )
+          replace_once(
+              "src/world/useArcWorld.ts",
+              "    currencyName: string;\n    tokenName: string;",
+              "    currencyName: string;\n    materialName: string;\n    tokenName: string;",
           )
           replace_once(
               "src/world/shell/regions.tsx",
-              '  resources: { currency: number; tokens: number; reputation: number; currencyName: string; tokenName: string; reputationName: string };',
-              '  resources: { currency: number; materials: number; tokens: number; reputation: number; currencyName: string; materialName: string; tokenName: string; reputationName: string };',
+              "  resources: { currency: number; tokens: number; reputation: number; currencyName: string; tokenName: string; reputationName: string };",
+              "  resources: { currency: number; materials: number; tokens: number; reputation: number; currencyName: string; materialName: string; tokenName: string; reputationName: string };",
           )
           replace_once(
               "src/world/shell/regions.tsx",
-              '''        <StatusChip label={resources.currencyName} value={String(resources.currency)} />
-                    <StatusChip label={resources.reputationName} value={String(resources.reputation)} />'''.replace("                    ", "        "),
-              '''        <StatusChip label={resources.currencyName} value={String(resources.currency)} />
-                    <StatusChip label={resources.materialName} value={String(resources.materials)} />
-                    <StatusChip label={resources.reputationName} value={String(resources.reputation)} />'''.replace("                    ", "        "),
+              "        <StatusChip label={resources.currencyName} value={String(resources.currency)} />\n        <StatusChip label={resources.reputationName} value={String(resources.reputation)} />",
+              "        <StatusChip label={resources.currencyName} value={String(resources.currency)} />\n        <StatusChip label={resources.materialName} value={String(resources.materials)} />\n        <StatusChip label={resources.reputationName} value={String(resources.reputation)} />",
           )
           replace_once(
               "e2e/helpers.ts",
-              '  for (let i = 0; i < 20 && (await card.count()) > 0; i++) {',
-              '  for (let i = 0; i < 100 && (await card.count()) > 0; i++) {',
+              "  for (let i = 0; i < 20 && (await card.count()) > 0; i++) {",
+              "  for (let i = 0; i < 100 && (await card.count()) > 0; i++) {",
           )
 
-          Path("tests/world/gate7-resource-vocabulary.test.ts").write_text('''import { describe, expect, it } from "vitest";
+          Path("tests/world/gate7-resource-vocabulary.test.ts").write_text(dedent('''\
+          import { describe, expect, it } from "vitest";
           import orchard from "../../cartridges/clean-room/orchard-at-low-tide.arc.json";
           import { foundOrganization } from "../../src/engine/founding.js";
           import { validateArc } from "../../src/engine/schema.js";
@@ -139,7 +105,7 @@ jobs:
               });
             });
           });
-          '''.replace("          ", ""))
+          '''))
           PY
       - name: TypeScript
         run: npm run typecheck
