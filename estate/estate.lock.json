@@ -1,0 +1,137 @@
+{
+  "$schema": "./estate.schema.json",
+  "format": "rodoh-local-estate-lock/1",
+  "status": "pre-release-local-acceptance",
+  "releaseTarget": "RODOH v1.0.0",
+  "repositories": {
+    "arc": {
+      "name": "axm-arc",
+      "url": "https://github.com/BigBirdReturns/axm-arc.git",
+      "directory": "axm-arc",
+      "branch": "release/local-estate-replication",
+      "requiredAncestor": "94c0e965c09e090d768e73ad29f7820aa50606c0",
+      "requiredCommit": "1295bc8022a50e8a7a55bdd63838e7163410781c",
+      "productAuthorityCommit": "94c0e965c09e090d768e73ad29f7820aa50606c0",
+      "role": "creator authority, deterministic engine, source planes, authoring, reference player",
+      "packageVersion": "0.0.1"
+    },
+    "world": {
+      "name": "axm-world",
+      "url": "https://github.com/BigBirdReturns/axm-world.git",
+      "directory": "axm-world",
+      "branch": "release/local-estate-replication",
+      "requiredAncestor": "4c280be0f2e8e8cf9b07619de01a4eef2d9aecc0",
+      "productAuthorityCommit": "4c280be0f2e8e8cf9b07619de01a4eef2d9aecc0",
+      "role": "Rodoh spatial runtime player, local estate orchestrator, release receiver",
+      "packageVersion": "0.0.1"
+    }
+  },
+  "toolchain": {
+    "operatingSystems": [
+      "Windows 11",
+      "Ubuntu 24.04 CI"
+    ],
+    "node": {
+      "testedMajor": 22,
+      "minimumMajor": 22,
+      "maximumExclusiveMajor": 25
+    },
+    "npm": {
+      "minimumMajor": 10,
+      "installMode": "npm ci"
+    },
+    "git": {
+      "minimumVersion": "2.40.0"
+    },
+    "powerShell": {
+      "minimumWindowsPowerShell": "5.1",
+      "recommendedPowerShell": "7.4"
+    },
+    "browser": {
+      "engine": "Chromium",
+      "provider": "Playwright",
+      "installCommand": "npx playwright install chromium"
+    },
+    "installer": {
+      "provider": "winget",
+      "packages": [
+        "Git.Git",
+        "OpenJS.NodeJS.LTS",
+        "Microsoft.PowerShell"
+      ]
+    }
+  },
+  "protocols": {
+    "engine": "1.3.0",
+    "engineSave": 3,
+    "portableRun": "axm-cartridge-run/v3",
+    "connectedOperation": "axm-connected-operation/v1",
+    "secondRecension": "godscar.second-recension@1",
+    "sourcePlanes": [
+      "godscar-pocket/1",
+      "dark-tomb-pocket/1",
+      "common-ship-pocket/1"
+    ],
+    "bookIV": {
+      "publicationStatus": "reviewed canon",
+      "runtimeStatus": "staged post-1.0",
+      "registeredSourcePlane": false
+    }
+  },
+  "products": {
+    "first-charter": "cart1_d8888842c6a7a7ba758a8eea567c71fcc8f998ff8af75208ed44ef4eee74edeb",
+    "karazhan": "cart1_776adac1b9372d0331ddd774af8b94c80b46bd6bbc4763334cf01def46111144",
+    "kind-gods-of-ilyon": "cart1_17054e128dc6fd517fc47f163d92da58d72f9302a84d9d3b04589083afc10f0e",
+    "lamp-district": "cart1_05530ae780a30f2f79fb0ddf030ba0e92321d736f146e8e16ddb325ae948b23e",
+    "relief-circuit": "cart1_15a9f3792ff8a68948053a06cefcbf586e9960158ca051a187e1ab341b7a2e65",
+    "orchard-at-low-tide": "cart1_3be11e31edc0d7674abf930aad1027281089ca5c2ec2a34f4edb83168b6b86bb"
+  },
+  "localPaths": {
+    "stateDirectory": ".rodoh-estate",
+    "npmCache": ".rodoh-estate/cache/npm",
+    "playwrightCache": ".rodoh-estate/cache/ms-playwright",
+    "receipts": ".rodoh-estate/receipts",
+    "builds": ".rodoh-estate/library/builds",
+    "snapshots": ".rodoh-estate/library/snapshots",
+    "publication": ".rodoh-estate/library/publication",
+    "logs": ".rodoh-estate/logs"
+  },
+  "servers": {
+    "world": {
+      "port": 5173,
+      "url": "http://127.0.0.1:5173/axm-world/game/"
+    },
+    "arc": {
+      "port": 5174,
+      "url": "http://127.0.0.1:5174/axm-arc/game/"
+    }
+  },
+  "publication": {
+    "bundle": "The_Godscar_Codex_Professional_Reviewed_Four_Books_and_Addenda.zip",
+    "sha256": "4c969b20bda7eacd062077a71da2c552aa4c6521abaaef186d01b0c13468822a",
+    "manifest": "estate/publication/PUBLICATION_MANIFEST.json",
+    "requiredForOperatorAcceptance": true
+  },
+  "localGate": {
+    "automated": [
+      "doctor",
+      "sync",
+      "hydrate",
+      "verify",
+      "build-reproducibility",
+      "arc-complete-suite",
+      "world-complete-suite",
+      "gate6-browser",
+      "gate7-browser",
+      "full-browser-optional",
+      "snapshot-manifest"
+    ],
+    "receipt": {
+      "format": "rodoh-local-operator-acceptance/1",
+      "required": true,
+      "path": ".rodoh-estate/receipts/local-operator-acceptance.json",
+      "mayBeGeneratedOnlyAfterAutomatedPass": true,
+      "blocksV1Release": true
+    }
+  }
+}
