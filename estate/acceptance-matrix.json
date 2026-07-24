@@ -1,0 +1,109 @@
+{
+  "format": "rodoh-local-acceptance-matrix/1",
+  "releaseTarget": "RODOH v1.0.0",
+  "principle": "No v1.0.0 tag or release may exist until one Windows machine has cloned, hydrated, verified, built, played, exported, resumed, snapshotted, and signed the local operator receipt from the exact estate pair.",
+  "automated": [
+    {
+      "id": "toolchain-doctor",
+      "owner": "estate",
+      "command": "RODOH.cmd doctor",
+      "evidence": ".rodoh-estate/receipts/doctor.json",
+      "failure": "A required local tool, supported version, free port, or writable estate path is unavailable."
+    },
+    {
+      "id": "exact-source-sync",
+      "owner": "git",
+      "command": "RODOH.cmd sync",
+      "evidence": ".rodoh-estate/receipts/repositories.json",
+      "failure": "A checkout is dirty, diverged, missing the required ancestor, or not on the locked branch."
+    },
+    {
+      "id": "offline-dependency-hydration",
+      "owner": "estate",
+      "command": "RODOH.cmd hydrate",
+      "evidence": ".rodoh-estate/receipts/dependencies.json",
+      "failure": "npm lockfile installation or local Chromium hydration fails."
+    },
+    {
+      "id": "machine-contract",
+      "owner": "estate",
+      "command": "RODOH.cmd verify",
+      "evidence": ".rodoh-estate/receipts/verification.json",
+      "failure": "The estate lock is invalid, the Arc/World vendored plane differs, or either checkout is not clean."
+    },
+    {
+      "id": "reproducible-builds",
+      "owner": "build",
+      "command": "RODOH.cmd build",
+      "evidence": ".rodoh-estate/receipts/builds.json",
+      "failure": "Two clean builds of either repository produce different file-tree digests."
+    },
+    {
+      "id": "arc-complete-suite",
+      "owner": "axm-arc",
+      "command": "RODOH.cmd test -Scope Arc",
+      "evidence": ".rodoh-estate/receipts/tests-arc.json",
+      "failure": "TypeScript, complete tests, deterministic reference generation, or production build fails."
+    },
+    {
+      "id": "world-complete-suite",
+      "owner": "axm-world",
+      "command": "RODOH.cmd test -Scope World",
+      "evidence": ".rodoh-estate/receipts/tests-world.json",
+      "failure": "TypeScript, complete tests, production build, Gate 6, or Gate 7 fails."
+    },
+    {
+      "id": "full-browser-supergate",
+      "owner": "axm-world",
+      "command": "RODOH.cmd test -Scope World -FullBrowser",
+      "evidence": ".rodoh-estate/receipts/tests-browser.json",
+      "failure": "Any desktop or mobile browser journey fails on the local machine."
+    },
+    {
+      "id": "offline-source-custody",
+      "owner": "estate",
+      "command": "RODOH.cmd snapshot",
+      "evidence": ".rodoh-estate/library/snapshots/<timestamp>/estate.manifest.json",
+      "failure": "Git bundles, source archives, builds, cartridges, publications, receipts, or checksums cannot be assembled and verified."
+    }
+  ],
+  "human": [
+    {
+      "id": "arc-opens",
+      "prompt": "Did AXM Arc open locally and show a playable authored cartridge?"
+    },
+    {
+      "id": "world-opens",
+      "prompt": "Did Rodoh open locally and show the five first-party cartridge entries?"
+    },
+    {
+      "id": "bundled-play",
+      "prompt": "Did you enter at least one bundled cartridge, make a visible player decision, resolve a contract, and see the recorded result?"
+    },
+    {
+      "id": "clean-room-import",
+      "prompt": "Did The Orchard at Low Tide import as holder-owned, remain outside the Program-of-Record registry, and display its unfamiliar vocabulary?"
+    },
+    {
+      "id": "portable-run-roundtrip",
+      "prompt": "Did you export an exact run, clear the holder context, import that run, and resume the same state?"
+    },
+    {
+      "id": "publication-library",
+      "prompt": "Did the reviewed four-book Codex and Addenda bundle open locally and verify against its recorded SHA-256?"
+    },
+    {
+      "id": "snapshot-recovery",
+      "prompt": "Did the local estate snapshot contain both Git bundles, both source archives, both static builds, the cartridge library, the publication bundle, receipts, and checksums?"
+    }
+  ],
+  "terminalReceipt": {
+    "format": "rodoh-local-operator-acceptance/1",
+    "path": ".rodoh-estate/receipts/local-operator-acceptance.json",
+    "requiredFor": [
+      "axm-arc v1.0.0",
+      "axm-world v1.0.0",
+      "RODOH v1.0.0"
+    ]
+  }
+}
