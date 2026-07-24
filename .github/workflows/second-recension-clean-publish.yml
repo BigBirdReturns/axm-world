@@ -1,4 +1,4 @@
-# Re-run requested during Book IV staging and RODOH 1.0 audit.
+# Re-run requested to publish the clean reviewed Books I-III baseline before Gate 7.
 name: Publish clean Second Recension Books I-III candidate
 
 on:
