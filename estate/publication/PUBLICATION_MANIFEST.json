@@ -1,0 +1,88 @@
+{
+  "format": "godscar-publication-manifest/1",
+  "line": "The Godscar Codex",
+  "edition": "Professionally Reviewed Four Books and Second Recension Addenda",
+  "releaseRelation": {
+    "booksIThroughIII": "implemented RODOH 1.0 canon",
+    "secondRecensionAddenda": "implemented RODOH 1.0 canon",
+    "bookIV": "reviewed publication canon, staged post-1.0 runtime"
+  },
+  "bundle": {
+    "filename": "The_Godscar_Codex_Professional_Reviewed_Four_Books_and_Addenda.zip",
+    "sha256": "4c969b20bda7eacd062077a71da2c552aa4c6521abaaef186d01b0c13468822a",
+    "bytes": 10875275,
+    "entries": 12
+  },
+  "volumes": [
+    {
+      "id": "book-i-open-universe",
+      "title": "The Godscar Codex, Book I",
+      "implementationStatus": "implemented",
+      "docx": {
+        "filename": "The_Godscar_Codex_Book_I_Reviewed_Edition.docx",
+        "sha256": "91b27dc2fc2a13d819acea773cc98bf4a84e6cfcb65b938a6a144dbe5e215472"
+      },
+      "pdf": {
+        "filename": "The_Godscar_Codex_Book_I_Reviewed_Edition.pdf",
+        "sha256": "b0478369edaa8200f37373c4a192be549c9f2101455d6ebc0b4a9e9e27752cf6"
+      }
+    },
+    {
+      "id": "book-ii-dark-tomb",
+      "title": "The Godscar Codex, Book II: The Dark Tomb",
+      "implementationStatus": "implemented",
+      "docx": {
+        "filename": "The_Godscar_Codex_Book_II_The_Dark_Tomb_Reviewed_Edition.docx",
+        "sha256": "803288d7dfe2887f9a229d44234b9c074d636bb99091eecae449f550a9d5b43b"
+      },
+      "pdf": {
+        "filename": "The_Godscar_Codex_Book_II_The_Dark_Tomb_Reviewed_Edition.pdf",
+        "sha256": "90cd1b2d8e3adbcac2fce347c79b45b6c1f1e6df9a8989c9cebd87edf629c72a"
+      }
+    },
+    {
+      "id": "book-iii-common-ship",
+      "title": "The Godscar Codex, Book III: The Common Ship",
+      "implementationStatus": "implemented",
+      "docx": {
+        "filename": "The_Godscar_Codex_Book_III_The_Common_Ship_Reviewed_Edition.docx",
+        "sha256": "b40fc150e7364019163715c290232ed0134458538239da90a3c1a3c044c0ef8f"
+      },
+      "pdf": {
+        "filename": "The_Godscar_Codex_Book_III_The_Common_Ship_Reviewed_Edition.pdf",
+        "sha256": "5aed6a8d231cf53bc19d411ff44096828500846976b50644e5e9993c5a2a1407"
+      }
+    },
+    {
+      "id": "book-iv-lineage-commons",
+      "title": "The Godscar Codex, Book IV: The Lineage Commons",
+      "implementationStatus": "staged-post-1.0",
+      "docx": {
+        "filename": "The_Godscar_Codex_Book_IV_The_Lineage_Commons_Reviewed_Edition.docx",
+        "sha256": "396f969d34c7130b17ae898c65dfbda3d959bc95ae2b039b4c9a746e15e7efa6"
+      },
+      "pdf": {
+        "filename": "The_Godscar_Codex_Book_IV_The_Lineage_Commons_Reviewed_Edition.pdf",
+        "sha256": "994ffdd44fa934de98043af90551457726c0cc7abcfcbc48a7d1607466917af5"
+      }
+    },
+    {
+      "id": "second-recension-addenda-books-i-iii",
+      "title": "Second Recension Addenda to Books I-III",
+      "implementationStatus": "implemented",
+      "docx": {
+        "filename": "The_Godscar_Codex_Second_Recension_Addenda_Books_I-III_Reviewed_Edition.docx",
+        "sha256": "2890d3c463ba48f8ebb9c5d93272ce693d523d04ab142089cfd66275dcbea6a9"
+      },
+      "pdf": {
+        "filename": "The_Godscar_Codex_Second_Recension_Addenda_Books_I-III_Reviewed_Edition.pdf",
+        "sha256": "ae0672dd1a8de680f4d4427f92c45428e4ebe4198ac8f474c196b57b13723546"
+      }
+    }
+  ],
+  "reviewLedger": {
+    "filename": "Professional_Review_and_Revision_Ledger.md",
+    "sha256": "60d7145e64952838a39ed99e1f72c7c354b21d9a6889495ed53991da3b864aab"
+  },
+  "copyRule": "The binary publication bundle is external to Git source authority. Place the exact ZIP in .rodoh-estate/library/publication before local operator acceptance."
+}
