@@ -63,9 +63,9 @@ jobs:
           printf '%s\n' "$actual_sha" | tee gate6-receipt/checkout-sha.txt
           test "$actual_sha" = "$CANDIDATE_SHA"
           cat src/engine/VENDORED_FROM | tee gate6-receipt/arc-source-plane.txt
-          grep -F '2abf84e4b79c8196bcfa213bca2e920e7d36caa5' src/engine/VENDORED_FROM
+          grep -F 'e4e41c7faec9755429c4f6b6f5ab715c5c3d17e5' src/engine/VENDORED_FROM
           git diff --check
-      - name: Exact Arc Gate 5 provenance
+      - name: Exact reviewed Arc Books I-III provenance
         env:
           ENGINE_DRIFT_STRICT: '1'
         run: |
