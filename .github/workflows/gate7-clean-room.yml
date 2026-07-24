@@ -1,0 +1,84 @@
+name: Gate 7 neutral clean-room cartridge
+
+on:
+  pull_request:
+    paths:
+      - 'cartridges/clean-room/**'
+      - 'src/engine/**'
+      - 'src/world/**'
+      - 'tests/world/gate7-clean-room.test.ts'
+      - 'e2e/gate7-clean-room.spec.ts'
+      - 'docs/GATE7_CLEAN_ROOM_WORLD_ACCEPTANCE.md'
+      - 'scripts/check-engine-drift.sh'
+      - 'scripts/sync-engine.sh'
+      - '.github/workflows/gate7-clean-room.yml'
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clean-room:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      CI: 'true'
+      PW_BASE_URL: http://127.0.0.1:5173
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Record exact Gate 7 candidate
+        env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          mkdir -p gate7-clean-room-receipt
+          printf '%s\n' "$CANDIDATE_SHA" > gate7-clean-room-receipt/world-candidate-sha.txt
+          cat src/engine/VENDORED_FROM > gate7-clean-room-receipt/arc-source-plane.txt
+          cp cartridges/clean-room/manifest.json gate7-clean-room-receipt/clean-room-manifest.json
+          grep -F '94c0e965c09e090d768e73ad29f7820aa50606c0' src/engine/VENDORED_FROM
+          git diff --check
+      - name: Exact Arc provenance
+        env:
+          ENGINE_DRIFT_STRICT: '1'
+        run: npm run engine:check | tee gate7-clean-room-receipt/engine-drift.log
+      - name: TypeScript
+        run: npm run typecheck | tee gate7-clean-room-receipt/typecheck.log
+      - name: Focused Gate 7 custody and neutrality contracts
+        run: npm test -- tests/world/gate7-clean-room.test.ts | tee gate7-clean-room-receipt/focused-tests.log
+      - name: Complete World regression suite
+        run: npm test | tee gate7-clean-room-receipt/vitest.log
+      - name: Production build
+        run: npm run build | tee gate7-clean-room-receipt/build.log
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Desktop and mobile neutral cartridge journey
+        env:
+          PW_CHROMIUM_PATH: ${{ runner.temp }}/pw-chromium-placeholder
+        run: |
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npx playwright test e2e/gate7-clean-room.spec.ts | tee gate7-clean-room-receipt/browser.log
+      - name: Upload Gate 7 receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate7-neutral-clean-room-receipt
+          path: |
+            gate7-clean-room-receipt
+            test-results
+          if-no-files-found: warn
+          retention-days: 30
