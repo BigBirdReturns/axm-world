@@ -103,25 +103,34 @@ export async function runSelectedContract(page: Page): Promise<void> {
   await expect(encounter).toHaveCount(0);
 }
 
-/** Clear any pending decisions (e.g. a drama card the engine enqueues after a run).
- *  The view switcher is intentionally disabled while a decision is open, so callers
- *  must resolve them before switching representations. */
+/** Clear any pending decisions (e.g. drama cards queued after a run).
+ *
+ * A single engine cycle can enqueue many cards, and two adjacent cards may have
+ * identical text. Drain the actual enabled action surface instead of using text
+ * change as identity. The bounded loop is intentionally generous enough for a
+ * complete imported run under the fully parallel browser suite, but it still
+ * fails loudly rather than hiding an unbounded queue. */
 export async function resolvePendingDecisions(page: Page): Promise<void> {
   const card = page.getByTestId("pending-decision-card");
-  // One engine cycle can queue several authored relationship/drama decisions.
-  // A new card may replace the response immediately, so waiting for count=0 after
-  // every Continue is incorrect; wait for the current card text to change instead.
-  for (let i = 0; i < 20 && (await card.count()) > 0; i++) {
-    const before = await card.textContent();
+  for (let i = 0; i < 250; i += 1) {
+    if ((await card.count()) === 0) return;
+
     const continueButton = card.getByRole("button", { name: /continue/i });
-    if (await continueButton.count()) {
+    if (await continueButton.isVisible().catch(() => false)) {
       await continueButton.click();
     } else {
-      const choices = card.getByRole("button");
-      expect(await choices.count()).toBeGreaterThan(0);
+      const choices = card.locator('button:not([disabled])');
+      const count = await choices.count();
+      if (count === 0) {
+        throw new Error("Pending decision card has no enabled action.");
+      }
       await choices.first().click();
     }
-    await expect.poll(async () => (await card.count()) === 0 ? null : card.textContent()).not.toBe(before);
+
+    // Give React and the deterministic queue one turn to replace or remove the
+    // card. Do not require different prose: two valid queued cards may be equal.
+    await page.waitForTimeout(20);
   }
-  await expect(card).toHaveCount(0);
+
+  throw new Error("Pending decision loop exceeded 250 bounded actions.");
 }

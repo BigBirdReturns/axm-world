@@ -13,8 +13,8 @@ const MOBILE = MODE === "mobile";
 const BASE_URL = process.env.PW_BASE_URL ?? "http://127.0.0.1:5173";
 const CHROMIUM = process.env.PW_CHROMIUM_PATH ?? "/usr/bin/chromium";
 const OUT = path.resolve(process.env.GATE6_RECEIPT_DIR ?? path.join(ROOT, "test-results", "gate6-browser-receipt", MODE));
-const RELIEF = "cart1_c5285f11cba0c4a40fb60db4310fd458f53a4a8775566159fb99610465bea5b1";
-const LAMP = "cart1_30f8bd5e8102ae5ebedacbfc59ba8d8c1ab2a2a3177dad5f7781aac3a640f931";
+const RELIEF = "cart1_15a9f3792ff8a68948053a06cefcbf586e9960158ca051a187e1ab341b7a2e65";
+const LAMP = "cart1_05530ae780a30f2f79fb0ddf030ba0e92321d736f146e8e16ddb325ae948b23e";
 const OPS = [
   "recognize-the-school-loop",
   "audit-the-relief-stores",
