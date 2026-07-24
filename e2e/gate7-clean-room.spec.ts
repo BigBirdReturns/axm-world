@@ -134,6 +134,27 @@ function firstPartyAssetUrls(run: string[]): string[] {
   return run.filter((url) => /first-charter|karazhan|waking-tower|ilyon|lamp-district|relief-circuit/i.test(url));
 }
 
+/** Prove unfamiliar authored role vocabulary on the roster surface that owns it.
+ * Hall is a representation of the same run, but it is not required to duplicate
+ * the roster's role badges. Under full-suite load some agents are compact rows;
+ * expand those rows until the requested authored role is visible. */
+async function expectAuthoredRole(page: Page, role: string): Promise<void> {
+  const matchingCard = () => page.getByTestId("roster-card").filter({ hasText: role }).first();
+  if (await matchingCard().isVisible().catch(() => false)) return;
+
+  const rows = page.getByTestId("roster-compact-row");
+  for (let index = 0; index < await rows.count(); index += 1) {
+    const row = rows.nth(index);
+    await row.scrollIntoViewIfNeeded();
+    await row.click();
+    if (await matchingCard().isVisible().catch(() => false)) return;
+  }
+
+  await expect(matchingCard(), `Expected authored role ${role} on a neutral roster card`).toBeVisible();
+}
+
+test.describe.configure({ mode: "serial" });
+
 test("unbundled clean-room cartridge completes, exports, and resumes through neutral Rodoh", async ({ page }, testInfo) => {
   test.slow();
   const external: string[] = [];
@@ -160,6 +181,8 @@ test("unbundled clean-room cartridge completes, exports, and resumes through neu
   await expect(page.getByText("Rootstock", { exact: true })).toBeVisible();
   await expect(page.getByText("Lanterns", { exact: true })).toBeVisible();
   await expect(page.getByText("Season Standing", { exact: true })).toBeVisible();
+  await expectAuthoredRole(page, "Graftwright");
+  await expectAuthoredRole(page, "Tide Diver");
 
   const assetRequests: string[] = [];
   page.on("requestfinished", (request) => assetRequests.push(request.url()));
@@ -169,8 +192,6 @@ test("unbundled clean-room cartridge completes, exports, and resumes through neu
   await expect(page.getByTestId("world-map")).toBeVisible();
   await page.getByTestId("view-hall").click();
   await expect(page.getByTestId("hall-scene")).toBeVisible();
-  await expect(page.getByText("Graftwright", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("Tide Diver", { exact: true }).first()).toBeVisible();
   await page.getByTestId("view-aperture").click();
   await expect(page.getByTestId("rodoh-aperture")).toBeVisible();
   await page.getByTestId("view-planet").click();
