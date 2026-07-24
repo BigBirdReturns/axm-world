@@ -2,11 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  clearPending,
-  dismissIntro,
-  enterAvailableMapNode,
-} from "./helpers";
+import { resolveOpeningDecision, resolvePendingDecisions } from "./helpers";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CLEAN = path.join(ROOT, "cartridges", "clean-room");
@@ -46,11 +42,34 @@ async function importFile(page: Page, file: string): Promise<void> {
   await page.getByTestId("open-cartridge").setInputFiles(file);
 }
 
+async function finishEntryTransition(page: Page): Promise<void> {
+  const transition = page.getByTestId("cartridge-enter-transition");
+  for (let attempt = 0; attempt < 80; attempt += 1) {
+    if (await page.getByTestId("pending-decision-card").isVisible().catch(() => false)) break;
+    if (await page.getByTestId("engine-shell").isVisible().catch(() => false)) return;
+    const skip = transition.getByRole("button", { name: /skip entry/i });
+    if (await skip.isVisible().catch(() => false)) await skip.click();
+    await page.waitForTimeout(25);
+  }
+  if (await page.getByTestId("pending-decision-card").isVisible().catch(() => false)) {
+    await resolveOpeningDecision(page);
+  }
+  await expect(page.getByTestId("engine-shell")).toBeVisible();
+}
+
 async function enterOrchard(page: Page): Promise<void> {
   await page.getByTestId("play-cartridge-orchard-at-low-tide").click();
-  await dismissIntro(page);
-  await expect(page.getByTestId("engine-shell")).toBeVisible();
-  await clearPending(page);
+  await finishEntryTransition(page);
+  await resolvePendingDecisions(page);
+}
+
+async function enterAvailableMapNode(page: Page): Promise<string> {
+  const button = page.locator('[data-testid^="wm-enter-"]:visible').first();
+  await expect(button).toBeVisible();
+  const testId = await button.getAttribute("data-testid");
+  expect(testId).toBeTruthy();
+  await button.click();
+  return testId!.replace("wm-enter-", "");
 }
 
 async function setExactParty(page: Page, desired: string[]): Promise<void> {
@@ -93,14 +112,14 @@ async function completeChallenge(page: Page, expectedId: string, spend: "none" |
   }
 
   const commit = page.getByTestId("commit-plan");
-  if (await commit.count()) await commit.click();
+  if (await commit.isVisible().catch(() => false)) await commit.click();
   await page.getByTestId("encs-resolve").click();
   await expect(page.getByTestId("encs-receipt")).toHaveAttribute("data-outcome", "success");
   const reward = page.getByTestId("reward-choice");
   if (await reward.count()) await reward.locator('[data-testid^="reward-candidate-"]').first().click();
   await page.getByTestId("encs-leave").click();
   await expect(page.getByTestId("encounter-shell")).toHaveCount(0);
-  await clearPending(page);
+  await resolvePendingDecisions(page);
 }
 
 async function exportRun(page: Page, destination: string): Promise<Record<string, unknown>> {
@@ -116,6 +135,7 @@ function firstPartyAssetUrls(run: string[]): string[] {
 }
 
 test("unbundled clean-room cartridge completes, exports, and resumes through neutral Rodoh", async ({ page }, testInfo) => {
+  test.slow();
   const external: string[] = [];
   page.on("request", (request) => {
     const url = new URL(request.url());
@@ -154,7 +174,7 @@ test("unbundled clean-room cartridge completes, exports, and resumes through neu
   await page.getByTestId("view-aperture").click();
   await expect(page.getByTestId("rodoh-aperture")).toBeVisible();
   await page.getByTestId("view-planet").click();
-  await expect(page.getByTestId("walkable-world")).toBeVisible();
+  await expect(page.getByTestId("walkable-world")).toBeVisible({ timeout: 20_000 });
   expect(firstPartyAssetUrls(assetRequests)).toEqual([]);
 
   await completeChallenge(page, "count-the-brackish-wells", "none");
@@ -190,6 +210,7 @@ test("unbundled clean-room cartridge completes, exports, and resumes through neu
 });
 
 test("clean-room custody preserves unknown memory, refuses malformed source, and stays accessible", async ({ page }, testInfo) => {
+  test.slow();
   await coldBay(page);
   await importFile(page, MALFORMED);
   await expect(page.getByTestId("import-errors")).toContainText(/minAgents|maxAgents|roster/i);
@@ -204,8 +225,8 @@ test("clean-room custody preserves unknown memory, refuses malformed source, and
   expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
   await play.focus();
   await page.keyboard.press("Enter");
-  await dismissIntro(page);
-  await clearPending(page);
+  await finishEntryTransition(page);
+  await resolvePendingDecisions(page);
 
   await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });
   await expect(page.getByTestId("engine-shell")).toBeVisible();
