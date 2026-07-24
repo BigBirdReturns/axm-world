@@ -5,19 +5,28 @@ on:
     branches: [codex/second-recension-books-1-3-clean]
     paths:
       - '.github/workflows/gate7-generic-resource-fix.yml'
+  pull_request:
+    types: [synchronize]
+    paths:
+      - '.github/workflows/gate7-generic-resource-fix.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: gate7-generic-resource-publish
+  cancel-in-progress: true
+
 jobs:
   publish:
+    if: github.head_ref == 'codex/second-recension-books-1-3-clean' || github.ref == 'refs/heads/codex/second-recension-books-1-3-clean'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
