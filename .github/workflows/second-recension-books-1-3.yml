@@ -6,6 +6,11 @@ on:
     paths:
       - '.github/workflows/second-recension-books-1-3.yml'
       - 'tools/second-recension-world/**'
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - '.github/workflows/second-recension-books-1-3.yml'
+      - 'tools/second-recension-world/**'
   workflow_dispatch:
 
 permissions:
@@ -17,13 +22,14 @@ concurrency:
 
 jobs:
   sync:
+    if: github.head_ref == 'codex/second-recension-books-1-3' || github.ref == 'refs/heads/codex/second-recension-books-1-3'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
       - name: Check out exact World candidate
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
