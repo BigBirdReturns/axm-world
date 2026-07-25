@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { resolveOpeningDecision, resolvePendingDecisions } from "./helpers";
+import { openMobileContractSheet, resolveOpeningDecision, resolvePendingDecisions } from "./helpers";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CLEAN = path.join(ROOT, "cartridges", "clean-room");
@@ -134,10 +134,19 @@ function firstPartyAssetUrls(run: string[]): string[] {
   return run.filter((url) => /first-charter|karazhan|waking-tower|ilyon|lamp-district|relief-circuit/i.test(url));
 }
 
+/** Mobile intentionally does not mount the roster while the Board is active.
+ * Enter its governed Contract -> Party flow before inspecting the neutral role
+ * vocabulary. Desktop already owns a persistent roster rail and is a no-op. */
+async function ensureRosterSurface(page: Page): Promise<void> {
+  if ((await page.getByTestId("mobile-step-board").count()) === 0) return;
+  await openMobileContractSheet(page);
+  await page.getByTestId("mobile-adjust-party").click();
+  await expect(page.getByTestId("mobile-step-party")).toBeVisible();
+}
+
 /** Prove unfamiliar authored role vocabulary on the roster surface that owns it.
- * Hall is a representation of the same run, but it is not required to duplicate
- * the roster's role badges. Under full-suite load some agents are compact rows;
- * expand those rows until the requested authored role is visible. */
+ * Under full-suite load some agents are compact rows; expand those rows until the
+ * requested authored role is visible. */
 async function expectAuthoredRole(page: Page, role: string): Promise<void> {
   const matchingCard = () => page.getByTestId("roster-card").filter({ hasText: role }).first();
   if (await matchingCard().isVisible().catch(() => false)) return;
@@ -151,6 +160,16 @@ async function expectAuthoredRole(page: Page, role: string): Promise<void> {
   }
 
   await expect(matchingCard(), `Expected authored role ${role} on a neutral roster card`).toBeVisible();
+}
+
+async function expectClearedMapNodes(page: Page, count: number): Promise<void> {
+  await page.getByTestId("view-map").click();
+  await expect(page.getByTestId("world-map")).toBeVisible();
+  const cleared = page.getByTestId("world-map").locator('[data-status="cleared"]');
+  await expect.poll(async () => cleared.count(), {
+    message: `Expected ${count} cleared Orchard nodes after the committed run state propagated`,
+    timeout: 30_000,
+  }).toBe(count);
 }
 
 test.describe.configure({ mode: "serial" });
@@ -181,6 +200,7 @@ test("unbundled clean-room cartridge completes, exports, and resumes through neu
   await expect(page.getByText("Rootstock", { exact: true })).toBeVisible();
   await expect(page.getByText("Lanterns", { exact: true })).toBeVisible();
   await expect(page.getByText("Season Standing", { exact: true })).toBeVisible();
+  await ensureRosterSurface(page);
   await expectAuthoredRole(page, "Graftwright");
   await expectAuthoredRole(page, "Tide Diver");
 
@@ -204,8 +224,7 @@ test("unbundled clean-room cartridge completes, exports, and resumes through neu
   await completeChallenge(page, "replant-the-ninth-orchard", "max");
   await completeChallenge(page, "publish-the-next-season", "max");
 
-  await page.getByTestId("view-map").click();
-  await expect(page.getByTestId("world-map").locator('[data-status="cleared"]')).toHaveCount(5);
+  await expectClearedMapNodes(page, 5);
 
   const exportedPath = testInfo.outputPath(`orchard-${testInfo.project.name}.run.json`);
   const exported = await exportRun(page, exportedPath);
@@ -225,8 +244,7 @@ test("unbundled clean-room cartridge completes, exports, and resumes through neu
   const restoredEntry = page.getByTestId("cartridge-entry-orchard-at-low-tide");
   await expect(restoredEntry.getByTestId("bay-save-state")).toContainText(/Resumable/i);
   await enterOrchard(page);
-  await page.getByTestId("view-map").click();
-  await expect(page.getByTestId("world-map").locator('[data-status="cleared"]')).toHaveCount(5);
+  await expectClearedMapNodes(page, 5);
   expect(external).toEqual([]);
 });
 
