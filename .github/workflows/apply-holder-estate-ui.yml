@@ -1,7 +1,7 @@
 name: Apply holder-estate UI
 
-# One-shot publication workflow. Remove after the permanent UI binding is committed.
-# Triggered again after the stacked base advanced.
+# One-shot publication workflow. It commits the permanent binding and removes
+# itself from the review candidate after the exact product qualification passes.
 on:
   push:
     branches: [release/holder-estate-v1]
@@ -36,32 +36,29 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          def replace_once(path: str, old: str, new: str) -> None:
-              target = Path(path)
-              text = target.read_text()
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'{path}: expected one replacement, found {count}: {old!r}')
-              target.write_text(text.replace(old, new))
-
-          replace_once(
-              'src/world/Player.tsx',
-              'import { CartridgeEnterTransition } from "./components/CartridgeEnterTransition.js";\n',
-              'import { CartridgeEnterTransition } from "./components/CartridgeEnterTransition.js";\nimport { HolderEstatePanel } from "./components/HolderEstatePanel.js";\n',
-          )
-          replace_once(
-              'src/world/Player.tsx',
-              '''        <p style={{ color: "#a59c8b", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, marginTop: 18 }}>
+          player = Path('src/world/Player.tsx')
+          text = player.read_text()
+          import_line = 'import { HolderEstatePanel } from "./components/HolderEstatePanel.js";\n'
+          if import_line not in text:
+              anchor = 'import { CartridgeEnterTransition } from "./components/CartridgeEnterTransition.js";\n'
+              if text.count(anchor) != 1:
+                  raise SystemExit(f'Player import anchor count: {text.count(anchor)}')
+              text = text.replace(anchor, anchor + import_line)
+          panel = '        <HolderEstatePanel />\n\n'
+          if panel not in text:
+              anchor = '''        <p style={{ color: "#a59c8b", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, marginTop: 18 }}>
           {t("boot.footerNote")}
-        </p>''',
-              '''        <HolderEstatePanel />
+        </p>'''
+              if text.count(anchor) != 1:
+                  raise SystemExit(f'Player footer anchor count: {text.count(anchor)}')
+              text = text.replace(anchor, panel + anchor)
+          player.write_text(text)
 
-        <p style={{ color: "#a59c8b", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, marginTop: 18 }}>
-          {t("boot.footerNote")}
-        </p>''',
-          )
-
-          ids = '''  | "boot.openCartridge"
+          messages = Path('src/world/i18n/messages.ts')
+          text = messages.read_text()
+          if '  | "boot.holderEstateHeading"' not in text:
+              anchor = '  | "boot.openCartridge"'
+              insert = '''  | "boot.openCartridge"
   | "boot.holderEstateHeading"
   | "boot.exportHolderEstate"
   | "boot.restoreHolderEstate"
@@ -74,9 +71,12 @@ jobs:
   | "boot.holderEstateReplace"
   | "boot.holderEstateCancel"
   | "boot.holderEstateFailed"'''
-          replace_once('src/world/i18n/messages.ts', '  | "boot.openCartridge"', ids)
-
-          en = '''    "boot.openCartridge": "Open cartridge…",
+              if text.count(anchor) != 1:
+                  raise SystemExit(f'Message ID anchor count: {text.count(anchor)}')
+              text = text.replace(anchor, insert)
+          if '    "boot.holderEstateHeading": "Holder estate",' not in text:
+              anchor = '    "boot.openCartridge": "Open cartridge…",'
+              insert = '''    "boot.openCartridge": "Open cartridge…",
     "boot.holderEstateHeading": "Holder estate",
     "boot.exportHolderEstate": "Export holder estate",
     "boot.restoreHolderEstate": "Restore holder estate",
@@ -89,9 +89,12 @@ jobs:
     "boot.holderEstateReplace": "Restore exactly",
     "boot.holderEstateCancel": "Cancel",
     "boot.holderEstateFailed": "Holder-estate operation failed:",'''
-          replace_once('src/world/i18n/messages.ts', '    "boot.openCartridge": "Open cartridge…",', en)
-
-          zh = '''    "boot.openCartridge": "開啟卡匣…",
+              if text.count(anchor) != 1:
+                  raise SystemExit(f'English message anchor count: {text.count(anchor)}')
+              text = text.replace(anchor, insert)
+          if '    "boot.holderEstateHeading": "持有者資產",' not in text:
+              anchor = '    "boot.openCartridge": "開啟卡匣…",'
+              insert = '''    "boot.openCartridge": "開啟卡匣…",
     "boot.holderEstateHeading": "持有者資產",
     "boot.exportHolderEstate": "匯出持有者資產",
     "boot.restoreHolderEstate": "還原持有者資產",
@@ -104,7 +107,10 @@ jobs:
     "boot.holderEstateReplace": "精確還原",
     "boot.holderEstateCancel": "取消",
     "boot.holderEstateFailed": "持有者資產操作失敗：",'''
-          replace_once('src/world/i18n/messages.ts', '    "boot.openCartridge": "開啟卡匣…",', zh)
+              if text.count(anchor) != 1:
+                  raise SystemExit(f'zh-Hant message anchor count: {text.count(anchor)}')
+              text = text.replace(anchor, insert)
+          messages.write_text(text)
           PY
           git diff --check
       - run: npm ci --no-audit --no-fund
@@ -115,14 +121,17 @@ jobs:
           npm test -- tests/world/holder-estate.test.ts tests/world/locale.test.ts
           npm test
           npm run build
-          git restore --source=HEAD --staged --worktree -- docs/game 2>/dev/null || true
-          git clean -fdx -- docs/game 2>/dev/null || true
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
           git diff --check
-      - name: Publish the permanent UI binding
+      - name: Publish permanent UI binding and remove carrier
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add src/world/Player.tsx src/world/i18n/messages.ts
+          git rm .github/workflows/apply-holder-estate-ui.yml
           git commit -m 'Expose whole-holder estate custody in Rodoh'
           git push origin HEAD:release/holder-estate-v1
