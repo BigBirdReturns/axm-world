@@ -1,0 +1,173 @@
+name: Harden local estate Windows checkout
+
+on:
+  push:
+    branches: [release/local-estate-replication]
+    paths:
+      - '.github/workflows/harden-local-estate-windows.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: harden-local-estate-windows
+  cancel-in-progress: true
+
+jobs:
+  harden:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Normalize tracked bytes and clean only proven-generated build output
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          script_path = Path('scripts/local-estate/Invoke-RodohEstate.ps1')
+          source = script_path.read_text()
+
+          def replace_once(old: str, new: str) -> None:
+              global source
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected one replacement, found {count}: {old[:120]!r}')
+              source = source.replace(old, new)
+
+          replace_once(
+          '''function Assert-CleanRepository {
+              param([string]$Root, [string]$Label)
+              if (-not (Test-Path (Join-Path $Root '.git'))) { throw "$Label is not a Git checkout: $Root" }
+              $status = (Invoke-Git -Root $Root -Arguments @('status', '--porcelain') -Capture).Output
+              if ($status) {
+                  throw "$Label has local changes. The estate tools never reset human work.`n$status"
+              }
+          }
+          ''',
+          '''function Assert-CleanRepository {
+              param([string]$Root, [string]$Label)
+              if (-not (Test-Path (Join-Path $Root '.git'))) { throw "$Label is not a Git checkout: $Root" }
+              $status = (Invoke-Git -Root $Root -Arguments @('status', '--porcelain') -Capture).Output
+              if ($status) {
+                  throw "$Label has local changes. The estate tools never reset human work.`n$status"
+              }
+          }
+
+          function Normalize-RepositoryCheckout {
+              param([string]$Root, [string]$Label)
+              Assert-CleanRepository $Root $Label
+              Invoke-Git -Root $Root -Arguments @('config', '--local', 'core.autocrlf', 'false') | Out-Null
+              Invoke-Git -Root $Root -Arguments @('config', '--local', 'core.eol', 'lf') | Out-Null
+              # The checkout is proven clean before this bounded rewrite. Re-materialize
+              # tracked bytes from HEAD under the repository's .gitattributes so Windows
+              # hashes the same LF source that Linux and Git object storage hash.
+              Invoke-Git -Root $Root -Arguments @('restore', '--source=HEAD', '--staged', '--worktree', '--', '.') | Out-Null
+              Assert-CleanRepository $Root $Label
+          }
+          ''')
+
+          replace_once(
+          '''function Invoke-Verify {
+              Write-Stage 'Machine contract verification'
+              Assert-CleanRepository $Script:WorldRoot 'AXM World'
+              Assert-CleanRepository $Script:ArcRoot 'AXM Arc'
+          ''',
+          '''function Invoke-Verify {
+              Write-Stage 'Machine contract verification'
+              Normalize-RepositoryCheckout $Script:WorldRoot 'AXM World'
+              Normalize-RepositoryCheckout $Script:ArcRoot 'AXM Arc'
+          ''')
+
+          replace_once(
+          '''function Restore-GeneratedBuild {
+              param([string]$Root)
+              $status = (Invoke-Git -Root $Root -Arguments @('status', '--porcelain', '--', 'docs/game') -Capture).Output
+              if ($status) {
+                  Invoke-Git -Root $Root -Arguments @('restore', '--source=HEAD', '--staged', '--worktree', '--', 'docs/game') | Out-Null
+              }
+          }
+          ''',
+          '''function Restore-GeneratedBuild {
+              param([string]$Root)
+              $status = (Invoke-Git -Root $Root -Arguments @('status', '--porcelain', '--untracked-files=all', '--', 'docs/game') -Capture).Output
+              if ($status) {
+                  Invoke-Git -Root $Root -Arguments @('restore', '--source=HEAD', '--staged', '--worktree', '--', 'docs/game') | Out-Null
+                  # docs/game was proven clean before the build. Remove only generated,
+                  # untracked or ignored output left by hashed filenames, never user work
+                  # elsewhere in the repository.
+                  Invoke-Git -Root $Root -Arguments @('clean', '-fdx', '--', 'docs/game') | Out-Null
+              }
+          }
+          ''')
+
+          replace_once(
+          '''function Invoke-ReproducibleBuild {
+              param([string]$Root, [string]$Label, [string]$OutputName)
+              Assert-CleanRepository $Root $Label
+          ''',
+          '''function Invoke-ReproducibleBuild {
+              param([string]$Root, [string]$Label, [string]$OutputName)
+              Normalize-RepositoryCheckout $Root $Label
+          ''')
+
+          replace_once(
+          '''function Invoke-TestArc {
+              Write-Stage 'AXM Arc complete local qualification'
+              Assert-CleanRepository $Script:ArcRoot 'AXM Arc'
+          ''',
+          '''function Invoke-TestArc {
+              Write-Stage 'AXM Arc complete local qualification'
+              Normalize-RepositoryCheckout $Script:ArcRoot 'AXM Arc'
+          ''')
+
+          replace_once(
+          '''function Invoke-TestWorld {
+              Write-Stage 'RODOH World complete local qualification'
+              Assert-CleanRepository $Script:WorldRoot 'AXM World'
+          ''',
+          '''function Invoke-TestWorld {
+              Write-Stage 'RODOH World complete local qualification'
+              Normalize-RepositoryCheckout $Script:WorldRoot 'AXM World'
+          ''')
+
+          script_path.write_text(source)
+
+          old_arc = '1295bc8022a50e8a7a55bdd63838e7163410781c'
+          new_arc = 'c935cd1118b96fba8cc141ec45918352d59271d8'
+          for path in [
+              Path('estate/estate.lock.json'),
+              Path('tests/world/local-estate-contract.test.ts'),
+          ]:
+              text = path.read_text()
+              if text.count(old_arc) < 1:
+                  raise SystemExit(f'{path} does not contain the old Arc pin')
+              path.write_text(text.replace(old_arc, new_arc))
+          PY
+
+      - name: Check the permanent machine contract
+        run: |
+          node --check scripts/local-estate/estate-tools.mjs
+          node --check scripts/local-estate/static-server.mjs
+          pwsh -NoLogo -NoProfile -Command "[void][scriptblock]::Create((Get-Content -Raw 'scripts/local-estate/Invoke-RodohEstate.ps1')); 'PowerShell syntax accepted.'"
+          npm test -- tests/world/local-estate-contract.test.ts
+          git diff --check
+
+      - name: Publish permanent hardening
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/local-estate/Invoke-RodohEstate.ps1 estate/estate.lock.json tests/world/local-estate-contract.test.ts
+          git commit -m 'Harden exact Windows checkout and build cleanup'
+          git push origin HEAD:release/local-estate-replication
