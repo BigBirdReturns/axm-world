@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axm.tools/schemas/godscar-canon-trace-1.json",
+  "title": "Godscar canon trace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "publication", "implementationBoundary", "claims"],
+  "properties": {
+    "format": { "const": "godscar-canon-trace/1" },
+    "publication": { "type": "object" },
+    "implementationBoundary": {
+      "type": "object",
+      "required": ["implementedVolumes", "stagedVolumes"],
+      "properties": {
+        "implementedVolumes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "stagedVolumes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "claimId",
+          "volume",
+          "recension",
+          "claim",
+          "evidenceTier",
+          "sourceAuthority",
+          "compilerOrEngine",
+          "tests",
+          "references",
+          "worldRepresentations",
+          "assets",
+          "releaseEvidence",
+          "status"
+        ],
+        "properties": {
+          "claimId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9.-]+$" },
+          "volume": { "enum": ["book-i", "book-ii", "book-iii", "book-iv", "second-recension"] },
+          "recension": { "enum": ["first", "second", "reviewed-staging"] },
+          "claim": { "type": "string", "minLength": 1 },
+          "evidenceTier": { "enum": ["settled-canon", "contested-canon", "faction-doctrine", "story-facing-unknown", "implementation-boundary"] },
+          "sourceAuthority": { "$ref": "#/$defs/references" },
+          "compilerOrEngine": { "$ref": "#/$defs/references" },
+          "tests": { "$ref": "#/$defs/references" },
+          "references": { "$ref": "#/$defs/references" },
+          "worldRepresentations": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+          "assets": { "$ref": "#/$defs/references" },
+          "releaseEvidence": { "$ref": "#/$defs/references" },
+          "status": { "enum": ["implemented", "staged-post-1.0", "publication-only"] }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "references": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  }
+}
