@@ -259,6 +259,18 @@ function Assert-CleanRepository {
     }
 }
 
+function Normalize-RepositoryCheckout {
+    param([string]$Root, [string]$Label)
+    Assert-CleanRepository $Root $Label
+    Invoke-Git -Root $Root -Arguments @('config', '--local', 'core.autocrlf', 'false') | Out-Null
+    Invoke-Git -Root $Root -Arguments @('config', '--local', 'core.eol', 'lf') | Out-Null
+    # The checkout is proven clean before this bounded rewrite. Re-materialize
+    # tracked bytes from HEAD under the repository's .gitattributes so Windows
+    # hashes the same LF source that Linux and Git object storage hash.
+    Invoke-Git -Root $Root -Arguments @('restore', '--source=HEAD', '--staged', '--worktree', '--', '.') | Out-Null
+    Assert-CleanRepository $Root $Label
+}
+
 function Get-VersionMajor {
     param([string]$Value)
     $match = [regex]::Match($Value, '(\d+)')
@@ -453,8 +465,8 @@ function Invoke-Hydrate {
 
 function Invoke-Verify {
     Write-Stage 'Machine contract verification'
-    Assert-CleanRepository $Script:WorldRoot 'AXM World'
-    Assert-CleanRepository $Script:ArcRoot 'AXM Arc'
+    Normalize-RepositoryCheckout $Script:WorldRoot 'AXM World'
+    Normalize-RepositoryCheckout $Script:ArcRoot 'AXM Arc'
 
     Invoke-EstateTool @('validate-lock', '--lock', $Script:LockPath) | Out-Null
     $worldReceiptPath = Join-Path $Script:ReceiptRoot 'world-repository.json'
@@ -491,9 +503,13 @@ function Invoke-Verify {
 
 function Restore-GeneratedBuild {
     param([string]$Root)
-    $status = (Invoke-Git -Root $Root -Arguments @('status', '--porcelain', '--', 'docs/game') -Capture).Output
+    $status = (Invoke-Git -Root $Root -Arguments @('status', '--porcelain', '--untracked-files=all', '--', 'docs/game') -Capture).Output
     if ($status) {
         Invoke-Git -Root $Root -Arguments @('restore', '--source=HEAD', '--staged', '--worktree', '--', 'docs/game') | Out-Null
+        # docs/game was proven clean before the build. Remove only generated,
+        # untracked or ignored output left by hashed filenames, never user work
+        # elsewhere in the repository.
+        Invoke-Git -Root $Root -Arguments @('clean', '-fdx', '--', 'docs/game') | Out-Null
     }
 }
 
@@ -513,7 +529,7 @@ function Get-TreeHash {
 
 function Invoke-ReproducibleBuild {
     param([string]$Root, [string]$Label, [string]$OutputName)
-    Assert-CleanRepository $Root $Label
+    Normalize-RepositoryCheckout $Root $Label
     $preexisting = (Invoke-Git -Root $Root -Arguments @('status', '--porcelain', '--', 'docs/game') -Capture).Output
     if ($preexisting) { throw "$Label has pre-existing docs/game changes; refusing to overwrite them." }
 
@@ -592,7 +608,7 @@ function Invoke-BuildOnceAndRestore {
 
 function Invoke-TestArc {
     Write-Stage 'AXM Arc complete local qualification'
-    Assert-CleanRepository $Script:ArcRoot 'AXM Arc'
+    Normalize-RepositoryCheckout $Script:ArcRoot 'AXM Arc'
     $started = Get-Date
     Invoke-Npm $Script:ArcRoot @('run', 'typecheck')
     Invoke-Npm $Script:ArcRoot @('test')
@@ -614,7 +630,7 @@ function Invoke-TestArc {
 
 function Invoke-TestWorld {
     Write-Stage 'RODOH World complete local qualification'
-    Assert-CleanRepository $Script:WorldRoot 'AXM World'
+    Normalize-RepositoryCheckout $Script:WorldRoot 'AXM World'
     Stop-EstateServers -Quiet
     $started = Get-Date
     $previousBrowserPath = $env:PLAYWRIGHT_BROWSERS_PATH
