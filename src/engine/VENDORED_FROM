@@ -10,6 +10,6 @@
 #   scripts/check-engine-drift.sh
 
 repo: BigBirdReturns/axm-arc
-paths: src/engine src/arcs src/godscar src/dark-tomb src/common-ship src/source-planes tests/engine tests/fixtures tests/godscar tests/dark-tomb tests/common-ship tests/source-planes cartridges
+paths: src/engine src/arcs src/godscar src/dark-tomb src/common-ship src/source-planes tests/engine tests/fixtures tests/godscar tests/dark-tomb tests/common-ship tests/source-planes docs/conformance cartridges
 commit: 4b07539a06d40b131591f1e9c7d5b90a96ceec31
 synced: 2026-07-25
