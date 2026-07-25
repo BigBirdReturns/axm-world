@@ -58,15 +58,34 @@ function vectorElements(text) {
     .filter((match) => !["svg", "title", "desc", "metadata", "defs"].includes(match[1].toLowerCase()))
     .length;
 }
-function remoteReferences(text) {
+/** Only references capable of loading a runtime asset count here. Repository,
+ * provenance, and license URLs inside TypeScript comments or JSON metadata are
+ * records, not network-bearing asset edges. */
+function remoteReferences(path, text) {
   if (!text) return [];
-  return [...text.matchAll(/(?:https?:)?\/\/[^\s"'<>\)]+/gi)].map((match) => match[0]).sort();
+  const extension = extname(path).toLowerCase();
+  if (extension === ".svg") {
+    return [...text.matchAll(/\b(?:href|xlink:href|src)\s*=\s*["']((?:https?:)?\/\/[^"']+)["']/gi)]
+      .map((match) => match[1])
+      .sort();
+  }
+  if (extension === ".css") {
+    return [
+      ...[...text.matchAll(/url\(\s*["']?((?:https?:)?\/\/[^"')\s]+)["']?\s*\)/gi)].map((match) => match[1]),
+      ...[...text.matchAll(/@import\s+(?:url\()?\s*["']((?:https?:)?\/\/[^"']+)["']/gi)].map((match) => match[1]),
+    ].sort();
+  }
+  return [];
 }
-function embeddedRaster(text) {
-  return !!text && /(?:href|xlink:href)\s*=\s*["']data:image\/(?!svg\+xml)/i.test(text);
+function embeddedRaster(path, text) {
+  return extname(path).toLowerCase() === ".svg"
+    && !!text
+    && /(?:href|xlink:href)\s*=\s*["']data:image\/(?!svg\+xml)/i.test(text);
 }
-function executableSvg(text) {
-  return !!text && (/<script\b/i.test(text) || /\son[a-z]+\s*=/i.test(text) || /<foreignObject\b/i.test(text));
+function executableSvg(path, text) {
+  return extname(path).toLowerCase() === ".svg"
+    && !!text
+    && (/<script\b/i.test(text) || /\son[a-z]+\s*=/i.test(text) || /<foreignObject\b/i.test(text));
 }
 
 const ownership = new Map();
@@ -119,7 +138,7 @@ const assets = [...ownership.entries()].sort(([a], [b]) => a.localeCompare(b)).m
   const title = extension === ".svg" ? firstMatch(text, /<title[^>]*>([\s\S]*?)<\/title>/i)?.trim() ?? null : null;
   const description = extension === ".svg" ? firstMatch(text, /<desc[^>]*>([\s\S]*?)<\/desc>/i)?.trim() ?? null : null;
   const viewBox = extension === ".svg" ? firstMatch(text, /\bviewBox\s*=\s*["']([^"']+)["']/i) : null;
-  const remote = remoteReferences(text);
+  const remote = remoteReferences(path, text);
   return {
     path,
     owners: [...new Set(owners)].sort(),
@@ -131,14 +150,14 @@ const assets = [...ownership.entries()].sort(([a], [b]) => a.localeCompare(b)).m
     description,
     vectorElements: extension === ".svg" ? vectorElements(text) : 0,
     remoteReferences: remote,
-    embeddedRaster: embeddedRaster(text),
-    executableSvg: extension === ".svg" && executableSvg(text),
+    embeddedRaster: embeddedRaster(path, text),
+    executableSvg: executableSvg(path, text),
   };
 });
 
 const failures = [];
 for (const asset of assets) {
-  if (asset.remoteReferences.length) failures.push(`${asset.path} contains remote references.`);
+  if (asset.remoteReferences.length) failures.push(`${asset.path} contains remote runtime references.`);
   if (asset.embeddedRaster) failures.push(`${asset.path} contains an embedded raster payload.`);
   if (asset.executableSvg) failures.push(`${asset.path} contains executable or foreign SVG content.`);
   if (asset.kind === "svg" && (!asset.title || !asset.description || !asset.viewBox)) {
