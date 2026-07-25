@@ -3,6 +3,9 @@ name: Finalize local-estate reconciliation
 # One-shot publication workflow. It merges the accepted World baseline, vendors
 # the exact accepted Arc authority, qualifies the result, and removes itself.
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/finalize-local-estate-arc-sync.yml'
   push:
     branches: [release/local-estate-replication]
     paths:
@@ -28,7 +31,7 @@ jobs:
       - name: Check out exact World train
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           show-progress: false
 
