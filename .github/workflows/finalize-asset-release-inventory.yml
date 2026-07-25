@@ -1,6 +1,9 @@
 name: Finalize asset release inventory
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/finalize-asset-release-inventory.yml'
   push:
     branches: [release/asset-custody-closure]
     paths:
@@ -21,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           show-progress: false
       - uses: actions/setup-node@v4
