@@ -1,5 +1,6 @@
 name: Apply holder-estate UI
 
+# One-shot publication workflow. Remove after the permanent UI binding is committed.
 on:
   push:
     branches: [release/holder-estate-v1]
