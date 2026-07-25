@@ -1,0 +1,49 @@
+name: Post-v1 World staging
+
+on:
+  pull_request:
+    paths:
+      - 'docs/post-v1/**'
+      - 'tests/world/post-v1-world-staging.test.ts'
+      - '.github/workflows/post-v1-world-staging.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/post-v1/**'
+      - 'tests/world/post-v1-world-staging.test.ts'
+      - '.github/workflows/post-v1-world-staging.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  staging:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Staging contract and explicit exclusions
+        run: |
+          npm run typecheck
+          npm test -- tests/world/post-v1-world-staging.test.ts
+          ! grep -R -E 'rodoh-presentation-manifest/v1([^ -]|$)|axm-connected-operation/v2([^ -]|$)' src
+          test ! -e src/world/updater
+          git diff --check
+      - name: Preserve current v1 product
+        run: |
+          npm test
+          npm run build
