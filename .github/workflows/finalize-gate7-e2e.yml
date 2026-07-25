@@ -1,0 +1,131 @@
+name: Finalize Gate 7 browser contract
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/finalize-gate7-e2e.yml'
+  push:
+    branches: [codex/second-recension-books-1-3-clean]
+    paths:
+      - '.github/workflows/finalize-gate7-e2e.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finalize-gate7-browser-contract
+  cancel-in-progress: true
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Bind Gate 7 to actual pending-decision, mobile-navigation, and map state law
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('e2e/gate7-clean-room.spec.ts')
+          text = path.read_text()
+
+          text = text.replace(
+              'import { openMobileContractSheet, resolveOpeningDecision, resolvePendingDecisions } from "./helpers";',
+              'import { openMobileContractSheet, resolvePendingDecisions } from "./helpers";',
+          )
+          old = '''  if (await page.getByTestId("pending-decision-card").isVisible().catch(() => false)) {
+    await resolveOpeningDecision(page);
+  }'''
+          new = '''  if (await page.getByTestId("pending-decision-card").isVisible().catch(() => false)) {
+    await resolvePendingDecisions(page);
+  }'''
+          if text.count(old) != 1:
+              raise SystemExit(f'entry decision block count: {text.count(old)}')
+          text = text.replace(old, new)
+
+          old = '''async function expectClearedMapNodes(page: Page, count: number): Promise<void> {
+  await page.getByTestId("view-map").click();
+  await expect(page.getByTestId("world-map")).toBeVisible();
+  const cleared = page.getByTestId("world-map").locator('[data-status="cleared"]');
+  await expect.poll(async () => cleared.count(), {
+    message: `Expected ${count} cleared Orchard nodes after the committed run state propagated`,
+    timeout: 30_000,
+  }).toBe(count);
+}'''
+          new = '''async function chooseRepresentation(page: Page, control: string, surface: string): Promise<void> {
+  await page.getByTestId(control).click();
+  const mobileBoard = page.getByTestId("mobile-step-board");
+  if (await mobileBoard.count()) await expect(mobileBoard).toBeVisible();
+  await expect(page.getByTestId(surface)).toBeVisible({ timeout: 15_000 });
+}
+
+async function expectRecordedMapNodes(page: Page, count: number): Promise<void> {
+  await chooseRepresentation(page, "view-map", "world-map");
+  const map = page.getByTestId("world-map");
+  await expect(map.getByTestId("wm-progress")).toHaveAttribute("data-recorded", String(count));
+  await expect(map.locator('[data-state="recorded"]')).toHaveCount(count);
+}'''
+          if text.count(old) != 1:
+              raise SystemExit(f'old map helper count: {text.count(old)}')
+          text = text.replace(old, new)
+
+          old = '''  await page.getByTestId("view-run-graph").click();
+  await expect(page.getByTestId("contract-board")).toBeVisible();
+  await page.getByTestId("view-map").click();
+  await expect(page.getByTestId("world-map")).toBeVisible();
+  await page.getByTestId("view-hall").click();
+  await expect(page.getByTestId("hall-scene")).toBeVisible();
+  await page.getByTestId("view-aperture").click();
+  await expect(page.getByTestId("rodoh-aperture")).toBeVisible();
+  await page.getByTestId("view-planet").click();
+  await expect(page.getByTestId("walkable-world")).toBeVisible({ timeout: 20_000 });'''
+          new = '''  await chooseRepresentation(page, "view-run-graph", "contract-board");
+  await chooseRepresentation(page, "view-map", "world-map");
+  await chooseRepresentation(page, "view-hall", "hall-scene");
+  await chooseRepresentation(page, "view-aperture", "rodoh-aperture");
+  await chooseRepresentation(page, "view-planet", "walkable-world");'''
+          if text.count(old) != 1:
+              raise SystemExit(f'old representation sequence count: {text.count(old)}')
+          text = text.replace(old, new)
+          if text.count('await expectClearedMapNodes(page, 5);') != 2:
+              raise SystemExit('expected two old map assertions')
+          text = text.replace('await expectClearedMapNodes(page, 5);', 'await expectRecordedMapNodes(page, 5);')
+
+          path.write_text(text)
+          PY
+          git diff --check
+      - name: Qualify exact Gate 7 journey
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm test -- tests/world/gate7-clean-room.test.ts
+          npm run build
+          npx playwright install --with-deps chromium
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npx playwright test e2e/gate7-clean-room.spec.ts
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          git diff --check
+      - name: Publish permanent contract and remove finalizer
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add e2e/gate7-clean-room.spec.ts
+          git rm .github/workflows/finalize-gate7-e2e.yml
+          git commit -m 'Bind Gate 7 to actual browser state semantics'
+          git push origin HEAD:codex/second-recension-books-1-3-clean

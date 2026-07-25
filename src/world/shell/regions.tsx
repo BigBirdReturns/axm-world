@@ -77,7 +77,7 @@ export function StatusRegion(props: {
   title: string;
   arcId: string;
   cycle: number;
-  resources: { currency: number; tokens: number; reputation: number; currencyName: string; tokenName: string; reputationName: string };
+  resources: { currency: number; materials: number; tokens: number; reputation: number; currencyName: string; materialName: string; tokenName: string; reputationName: string };
   progress: { cleared: number; total: number };
 }): JSX.Element {
   const { title, arcId, cycle, resources, progress } = props;
@@ -94,6 +94,7 @@ export function StatusRegion(props: {
         <StatusChip label={t("shell.cycle")} value={String(cycle).padStart(2, "0")} />
         <StatusChip label={resources.tokenName} value={String(resources.tokens)} />
         <StatusChip label={resources.currencyName} value={String(resources.currency)} />
+        <StatusChip label={resources.materialName} value={String(resources.materials)} />
         <StatusChip label={resources.reputationName} value={String(resources.reputation)} />
         <StatusChip label={t("shell.recorded")} value={`${progress.cleared}/${progress.total}`} accent testid="cartridge-mark-count" />
       </div>
