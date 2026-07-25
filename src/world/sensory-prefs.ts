@@ -84,11 +84,21 @@ export function useSensoryPreferences(): [SensoryPreferences, (next: SensoryPref
 
 export type PresentationCue = "enter" | "decision" | "resolve-success" | "resolve-partial" | "resolve-failure" | "record" | "threshold";
 
-const THEME_ROOT: Record<string, number> = {
+/** Optional cartridge-scoped procedural roots. These frequencies are local
+ * presentation tokens only. They never enter cartridge identity, run state,
+ * resolution, accessibility text, or the meaning of a cue. Missing IDs retain
+ * the neutral 174.61 Hz fallback. */
+export const PRESENTATION_THEME_ROOT_HZ: Readonly<Record<string, number>> = Object.freeze({
   "first-charter": 220,
   karazhan: 146.83,
   "kind-gods-of-ilyon": 196,
-};
+  // A low, quiet-works root keeps the Lamp District distinct from the neutral
+  // system cue without making concealment or danger semantically audible only.
+  "lamp-district": 110,
+  // A higher shared-transit root distinguishes the Common Ship while every
+  // operational fact remains redundantly available through text and receipts.
+  "relief-circuit": 261.63,
+});
 
 const CUE: Record<PresentationCue, { intervals: number[]; duration: number; wave: OscillatorType }> = {
   enter: { intervals: [1, 1.5, 2], duration: 0.42, wave: "triangle" },
@@ -110,7 +120,7 @@ export function playPresentationCue(cue: PresentationCue, arcId: string): void {
     if (!AudioContextCtor) return;
     const context = new AudioContextCtor();
     const spec = CUE[cue];
-    const root = THEME_ROOT[arcId] ?? 174.61;
+    const root = PRESENTATION_THEME_ROOT_HZ[arcId] ?? 174.61;
     const gain = context.createGain();
     gain.gain.setValueAtTime(0.0001, context.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.035, context.currentTime + 0.025);
