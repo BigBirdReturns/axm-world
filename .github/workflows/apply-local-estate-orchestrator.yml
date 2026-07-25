@@ -1,0 +1,56 @@
+name: Apply local estate orchestrator
+
+on:
+  push:
+    branches: [release/local-estate-replication]
+    paths:
+      - '.github/workflows/apply-local-estate-orchestrator.yml'
+      - 'tools/local-estate-payload/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-local-estate-orchestrator
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Reconstruct and verify the PowerShell orchestrator
+        id: reconstruct
+        run: |
+          set -euo pipefail
+          if ! compgen -G 'tools/local-estate-payload/*.txt' >/dev/null; then
+            echo 'present=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo 'present=true' >> "$GITHUB_OUTPUT"
+          mkdir -p scripts/local-estate
+          cat tools/local-estate-payload/*.txt | base64 --decode | gzip --decompress > scripts/local-estate/Invoke-RodohEstate.ps1
+          printf '%s  %s\n' \
+            'a45585eeabcfe1223c658133bc52495b52e8d1410ab4171d39a999c3a2a21d7d' \
+            'scripts/local-estate/Invoke-RodohEstate.ps1' | sha256sum --check --strict
+          grep -F "rodoh-local-operator-acceptance/1" scripts/local-estate/Invoke-RodohEstate.ps1
+          grep -F "bundle', 'create'" scripts/local-estate/Invoke-RodohEstate.ps1
+          ! grep -F "reset --hard" scripts/local-estate/Invoke-RodohEstate.ps1
+
+      - name: Publish the permanent script and remove the payload
+        if: steps.reconstruct.outputs.present == 'true'
+        run: |
+          set -euo pipefail
+          rm -rf tools/local-estate-payload
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/local-estate/Invoke-RodohEstate.ps1 tools/local-estate-payload
+          git commit -m 'Install the local estate orchestrator'
+          git push origin HEAD:release/local-estate-replication
