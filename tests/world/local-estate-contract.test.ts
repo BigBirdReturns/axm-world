@@ -37,13 +37,13 @@ describe("local estate replication contract", () => {
     expect(lock.format).toBe("rodoh-local-estate-lock/1");
     expect(lock.releaseTarget).toBe("RODOH v1.0.0");
     expect(lock.repositories.arc).toMatchObject({
-      branch: "release/local-estate-replication",
-      requiredAncestor: "94c0e965c09e090d768e73ad29f7820aa50606c0",
-      requiredCommit: "c935cd1118b96fba8cc141ec45918352d59271d8",
-      productAuthorityCommit: "94c0e965c09e090d768e73ad29f7820aa50606c0",
+      branch: "main",
+      requiredAncestor: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
+      requiredCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
+      productAuthorityCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
     });
     expect(lock.repositories.world.branch).toBe("release/local-estate-replication");
-    expect(lock.repositories.world.requiredAncestor).toBe("4c280be0f2e8e8cf9b07619de01a4eef2d9aecc0");
+    expect(lock.repositories.world.requiredAncestor).toBe("466ead00a64af07e85d034ad3d6a6ebd7c3e4998");
     expect(json<{ version: string }>("package.json").version).toBe("0.0.1");
   });
 
