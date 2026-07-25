@@ -49,7 +49,7 @@ jobs:
 
           conflicts="$(git diff --name-only --diff-filter=U || true)"
           if [ -n "$conflicts" ]; then
-            unexpected="$(printf '%s\n' "$conflicts" | grep -Ev '^(e2e/gate7-clean-room\.spec\.ts|package\.json)$' || true)"
+            unexpected="$(printf '%s\n' "$conflicts" | grep -Ev '^(e2e/gate7-clean-room\.spec\.ts|package\.json|\.github/workflows/finalize-gate7-e2e\.yml)$' || true)"
             if [ -n "$unexpected" ]; then
               printf 'Unexpected World reconciliation conflicts:\n%s\n' "$unexpected" >&2
               exit 1
@@ -200,6 +200,7 @@ jobs:
           PY
 
           rm -rf .accepted-arc
+          rm -f .github/workflows/finalize-gate7-e2e.yml
           rm -f .github/workflows/finalize-local-estate-current-baseline.yml
           rm -f .github/workflows/finalize-local-estate-arc-sync.yml
           rm -f estate/.carrier-probe.txt
@@ -226,6 +227,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
+          test ! -e .github/workflows/finalize-gate7-e2e.yml
           test ! -e .github/workflows/finalize-local-estate-arc-sync.yml
           test ! -e .github/workflows/finalize-local-estate-current-baseline.yml
           test ! -e estate/.carrier-probe.txt
