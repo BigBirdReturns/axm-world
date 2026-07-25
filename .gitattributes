@@ -1,0 +1,15 @@
+# Exact Arc/World comparison and reproducible local builds require the same
+# working-tree text bytes on Windows, Linux, and macOS.
+* text=auto eol=lf
+
+# Binary runtime and publication assets are never line-ending transformed.
+*.gif binary
+*.ico binary
+*.jpeg binary
+*.jpg binary
+*.pdf binary
+*.png binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.zip binary
