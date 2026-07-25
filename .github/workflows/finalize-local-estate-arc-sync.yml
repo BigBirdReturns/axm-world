@@ -1,0 +1,116 @@
+name: Finalize local-estate Arc synchronization
+
+on:
+  push:
+    branches: [release/local-estate-replication]
+    paths:
+      - '.github/workflows/finalize-local-estate-arc-sync.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finalize-local-estate-arc-sync
+  cancel-in-progress: true
+
+env:
+  ARC_ACCEPTED_SHA: 194d05cc98bf35d6d2e666e63e393f2b18cc547e
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Check out exact World branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - name: Check out accepted Arc source
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_ACCEPTED_SHA }}
+          path: .accepted-arc
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Vendor the exact accepted source and execution plane
+        run: |
+          set -euo pipefail
+          for path in \
+            src/engine src/arcs src/godscar src/dark-tomb src/common-ship src/source-planes \
+            tests/engine tests/fixtures tests/godscar tests/dark-tomb tests/common-ship tests/source-planes \
+            cartridges; do
+            mkdir -p "$(dirname "$path")"
+            rsync -a --delete ".accepted-arc/$path/" "$path/"
+          done
+          python - <<'PY'
+          from pathlib import Path
+          sha = '194d05cc98bf35d6d2e666e63e393f2b18cc547e'
+
+          provenance = Path('src/engine/VENDORED_FROM')
+          text = provenance.read_text()
+          lines = []
+          for line in text.splitlines():
+              if line.startswith('commit: '):
+                  lines.append(f'commit: {sha}')
+              elif line.startswith('synced: '):
+                  lines.append('synced: 2026-07-25')
+              else:
+                  lines.append(line)
+          provenance.write_text('\n'.join(lines) + '\n')
+
+          lock = Path('estate/estate.lock.json')
+          text = lock.read_text()
+          text = text.replace('"branch": "release/local-estate-replication",\n      "requiredAncestor": "94c0e965c09e090d768e73ad29f7820aa50606c0",\n      "requiredCommit": "c935cd1118b96fba8cc141ec45918352d59271d8",\n      "productAuthorityCommit": "94c0e965c09e090d768e73ad29f7820aa50606c0"',
+                              '"branch": "main",\n      "requiredAncestor": "194d05cc98bf35d6d2e666e63e393f2b18cc547e",\n      "requiredCommit": "194d05cc98bf35d6d2e666e63e393f2b18cc547e",\n      "productAuthorityCommit": "194d05cc98bf35d6d2e666e63e393f2b18cc547e"')
+          lock.write_text(text)
+
+          workflow = Path('.github/workflows/local-estate-replication.yml')
+          text = workflow.read_text().replace('ARC_LOCAL_ESTATE_REF: c935cd1118b96fba8cc141ec45918352d59271d8', f'ARC_LOCAL_ESTATE_REF: {sha}')
+          text = text.replace('git -C "$repo" restore --source=HEAD --staged --worktree -- docs/game\n            git -C "$repo" clean -fdx -- docs/game',
+                              'git -C "$repo" restore --source=HEAD --staged --worktree -- docs/game 2>/dev/null || true\n            git -C "$repo" clean -fdx -- docs/game')
+          workflow.write_text(text)
+
+          for path in [Path('estate/START_HERE.md'), Path('estate/LOCAL_REPLICATION.md'), Path('estate/MACHINE_CONTRACT.md'), Path('estate/ESTATE_MAP.md')]:
+              if not path.exists():
+                  continue
+              text = path.read_text()
+              text = text.replace('c935cd1118b96fba8cc141ec45918352d59271d8', sha)
+              text = text.replace('94c0e965c09e090d768e73ad29f7820aa50606c0', sha)
+              path.write_text(text)
+          PY
+          rm -rf .accepted-arc
+          git diff --check
+      - name: Install and qualify the resulting product tree
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          ENGINE_DRIFT_STRICT=1 npm run engine:check
+          npm run typecheck
+          npm test -- tests/world/second-recension-books-1-3.test.ts tests/world/gate7-clean-room.test.ts tests/world/local-estate-contract.test.ts tests/engine/connected-operation-fixture.test.ts
+          npm test
+          npm run build
+          git restore --source=HEAD --staged --worktree -- docs/game 2>/dev/null || true
+          git clean -fdx -- docs/game 2>/dev/null || true
+          git diff --check
+      - name: Publish the permanent synchronized candidate
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/engine src/arcs src/godscar src/dark-tomb src/common-ship src/source-planes \
+            tests/engine tests/fixtures tests/godscar tests/dark-tomb tests/common-ship tests/source-planes cartridges \
+            estate .github/workflows/local-estate-replication.yml e2e/gate7-clean-room.spec.ts
+          if git diff --cached --quiet; then
+            echo 'World already matches accepted Arc.'
+            exit 0
+          fi
+          git commit -m 'Vendor accepted Arc reproducibility baseline'
+          git push origin HEAD:release/local-estate-replication
