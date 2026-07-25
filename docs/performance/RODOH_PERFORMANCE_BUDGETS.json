@@ -1,0 +1,29 @@
+{
+  "format": "rodoh-performance-budgets/1",
+  "scope": "RODOH v1 local-first browser product",
+  "staticBuild": {
+    "maximumFiles": 300,
+    "maximumTotalBytes": 12582912,
+    "maximumJavaScriptBytes": 4194304,
+    "maximumLargestJavaScriptBytes": 2621440,
+    "maximumCssBytes": 524288,
+    "maximumSvgBytes": 3145728,
+    "maximumLargestSvgBytes": 409600,
+    "maximumSvgElementsPerFile": 6000,
+    "maximumFontBytes": 3145728,
+    "maximumExternalReferences": 0
+  },
+  "browser": {
+    "desktop": {
+      "maximumBootMilliseconds": 6000,
+      "maximumResourceBytes": 10485760,
+      "maximumDomNodes": 4500
+    },
+    "mobile": {
+      "maximumBootMilliseconds": 9000,
+      "maximumResourceBytes": 10485760,
+      "maximumDomNodes": 4500
+    }
+  },
+  "interpretation": "A budget breach identifies a release regression and must name the file, representation, or browser phase that crossed the boundary. Budgets are not a substitute for usability or local operator acceptance."
+}
