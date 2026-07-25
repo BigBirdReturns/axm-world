@@ -1,8 +1,8 @@
 name: Finalize local-estate reconciliation
 
-# One-shot publication workflow. It merges the accepted World baseline, vendors
-# the exact accepted Arc authority, qualifies the result, and removes itself.
-# The child qualification PR changes only this comment so GitHub exposes the run.
+# One-shot qualification workflow. It constructs the exact permanent product
+# tree. Publication deliberately excludes workflow-file changes because the
+# Actions token has contents write authority but not workflow mutation authority.
 on:
   pull_request:
     paths:
@@ -41,7 +41,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git fetch origin main
+          git fetch origin main release/local-estate-replication
           test "$(git rev-parse origin/main)" = "$WORLD_ACCEPTED_SHA"
 
           set +e
@@ -66,8 +66,6 @@ jobs:
             exit "$merge_status"
           fi
 
-          # Gate 7 on main is newer than this train's historical browser patch.
-          # Preserve the accepted recorded-state/mobile semantics byte-for-byte.
           git show origin/main:e2e/gate7-clean-room.spec.ts > e2e/gate7-clean-room.spec.ts
           git add e2e/gate7-clean-room.spec.ts
           test -z "$(git diff --name-only --diff-filter=U)"
@@ -180,7 +178,6 @@ jobs:
               raise SystemExit(f'drift shared-path anchor count: {drift.count(anchor)}')
           drift_path.write_text(drift.replace(anchor, replacement))
 
-          # Keep human and machine instructions on one exact accepted baseline.
           for root in [Path("estate"), Path("scripts/local-estate")]:
               for path in root.rglob("*"):
                   if not path.is_file() or path.suffix.lower() not in {".md", ".json", ".mjs", ".ps1", ".txt", ".html"}:
@@ -252,20 +249,34 @@ jobs:
           git clean -fdx -- docs/game
           git diff --check
 
-      - name: Prepare permanent candidate
+      - name: Construct workflow-neutral permanent commit
+        id: permanent
         run: |
           set -euo pipefail
           rm -f local-estate-typecheck.log
+
+          # Retain the train's existing workflow tree in this bot-published commit.
+          # An owner-authored follow-up performs the already-qualified workflow
+          # cleanup and activates normal PR checks.
+          git restore --source=origin/release/local-estate-replication --staged --worktree -- .github/workflows
           git add -A
-          test ! -e .github/workflows/finalize-gate7-e2e.yml
-          test ! -e .github/workflows/finalize-local-estate-arc-sync.yml
-          test ! -e .github/workflows/finalize-local-estate-current-baseline.yml
-          test ! -e estate/.carrier-probe.txt
           git diff --cached --check
-          git status --short
+          tree="$(git write-tree)"
+          commit="$(printf '%s\n' 'Reconcile local estate with accepted Arc and World authority' | git commit-tree "$tree" -p origin/release/local-estate-replication -p origin/main)"
+          test -z "$(git diff --name-only origin/release/local-estate-replication "$commit" -- .github/workflows)"
+          printf 'sha=%s\n' "$commit" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$commit" > qualified-local-estate-commit.txt
+          git diff --name-status origin/release/local-estate-replication "$commit" > qualified-local-estate-changes.txt
 
-      - name: Commit permanent candidate
-        run: git commit -m 'Reconcile local estate with accepted Arc and World authority'
+      - name: Upload qualified commit identity
+        uses: actions/upload-artifact@v4
+        with:
+          name: qualified-local-estate-commit
+          path: |
+            qualified-local-estate-commit.txt
+            qualified-local-estate-changes.txt
+          if-no-files-found: error
+          retention-days: 30
 
-      - name: Push permanent candidate
-        run: git push origin HEAD:release/local-estate-replication
+      - name: Push workflow-neutral permanent commit
+        run: git push origin '${{ steps.permanent.outputs.sha }}':release/local-estate-replication
