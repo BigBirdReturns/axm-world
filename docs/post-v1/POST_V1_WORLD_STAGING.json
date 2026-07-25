@@ -1,0 +1,86 @@
+{
+  "$schema": "./POST_V1_WORLD_STAGING.schema.json",
+  "format": "rodoh-post-v1-world-staging/1",
+  "releaseBoundary": {
+    "requiresRodohV1": true,
+    "runtimeChanges": false
+  },
+  "presentationManifest": {
+    "format": "rodoh-presentation-manifest/v1-candidate",
+    "ownership": "Cartridge or selected theme data owns labels, semantic meanings, palette tokens, icon references, portraits, doll layers, motion, material treatment, and diagram descriptions. Shared World runtime receives opaque IDs and one neutral fallback; it does not infer role or item meaning from substrings.",
+    "opaqueKeys": [
+      "roleId",
+      "attributeId",
+      "itemId",
+      "profileId",
+      "stateId",
+      "motifId"
+    ],
+    "fallback": [
+      "authored label is rendered verbatim",
+      "neutral icon and body remain available",
+      "missing art never blocks play",
+      "no first-party palette or fiction leaks into an imported cartridge",
+      "semantic state remains available as text and platform controls"
+    ],
+    "acceptance": [
+      "synthetic arbitrary IDs render without shared-runtime source changes",
+      "all five first-party appearances remain byte-equivalent through theme data",
+      "source guard rejects role attribute and item substring heuristics in shared runtime",
+      "forced colors and screen readers retain all state without asset inspection",
+      "one manifest can be removed and the cartridge still plays through neutral fallback",
+      "presentation metadata never changes cartridge or run identity"
+    ]
+  },
+  "updates": {
+    "automaticUpdaterInV1": false,
+    "candidateModel": "tuf-style-delegated-metadata",
+    "roles": [
+      "root",
+      "targets",
+      "snapshot",
+      "timestamp"
+    ],
+    "invariants": [
+      "opening and preserving a held cartridge never requires update service availability",
+      "root trust changes require explicit threshold-authorized rotation",
+      "targets bind exact files lengths hashes versions and compatibility metadata",
+      "snapshot prevents mix-and-match metadata views",
+      "timestamp limits freeze attacks when connected",
+      "local installed version and highest accepted version prevent rollback",
+      "offline bundles carry all required metadata and verification material",
+      "updates stage beside the accepted install and commit only after verification",
+      "failed activation preserves the prior working build and holder estate",
+      "operator consent remains explicit for incompatible migrations"
+    ]
+  },
+  "connectedOperationReceiver": {
+    "format": "axm-connected-operation/v2-candidate",
+    "authority": "Arc and the future decision kernel own operation identity, causal parent validation, phase transitions, state effects, compensation facts, and receipts. World owns file custody, preflight, human authorization surfaces, exact transactional local writes, presentation, and refusal explanation.",
+    "acceptance": [
+      "repeated import returns the prior application receipt without duplicate effect",
+      "stale participant parent is refused before any write",
+      "partial commit remains visible and resumable",
+      "compensation is displayed as a later operation with residual costs",
+      "forked operation heads remain distinct until explicit reconciliation",
+      "unknown memory and participant sovereignty survive export and fresh-context restore",
+      "World contains no operation identity function or causal evaluator",
+      "desktop mobile keyboard forced-colors and screen-reader paths expose every phase and refusal"
+    ]
+  },
+  "activation": {
+    "preconditions": [
+      "coordinated Arc and World v1.0.0 releases exist",
+      "the local operator and NVDA Edge receipts bind the release pair",
+      "the post-v1 Arc decision-kernel and connected-operation staging is accepted",
+      "the v1 neutral import holder-estate supply-chain and recovery contracts remain green"
+    ],
+    "order": [
+      "replace shared presentation heuristics with validated theme-owned manifests",
+      "consume the exact shared decision-kernel package and remove duplicate evaluator code",
+      "implement connected-operation v2 receiver custody after Arc causal vectors exist",
+      "introduce signed delegated update metadata only after immutable release artifacts and anti-rollback storage exist",
+      "open Book IV receiver implementation against these accepted boundaries"
+    ]
+  }
+}
