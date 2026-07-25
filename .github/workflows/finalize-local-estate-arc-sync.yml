@@ -252,14 +252,20 @@ jobs:
           git clean -fdx -- docs/game
           git diff --check
 
-      - name: Publish the permanent current-main candidate
+      - name: Prepare permanent candidate
         run: |
           set -euo pipefail
+          rm -f local-estate-typecheck.log
           git add -A
           test ! -e .github/workflows/finalize-gate7-e2e.yml
           test ! -e .github/workflows/finalize-local-estate-arc-sync.yml
           test ! -e .github/workflows/finalize-local-estate-current-baseline.yml
           test ! -e estate/.carrier-probe.txt
           git diff --cached --check
-          git commit -m 'Reconcile local estate with accepted Arc and World authority'
-          git push origin HEAD:release/local-estate-replication
+          git status --short
+
+      - name: Commit permanent candidate
+        run: git commit -m 'Reconcile local estate with accepted Arc and World authority'
+
+      - name: Push permanent candidate
+        run: git push origin HEAD:release/local-estate-replication
