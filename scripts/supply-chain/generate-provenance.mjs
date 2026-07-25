@@ -2,7 +2,7 @@
 
 import { createHash } from "node:crypto";
 import { readFileSync, statSync, writeFileSync } from "node:fs";
-import { basename, relative, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 
 function fail(message) {
   console.error(message);
@@ -30,6 +30,7 @@ for (const path of subjectPaths) {
   if (!statSync(path).isFile()) fail(`Subject is not a file: ${path}`);
 }
 const outputPath = resolve(option("--output") ?? "provenance.intoto.json");
+const evidenceRoot = dirname(outputPath);
 const repository = option("--repository") ?? process.env.GITHUB_REPOSITORY ?? "BigBirdReturns/axm-world";
 const commit = option("--commit") ?? process.env.GITHUB_SHA ?? "unknown";
 const ref = option("--ref") ?? process.env.GITHUB_REF ?? "unknown";
@@ -58,7 +59,10 @@ function dependencyRecord(raw) {
 const statement = {
   _type: "https://in-toto.io/Statement/v1",
   subject: subjectPaths
-    .map((path) => ({ name: basename(path), digest: { sha256: sha256(path) } }))
+    .map((path) => ({
+      name: relative(evidenceRoot, path).replace(/\\/g, "/"),
+      digest: { sha256: sha256(path) },
+    }))
     .sort((a, b) => a.name.localeCompare(b.name)),
   predicateType: "https://slsa.dev/provenance/v1",
   predicate: {
