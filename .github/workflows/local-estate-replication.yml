@@ -12,6 +12,7 @@ on:
       - '.github/workflows/local-estate-replication.yml'
       - 'src/**'
       - 'cartridges/**'
+      - 'docs/conformance/**'
       - 'e2e/**'
   workflow_dispatch:
 
@@ -23,8 +24,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ARC_LOCAL_ESTATE_REF: c935cd1118b96fba8cc141ec45918352d59271d8
-  WORLD_REQUIRED_ANCESTOR: 4c280be0f2e8e8cf9b07619de01a4eef2d9aecc0
+  ARC_LOCAL_ESTATE_REF: 4b07539a06d40b131591f1e9c7d5b90a96ceec31
+  WORLD_REQUIRED_ANCESTOR: 466ead00a64af07e85d034ad3d6a6ebd7c3e4998
   SOURCE_DATE_EPOCH: '0'
 
 jobs:
@@ -71,11 +72,13 @@ jobs:
 
       - name: Install exact dependencies
         run: |
+          set -euo pipefail
           npm --prefix axm-arc ci --no-audit --no-fund
           npm --prefix axm-world ci --no-audit --no-fund
 
       - name: Verify lock, local-estate contract, and exact vendored plane
         run: |
+          set -euo pipefail
           mkdir -p local-estate-receipt
           node axm-world/scripts/local-estate/estate-tools.mjs validate-lock --lock axm-world/estate/estate.lock.json | tee local-estate-receipt/lock-validation.log
           npm --prefix axm-world test -- tests/world/local-estate-contract.test.ts | tee local-estate-receipt/local-estate-contract.log
@@ -95,13 +98,17 @@ jobs:
             name="$(basename "$repo")"
             npm --prefix "$repo" run build | tee "local-estate-receipt/${name}-build-first.log"
             cp -a "$repo/docs/game" "local-estate-receipt/builds/${name}-first"
-            git -C "$repo" restore --source=HEAD --staged --worktree -- docs/game
+            if git -C "$repo" ls-files -- docs/game | grep -q .; then
+              git -C "$repo" restore --source=HEAD --staged --worktree -- docs/game
+            fi
             git -C "$repo" clean -fdx -- docs/game
             test -z "$(git -C "$repo" status --porcelain)"
 
             npm --prefix "$repo" run build | tee "local-estate-receipt/${name}-build-second.log"
             cp -a "$repo/docs/game" "local-estate-receipt/builds/${name}-second"
-            git -C "$repo" restore --source=HEAD --staged --worktree -- docs/game
+            if git -C "$repo" ls-files -- docs/game | grep -q .; then
+              git -C "$repo" restore --source=HEAD --staged --worktree -- docs/game
+            fi
             git -C "$repo" clean -fdx -- docs/game
             test -z "$(git -C "$repo" status --porcelain)"
 
