@@ -1,5 +1,6 @@
 name: Finalize local-estate Arc synchronization
 
+# One-shot publication workflow. Remove after the accepted Arc baseline is committed.
 on:
   push:
     branches: [release/local-estate-replication]
