@@ -1,5 +1,6 @@
 name: Harden exact Gate 7 browser journey
 
+# Second push intentionally triggers the one-shot workflow after registration.
 on:
   push:
     branches: [codex/second-recension-books-1-3-clean]
