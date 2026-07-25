@@ -6,6 +6,7 @@ on:
       - 'cartridges/clean-room/**'
       - 'src/engine/**'
       - 'src/world/**'
+      - 'docs/conformance/**'
       - 'tests/world/gate7-clean-room.test.ts'
       - 'e2e/gate7-clean-room.spec.ts'
       - 'docs/GATE7_CLEAN_ROOM_WORLD_ACCEPTANCE.md'
@@ -50,26 +51,37 @@ jobs:
           printf '%s\n' "$CANDIDATE_SHA" > gate7-clean-room-receipt/world-candidate-sha.txt
           cat src/engine/VENDORED_FROM > gate7-clean-room-receipt/arc-source-plane.txt
           cp cartridges/clean-room/manifest.json gate7-clean-room-receipt/clean-room-manifest.json
-          grep -F '94c0e965c09e090d768e73ad29f7820aa50606c0' src/engine/VENDORED_FROM
+          grep -F '4b07539a06d40b131591f1e9c7d5b90a96ceec31' src/engine/VENDORED_FROM
           git diff --check
       - name: Exact Arc provenance
         env:
           ENGINE_DRIFT_STRICT: '1'
-        run: npm run engine:check | tee gate7-clean-room-receipt/engine-drift.log
+        run: |
+          set -o pipefail
+          npm run engine:check | tee gate7-clean-room-receipt/engine-drift.log
       - name: TypeScript
-        run: npm run typecheck | tee gate7-clean-room-receipt/typecheck.log
+        run: |
+          set -o pipefail
+          npm run typecheck | tee gate7-clean-room-receipt/typecheck.log
       - name: Focused Gate 7 custody and neutrality contracts
-        run: npm test -- tests/world/gate7-clean-room.test.ts | tee gate7-clean-room-receipt/focused-tests.log
+        run: |
+          set -o pipefail
+          npm test -- tests/world/gate7-clean-room.test.ts | tee gate7-clean-room-receipt/focused-tests.log
       - name: Complete World regression suite
-        run: npm test | tee gate7-clean-room-receipt/vitest.log
+        run: |
+          set -o pipefail
+          npm test | tee gate7-clean-room-receipt/vitest.log
       - name: Production build
-        run: npm run build | tee gate7-clean-room-receipt/build.log
+        run: |
+          set -o pipefail
+          npm run build | tee gate7-clean-room-receipt/build.log
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Desktop and mobile neutral cartridge journey
         env:
           PW_CHROMIUM_PATH: ${{ runner.temp }}/pw-chromium-placeholder
         run: |
+          set -euo pipefail
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
           npx playwright test e2e/gate7-clean-room.spec.ts | tee gate7-clean-room-receipt/browser.log
       - name: Upload Gate 7 receipt
