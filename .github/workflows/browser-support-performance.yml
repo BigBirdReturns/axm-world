@@ -1,0 +1,141 @@
+name: Browser support and performance
+
+on:
+  pull_request:
+    paths:
+      - 'playwright.support.config.ts'
+      - 'e2e/support-smoke.spec.ts'
+      - 'e2e/performance-budget.spec.ts'
+      - 'scripts/performance/**'
+      - 'docs/SUPPORT_MATRIX.md'
+      - 'docs/performance/**'
+      - 'estate/nvda-edge-acceptance.schema.json'
+      - 'scripts/accessibility/**'
+      - '.github/workflows/browser-support-performance.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'playwright.support.config.ts'
+      - 'e2e/support-smoke.spec.ts'
+      - 'e2e/performance-budget.spec.ts'
+      - 'scripts/performance/**'
+      - 'docs/SUPPORT_MATRIX.md'
+      - 'docs/performance/**'
+      - 'estate/nvda-edge-acceptance.schema.json'
+      - 'scripts/accessibility/**'
+      - '.github/workflows/browser-support-performance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+
+jobs:
+  static-and-chromium:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Build and audit static product
+        run: |
+          npm run build
+          mkdir -p performance-receipt
+          node scripts/performance/audit-static-build.mjs \
+            --build docs/game \
+            --budgets docs/performance/RODOH_PERFORMANCE_BUDGETS.json \
+            --output performance-receipt/static-build.json
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Desktop and mobile boot budgets
+        env:
+          PW_CHROMIUM_PATH: ${{ runner.temp }}/pw-chromium-placeholder
+        run: |
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npx playwright test e2e/performance-budget.spec.ts --project desktop --project mobile
+      - name: Upload performance receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rodoh-performance-receipts
+          path: |
+            performance-receipt
+            test-results
+          if-no-files-found: warn
+          retention-days: 30
+
+  compatibility-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps firefox webkit
+      - name: Firefox and WebKit neutral custody smoke
+        run: npx playwright test e2e/support-smoke.spec.ts --config playwright.support.config.ts --project firefox-desktop-smoke --project webkit-desktop-smoke
+      - name: Upload compatibility traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rodoh-firefox-webkit-smoke
+          path: test-results
+          if-no-files-found: warn
+          retention-days: 30
+
+  windows-edge:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Microsoft Edge desktop and mobile-layout smoke
+        shell: pwsh
+        run: npx playwright test e2e/support-smoke.spec.ts --config playwright.support.config.ts --project edge-desktop --project edge-mobile
+      - name: Parse the local NVDA receipt recorder
+        shell: pwsh
+        run: |
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'scripts/accessibility/Record-NvdaEdgeAcceptance.ps1'),
+            [ref]$null,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) { $errors | Format-List | Out-String | Write-Error }
+      - name: Upload Edge traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rodoh-windows-edge-smoke
+          path: test-results
+          if-no-files-found: warn
+          retention-days: 30
