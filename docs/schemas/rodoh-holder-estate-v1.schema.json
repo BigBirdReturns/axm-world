@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axm.tools/schemas/rodoh-holder-estate-v1.json",
+  "title": "Rodoh holder estate v1",
+  "description": "A content-bound collection of every Rodoh-owned browser record held by one player. It is distinct from creator-owned cartridge law and from any single portable run.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "createdAt", "producer", "records", "summary", "integrity"],
+  "properties": {
+    "format": { "const": "rodoh-holder-estate/v1" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runtime", "schemaVersion"],
+      "properties": {
+        "runtime": { "const": "axm-world" },
+        "schemaVersion": { "const": 1 }
+      }
+    },
+    "records": {
+      "type": "array",
+      "maxItems": 4096,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "kind", "value", "byteLength", "sha256"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "maxLength": 512,
+            "pattern": "^(axm-world:|rodoh:)"
+          },
+          "kind": {
+            "enum": [
+              "cartridge-bay",
+              "run",
+              "experience",
+              "presentation",
+              "sensory",
+              "locale",
+              "opaque-world"
+            ]
+          },
+          "value": { "type": "string" },
+          "byteLength": { "type": "integer", "minimum": 0, "maximum": 8388608 },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "records",
+        "bytes",
+        "cartridgeBayRecords",
+        "runRecords",
+        "experienceRecords",
+        "presentationRecords",
+        "preferenceRecords",
+        "opaqueRecords"
+      ],
+      "properties": {
+        "records": { "type": "integer", "minimum": 0 },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "cartridgeBayRecords": { "type": "integer", "minimum": 0 },
+        "runRecords": { "type": "integer", "minimum": 0 },
+        "experienceRecords": { "type": "integer", "minimum": 0 },
+        "presentationRecords": { "type": "integer", "minimum": 0 },
+        "preferenceRecords": { "type": "integer", "minimum": 0 },
+        "opaqueRecords": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "digest"],
+      "properties": {
+        "algorithm": { "const": "sha256" },
+        "digest": { "type": "string", "pattern": "^estate1_[0-9a-f]{64}$" }
+      }
+    }
+  }
+}
