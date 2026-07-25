@@ -1,0 +1,98 @@
+name: Finalize local-estate baseline
+
+on:
+  push:
+    branches: [release/local-estate-replication]
+    paths:
+      - '.github/workflows/finalize-local-estate-current-baseline.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finalize-local-estate-current-baseline
+  cancel-in-progress: true
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Pin the accepted Arc and reviewed World baseline
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          ARC_OLD = 'c935cd1118b96fba8cc141ec45918352d59271d8'
+          ARC_NEW = '194d05cc98bf35d6d2e666e63e393f2b18cc547e'
+          WORLD_OLD = '4c280be0f2e8e8cf9b07619de01a4eef2d9aecc0'
+          WORLD_NEW = '6c5d1aa508da63d23474c293ee10b9115c08c9fb'
+
+          workflow = Path('.github/workflows/local-estate-replication.yml')
+          text = workflow.read_text()
+          if ARC_OLD not in text:
+              raise SystemExit('old Arc pin missing from local-estate workflow')
+          if WORLD_OLD not in text:
+              raise SystemExit('old World ancestor missing from local-estate workflow')
+          text = text.replace(ARC_OLD, ARC_NEW).replace(WORLD_OLD, WORLD_NEW)
+          old_cleanup = '''            git -C "$repo" restore --source=HEAD --staged --worktree -- docs/game
+            git -C "$repo" clean -fdx -- docs/game
+            test -z "$(git -C "$repo" status --porcelain)"'''
+          new_cleanup = '''            if git -C "$repo" ls-files -- docs/game | grep -q .; then
+              git -C "$repo" restore --source=HEAD --staged --worktree -- docs/game
+            fi
+            git -C "$repo" clean -fdx -- docs/game
+            test -z "$(git -C "$repo" status --porcelain)"'''
+          if text.count(old_cleanup) != 2:
+              raise SystemExit(f'expected two generated-tree cleanup blocks, found {text.count(old_cleanup)}')
+          workflow.write_text(text.replace(old_cleanup, new_cleanup))
+
+          lock_path = Path('estate/estate.lock.json')
+          lock = json.loads(lock_path.read_text())
+          arc = lock['repositories']['arc']
+          arc['branch'] = 'main'
+          arc['requiredAncestor'] = ARC_NEW
+          arc['requiredCommit'] = ARC_NEW
+          arc['productAuthorityCommit'] = ARC_NEW
+          world = lock['repositories']['world']
+          world['requiredAncestor'] = WORLD_NEW
+          world['productAuthorityCommit'] = WORLD_NEW
+          lock_path.write_text(json.dumps(lock, indent=2) + '\n')
+
+          # Replace obsolete exact references in the human/machine estate library.
+          for root in [Path('estate'), Path('scripts/local-estate'), Path('tests/world')]:
+              for path in root.rglob('*'):
+                  if not path.is_file() or path.suffix.lower() not in {'.md', '.json', '.mjs', '.ps1', '.ts', '.txt', '.html'}:
+                      continue
+                  source = path.read_text(errors='strict')
+                  updated = source.replace(ARC_OLD, ARC_NEW).replace(WORLD_OLD, WORLD_NEW)
+                  if updated != source:
+                      path.write_text(updated)
+          PY
+      - name: Focused contract
+        run: |
+          npm run typecheck
+          npm test -- tests/world/local-estate-contract.test.ts
+          git diff --check
+      - name: Publish exact baseline
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/local-estate-replication.yml estate scripts/local-estate tests/world/local-estate-contract.test.ts
+          if git diff --cached --quiet; then
+            echo "Baseline already finalized."
+          else
+            git commit -m "Pin the accepted local-estate baseline"
+            git push origin HEAD:release/local-estate-replication
+          fi
