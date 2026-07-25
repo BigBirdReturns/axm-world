@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { openMobileContractSheet, resolveOpeningDecision, resolvePendingDecisions } from "./helpers";
+import { openMobileContractSheet, resolvePendingDecisions } from "./helpers";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CLEAN = path.join(ROOT, "cartridges", "clean-room");
@@ -52,7 +52,10 @@ async function finishEntryTransition(page: Page): Promise<void> {
     await page.waitForTimeout(25);
   }
   if (await page.getByTestId("pending-decision-card").isVisible().catch(() => false)) {
-    await resolveOpeningDecision(page);
+    // A fresh cartridge has one opening decision. A restored run may expose that
+    // decision followed immediately by queued authored drama. Drain the bounded
+    // decision surface instead of asserting that exactly one card existed.
+    await resolvePendingDecisions(page);
   }
   await expect(page.getByTestId("engine-shell")).toBeVisible();
 }
@@ -61,6 +64,25 @@ async function enterOrchard(page: Page): Promise<void> {
   await page.getByTestId("play-cartridge-orchard-at-low-tide").click();
   await finishEntryTransition(page);
   await resolvePendingDecisions(page);
+}
+
+/** Choosing a representation updates the underlying Board surface. Mobile may
+ * still be presenting a governed Contract or Party sheet above that surface, so
+ * leave those sheets through their real Back control before asserting the view. */
+async function chooseRepresentation(page: Page, control: string, surface: string): Promise<void> {
+  await page.getByTestId(control).click();
+  const target = page.getByTestId(surface);
+  const back = page.getByTestId("mobile-step-back");
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    if (await target.isVisible().catch(() => false)) return;
+    if (await back.isVisible().catch(() => false)) {
+      await back.click();
+      await page.waitForTimeout(25);
+      continue;
+    }
+    await page.waitForTimeout(50);
+  }
+  await expect(target).toBeVisible({ timeout: 15_000 });
 }
 
 async function enterAvailableMapNode(page: Page): Promise<string> {
@@ -91,8 +113,7 @@ async function setExactParty(page: Page, desired: string[]): Promise<void> {
 }
 
 async function completeChallenge(page: Page, expectedId: string, spend: "none" | "max"): Promise<void> {
-  await page.getByTestId("view-map").click();
-  await expect(page.getByTestId("world-map")).toBeVisible();
+  await chooseRepresentation(page, "view-map", "world-map");
   const entered = await enterAvailableMapNode(page);
   expect(entered).toBe(expectedId);
   await expect(page.getByTestId("encounter-shell")).toBeVisible();
@@ -162,14 +183,11 @@ async function expectAuthoredRole(page: Page, role: string): Promise<void> {
   await expect(matchingCard(), `Expected authored role ${role} on a neutral roster card`).toBeVisible();
 }
 
-async function expectClearedMapNodes(page: Page, count: number): Promise<void> {
-  await page.getByTestId("view-map").click();
-  await expect(page.getByTestId("world-map")).toBeVisible();
-  const cleared = page.getByTestId("world-map").locator('[data-status="cleared"]');
-  await expect.poll(async () => cleared.count(), {
-    message: `Expected ${count} cleared Orchard nodes after the committed run state propagated`,
-    timeout: 30_000,
-  }).toBe(count);
+async function expectRecordedMapNodes(page: Page, count: number): Promise<void> {
+  await chooseRepresentation(page, "view-map", "world-map");
+  const map = page.getByTestId("world-map");
+  await expect(map.getByTestId("wm-progress")).toHaveAttribute("data-recorded", String(count));
+  await expect(map.locator('[data-state="recorded"]')).toHaveCount(count);
 }
 
 test.describe.configure({ mode: "serial" });
@@ -206,16 +224,11 @@ test("unbundled clean-room cartridge completes, exports, and resumes through neu
 
   const assetRequests: string[] = [];
   page.on("requestfinished", (request) => assetRequests.push(request.url()));
-  await page.getByTestId("view-run-graph").click();
-  await expect(page.getByTestId("contract-board")).toBeVisible();
-  await page.getByTestId("view-map").click();
-  await expect(page.getByTestId("world-map")).toBeVisible();
-  await page.getByTestId("view-hall").click();
-  await expect(page.getByTestId("hall-scene")).toBeVisible();
-  await page.getByTestId("view-aperture").click();
-  await expect(page.getByTestId("rodoh-aperture")).toBeVisible();
-  await page.getByTestId("view-planet").click();
-  await expect(page.getByTestId("walkable-world")).toBeVisible({ timeout: 20_000 });
+  await chooseRepresentation(page, "view-run-graph", "contract-board");
+  await chooseRepresentation(page, "view-map", "world-map");
+  await chooseRepresentation(page, "view-hall", "hall-scene");
+  await chooseRepresentation(page, "view-aperture", "rodoh-aperture");
+  await chooseRepresentation(page, "view-planet", "walkable-world");
   expect(firstPartyAssetUrls(assetRequests)).toEqual([]);
 
   await completeChallenge(page, "count-the-brackish-wells", "none");
@@ -224,7 +237,7 @@ test("unbundled clean-room cartridge completes, exports, and resumes through neu
   await completeChallenge(page, "replant-the-ninth-orchard", "max");
   await completeChallenge(page, "publish-the-next-season", "max");
 
-  await expectClearedMapNodes(page, 5);
+  await expectRecordedMapNodes(page, 5);
 
   const exportedPath = testInfo.outputPath(`orchard-${testInfo.project.name}.run.json`);
   const exported = await exportRun(page, exportedPath);
@@ -244,7 +257,7 @@ test("unbundled clean-room cartridge completes, exports, and resumes through neu
   const restoredEntry = page.getByTestId("cartridge-entry-orchard-at-low-tide");
   await expect(restoredEntry.getByTestId("bay-save-state")).toContainText(/Resumable/i);
   await enterOrchard(page);
-  await expectClearedMapNodes(page, 5);
+  await expectRecordedMapNodes(page, 5);
   expect(external).toEqual([]);
 });
 
@@ -271,7 +284,14 @@ test("clean-room custody preserves unknown memory, refuses malformed source, and
   await expect(page.getByTestId("engine-shell")).toBeVisible();
   await page.getByTestId("view-map").focus();
   await page.keyboard.press("Enter");
-  await expect(page.getByTestId("world-map")).toBeVisible();
+  const map = page.getByTestId("world-map");
+  const back = page.getByTestId("mobile-step-back");
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    if (await map.isVisible().catch(() => false)) break;
+    if (await back.isVisible().catch(() => false)) await back.click();
+    await page.waitForTimeout(25);
+  }
+  await expect(map).toBeVisible();
 
   const reexportedPath = testInfo.outputPath(`orchard-prebuilt-${testInfo.project.name}.run.json`);
   const reexported = await exportRun(page, reexportedPath);

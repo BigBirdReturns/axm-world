@@ -8,7 +8,7 @@ import { defineConfig, devices } from "@playwright/test";
 // rather than downloading (PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 is set in the image).
 const CHROMIUM =
   process.env.PW_CHROMIUM_PATH ?? "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
-const BASE_URL = process.env.PW_BASE_URL ?? "http://localhost:5173";
+const BASE_URL = process.env.PW_BASE_URL ?? "http://127.0.0.1:5173";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -24,7 +24,10 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["Pixel 5"], viewport: { width: 390, height: 844 } } },
   ],
   webServer: {
-    command: "npm run dev",
+    // Match the successful Gate 6 runner exactly. Vite's implicit localhost
+    // binding can resolve to IPv6 while CI probes 127.0.0.1, leaving Playwright
+    // waiting on a server that is healthy on a different loopback address.
+    command: "npm run dev -- --host 127.0.0.1 --port 5173 --strictPort",
     url: `${BASE_URL}/axm-world/game/`,
     reuseExistingServer: true,
     timeout: 120_000,
