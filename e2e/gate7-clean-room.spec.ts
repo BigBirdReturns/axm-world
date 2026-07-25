@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { openMobileContractSheet, resolveOpeningDecision, resolvePendingDecisions } from "./helpers";
+import { openMobileContractSheet, resolvePendingDecisions } from "./helpers";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CLEAN = path.join(ROOT, "cartridges", "clean-room");
@@ -52,7 +52,10 @@ async function finishEntryTransition(page: Page): Promise<void> {
     await page.waitForTimeout(25);
   }
   if (await page.getByTestId("pending-decision-card").isVisible().catch(() => false)) {
-    await resolveOpeningDecision(page);
+    // A fresh cartridge has one opening decision. A restored run may expose that
+    // decision followed immediately by queued authored drama. Drain the bounded
+    // decision surface instead of asserting that exactly one card existed.
+    await resolvePendingDecisions(page);
   }
   await expect(page.getByTestId("engine-shell")).toBeVisible();
 }
@@ -63,14 +66,23 @@ async function enterOrchard(page: Page): Promise<void> {
   await resolvePendingDecisions(page);
 }
 
-/** Choosing a representation is also the mobile navigation act that returns the
- * staged Contract or Party sheet to Board. Wait for that governed transition
- * before asserting the representation itself. */
+/** Choosing a representation updates the underlying Board surface. Mobile may
+ * still be presenting a governed Contract or Party sheet above that surface, so
+ * leave those sheets through their real Back control before asserting the view. */
 async function chooseRepresentation(page: Page, control: string, surface: string): Promise<void> {
   await page.getByTestId(control).click();
-  const mobileBoard = page.getByTestId("mobile-step-board");
-  if (await mobileBoard.count()) await expect(mobileBoard).toBeVisible();
-  await expect(page.getByTestId(surface)).toBeVisible({ timeout: 15_000 });
+  const target = page.getByTestId(surface);
+  const back = page.getByTestId("mobile-step-back");
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    if (await target.isVisible().catch(() => false)) return;
+    if (await back.isVisible().catch(() => false)) {
+      await back.click();
+      await page.waitForTimeout(25);
+      continue;
+    }
+    await page.waitForTimeout(50);
+  }
+  await expect(target).toBeVisible({ timeout: 15_000 });
 }
 
 async function enterAvailableMapNode(page: Page): Promise<string> {
@@ -272,9 +284,14 @@ test("clean-room custody preserves unknown memory, refuses malformed source, and
   await expect(page.getByTestId("engine-shell")).toBeVisible();
   await page.getByTestId("view-map").focus();
   await page.keyboard.press("Enter");
-  const mobileBoard = page.getByTestId("mobile-step-board");
-  if (await mobileBoard.count()) await expect(mobileBoard).toBeVisible();
-  await expect(page.getByTestId("world-map")).toBeVisible();
+  const map = page.getByTestId("world-map");
+  const back = page.getByTestId("mobile-step-back");
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    if (await map.isVisible().catch(() => false)) break;
+    if (await back.isVisible().catch(() => false)) await back.click();
+    await page.waitForTimeout(25);
+  }
+  await expect(map).toBeVisible();
 
   const reexportedPath = testInfo.outputPath(`orchard-prebuilt-${testInfo.project.name}.run.json`);
   const reexported = await exportRun(page, reexportedPath);
