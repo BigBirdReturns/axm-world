@@ -2,6 +2,7 @@ name: Finalize local-estate reconciliation
 
 # One-shot publication workflow. It merges the accepted World baseline, vendors
 # the exact accepted Arc authority, qualifies the result, and removes itself.
+# The child qualification PR changes only this comment so GitHub exposes the run.
 on:
   pull_request:
     paths:
