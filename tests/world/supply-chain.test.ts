@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -45,8 +45,8 @@ describe("release supply-chain evidence", () => {
     const dir = mkdtempSync(join(tmpdir(), "rodoh-evidence-"));
     const artifacts = join(dir, "artifacts");
     const sbomDir = join(dir, "sbom");
-    require("node:fs").mkdirSync(artifacts, { recursive: true });
-    require("node:fs").mkdirSync(sbomDir, { recursive: true });
+    mkdirSync(artifacts, { recursive: true });
+    mkdirSync(sbomDir, { recursive: true });
     const artifact = join(artifacts, "rodoh-world-game.tar.gz");
     writeFileSync(artifact, "exact-static-product");
     const sbom = join(sbomDir, "axm-world.cdx.json");
