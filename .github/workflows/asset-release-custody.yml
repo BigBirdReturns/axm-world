@@ -1,0 +1,87 @@
+name: Asset release custody
+
+on:
+  pull_request:
+    paths:
+      - 'src/assets/**'
+      - 'src/world/themes/**'
+      - 'src/world/brand/**'
+      - 'src/world/pixel-ui/**'
+      - 'src/world/common-ship/**'
+      - 'src/world/sensory-prefs.ts'
+      - 'docs/design/**'
+      - 'docs/schemas/rodoh-program-asset-rollup-v1.schema.json'
+      - 'docs/release/RODOH_ASSET_INVENTORY.json'
+      - 'scripts/assets/**'
+      - 'tests/world/asset-release-custody.test.ts'
+      - '.github/workflows/asset-release-custody.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/assets/**'
+      - 'src/world/themes/**'
+      - 'src/world/brand/**'
+      - 'src/world/pixel-ui/**'
+      - 'src/world/common-ship/**'
+      - 'src/world/sensory-prefs.ts'
+      - 'docs/design/**'
+      - 'docs/schemas/rodoh-program-asset-rollup-v1.schema.json'
+      - 'docs/release/RODOH_ASSET_INVENTORY.json'
+      - 'scripts/assets/**'
+      - 'tests/world/asset-release-custody.test.ts'
+      - '.github/workflows/asset-release-custody.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  assets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Deterministic inventory and focused contracts
+        run: |
+          set -euo pipefail
+          node scripts/assets/build-release-asset-inventory.mjs \
+            --root "$PWD" \
+            --rollups src/assets/rollups/rodoh-v1-programs.json \
+            --descriptions src/assets/descriptions/rodoh-v1-dense-assets.json \
+            --output docs/release/RODOH_ASSET_INVENTORY.json \
+            --check
+          npm run typecheck
+          npm test -- tests/world/asset-release-custody.test.ts tests/world/asset-standard.test.ts tests/world/production-asset-wave-one.test.ts tests/world/lamp-district-assets.test.ts tests/world/relief-circuit-production-assets.test.ts
+      - name: Complete product and performance acceptance
+        run: |
+          set -euo pipefail
+          npm test
+          npm run build
+          mkdir -p asset-release-receipt
+          node scripts/performance/audit-static-build.mjs \
+            --build docs/game \
+            --budgets docs/performance/RODOH_PERFORMANCE_BUDGETS.json \
+            --output asset-release-receipt/static-performance.json
+          cp docs/release/RODOH_ASSET_INVENTORY.json asset-release-receipt/asset-inventory.json
+          printf '%s\n' '${{ github.event.pull_request.head.sha || github.sha }}' > asset-release-receipt/world-candidate-sha.txt
+      - name: Upload asset release receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rodoh-asset-release-custody
+          path: asset-release-receipt
+          if-no-files-found: warn
+          retention-days: 30
