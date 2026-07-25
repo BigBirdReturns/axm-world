@@ -39,6 +39,8 @@ jobs:
       - name: Reconcile accepted World main without reviving stale Gate 7 behavior
         run: |
           set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git fetch origin main
           test "$(git rev-parse origin/main)" = "$WORLD_ACCEPTED_SHA"
 
@@ -224,8 +226,6 @@ jobs:
       - name: Publish the permanent current-main candidate
         run: |
           set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           test ! -e .github/workflows/finalize-gate7-e2e.yml
           test ! -e .github/workflows/finalize-local-estate-arc-sync.yml
