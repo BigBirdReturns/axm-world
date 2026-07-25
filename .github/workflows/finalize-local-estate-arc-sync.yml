@@ -94,7 +94,7 @@ jobs:
           for path in \
             src/engine src/arcs src/godscar src/dark-tomb src/common-ship src/source-planes \
             tests/engine tests/fixtures tests/godscar tests/dark-tomb tests/common-ship tests/source-planes \
-            cartridges; do
+            docs/conformance cartridges; do
             mkdir -p "$(dirname "$path")"
             if [ "$path" = "src/engine" ]; then
               rsync -a --delete --exclude VENDORED_FROM ".accepted-arc/$path/" "$path/"
@@ -171,6 +171,14 @@ jobs:
           if marker in workflow and marker + "          set -euo pipefail\n" not in workflow:
               workflow = workflow.replace(marker, marker + "          set -euo pipefail\n", 1)
           workflow_path.write_text(workflow)
+
+          drift_path = Path("scripts/check-engine-drift.sh")
+          drift = drift_path.read_text()
+          anchor = '  "tests/source-planes"\n  "cartridges"'
+          replacement = '  "tests/source-planes"\n  "docs/conformance"\n  "cartridges"'
+          if drift.count(anchor) != 1:
+              raise SystemExit(f'drift shared-path anchor count: {drift.count(anchor)}')
+          drift_path.write_text(drift.replace(anchor, replacement))
 
           # Keep human and machine instructions on one exact accepted baseline.
           for root in [Path("estate"), Path("scripts/local-estate")]:
