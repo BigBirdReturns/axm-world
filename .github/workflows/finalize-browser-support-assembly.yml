@@ -76,6 +76,7 @@ jobs:
           git reset --hard "$commit"
           test -z "$(git status --porcelain)"
           printf '%s\n' "$commit" | tee "$RUNNER_TEMP/browser-candidate.txt"
+          mkdir -p "$RUNNER_TEMP/browser-assembly-receipt"
       - run: npm ci --no-audit --no-fund
       - name: Exact contracts and complete World product
         run: |
@@ -84,11 +85,10 @@ jobs:
           npm test -- tests/world/browser-support-performance.test.ts tests/world/canon-trace.test.ts tests/world/local-estate-contract.test.ts tests/world/supply-chain.test.ts tests/world/holder-estate.test.ts
           npm test
           npm run build
-          mkdir -p browser-assembly-receipt
           node scripts/performance/audit-static-build.mjs \
             --build docs/game \
             --budgets docs/performance/RODOH_PERFORMANCE_BUDGETS.json \
-            --output browser-assembly-receipt/static-build.json
+            --output "$RUNNER_TEMP/browser-assembly-receipt/static-build.json"
       - name: Install support browsers
         run: npx playwright install --with-deps chromium firefox webkit
       - name: Budgets, compatibility smoke, and complete Chromium estate
@@ -96,9 +96,9 @@ jobs:
         run: |
           set -euo pipefail
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
-          npx playwright test e2e/performance-budget.spec.ts --project desktop --project mobile 2>&1 | tee browser-assembly-receipt/performance.log
-          npx playwright test e2e/support-smoke.spec.ts --config playwright.support.config.ts --project firefox-desktop-smoke --project webkit-desktop-smoke 2>&1 | tee browser-assembly-receipt/firefox-webkit.log
-          npx playwright test 2>&1 | tee browser-assembly-receipt/complete-chromium.log
+          npx playwright test e2e/performance-budget.spec.ts --project desktop --project mobile 2>&1 | tee "$RUNNER_TEMP/browser-assembly-receipt/performance.log"
+          npx playwright test e2e/support-smoke.spec.ts --config playwright.support.config.ts --project firefox-desktop-smoke --project webkit-desktop-smoke 2>&1 | tee "$RUNNER_TEMP/browser-assembly-receipt/firefox-webkit.log"
+          npx playwright test 2>&1 | tee "$RUNNER_TEMP/browser-assembly-receipt/complete-chromium.log"
           if git ls-files -- docs/game | grep -q .; then
             git restore --source=HEAD --staged --worktree -- docs/game
           fi
@@ -110,7 +110,7 @@ jobs:
           name: browser-assembly-linux
           path: |
             ${{ runner.temp }}/browser-candidate.txt
-            browser-assembly-receipt
+            ${{ runner.temp }}/browser-assembly-receipt
           if-no-files-found: warn
           retention-days: 30
 
@@ -170,12 +170,12 @@ jobs:
           git reset --hard "$commit"
           test -z "$(git status --porcelain)"
           printf '%s\n' "$commit" | tee "$RUNNER_TEMP/browser-candidate.txt"
+          mkdir -p "$RUNNER_TEMP/browser-edge-receipt"
       - run: npm ci --no-audit --no-fund
       - name: Hosted Microsoft Edge and recorder parsing
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force browser-edge-receipt | Out-Null
-          npx playwright test e2e/support-smoke.spec.ts --config playwright.support.config.ts --project edge-desktop --project edge-mobile *>&1 | Tee-Object browser-edge-receipt\edge.log
+          npx playwright test e2e/support-smoke.spec.ts --config playwright.support.config.ts --project edge-desktop --project edge-mobile *>&1 | Tee-Object "$env:RUNNER_TEMP\browser-edge-receipt\edge.log"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $errors = $null
           [System.Management.Automation.Language.Parser]::ParseFile(
@@ -190,7 +190,7 @@ jobs:
           name: browser-assembly-hosted-edge
           path: |
             ${{ runner.temp }}/browser-candidate.txt
-            browser-edge-receipt
+            ${{ runner.temp }}/browser-edge-receipt
           if-no-files-found: warn
           retention-days: 30
 
