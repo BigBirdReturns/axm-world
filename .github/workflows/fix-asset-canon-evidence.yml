@@ -1,0 +1,65 @@
+name: Align asset canon evidence
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/fix-asset-canon-evidence.yml'
+  push:
+    branches: [release/asset-custody-closure]
+    paths:
+      - '.github/workflows/fix-asset-canon-evidence.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: align-asset-canon-evidence-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  align:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Bind life-fraction canon to the permanent Gate 6 workflow
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('docs/canon/GODSCAR_CANON_TRACE.json')
+          text = path.read_text()
+          old = 'scripts/verify-relief-circuit-gate6.mjs'
+          new = '.github/workflows/gate6-relief-circuit.yml'
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one asset-branch Gate 6 evidence path, found {text.count(old)}')
+          path.write_text(text.replace(old, new))
+          PY
+          git diff --check
+      - run: npm ci --no-audit --no-fund
+      - name: Qualify canon and complete World contracts
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm test -- tests/world/canon-trace.test.ts tests/world/second-recension-books-1-3.test.ts
+          npm test
+      - name: Publish workflow-neutral canon alignment
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/canon/GODSCAR_CANON_TRACE.json
+          git rm .github/workflows/fix-asset-canon-evidence.yml
+          git diff --cached --check
+          git commit -m 'Align asset canon evidence with the permanent Gate 6 receipt'
+          git push origin HEAD:release/asset-custody-closure
