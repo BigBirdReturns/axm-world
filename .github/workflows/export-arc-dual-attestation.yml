@@ -1,6 +1,6 @@
 name: Export dual Arc attestation verification custody
 
-# Structural replacement avoids backslash-newline interpretation in Python literals.
+# Child-PR execution carrier. The permanent export remains only an artifact.
 on:
   pull_request:
     paths:
