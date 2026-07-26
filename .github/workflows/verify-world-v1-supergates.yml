@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  WORLD_SHA: d192cb619df7fad910fa532e14ed9621eb7097d5
+  WORLD_SHA: dd9d9130178f30cc0edc71e1b6c8b9be31002fb5
   ARC_RELEASE_SHA: 7b576898f7a82409669a97187bcd836296a77e24
   CI: 'true'
 
