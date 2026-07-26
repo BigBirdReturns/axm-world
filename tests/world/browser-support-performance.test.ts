@@ -119,6 +119,13 @@ describe("browser support and performance custody", () => {
     expect(recorder).toContain('Invoke-GitText $arcRepo @("status", "--porcelain")');
     expect(recorder).toContain("merge-base --is-ancestor");
     expect(recorder).toContain("playwrightVersion");
+    expect(recorder).toContain('$worldBranch = Invoke-GitText $worldRepo @("rev-parse", "--abbrev-ref", "HEAD")');
+    expect(recorder).toContain('$arcBranch = Invoke-GitText $arcRepo @("rev-parse", "--abbrev-ref", "HEAD")');
+    expect(recorder).toContain("World package version $worldPackageVersion does not match estate lock");
+    expect(recorder).toContain("Arc package version $arcPackageVersion does not match estate lock");
+    const statusGenerator = readFileSync(STATUS_GENERATOR, "utf8");
+    expect(statusGenerator).toContain("value.world?.head");
+    expect(statusGenerator).toContain("value.arc?.head");
 
     const schema = JSON.parse(readFileSync(resolve(ROOT, "estate/nvda-edge-acceptance.schema.json"), "utf8"));
     expect(schema.required).toEqual(expect.arrayContaining(["nodeVersion", "npmVersion", "playwrightVersion"]));
@@ -149,8 +156,8 @@ describe("browser support and performance custody", () => {
     writeReceipt(resolve(receipts, "local-operator-acceptance.json"), {
       format: "rodoh-local-operator-acceptance/1",
       status: "pass",
-      worldCommit: wrongWorld,
-      arcCommit: wrongArc,
+      world: { head: wrongWorld, branch: "main" },
+      arc: { head: wrongArc, branch: "main" },
     });
     writeReceipt(resolve(receipts, "nvda-edge-acceptance.json"), {
       format: "rodoh-nvda-edge-acceptance/1",

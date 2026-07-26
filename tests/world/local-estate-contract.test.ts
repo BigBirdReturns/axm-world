@@ -137,6 +137,14 @@ describe("local estate replication contract", () => {
     expect(powershell).toContain("--offline");
     expect(powershell).toContain("function Start-DetachedLoggedProcess");
     expect(powershell).toContain("-EncodedCommand");
+    expect(powershell).toContain("function Assert-CurrentAcceptanceEstate");
+    expect(powershell).toContain("Automated repository receipt World head");
+    expect(powershell).toContain("Browser test receipt head");
+    expect(powershell).toContain("Snapshot archive SHA-256");
+    expect(powershell).toContain("worldCommit = $estate.worldHead");
+    expect(powershell).toContain("arcCommit = $estate.arcHead");
+    expect(powershell).toContain("worldPackageVersion = $estate.worldPackageVersion");
+    expect(powershell).toContain("arcPackageVersion = $estate.arcPackageVersion");
     expect(powershell).toContain("'clone', '--branch', [string]$Record.branch, '--single-branch'");
     expect(powershell).toContain('if ($branch -ne [string]$Record.branch)');
     const serverLifecycle = powershell.slice(
