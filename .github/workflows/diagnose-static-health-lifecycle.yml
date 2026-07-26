@@ -63,8 +63,11 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $playOut = Join-Path $PWD 'diagnostics\play.stdout.log'
           $playErr = Join-Path $PWD 'diagnostics\play.stderr.log'
-          $command = '"' + (Join-Path $PWD 'axm-world\RODOH.cmd') + '" play -EstateRoot "' + $PWD + '" -NoOpen'
-          $play = Start-Process -FilePath $env:ComSpec -ArgumentList @('/d', '/s', '/c', $command) -WorkingDirectory $PWD -PassThru -RedirectStandardOutput $playOut -RedirectStandardError $playErr
+          $rodoh = (Resolve-Path '.\axm-world\RODOH.cmd').Path.Replace("'", "''")
+          $estate = $PWD.Path.Replace("'", "''")
+          $script = "& '$rodoh' play -EstateRoot '$estate' -NoOpen"
+          $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($script))
+          $play = Start-Process -FilePath powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', $encoded) -WorkingDirectory $PWD -PassThru -RedirectStandardOutput $playOut -RedirectStandardError $playErr
           $state = Join-Path $PWD '.rodoh-estate\servers.json'
           $deadline = (Get-Date).AddSeconds(90)
           $world = $false
@@ -75,6 +78,7 @@ jobs:
               try { $arc = (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 http://127.0.0.1:5174/axm-arc/game/).StatusCode -eq 200 } catch { $arc = $false }
               if ($world -and $arc) { break }
             }
+            if ($play.HasExited -and -not (Test-Path $state)) { break }
             Start-Sleep -Milliseconds 250
           }
           $returnedBeforeStop = $play.HasExited
@@ -83,6 +87,7 @@ jobs:
             worldHealthy = $world
             arcHealthy = $arc
             playPid = $play.Id
+            playExitCode = $(if ($play.HasExited) { $play.ExitCode } else { $null })
             playReturnedBeforeStop = $returnedBeforeStop
             serverStatePresent = (Test-Path $state)
             serverState = $(if (Test-Path $state) { Get-Content -Raw $state | ConvertFrom-Json } else { $null })
@@ -91,6 +96,7 @@ jobs:
           try {
             if (-not $world -or -not $arc) { throw 'Captured products did not both become healthy within 90 seconds.' }
             if (-not $returnedBeforeStop) { throw 'RODOH.cmd play did not return after both captured products became healthy.' }
+            if ($play.ExitCode -ne 0) { throw "RODOH.cmd play returned exit code $($play.ExitCode)." }
           } finally {
             & .\axm-world\RODOH.cmd stop -EstateRoot "$PWD" *>&1 | Tee-Object diagnostics\stop.log
             if (-not $play.HasExited) {
