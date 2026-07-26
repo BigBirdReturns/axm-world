@@ -697,21 +697,41 @@ const GRIDS: Record<PixelIconName, string[]> = {
 const OUTLINE_COLOR = "#1b1b1b";
 const DETAIL_COLOR = "#f6efe3";
 
-function PixelGlyph({ name }: { name: PixelIconName }): JSX.Element {
-  const rows = GRIDS[name];
-  const cells: JSX.Element[] = [];
-  for (let y = 0; y < rows.length; y++) {
+interface GlyphPaths {
+  fill: string;
+  outline: string;
+  detail: string;
+}
+
+function pathForTone(rows: readonly string[], tone: "#" | "o" | "w"): string {
+  const segments: string[] = [];
+  for (let y = 0; y < rows.length; y += 1) {
     const row = rows[y] ?? "";
-    for (let x = 0; x < row.length; x++) {
-      const ch = row[x];
-      if (ch === ".") continue;
-      const fill = ch === "o" ? OUTLINE_COLOR : ch === "w" ? DETAIL_COLOR : "currentColor";
-      cells.push(<rect key={`${y}-${x}`} x={x} y={y} width={1} height={1} fill={fill} />);
+    for (let x = 0; x < row.length; x += 1) {
+      if (row[x] === tone) segments.push(`M${x} ${y}h1v1h-1z`);
     }
   }
+  return segments.join("");
+}
+
+// The source grids remain the exact pixel ledger. Coalescing each tone into
+// one path changes no coordinate or palette value while bounding browser DOM.
+const GLYPH_PATHS = Object.fromEntries(PIXEL_ICON_NAMES.map((name) => {
+  const rows = GRIDS[name];
+  return [name, {
+    fill: pathForTone(rows, "#"),
+    outline: pathForTone(rows, "o"),
+    detail: pathForTone(rows, "w"),
+  }] as const;
+})) as Record<PixelIconName, GlyphPaths>;
+
+function PixelGlyph({ name }: { name: PixelIconName }): JSX.Element {
+  const paths = GLYPH_PATHS[name];
   return (
     <svg viewBox="0 0 32 32" width="100%" height="100%" style={{ shapeRendering: "crispEdges", display: "block" }}>
-      {cells}
+      {paths.fill && <path d={paths.fill} fill="currentColor" />}
+      {paths.outline && <path d={paths.outline} fill={OUTLINE_COLOR} />}
+      {paths.detail && <path d={paths.detail} fill={DETAIL_COLOR} />}
     </svg>
   );
 }

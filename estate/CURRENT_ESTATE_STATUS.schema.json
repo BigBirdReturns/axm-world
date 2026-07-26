@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axm.tools/schemas/rodoh-current-estate-status-1.json",
+  "title": "RODOH current estate status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "generatedAt",
+    "repositories",
+    "protocols",
+    "products",
+    "capabilities",
+    "localEvidence",
+    "release",
+    "bookIV"
+  ],
+  "properties": {
+    "format": { "const": "rodoh-current-estate-status/1" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "repositories": { "type": "object" },
+    "protocols": { "type": "object" },
+    "products": { "type": "object" },
+    "capabilities": { "type": "object", "additionalProperties": { "type": "boolean" } },
+    "localEvidence": { "type": "object" },
+    "release": {
+      "type": "object",
+      "required": ["target", "packageVersion", "ready", "blockers"],
+      "properties": {
+        "target": { "type": "string" },
+        "packageVersion": { "type": "string" },
+        "ready": { "type": "boolean" },
+        "blockers": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      }
+    },
+    "bookIV": {
+      "type": "object",
+      "required": ["publicationCanon", "runtimeRegistered", "programAssigned", "status"],
+      "properties": {
+        "publicationCanon": { "type": "boolean" },
+        "runtimeRegistered": { "type": "boolean" },
+        "programAssigned": { "type": "boolean" },
+        "status": { "enum": ["staged-post-1.0", "implemented"] }
+      }
+    }
+  }
+}
