@@ -3,6 +3,7 @@
   "format": "rodoh-program-asset-rollup-set/1",
   "releaseTarget": "RODOH v1.0.0",
   "provenanceCompatibility": [
+    "axm-identity-custody/1",
     "axm-runtime-asset-provenance/1",
     "rodoh-original-asset-provenance/1",
     "axm-world-root-mark-provenance/1"
@@ -16,192 +17,200 @@
       "status": "production-dignity-complete",
       "historicalManifests": [
         "src/world/brand/rodoh-root-mark.provenance.json",
-        "src/assets/rodoh/bay/provenance.json"
+        "src/assets/provenance/rodoh-bay.json"
       ],
       "assetRoots": [
-        "src/assets/rodoh/bay",
+        "src/assets/rodoh-bay",
         "src/world/brand"
       ],
       "presentationRoots": [
-        "src/world/pixel-ui",
-        "src/world/rodoh-bay.css"
+        "src/world/rodoh-bay.css",
+        "src/world/pixel-ui"
       ],
       "requiredRoles": [
-        "constitutional identity",
-        "holder-owned cartridge shelf",
-        "entry environment",
-        "foreground framing",
-        "neutral imported-cartridge fallback"
+        "local cartridge custody",
+        "runtime identity",
+        "trust and save status",
+        "neutral imported entry"
       ],
       "denseDescriptions": [],
       "acceptance": [
-        "tests/world/rodoh-root-mark.test.ts",
         "tests/world/production-asset-wave-one.test.ts",
-        "e2e/production-asset-wave-one.spec.ts"
+        "e2e/cartridge-bay-mobile.spec.ts"
       ],
-      "releaseBoundary": "System identity and custody frame only. Entered cartridges retain their own presentation identity."
+      "releaseBoundary": "The shell may frame and classify holder-owned cartridges but never lends a first-party identity to an imported cartridge."
     },
     {
       "id": "program-001-first-charter",
-      "name": "The First Charter",
+      "name": "Program 001: The First Charter",
       "cartridgeId": "first-charter",
       "cartridgeDigest": "cart1_d8888842c6a7a7ba758a8eea567c71fcc8f998ff8af75208ed44ef4eee74edeb",
       "status": "production-dignity-complete",
       "historicalManifests": [
-        "src/assets/first-charter/hall/provenance.json"
+        "docs/design/FIRST_CHARTER_ASSET_PROVENANCE.json",
+        "src/assets/provenance/first-charter-production.json"
       ],
       "assetRoots": [
-        "src/assets/first-charter/hall"
+        "src/assets/first-charter"
       ],
       "presentationRoots": [
-        "src/world/themes/first-charter"
+        "src/world/themes/first-charter",
+        "src/world/cartridge-appearances.tsx",
+        "src/world/cartridge-motifs.tsx"
       ],
       "requiredRoles": [
-        "cartridge-owned role appearances",
-        "cartridge emblem and campaign motifs",
-        "Founding Hall environment",
-        "Maren Vos lead portrait",
-        "Hall foreground framing"
+        "Maren Vos and founding cast appearances",
+        "campaign-beat and faction motifs",
+        "founding hall environment",
+        "material and state treatment"
       ],
       "denseDescriptions": [],
       "acceptance": [
-        "tests/world/first-charter-hall-assets.test.ts",
-        "e2e/honest-opening.spec.ts",
-        ".github/workflows/bundled-parity.yml"
+        "tests/world/asset-standard.test.ts",
+        "tests/world/first-charter-production-assets.test.ts",
+        "tests/world/production-asset-wave-one.test.ts",
+        "e2e/honest-opening.spec.ts"
       ],
-      "releaseBoundary": "Complete current local pixel/vector presentation across the accepted shared representations and directed founding Hall."
+      "releaseBoundary": "Program-owned visuals render Arc-authored identity and state; they do not create rules or consequences."
     },
     {
       "id": "program-002-waking-tower",
-      "name": "The Waking Tower",
+      "name": "Program 002: The Waking Tower",
       "cartridgeId": "karazhan",
       "cartridgeDigest": "cart1_776adac1b9372d0331ddd774af8b94c80b46bd6bbc4763334cf01def46111144",
       "status": "production-dignity-complete",
       "historicalManifests": [
-        "src/assets/karazhan/hall/provenance.json"
+        "src/assets/provenance/karazhan-production.json"
       ],
       "assetRoots": [
-        "src/assets/karazhan/hall"
+        "src/assets/karazhan"
       ],
       "presentationRoots": [
-        "src/world/themes/karazhan"
+        "src/world/themes/karazhan",
+        "src/world/cartridge-appearances.tsx",
+        "src/world/cartridge-motifs.tsx"
       ],
       "requiredRoles": [
-        "cartridge-owned large-roster appearances",
-        "tower and attunement motifs",
-        "Waking Tower survey Hall environment",
-        "Seren Vale lead portrait",
-        "tower foreground framing"
+        "Seren Vale and tower cast appearances",
+        "violet survey hall environment",
+        "tower campaign and evidence motifs",
+        "material and procedural planet treatment"
       ],
       "denseDescriptions": [],
       "acceptance": [
+        "tests/world/asset-standard.test.ts",
         "tests/world/production-asset-wave-one.test.ts",
-        "e2e/production-asset-wave-one.spec.ts",
-        ".github/workflows/bundled-parity.yml"
+        "tests/world/cartridge-parity.test.ts",
+        "e2e/honest-opening.spec.ts"
       ],
-      "releaseBoundary": "Complete current local pixel/vector identity for the large-roster Waking Tower campaign."
+      "releaseBoundary": "The internal compatibility id remains karazhan; all player-facing fiction and production identity remain original Waking Tower work."
     },
     {
       "id": "program-003-kind-gods-of-ilyon",
-      "name": "The Kind Gods of Ilyon",
+      "name": "Program 003: The Kind Gods of Ilyon",
       "cartridgeId": "kind-gods-of-ilyon",
       "cartridgeDigest": "cart1_17054e128dc6fd517fc47f163d92da58d72f9302a84d9d3b04589083afc10f0e",
       "status": "production-dignity-complete",
       "historicalManifests": [
-        "src/assets/ilyon/observatory/provenance.json",
-        "docs/design/ILYON_ASSET_BIBLE.md"
+        "docs/design/ILYON_ASSET_PROVENANCE.md",
+        "src/assets/provenance/ilyon-production.json"
       ],
       "assetRoots": [
-        "src/assets/ilyon/observatory"
+        "src/assets/ilyon"
       ],
       "presentationRoots": [
-        "src/world/themes/ilyon"
+        "src/world/themes/ilyon",
+        "src/world/cartridge-appearances.tsx",
+        "src/world/cartridge-motifs.tsx"
       ],
       "requiredRoles": [
-        "five cartridge-owned role appearances",
-        "campaign faction evidence and consequence motifs",
-        "Confluence Observatory environment",
-        "Aster Neral lead portrait",
-        "observatory foreground framing"
+        "Aster Neral and five Godscar cast appearances",
+        "observatory hall environment",
+        "six campaign beats and evidence/faction/consequence motifs",
+        "Aperture and procedural globe identity"
       ],
       "denseDescriptions": [
-        "ilyon-symbol-system"
+        "ilyon-motif-system"
       ],
       "acceptance": [
-        "tests/world/ilyon-visual-asset-pack.test.ts",
+        "tests/world/ilyon-visual-assets.test.ts",
         "tests/world/production-asset-wave-one.test.ts",
-        ".github/workflows/godscar-ilyon.yml",
-        ".github/workflows/bundled-parity.yml"
+        "tests/world/godscar-receiver.test.ts",
+        "e2e/godscar-ilyon.spec.ts"
       ],
-      "releaseBoundary": "Complete current local pixel/vector identity and evidence-facing Aperture grammar for Ilyon."
+      "releaseBoundary": "The motif set exposes Pocket, faction, evidence, and consequence relations already carried by Arc; World does not infer missing canon."
     },
     {
       "id": "program-004-lamp-district",
-      "name": "The Lamp District",
+      "name": "Program 004: The Lamp District",
       "cartridgeId": "lamp-district",
       "cartridgeDigest": "cart1_05530ae780a30f2f79fb0ddf030ba0e92321d736f146e8e16ddb325ae948b23e",
       "status": "production-dignity-complete",
       "historicalManifests": [
-        "src/assets/lamp-district/underworld/provenance.json",
-        "docs/design/LAMP_DISTRICT_ASSET_BIBLE.md"
+        "docs/design/LAMP_DISTRICT_ASSET_PROVENANCE.json",
+        "src/assets/lamp-district/provenance.json"
       ],
       "assetRoots": [
-        "src/assets/lamp-district/underworld"
+        "src/assets/lamp-district"
       ],
       "presentationRoots": [
-        "src/world/themes/lamp-district"
+        "src/world/themes/lamp-district",
+        "src/world/cartridge-appearances.tsx",
+        "src/world/cartridge-motifs.tsx"
       ],
       "requiredRoles": [
-        "seven cartridge-owned civic roles",
-        "Long Alarm and movement motifs",
-        "Lamp District underworld environment",
-        "Anja Vei lead portrait",
-        "seven-layer civic cross-section"
+        "Anja Vei and descent cast appearances",
+        "seven-layer civic cross-section",
+        "civic hub and descent/return identity",
+        "alarm, signature, visibility, and inherited-consequence motifs"
       ],
       "denseDescriptions": [
-        "lamp-district-seven-layer-cross-section"
+        "lamp-district-cross-section"
       ],
       "acceptance": [
         "tests/world/lamp-district-assets.test.ts",
-        "e2e/lamp-district-gate4.spec.ts",
-        ".github/workflows/bundled-parity.yml"
+        "tests/world/underworld-receiver.test.ts",
+        "tests/world/lamp-district-connected-custody.test.ts",
+        "e2e/honest-opening.spec.ts"
       ],
-      "releaseBoundary": "Complete current local pixel/vector identity for ordinary life, descent, breach, return, and changed civic hub."
+      "releaseBoundary": "The cross-section is a navigational and relational supplement; Underworld HTML and engine state remain the semantic authority."
     },
     {
       "id": "program-005-relief-circuit",
-      "name": "The Relief Circuit",
+      "name": "Program 005: The Relief Circuit",
       "cartridgeId": "relief-circuit",
       "cartridgeDigest": "cart1_15a9f3792ff8a68948053a06cefcbf586e9960158ca051a187e1ab341b7a2e65",
       "status": "production-dignity-complete",
       "historicalManifests": [
-        "src/assets/relief-circuit/vessel/provenance.json",
-        "docs/design/RELIEF_CIRCUIT_ASSET_BIBLE.md"
+        "docs/design/RELIEF_CIRCUIT_ASSET_BIBLE.md",
+        "src/assets/relief-circuit/provenance.json"
       ],
       "assetRoots": [
-        "src/assets/relief-circuit/vessel"
+        "src/assets/relief-circuit"
       ],
       "presentationRoots": [
-        "src/world/common-ship"
+        "src/world/themes/relief-circuit",
+        "src/world/common-ship",
+        "src/world/cartridge-appearances.tsx",
+        "src/world/cartridge-motifs.tsx"
       ],
       "requiredRoles": [
-        "six distinct founding-cast portraits",
-        "multispecies vessel environment",
-        "seven-system vessel cross-section",
-        "twenty-one-symbol operational atlas",
-        "neutral Common Ship fallback"
+        "six founding-cast portraits and bodies",
+        "Common Ship vessel environment",
+        "labeled seven-system cross-section",
+        "twenty-one-symbol watch/system/state atlas"
       ],
       "denseDescriptions": [
-        "relief-circuit-vessel-cross-section",
-        "relief-circuit-operational-symbol-atlas"
+        "relief-circuit-cross-section",
+        "relief-circuit-symbol-atlas"
       ],
       "acceptance": [
         "tests/world/relief-circuit-production-assets.test.ts",
-        "e2e/relief-circuit-gate6.spec.ts",
-        ".github/workflows/gate6-relief-circuit.yml",
-        ".github/workflows/bundled-parity.yml"
+        "tests/world/common-ship-receiver-prep.test.ts",
+        "tests/world/common-ship-preparation-cycle.test.ts",
+        "e2e/relief-circuit-gate6.spec.ts"
       ],
-      "releaseBoundary": "Complete current local vector identity for vessel management, embodied watch composition, connected Lamp District custody, and return."
+      "releaseBoundary": "The vessel art explains Arc-owned composition and state. It is never the only carrier of a watch test, handoff, or connected-operation fact."
     }
   ]
 }
