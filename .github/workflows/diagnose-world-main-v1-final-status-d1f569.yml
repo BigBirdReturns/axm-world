@@ -1,4 +1,4 @@
-name: Diagnose exact World main v1 final status
+name: Verify exact World main v1 final status
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: diagnose-world-main-v1-final-status-d1f569
+  group: verify-world-main-v1-final-status-d1f569
   cancel-in-progress: true
 
 env:
@@ -21,7 +21,7 @@ env:
   CI: 'true'
 
 jobs:
-  diagnose:
+  verify:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -37,23 +37,21 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - name: Import only the exact final machine artifact
+      - name: Import only the exact final machine artifact outside the checkout
         uses: actions/download-artifact@v4
         with:
           name: final-world-main-v1-windows-estate-d1f569
-          path: imported-windows
+          path: ${{ runner.temp }}/imported-windows
           github-token: ${{ github.token }}
           repository: BigBirdReturns/axm-world
           run-id: ${{ env.SOURCE_RUN_ID }}
-      - name: Calculate and print the unfiltered final status
+      - name: Require the exact two-observation release boundary
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t receipts < <(find imported-windows -name windows-replication.json -type f | sort)
+          test -z "$(git status --porcelain)"
+          mapfile -t receipts < <(find "$RUNNER_TEMP/imported-windows" -name windows-replication.json -type f | sort)
           test "${#receipts[@]}" -ge 1
-          for receipt in "${receipts[@]}"; do
-            node -e 'const fs=require("fs"); const v=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(process.argv[1], JSON.stringify(v));' "$receipt"
-          done
           mkdir -p "$RUNNER_TEMP/final-estate/.rodoh-estate/receipts" "$RUNNER_TEMP/final-status"
           cp "${receipts[0]}" "$RUNNER_TEMP/final-estate/.rodoh-estate/receipts/windows-replication.json"
           node scripts/estate/generate-current-status.mjs \
@@ -62,14 +60,30 @@ jobs:
             --output-json "$RUNNER_TEMP/final-status/current-estate-status.json" \
             --output-markdown "$RUNNER_TEMP/final-status/CURRENT_ESTATE_STATUS.md"
           cp "${receipts[0]}" "$RUNNER_TEMP/final-status/windows-replication.json"
-          echo '--- current-estate-status.json ---'
-          cat "$RUNNER_TEMP/final-status/current-estate-status.json"
-          echo '--- CURRENT_ESTATE_STATUS.md ---'
-          cat "$RUNNER_TEMP/final-status/CURRENT_ESTATE_STATUS.md"
           node - <<'NODE'
           const fs = require('fs');
           const path = `${process.env.RUNNER_TEMP}/final-status/current-estate-status.json`;
           const value = JSON.parse(fs.readFileSync(path, 'utf8'));
+          const expected = [
+            'Local operator acceptance receipt is absent or invalid.',
+            'NVDA and Edge acceptance receipt is absent or invalid.',
+          ];
+          if (value.repositories.world.commit !== process.env.WORLD_SHA) throw new Error('World status identity mismatch');
+          if (value.repositories.world.dirty) throw new Error('Exact World checkout is dirty');
+          if (value.repositories.arc.releaseEvidenceCommit !== process.env.ARC_SHA) throw new Error('Arc status identity mismatch');
+          if (value.release.packageVersion !== '1.0.0' || value.release.arcPackageVersion !== '1.0.0') throw new Error('Package version mismatch');
+          if (!value.localEvidence.windowsReplication.valid) throw new Error('Windows receipt is not valid');
+          if (value.localEvidence.windowsReplication.worldCommit !== process.env.WORLD_SHA) throw new Error('Windows World mismatch');
+          if (value.localEvidence.windowsReplication.arcCommit !== process.env.ARC_SHA) throw new Error('Windows Arc mismatch');
+          if (value.localEvidence.localOperator.valid || value.localEvidence.nvdaEdge.valid) throw new Error('Human receipt was manufactured');
+          if (JSON.stringify(value.release.blockers) !== JSON.stringify(expected)) {
+            throw new Error(`Unexpected blockers: ${JSON.stringify(value.release.blockers)}`);
+          }
+          if (Object.values(value.capabilities).some((present) => present !== true)) throw new Error('A required capability is absent');
+          if (value.bookIV.status !== 'staged-post-1.0' || value.bookIV.runtimeRegistered || value.bookIV.programAssigned) {
+            throw new Error('Book IV crossed the staged boundary');
+          }
+          if (value.release.ready) throw new Error('Release cannot be ready without human receipts');
           const summary = {
             repositories: value.repositories,
             release: value.release,
@@ -77,14 +91,12 @@ jobs:
             capabilities: value.capabilities,
             bookIV: value.bookIV,
           };
-          fs.writeFileSync(`${process.env.RUNNER_TEMP}/final-status/diagnostic-summary.json`, `${JSON.stringify(summary, null, 2)}\n`);
-          if (value.repositories.world.commit !== process.env.WORLD_SHA) throw new Error('Diagnostic checkout is not exact World main');
-          if (value.repositories.arc.releaseEvidenceCommit !== process.env.ARC_SHA) throw new Error('Diagnostic lock is not exact Arc main');
+          fs.writeFileSync(`${process.env.RUNNER_TEMP}/final-status/final-boundary-summary.json`, `${JSON.stringify(summary, null, 2)}\n`);
           NODE
+          cat "$RUNNER_TEMP/final-status/current-estate-status.json"
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: world-main-v1-final-status-diagnostic-d1f569
+          name: world-main-v1-final-boundary-d1f569
           path: ${{ runner.temp }}/final-status
-          if-no-files-found: warn
-          retention-days: 14
+          if-no-files-found: error
+          retention-days: 30
