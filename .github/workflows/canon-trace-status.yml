@@ -44,14 +44,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - name: Canon, support, and status contracts
-        run: |
-          set -euo pipefail
-          npm run typecheck
-          npm test -- \
-            tests/world/canon-trace.test.ts \
-            tests/world/second-recension-books-1-3.test.ts \
-            tests/world/browser-support-performance.test.ts
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Canon trace and Second Recension contracts
+        run: npm test -- tests/world/canon-trace.test.ts tests/world/second-recension-books-1-3.test.ts
+      - name: Browser support, performance, and receipt reconciliation contracts
+        run: npm test -- tests/world/browser-support-performance.test.ts
       - name: Generate exact current status without manufacturing acceptance
         run: |
           set -euo pipefail
@@ -71,9 +69,7 @@ jobs:
           if (Object.keys(status.products).length !== 6) throw new Error('expected five first-party products plus Orchard');
           NODE
       - name: Complete regression suite
-        run: |
-          set -euo pipefail
-          npm test
+        run: npm test
       - name: Upload exact status and canon receipt
         if: always()
         uses: actions/upload-artifact@v4
