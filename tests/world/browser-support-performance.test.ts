@@ -180,7 +180,12 @@ describe("browser support and performance custody", () => {
     ]));
     expect(status.release.blockers).not.toEqual(expect.arrayContaining([
       expect.stringMatching(/^Vendored Arc product authority /),
+      "One or more required estate capabilities are not present in this checkout.",
     ]));
+    expect(status.capabilities).toMatchObject({
+      boundedJsonImports: true,
+      cart1Canonicalization: true,
+    });
     expect(status.release).toMatchObject({
       packageVersion: "1.0.0",
       arcPackageVersion: "1.0.0",
