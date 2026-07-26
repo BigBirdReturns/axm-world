@@ -39,15 +39,18 @@ jobs:
 
           workflow_path = Path('.github/workflows/supply-chain-evidence.yml')
           workflow = workflow_path.read_text()
-          old = '''          gh attestation verify evidence/artifacts/axm-arc-game.tar.gz \\
-            --repo BigBirdReturns/axm-arc \\
-            --predicate-type https://slsa.dev/provenance/v1 \\
-            --signer-workflow BigBirdReturns/axm-arc/.github/workflows/supply-chain-evidence.yml \\
-            --source-digest "$ARC_SHA" \\
-            --source-ref refs/heads/main \\
-            --format json > evidence/attestations/axm-arc-online-verification.json
-          '''
-          new = '''          gh attestation verify evidence/artifacts/axm-arc-game.tar.gz \\
+          start_marker = '          gh attestation verify evidence/artifacts/axm-arc-game.tar.gz '
+          end_marker = '          (\n            cd evidence'
+          start = workflow.find(start_marker)
+          if start < 0:
+              raise SystemExit('Arc provenance verification block start is absent')
+          end = workflow.find(end_marker, start)
+          if end < 0:
+              raise SystemExit('Arc provenance verification block end is absent')
+          if workflow.find(start_marker, start + 1) >= 0:
+              raise SystemExit('Arc provenance verification block is ambiguous')
+
+          replacement = '''          gh attestation verify evidence/artifacts/axm-arc-game.tar.gz \\
             --repo BigBirdReturns/axm-arc \\
             --predicate-type https://slsa.dev/provenance/v1 \\
             --signer-workflow BigBirdReturns/axm-arc/.github/workflows/supply-chain-evidence.yml \\
@@ -63,10 +66,8 @@ jobs:
             --format json > evidence/attestations/axm-arc-cyclonedx-verification.json
           test -s evidence/attestations/axm-arc-build-provenance-verification.json
           test -s evidence/attestations/axm-arc-cyclonedx-verification.json
-          '''
-          if workflow.count(old) != 1:
-              raise SystemExit(f'expected one Arc provenance verification block, found {workflow.count(old)}')
-          workflow_path.write_text(workflow.replace(old, new))
+'''
+          workflow_path.write_text(workflow[:start] + replacement + workflow[end:])
 
           test_path = Path('tests/world/supply-chain-workflow.test.ts')
           test_path.write_text('''import { readFileSync } from "node:fs";\nimport { resolve } from "node:path";\nimport { describe, expect, it } from "vitest";\n\nconst ROOT = resolve(import.meta.dirname, "../..");\n\ndescribe("coordinated signed-evidence workflow", () => {\n  it("requires Arc-owned provenance and CycloneDX attestations for the exact dependency", () => {\n    const workflow = readFileSync(resolve(ROOT, ".github/workflows/supply-chain-evidence.yml"), "utf8");\n    expect(workflow).toContain("axm-arc-build-provenance-verification.json");\n    expect(workflow).toContain("axm-arc-cyclonedx-verification.json");\n    expect(workflow).toContain("--predicate-type https://slsa.dev/provenance/v1");\n    expect(workflow).toContain("--predicate-type https://cyclonedx.org/bom");\n    expect(workflow.match(/--repo BigBirdReturns\\/axm-arc/g)).toHaveLength(2);\n    expect(workflow.match(/--source-digest \"\\$ARC_SHA\"/g)).toHaveLength(2);\n    expect(workflow.match(/--source-ref refs\\/heads\\/main/g)).toHaveLength(2);\n    expect(workflow.match(/--signer-workflow BigBirdReturns\\/axm-arc\\/.github\\/workflows\\/supply-chain-evidence.yml/g)).toHaveLength(2);\n  });\n});\n''')
