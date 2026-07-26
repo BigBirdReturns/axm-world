@@ -54,9 +54,7 @@
         "src/assets/first-charter"
       ],
       "presentationRoots": [
-        "src/world/themes/first-charter",
-        "src/world/cartridge-appearances.tsx",
-        "src/world/cartridge-motifs.tsx"
+        "src/world/themes/first-charter"
       ],
       "requiredRoles": [
         "Maren Vos and founding cast appearances",
@@ -87,9 +85,7 @@
         "src/assets/karazhan"
       ],
       "presentationRoots": [
-        "src/world/themes/karazhan",
-        "src/world/cartridge-appearances.tsx",
-        "src/world/cartridge-motifs.tsx"
+        "src/world/themes/karazhan"
       ],
       "requiredRoles": [
         "Seren Vale and tower cast appearances",
@@ -120,9 +116,7 @@
         "src/assets/ilyon"
       ],
       "presentationRoots": [
-        "src/world/themes/ilyon",
-        "src/world/cartridge-appearances.tsx",
-        "src/world/cartridge-motifs.tsx"
+        "src/world/themes/ilyon"
       ],
       "requiredRoles": [
         "Aster Neral and five Godscar cast appearances",
@@ -131,7 +125,7 @@
         "Aperture and procedural globe identity"
       ],
       "denseDescriptions": [
-        "ilyon-motif-system"
+        "ilyon-symbol-system"
       ],
       "acceptance": [
         "tests/world/ilyon-art-assets.test.ts",
@@ -155,9 +149,7 @@
         "src/assets/lamp-district"
       ],
       "presentationRoots": [
-        "src/world/themes/lamp-district",
-        "src/world/cartridge-appearances.tsx",
-        "src/world/cartridge-motifs.tsx"
+        "src/world/themes/lamp-district"
       ],
       "requiredRoles": [
         "Anja Vei and descent cast appearances",
@@ -166,7 +158,7 @@
         "alarm, signature, visibility, and inherited-consequence motifs"
       ],
       "denseDescriptions": [
-        "lamp-district-cross-section"
+        "lamp-district-seven-layer-cross-section"
       ],
       "acceptance": [
         "tests/world/lamp-district-assets.test.ts",
@@ -190,10 +182,7 @@
         "src/assets/relief-circuit"
       ],
       "presentationRoots": [
-        "src/world/themes/relief-circuit",
-        "src/world/common-ship",
-        "src/world/cartridge-appearances.tsx",
-        "src/world/cartridge-motifs.tsx"
+        "src/world/common-ship"
       ],
       "requiredRoles": [
         "six founding-cast portraits and bodies",
@@ -202,8 +191,8 @@
         "twenty-one-symbol watch/system/state atlas"
       ],
       "denseDescriptions": [
-        "relief-circuit-cross-section",
-        "relief-circuit-symbol-atlas"
+        "relief-circuit-vessel-cross-section",
+        "relief-circuit-operational-symbol-atlas"
       ],
       "acceptance": [
         "tests/world/relief-circuit-production-assets.test.ts",
