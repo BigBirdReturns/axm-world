@@ -120,6 +120,17 @@ describe("browser support and performance custody", () => {
     expect(schema.required).toEqual(expect.arrayContaining(["nodeVersion", "npmVersion", "playwrightVersion"]));
   });
 
+  it("coalesces exact pixel ledgers instead of emitting one cold-shelf node per pixel", () => {
+  const icons = readFileSync(resolve(ROOT, "src/world/pixel-ui/PixelIcon.tsx"), "utf8");
+  const mark = readFileSync(resolve(ROOT, "src/world/brand/RodohRuntimeMark.tsx"), "utf8");
+  expect(icons).toContain("const GLYPH_PATHS");
+  expect(icons).toContain("pathForTone");
+  expect(icons).not.toContain("cells.push(<rect");
+  expect(mark).toContain("const ROOT_PATHS");
+  expect(mark).toContain("<RodohDandelionGlyph size={RODOH_ROOT_MARK_WIDTH * cell} />");
+  expect(mark).not.toContain("RODOH_ROOT_MARK_MAP.flatMap");
+});
+
   it("refuses every valid-looking acceptance receipt that names a different repository pair", () => {
     const estateRoot = mkdtempSync(join(tmpdir(), "rodoh-status-"));
     const receipts = resolve(estateRoot, ".rodoh-estate/receipts");
