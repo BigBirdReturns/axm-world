@@ -1,0 +1,125 @@
+name: Diagnose exact asset assembly preparation
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/diagnose-asset-assembly-prep.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diagnose-exact-asset-assembly-preparation
+  cancel-in-progress: true
+
+env:
+  BROWSER_SOURCE_SHA: f259aea448e4978cf0270d7cd2ebe044fb345064
+  BROWSER_DONOR_SHA: 095971265f6c9855ce49cb4c0050a88cbe346aed
+  ASSET_SOURCE_SHA: 9b958c71a0fbaf9a8e68d325ae3b96e2bd8ca87c
+  ASSET_WORKFLOW_DONOR_SHA: 54d42fbb631ccb978d452552dc35b40e9b9b52bb
+  BROWSER_AUTHOR_DATE: '2026-07-26T08:00:00Z'
+  CI: 'true'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Trace preparation through inventory generation
+        shell: bash
+        run: |
+          exec > >(tee "$RUNNER_TEMP/asset-prepare.log") 2>&1
+          set -euxo pipefail
+          current='${{ github.event.pull_request.head.sha || github.sha }}'
+          test "$(git rev-parse HEAD)" = "$current"
+          git merge-base --is-ancestor "$BROWSER_SOURCE_SHA" "$current"
+          git fetch --no-tags origin \
+            release/browser-support-performance \
+            release/asset-custody-closure \
+            qualify/asset-custody-whole-product
+          test "$(git rev-parse origin/release/browser-support-performance)" = "$BROWSER_DONOR_SHA"
+          test "$(git rev-parse origin/release/asset-custody-closure)" = "$ASSET_SOURCE_SHA"
+          test "$(git rev-parse origin/qualify/asset-custody-whole-product)" = "$ASSET_WORKFLOW_DONOR_SHA"
+          git checkout "$BROWSER_DONOR_SHA" -- \
+            .github/workflows/browser-support-performance.yml \
+            .github/workflows/canon-trace-status.yml \
+            docs/SUPPORT_MATRIX.md \
+            docs/canon/GODSCAR_CANON_TRACE.json \
+            docs/canon/GODSCAR_CANON_TRACE.schema.json \
+            docs/performance/RODOH_PERFORMANCE_BUDGETS.json \
+            e2e/performance-budget.spec.ts \
+            e2e/support-smoke.spec.ts \
+            estate/CURRENT_ESTATE_STATUS.schema.json \
+            estate/nvda-edge-acceptance.schema.json \
+            package.json \
+            playwright.support.config.ts \
+            scripts/accessibility/Record-NvdaEdgeAcceptance.ps1 \
+            scripts/estate/generate-current-status.mjs \
+            scripts/performance/audit-static-build.mjs \
+            src/world/brand/RodohRuntimeMark.tsx \
+            src/world/pixel-ui/PixelIcon.tsx \
+            tests/world/browser-support-performance.test.ts \
+            tests/world/canon-trace.test.ts
+          git rm \
+            .github/workflows/finalize-browser-support-assembly.yml \
+            .github/workflows/finalize-asset-custody-assembly.yml \
+            .github/workflows/diagnose-asset-assembly-prep.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          browser_tree="$(git write-tree)"
+          browser_commit="$(printf '%s\n' 'Assemble browser support over exact release provenance' | \
+            GIT_AUTHOR_NAME='github-actions[bot]' \
+            GIT_AUTHOR_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+            GIT_COMMITTER_NAME='github-actions[bot]' \
+            GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+            GIT_AUTHOR_DATE="$BROWSER_AUTHOR_DATE" \
+            GIT_COMMITTER_DATE="$BROWSER_AUTHOR_DATE" \
+            git commit-tree "$browser_tree" -p "$BROWSER_SOURCE_SHA")"
+          git reset --hard "$browser_commit"
+          git checkout "$ASSET_SOURCE_SHA" -- \
+            docs/design/RELIEF_CIRCUIT_ASSET_BIBLE.md \
+            docs/schemas/rodoh-program-asset-rollup-v1.schema.json \
+            scripts/assets/build-release-asset-inventory.mjs \
+            src/assets/descriptions/rodoh-v1-dense-assets.json \
+            src/assets/first-charter/hall/charter-hall-foreground.svg \
+            src/assets/rollups/rodoh-v1-programs.json \
+            src/world/sensory-prefs.ts \
+            tests/world/asset-release-custody.test.ts
+          git checkout "$ASSET_WORKFLOW_DONOR_SHA" -- \
+            .github/workflows/asset-release-custody.yml \
+            tests/world/asset-release-workflow.test.ts
+          mkdir -p docs/release
+          node scripts/assets/build-release-asset-inventory.mjs \
+            --root "$PWD" \
+            --rollups src/assets/rollups/rodoh-v1-programs.json \
+            --descriptions src/assets/descriptions/rodoh-v1-dense-assets.json \
+            --output docs/release/RODOH_ASSET_INVENTORY.json
+          node scripts/assets/build-release-asset-inventory.mjs \
+            --root "$PWD" \
+            --rollups src/assets/rollups/rodoh-v1-programs.json \
+            --descriptions src/assets/descriptions/rodoh-v1-dense-assets.json \
+            --output docs/release/RODOH_ASSET_INVENTORY.json \
+            --check
+          cp docs/release/RODOH_ASSET_INVENTORY.json "$RUNNER_TEMP/asset-inventory.json"
+          printf '%s\n' "$browser_commit" > "$RUNNER_TEMP/browser-parent.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: asset-assembly-preparation-diagnostics
+          path: |
+            ${{ runner.temp }}/asset-prepare.log
+            ${{ runner.temp }}/asset-inventory.json
+            ${{ runner.temp }}/browser-parent.txt
+          if-no-files-found: warn
+          retention-days: 7
