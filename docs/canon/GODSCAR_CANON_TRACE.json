@@ -1,0 +1,511 @@
+{
+  "$schema": "./GODSCAR_CANON_TRACE.schema.json",
+  "format": "godscar-canon-trace/1",
+  "publication": {
+    "manifest": "estate/publication/PUBLICATION_MANIFEST.json",
+    "implementedCanon": [
+      "book-i-open-universe",
+      "book-ii-dark-tomb",
+      "book-iii-common-ship",
+      "second-recension-addenda-books-i-iii"
+    ],
+    "publicationOnlyCanon": [
+      "book-iv-lineage-commons"
+    ]
+  },
+  "implementationBoundary": {
+    "implementedVolumes": [
+      "book-i",
+      "book-ii",
+      "book-iii",
+      "second-recension"
+    ],
+    "stagedVolumes": [
+      "book-iv"
+    ]
+  },
+  "claims": [
+    {
+      "claimId": "book-i.evidence-ledger",
+      "volume": "book-i",
+      "recension": "first",
+      "claim": "Claims retain evidence tier, venue, legitimacy target, upside, downside, failure mode, provenance, intervention, and limits rather than becoming receiver-authored certainty.",
+      "evidenceTier": "settled-canon",
+      "sourceAuthority": [
+        "src/godscar/schema.ts",
+        "src/godscar/templates.ts",
+        "cartridges/kind-gods-of-ilyon.pocket.json"
+      ],
+      "compilerOrEngine": [
+        "src/godscar/compiler.ts",
+        "src/engine/cartridge-digest.ts"
+      ],
+      "tests": [
+        "tests/godscar/",
+        "tests/world/second-recension-books-1-3.test.ts"
+      ],
+      "references": [
+        "cartridges/kind-gods-of-ilyon.arc.json",
+        "docs/SECOND_RECENSION_BOOKS_I-III_ALIGNMENT.md"
+      ],
+      "worldRepresentations": [
+        "aperture",
+        "ledger",
+        "result"
+      ],
+      "assets": [
+        "src/world/themes/ilyon/",
+        "docs/design/ILYON_ASSET_BIBLE.md"
+      ],
+      "releaseEvidence": [
+        ".github/workflows/godscar-ilyon.yml",
+        ".github/workflows/bundled-parity.yml"
+      ],
+      "status": "implemented"
+    },
+    {
+      "claimId": "book-i.pocket-pressure",
+      "volume": "book-i",
+      "recension": "first",
+      "claim": "A Pocket joins patron good, exclusion, trigger, resistance cost, and scale revelation into one causal mechanism whose victory changes the map.",
+      "evidenceTier": "settled-canon",
+      "sourceAuthority": [
+        "src/godscar/schema.ts",
+        "src/godscar/templates.ts"
+      ],
+      "compilerOrEngine": [
+        "src/godscar/compiler.ts",
+        "src/engine/access.ts",
+        "src/engine/cycle.ts"
+      ],
+      "tests": [
+        "tests/godscar/",
+        "tests/world/bundled-campaign-parity.test.ts"
+      ],
+      "references": [
+        "cartridges/kind-gods-of-ilyon.pocket.json",
+        "cartridges/kind-gods-of-ilyon.arc.json"
+      ],
+      "worldRepresentations": [
+        "board",
+        "map",
+        "hall",
+        "encounter",
+        "aperture"
+      ],
+      "assets": [
+        "src/world/themes/ilyon/motif-icons.tsx",
+        "src/world/themes/ilyon/portrait-icons.tsx"
+      ],
+      "releaseEvidence": [
+        ".github/workflows/godscar-ilyon.yml"
+      ],
+      "status": "implemented"
+    },
+    {
+      "claimId": "book-i.consequence-plane",
+      "volume": "second-recension",
+      "recension": "second",
+      "claim": "Pocket actions can enter a bounded Pocket-Route-Sector-Cascade consequence ledger without allowing a distant Greatform to erase local agency.",
+      "evidenceTier": "settled-canon",
+      "sourceAuthority": [
+        "src/godscar/second-recension.ts",
+        "src/godscar/templates.ts",
+        "cartridges/kind-gods-of-ilyon.pocket.json"
+      ],
+      "compilerOrEngine": [
+        "src/godscar/index.ts",
+        "src/engine/portable-run.ts"
+      ],
+      "tests": [
+        "tests/godscar/second-recension.test.ts",
+        "tests/world/second-recension-books-1-3.test.ts"
+      ],
+      "references": [
+        "docs/SECOND_RECENSION_BOOKS_I-III_ALIGNMENT.md"
+      ],
+      "worldRepresentations": [
+        "aperture",
+        "ledger"
+      ],
+      "assets": [
+        "src/world/themes/ilyon/motif-icons.tsx"
+      ],
+      "releaseEvidence": [
+        ".github/workflows/bundled-parity.yml"
+      ],
+      "status": "implemented"
+    },
+    {
+      "claimId": "book-i.no-clean-reset",
+      "volume": "book-i",
+      "recension": "first",
+      "claim": "Resolution closes one decision while preserving changed people, routes, dependencies, evidence, trauma, and future pressure in the run.",
+      "evidenceTier": "settled-canon",
+      "sourceAuthority": [
+        "src/godscar/schema.ts"
+      ],
+      "compilerOrEngine": [
+        "src/engine/cycle.ts",
+        "src/engine/save.ts",
+        "src/engine/portable-run.ts"
+      ],
+      "tests": [
+        "tests/engine/portable-run.test.ts",
+        "tests/world/bundled-campaign-parity.test.ts"
+      ],
+      "references": [
+        "docs/RODOH_1_0_ACCEPTANCE.md"
+      ],
+      "worldRepresentations": [
+        "result",
+        "ledger",
+        "hall",
+        "map"
+      ],
+      "assets": [],
+      "releaseEvidence": [
+        ".github/workflows/bundled-parity.yml"
+      ],
+      "status": "implemented"
+    },
+    {
+      "claimId": "book-ii.maintained-misclassification",
+      "volume": "book-ii",
+      "recension": "first",
+      "claim": "A Dark Tomb survives because institutions actively maintain an exterior classification of death, emptiness, ruin, harmlessness, primitiveness, or prior consumption.",
+      "evidenceTier": "settled-canon",
+      "sourceAuthority": [
+        "src/dark-tomb/schema.ts",
+        "src/dark-tomb/templates.ts",
+        "cartridges/lamp-district.tomb.json"
+      ],
+      "compilerOrEngine": [
+        "src/dark-tomb/compiler.ts",
+        "src/engine/state.ts"
+      ],
+      "tests": [
+        "tests/dark-tomb/lamp-district.test.ts",
+        "tests/world/underworld-receiver.test.ts"
+      ],
+      "references": [
+        "cartridges/lamp-district.arc.json",
+        "docs/LAMP_DISTRICT_WORLD_ACCEPTANCE.md"
+      ],
+      "worldRepresentations": [
+        "underworld",
+        "map",
+        "hall",
+        "encounter",
+        "ledger"
+      ],
+      "assets": [
+        "src/assets/lamp-district/underworld/",
+        "docs/design/LAMP_DISTRICT_ASSET_BIBLE.md"
+      ],
+      "releaseEvidence": [
+        "e2e/lamp-district-gate4.spec.ts",
+        ".github/workflows/bundled-parity.yml"
+      ],
+      "status": "implemented"
+    },
+    {
+      "claimId": "book-ii.long-alarm",
+      "volume": "book-ii",
+      "recension": "first",
+      "claim": "The Long Alarm is an auditable emergency constitution whose phases protect the Tomb while imposing named internal costs and whose wake state survives the run.",
+      "evidenceTier": "settled-canon",
+      "sourceAuthority": [
+        "src/dark-tomb/schema.ts",
+        "src/dark-tomb/lamp-district.ts"
+      ],
+      "compilerOrEngine": [
+        "src/dark-tomb/compiler.ts",
+        "src/engine/state.ts"
+      ],
+      "tests": [
+        "tests/dark-tomb/lamp-district.test.ts",
+        "tests/world/underworld-receiver.test.ts"
+      ],
+      "references": [
+        "cartridges/lamp-district.tomb.json",
+        "cartridges/lamp-district.arc.json"
+      ],
+      "worldRepresentations": [
+        "underworld",
+        "result",
+        "ledger"
+      ],
+      "assets": [
+        "src/assets/lamp-district/underworld/lamp-district-cross-section.svg"
+      ],
+      "releaseEvidence": [
+        "docs/LAMP_DISTRICT_WORLD_ACCEPTANCE.md"
+      ],
+      "status": "implemented"
+    },
+    {
+      "claimId": "book-ii.layer-and-signature",
+      "volume": "book-ii",
+      "recension": "first",
+      "claim": "The seven layers, five-dimensional depth vector, and signature budget make every room and comfort legible as an inhabited political and physical system with wake.",
+      "evidenceTier": "settled-canon",
+      "sourceAuthority": [
+        "src/dark-tomb/schema.ts",
+        "cartridges/lamp-district.tomb.json"
+      ],
+      "compilerOrEngine": [
+        "src/dark-tomb/compiler.ts"
+      ],
+      "tests": [
+        "tests/dark-tomb/lamp-district.test.ts",
+        "tests/world/lamp-district-assets.test.ts"
+      ],
+      "references": [
+        "docs/design/LAMP_DISTRICT_ASSET_BIBLE.md"
+      ],
+      "worldRepresentations": [
+        "underworld",
+        "map",
+        "aperture"
+      ],
+      "assets": [
+        "src/assets/lamp-district/underworld/lamp-district-cross-section.svg",
+        "src/assets/lamp-district/underworld/lamp-district-environment.svg"
+      ],
+      "releaseEvidence": [
+        "e2e/lamp-district-gate4.spec.ts"
+      ],
+      "status": "implemented"
+    },
+    {
+      "claimId": "book-ii.living-tomb-recension",
+      "volume": "second-recension",
+      "recension": "second",
+      "claim": "Lineage scars, reproductive signature costs, sovereign surface populations, Negative Confederations, living hosts, chronal hosts, and layered opening are additive Book II law.",
+      "evidenceTier": "settled-canon",
+      "sourceAuthority": [
+        "src/godscar/second-recension.ts",
+        "src/dark-tomb/templates.ts",
+        "src/dark-tomb/lamp-district.ts"
+      ],
+      "compilerOrEngine": [
+        "src/dark-tomb/compiler.ts"
+      ],
+      "tests": [
+        "tests/godscar/second-recension.test.ts",
+        "tests/dark-tomb/lamp-district.test.ts",
+        "tests/world/second-recension-books-1-3.test.ts"
+      ],
+      "references": [
+        "docs/SECOND_RECENSION_BOOKS_I-III_ALIGNMENT.md"
+      ],
+      "worldRepresentations": [
+        "underworld",
+        "ledger",
+        "aperture"
+      ],
+      "assets": [],
+      "releaseEvidence": [
+        ".github/workflows/bundled-parity.yml"
+      ],
+      "status": "implemented"
+    },
+    {
+      "claimId": "book-iii.embodiment-profile",
+      "volume": "book-iii",
+      "recension": "first",
+      "claim": "Embodiment profiles record scale, occupied volume, minimum passage, environment, sensorium, interface, time, and lineage dependency without converting bodies into occupations.",
+      "evidenceTier": "settled-canon",
+      "sourceAuthority": [
+        "src/common-ship/schema.ts",
+        "src/common-ship/templates.ts",
+        "cartridges/relief-circuit.ship.json"
+      ],
+      "compilerOrEngine": [
+        "src/common-ship/compiler.ts",
+        "src/engine/composition.ts"
+      ],
+      "tests": [
+        "tests/common-ship/relief-circuit.test.ts",
+        "tests/world/common-ship-receiver-prep.test.ts"
+      ],
+      "references": [
+        "cartridges/relief-circuit.arc.json",
+        "docs/RELIEF_CIRCUIT_WORLD_ACCEPTANCE.md"
+      ],
+      "worldRepresentations": [
+        "common-ship",
+        "encounter",
+        "hall"
+      ],
+      "assets": [
+        "src/assets/relief-circuit/vessel/"
+      ],
+      "releaseEvidence": [
+        ".github/workflows/gate6-relief-circuit.yml"
+      ],
+      "status": "implemented"
+    },
+    {
+      "claimId": "book-iii.common-watch",
+      "volume": "book-iii",
+      "recension": "first",
+      "claim": "One Arc-owned composition authority decides role coverage, temporal overlap, habitat compatibility, translation resilience, handoff continuity, and life-fraction fairness for a Common Watch.",
+      "evidenceTier": "settled-canon",
+      "sourceAuthority": [
+        "src/common-ship/schema.ts",
+        "src/common-ship/relief-circuit.ts"
+      ],
+      "compilerOrEngine": [
+        "src/engine/composition.ts",
+        "src/engine/cycle.ts",
+        "src/common-ship/compiler.ts"
+      ],
+      "tests": [
+        "tests/common-ship/relief-circuit.test.ts",
+        "tests/world/common-ship-preparation-cycle.test.ts"
+      ],
+      "references": [
+        "cartridges/relief-circuit.ship.json"
+      ],
+      "worldRepresentations": [
+        "common-ship",
+        "encounter",
+        "result"
+      ],
+      "assets": [
+        "src/assets/relief-circuit/vessel/relief-circuit-symbol-atlas.svg"
+      ],
+      "releaseEvidence": [
+        ".github/workflows/gate6-relief-circuit.yml"
+      ],
+      "status": "implemented"
+    },
+    {
+      "claimId": "book-iii.life-fraction-cost",
+      "volume": "book-iii",
+      "recension": "first",
+      "claim": "Shared timestamps do not equal shared time; operations account for subjective resolution, development, recovery, continuity span, and the fraction of a life consumed.",
+      "evidenceTier": "settled-canon",
+      "sourceAuthority": [
+        "src/common-ship/schema.ts",
+        "cartridges/relief-circuit.ship.json"
+      ],
+      "compilerOrEngine": [
+        "src/engine/composition.ts"
+      ],
+      "tests": [
+        "tests/common-ship/relief-circuit.test.ts"
+      ],
+      "references": [
+        "docs/RELIEF_CIRCUIT_WORLD_ACCEPTANCE.md"
+      ],
+      "worldRepresentations": [
+        "common-ship",
+        "ledger"
+      ],
+      "assets": [
+        "src/assets/relief-circuit/vessel/relief-circuit-cross-section.svg"
+      ],
+      "releaseEvidence": [
+        ".github/workflows/gate6-relief-circuit.yml"
+      ],
+      "status": "implemented"
+    },
+    {
+      "claimId": "book-iii.connected-operation",
+      "volume": "second-recension",
+      "recension": "second",
+      "claim": "A connected operation preserves both sovereign cartridge identities, both state sets, selected people, resources, evidence, environmental loads, dissent, uncertainty, obligations, unknown memory, and return effects.",
+      "evidenceTier": "settled-canon",
+      "sourceAuthority": [
+        "src/engine/connected-operation.ts",
+        "cartridges/relief-circuit-lamp-district.run.json"
+      ],
+      "compilerOrEngine": [
+        "src/engine/connected-operation.ts",
+        "src/engine/portable-run.ts"
+      ],
+      "tests": [
+        "tests/engine/connected-operation.test.ts",
+        "tests/engine/connected-operation-fixture.test.ts",
+        "tests/world/gate6-review-regressions.test.ts"
+      ],
+      "references": [
+        "docs/SECOND_RECENSION_BOOKS_I-III_ALIGNMENT.md",
+        "docs/RELIEF_CIRCUIT_WORLD_ACCEPTANCE.md"
+      ],
+      "worldRepresentations": [
+        "common-ship",
+        "underworld",
+        "ledger"
+      ],
+      "assets": [],
+      "releaseEvidence": [
+        ".github/workflows/gate6-relief-circuit.yml"
+      ],
+      "status": "implemented"
+    },
+    {
+      "claimId": "second-recension.compatibility",
+      "volume": "second-recension",
+      "recension": "second",
+      "claim": "Reviewed Books I-III law is additive: first-recension formats remain valid, expanded custody fields are optional, and previous cartridge identities remain historical locators rather than aliases.",
+      "evidenceTier": "settled-canon",
+      "sourceAuthority": [
+        "src/godscar/second-recension.ts",
+        "src/world/legacy-revisions.ts"
+      ],
+      "compilerOrEngine": [
+        "src/engine/connected-operation.ts",
+        "src/engine/cartridge-digest.ts"
+      ],
+      "tests": [
+        "tests/godscar/second-recension.test.ts",
+        "tests/world/second-recension-books-1-3.test.ts"
+      ],
+      "references": [
+        "docs/SECOND_RECENSION_BOOKS_I-III_ALIGNMENT.md",
+        "estate/publication/PUBLICATION_MANIFEST.json"
+      ],
+      "worldRepresentations": [
+        "cartridge-bay",
+        "aperture",
+        "underworld",
+        "common-ship",
+        "ledger"
+      ],
+      "assets": [],
+      "releaseEvidence": [
+        ".github/workflows/engine-drift.yml",
+        ".github/workflows/bundled-parity.yml"
+      ],
+      "status": "implemented"
+    },
+    {
+      "claimId": "book-iv.lineage-commons-boundary",
+      "volume": "book-iv",
+      "recension": "reviewed-staging",
+      "claim": "The Lineage Commons is reviewed publication canon and staged post-1.0 work; no Book IV source plane, compiler, receiver, Program, cartridge, or engine branch exists in the RODOH v1 estate.",
+      "evidenceTier": "implementation-boundary",
+      "sourceAuthority": [],
+      "compilerOrEngine": [
+        "src/source-planes/registry.ts"
+      ],
+      "tests": [
+        "tests/world/second-recension-books-1-3.test.ts"
+      ],
+      "references": [
+        "estate/publication/PUBLICATION_MANIFEST.json",
+        "docs/RODOH_1_0_ACCEPTANCE.md"
+      ],
+      "worldRepresentations": [],
+      "assets": [],
+      "releaseEvidence": [
+        "estate/estate.lock.json"
+      ],
+      "status": "staged-post-1.0"
+    }
+  ]
+}

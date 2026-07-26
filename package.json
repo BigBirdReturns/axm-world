@@ -16,7 +16,9 @@
     "check": "npm run engine:check && npm run typecheck && npm test",
     "test:gate6": "node scripts/run-relief-circuit-gate6.mjs",
     "estate:validate": "node scripts/local-estate/estate-tools.mjs validate-lock --lock estate/estate.lock.json",
-    "estate:contract": "vitest run tests/world/local-estate-contract.test.ts"
+    "estate:contract": "vitest run tests/world/local-estate-contract.test.ts",
+    "estate:status": "node scripts/estate/generate-current-status.mjs",
+    "performance:audit": "node scripts/performance/audit-static-build.mjs --build docs/game --budgets docs/performance/RODOH_PERFORMANCE_BUDGETS.json"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",

@@ -1,0 +1,162 @@
+name: Browser support and performance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+
+jobs:
+  static-and-chromium:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Record exact candidate identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha || github.sha }}'
+          test -z "$(git status --porcelain)"
+      - run: npm ci --no-audit --no-fund
+      - name: TypeScript, support contracts, and complete World regression
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm test -- tests/world/browser-support-performance.test.ts
+          npm test
+      - name: Build and audit static product
+        run: |
+          set -euo pipefail
+          npm run build
+          mkdir -p performance-receipt
+          node scripts/performance/audit-static-build.mjs \
+            --build docs/game \
+            --budgets docs/performance/RODOH_PERFORMANCE_BUDGETS.json \
+            --output performance-receipt/static-build.json
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Desktop and mobile boot budgets
+        env:
+          PW_CHROMIUM_PATH: ${{ runner.temp }}/pw-chromium-placeholder
+          DEBUG: pw:webserver
+        run: |
+          set -euo pipefail
+          mkdir -p performance-receipt
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npx playwright test e2e/performance-budget.spec.ts --project desktop --project mobile 2>&1 | tee performance-receipt/browser-budget.log
+      - name: Upload performance receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rodoh-performance-receipts
+          path: |
+            performance-receipt
+            test-results
+          if-no-files-found: warn
+          retention-days: 30
+
+  compatibility-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Record exact candidate identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha || github.sha }}'
+          test -z "$(git status --porcelain)"
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps firefox webkit
+      - name: Firefox and WebKit neutral custody smoke
+        run: |
+          set -euo pipefail
+          mkdir -p support-receipt
+          npx playwright test e2e/support-smoke.spec.ts --config playwright.support.config.ts --project firefox-desktop-smoke --project webkit-desktop-smoke 2>&1 | tee support-receipt/firefox-webkit.log
+      - name: Upload compatibility traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rodoh-firefox-webkit-smoke
+          path: |
+            support-receipt
+            test-results
+          if-no-files-found: warn
+          retention-days: 30
+
+  hosted-windows-edge:
+    name: Hosted Windows Edge smoke
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Record exact candidate identity
+        shell: pwsh
+        run: |
+          $expected = '${{ github.event.pull_request.head.sha || github.sha }}'
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne $expected) { throw "Expected $expected, checked out $actual." }
+          $status = git status --porcelain
+          if ($status) { throw "Candidate checkout is dirty:`n$status" }
+      - run: npm ci --no-audit --no-fund
+      - name: Microsoft Edge desktop and mobile-layout smoke
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force support-receipt | Out-Null
+          npx playwright test e2e/support-smoke.spec.ts --config playwright.support.config.ts --project edge-desktop --project edge-mobile *>&1 | Tee-Object support-receipt\edge.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Parse the local NVDA receipt recorder
+        shell: pwsh
+        run: |
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'scripts/accessibility/Record-NvdaEdgeAcceptance.ps1'),
+            [ref]$null,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) { $errors | Format-List | Out-String | Write-Error }
+      - name: Upload Edge traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rodoh-hosted-windows-edge-smoke
+          path: |
+            support-receipt
+            test-results
+          if-no-files-found: warn
+          retention-days: 30

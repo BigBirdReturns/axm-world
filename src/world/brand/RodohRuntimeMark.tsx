@@ -32,18 +32,19 @@ const SIZES: Record<RodohRuntimeMarkVariant, number> = {
 
 type PaintedRootMarkToken = Exclude<RodohRootMarkToken, ".">;
 
-function paintedCells(): Array<{ x: number; y: number; token: PaintedRootMarkToken }> {
-  const cells: Array<{ x: number; y: number; token: PaintedRootMarkToken }> = [];
+function rootPath(token: PaintedRootMarkToken): string {
+  const segments: string[] = [];
   for (const [y, row] of RODOH_ROOT_MARK_MAP.entries()) {
-    for (const [x, token] of [...row].entries()) {
-      if (token === ".") continue;
-      cells.push({ x, y, token: token as PaintedRootMarkToken });
+    for (const [x, value] of [...row].entries()) {
+      if (value === token) segments.push(`M${x} ${y}h1v1h-1z`);
     }
   }
-  return cells;
+  return segments.join("");
 }
 
-const PAINTED_CELLS = paintedCells();
+// Two paths preserve the frozen coordinate ledger and palette while avoiding
+// one DOM node for every transparent or painted source cell.
+const ROOT_PATHS = Object.freeze({ W: rootPath("W"), M: rootPath("M") });
 
 /** The constitutional AXM-WORLD root glyph without wordmark chrome. The map,
  * palette, offset, and negative space are frozen. The only transform here is an
@@ -61,9 +62,8 @@ export function RodohDandelionGlyph({ size = 32 }: { size?: number }): JSX.Eleme
       aria-hidden="true"
       style={{ display: "block", imageRendering: "pixelated", background: RODOH_ROOT_MARK_PALETTE.charcoal }}
     >
-      {PAINTED_CELLS.map(({ x, y, token }) => (
-        <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill={rootMarkColor(token) ?? undefined} />
-      ))}
+      <path d={ROOT_PATHS.W} fill={rootMarkColor("W") ?? undefined} />
+      <path d={ROOT_PATHS.M} fill={rootMarkColor("M") ?? undefined} />
     </svg>
   );
 }
@@ -89,16 +89,6 @@ export function RodohRuntimeMark({
     imageRendering: "pixelated",
     ...style,
   };
-  const pixelWrapStyle: CSSProperties = {
-    display: "grid",
-    gridTemplateColumns: `repeat(${RODOH_ROOT_MARK_WIDTH}, ${cell}px)`,
-    gridTemplateRows: `repeat(${RODOH_ROOT_MARK_HEIGHT}, ${cell}px)`,
-    width: RODOH_ROOT_MARK_WIDTH * cell,
-    height: RODOH_ROOT_MARK_HEIGHT * cell,
-    gap: 0,
-    background: RODOH_ROOT_MARK_PALETTE.charcoal,
-    flex: "0 0 auto",
-  };
   const labelStyle: CSSProperties = {
     fontSize: variant === "boot" ? 13 : variant === "card" ? 11 : 9,
     lineHeight: 1.25,
@@ -116,18 +106,7 @@ export function RodohRuntimeMark({
 
   return (
     <div className={className} style={wrapStyle} aria-label="Rodoh runtime mark">
-      <div style={pixelWrapStyle} aria-hidden="true">
-        {RODOH_ROOT_MARK_MAP.flatMap((row, y) => [...row].map((token, x) => (
-          <span
-            key={`${x}-${y}`}
-            style={{
-              width: cell,
-              height: cell,
-              background: rootMarkColor(token as RodohRootMarkToken) ?? "transparent",
-            }}
-          />
-        )))}
-      </div>
+      <RodohDandelionGlyph size={RODOH_ROOT_MARK_WIDTH * cell} />
       {showText && (
         <div style={labelStyle}>
           <div>{label}</div>
