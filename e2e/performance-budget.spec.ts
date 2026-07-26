@@ -12,10 +12,6 @@ const budgets = JSON.parse(fs.readFileSync(path.join(ROOT, "docs/performance/ROD
   }>;
 };
 
-function measuredBytes(entry: PerformanceResourceTiming | PerformanceNavigationTiming): number {
-  return entry.encodedBodySize || entry.decodedBodySize || entry.transferSize || 0;
-}
-
 test("cold local boot remains inside the declared product budget", async ({ page }, testInfo) => {
   const profile = testInfo.project.name.includes("mobile") ? "mobile" : "desktop";
   const budget = budgets.browser[profile];
@@ -40,6 +36,7 @@ test("cold local boot remains inside the declared product budget", async ({ page
         encodedBodySize: navigation.encodedBodySize,
         decodedBodySize: navigation.decodedBodySize,
         transferSize: navigation.transferSize,
+        measuredBytes: bytes(navigation),
         duration: navigation.duration,
       } : null,
       resources: resources.map((entry) => ({
@@ -47,8 +44,9 @@ test("cold local boot remains inside the declared product budget", async ({ page
         encodedBodySize: entry.encodedBodySize,
         decodedBodySize: entry.decodedBodySize,
         transferSize: entry.transferSize,
+        measuredBytes: bytes(entry),
         duration: entry.duration,
-      })).sort((a, b) => measuredBytes(b as PerformanceResourceTiming) - measuredBytes(a as PerformanceResourceTiming)).slice(0, 20),
+      })).sort((a, b) => b.measuredBytes - a.measuredBytes).slice(0, 20),
     };
   });
 
