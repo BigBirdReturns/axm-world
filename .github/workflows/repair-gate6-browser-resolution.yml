@@ -36,22 +36,27 @@ jobs:
       - name: Restore the exact reviewed verifier and patch only executable resolution
         run: |
           set -euo pipefail
-          git show 12b0aeb3c6f955070c979e97d13f3bcdd8de6e30:scripts/verify-relief-circuit-gate6.mjs > scripts/verify-relief-circuit-gate6.mjs
+          git show 12b0aeb3c6f955070c979e97d13f3bcdd8de6e30:scripts/verify-relief-circuit-gate6.mjs > /tmp/reviewed-verifier.mjs
           python - <<'PY'
           from pathlib import Path
-          path = Path('scripts/verify-relief-circuit-gate6.mjs')
-          source = path.read_text()
+          reviewed = Path('/tmp/reviewed-verifier.mjs').read_text()
           old = 'const CHROMIUM = process.env.PW_CHROMIUM_PATH ?? "/usr/bin/chromium";'
-          new = '''// Permanent CI may pin an explicit executable. Local-estate runs bind
-          // PLAYWRIGHT_BROWSERS_PATH to their holder-owned cache, so ask Playwright for
-          // the exact installed browser rather than falling through to a Linux-only path.
-          const CHROMIUM = process.env.PW_CHROMIUM_PATH ?? chromium.executablePath();'''
-          if source.count(old) != 1:
-              raise SystemExit(f'Expected one Chromium fallback, found {source.count(old)}')
-          path.write_text(source.replace(old, new))
+          replacement = '\n'.join([
+              '// Permanent CI may pin an explicit executable. Local-estate runs bind',
+              '// PLAYWRIGHT_BROWSERS_PATH to their holder-owned cache, so ask Playwright for',
+              '// the exact installed browser rather than falling through to a Linux-only path.',
+              'const CHROMIUM = process.env.PW_CHROMIUM_PATH ?? chromium.executablePath();',
+          ])
+          if reviewed.count(old) != 1:
+              raise SystemExit(f'Expected one Chromium fallback, found {reviewed.count(old)}')
+          expected = reviewed.replace(old, replacement)
+          Path('scripts/verify-relief-circuit-gate6.mjs').write_text(expected)
+          actual = Path('scripts/verify-relief-circuit-gate6.mjs').read_text()
+          if actual != expected:
+              raise SystemExit('Repaired verifier does not match the byte-exact expected content')
           PY
           git diff --check
-          test "$(git diff --numstat -- scripts/verify-relief-circuit-gate6.mjs | awk '{print $1":"$2}')" = '4:1'
+          test "$(git diff --name-only)" = 'scripts/verify-relief-circuit-gate6.mjs'
       - run: npm ci --no-audit --no-fund
       - name: Qualify the repaired boundary
         run: |
