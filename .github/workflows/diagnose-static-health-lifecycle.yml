@@ -1,0 +1,117 @@
+name: Diagnose captured-build server lifecycle
+
+on:
+  push:
+    branches: [qualify/static-health-lifecycle]
+    paths:
+      - '.github/workflows/diagnose-static-health-lifecycle.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diagnose-static-health-lifecycle
+  cancel-in-progress: true
+
+env:
+  ARC_LOCAL_ESTATE_REF: 4b07539a06d40b131591f1e9c7d5b90a96ceec31
+
+jobs:
+  windows:
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - name: Check out exact World candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+      - name: Check out exact Arc authority
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_LOCAL_ESTATE_REF }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            axm-world/package-lock.json
+            axm-arc/package-lock.json
+      - name: Hydrate and build the captured products
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force diagnostics | Out-Null
+          & .\axm-world\RODOH.cmd doctor -EstateRoot "$PWD" *>&1 | Tee-Object diagnostics\doctor.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\axm-world\RODOH.cmd hydrate -EstateRoot "$PWD" *>&1 | Tee-Object diagnostics\hydrate.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\axm-world\RODOH.cmd build -EstateRoot "$PWD" *>&1 | Tee-Object diagnostics\build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Prove play returns, both servers answer, and stop removes the process trees
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $playOut = Join-Path $PWD 'diagnostics\play.stdout.log'
+          $playErr = Join-Path $PWD 'diagnostics\play.stderr.log'
+          $command = '"' + (Join-Path $PWD 'axm-world\RODOH.cmd') + '" play -EstateRoot "' + $PWD + '" -NoOpen'
+          $play = Start-Process -FilePath $env:ComSpec -ArgumentList @('/d', '/s', '/c', $command) -WorkingDirectory $PWD -PassThru -RedirectStandardOutput $playOut -RedirectStandardError $playErr
+          $state = Join-Path $PWD '.rodoh-estate\servers.json'
+          $deadline = (Get-Date).AddSeconds(90)
+          $world = $false
+          $arc = $false
+          while ((Get-Date) -lt $deadline) {
+            if (Test-Path $state) {
+              try { $world = (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 http://127.0.0.1:5173/axm-world/game/).StatusCode -eq 200 } catch { $world = $false }
+              try { $arc = (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 http://127.0.0.1:5174/axm-arc/game/).StatusCode -eq 200 } catch { $arc = $false }
+              if ($world -and $arc) { break }
+            }
+            Start-Sleep -Milliseconds 250
+          }
+          $returnedBeforeStop = $play.HasExited
+          $snapshot = [ordered]@{
+            format = 'rodoh-static-health-lifecycle-diagnostic/1'
+            worldHealthy = $world
+            arcHealthy = $arc
+            playPid = $play.Id
+            playReturnedBeforeStop = $returnedBeforeStop
+            serverStatePresent = (Test-Path $state)
+            serverState = $(if (Test-Path $state) { Get-Content -Raw $state | ConvertFrom-Json } else { $null })
+          }
+          $snapshot | ConvertTo-Json -Depth 12 | Set-Content -Encoding utf8 diagnostics\before-stop.json
+          try {
+            if (-not $world -or -not $arc) { throw 'Captured products did not both become healthy within 90 seconds.' }
+            if (-not $returnedBeforeStop) { throw 'RODOH.cmd play did not return after both captured products became healthy.' }
+          } finally {
+            & .\axm-world\RODOH.cmd stop -EstateRoot "$PWD" *>&1 | Tee-Object diagnostics\stop.log
+            if (-not $play.HasExited) {
+              $null = $play.WaitForExit(10000)
+            }
+            if (-not $play.HasExited) {
+              taskkill.exe /PID $play.Id /T /F | Out-File -Append diagnostics\stop.log
+            }
+            $after = [ordered]@{
+              playExited = $play.HasExited
+              serverStatePresent = (Test-Path $state)
+              worldPortListening = [bool](Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue)
+              arcPortListening = [bool](Get-NetTCPConnection -LocalPort 5174 -State Listen -ErrorAction SilentlyContinue)
+            }
+            $after | ConvertTo-Json -Depth 6 | Set-Content -Encoding utf8 diagnostics\after-stop.json
+          }
+      - name: Upload lifecycle diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rodoh-static-health-lifecycle-diagnostics
+          path: |
+            diagnostics
+            .rodoh-estate/logs
+            .rodoh-estate/servers.json
+          if-no-files-found: warn
+          retention-days: 7
