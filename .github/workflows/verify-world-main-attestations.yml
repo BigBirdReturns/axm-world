@@ -1,0 +1,156 @@
+name: Verify signed World and Arc release evidence
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/verify-world-main-attestations.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  attestations: read
+  artifact-metadata: read
+  contents: read
+
+concurrency:
+  group: verify-world-main-attestations-fa9e
+  cancel-in-progress: true
+
+env:
+  WORLD_SHA: fa9e9930312ecf8ab8245263f463f9477abd7489
+  ARC_SHA: 331e9693d3210a1b66de0c5ee3931645bfcbc053
+  CI: 'true'
+  SOURCE_DATE_EPOCH: '0'
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Check out exact accepted World main
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.WORLD_SHA }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+      - name: Check out exact coordinated Arc main
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_SHA }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            axm-world/package-lock.json
+            axm-arc/package-lock.json
+      - name: Install exact dependencies and rebuild both subjects
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C axm-world rev-parse HEAD)" = "$WORLD_SHA"
+          test "$(git -C axm-arc rev-parse HEAD)" = "$ARC_SHA"
+          npm --prefix axm-world ci --no-audit --no-fund
+          npm --prefix axm-arc ci --no-audit --no-fund
+          npm --prefix axm-world run typecheck
+          npm --prefix axm-arc run typecheck
+          npm --prefix axm-world run build
+          npm --prefix axm-arc run build
+          mkdir -p signed-evidence-verification
+          tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner \
+            -cf signed-evidence-verification/rodoh-world-game.tar -C axm-world/docs game
+          gzip -n signed-evidence-verification/rodoh-world-game.tar
+          tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner \
+            -cf signed-evidence-verification/axm-arc-game.tar -C axm-arc/docs game
+          gzip -n signed-evidence-verification/axm-arc-game.tar
+          sha256sum \
+            signed-evidence-verification/rodoh-world-game.tar.gz \
+            signed-evidence-verification/axm-arc-game.tar.gz \
+            | tee signed-evidence-verification/SHA256SUMS
+      - name: Require the accepted World main evidence workflow to succeed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 80); do
+            gh run list \
+              --repo BigBirdReturns/axm-world \
+              --workflow 'Supply-chain evidence' \
+              --branch main \
+              --event push \
+              --limit 30 \
+              --json databaseId,headSha,status,conclusion,url \
+              > signed-evidence-verification/world-main-runs.json
+            state="$(node - <<'NODE'
+          const fs = require('fs');
+          const rows = JSON.parse(fs.readFileSync('signed-evidence-verification/world-main-runs.json', 'utf8'));
+          const row = rows.find((entry) => entry.headSha === process.env.WORLD_SHA);
+          process.stdout.write(row ? `${row.status}:${row.conclusion ?? ''}:${row.databaseId}` : 'absent');
+          NODE
+            )"
+            case "$state" in
+              completed:success:*) printf '%s\n' "$state" | tee signed-evidence-verification/world-main-run.txt; break ;;
+              completed:*:*) echo "Accepted World evidence run ended unsuccessfully: $state" >&2; exit 1 ;;
+              *) sleep 15 ;;
+            esac
+            if [ "$attempt" -eq 80 ]; then echo "Accepted World evidence run did not reach success: $state" >&2; exit 1; fi
+          done
+      - name: Verify all four repository-owned predicates
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          verify_with_retry() {
+            local output="$1"; shift
+            for attempt in $(seq 1 40); do
+              if gh attestation verify "$@" --format json > "$output" 2> "${output%.json}.stderr"; then
+                test -s "$output"
+                return 0
+              fi
+              sleep 15
+            done
+            cat "${output%.json}.stderr" >&2
+            return 1
+          }
+          verify_with_retry signed-evidence-verification/world-provenance.json \
+            signed-evidence-verification/rodoh-world-game.tar.gz \
+            --repo BigBirdReturns/axm-world \
+            --predicate-type https://slsa.dev/provenance/v1 \
+            --signer-workflow BigBirdReturns/axm-world/.github/workflows/supply-chain-evidence.yml \
+            --source-digest "$WORLD_SHA" \
+            --source-ref refs/heads/main
+          verify_with_retry signed-evidence-verification/world-cyclonedx.json \
+            signed-evidence-verification/rodoh-world-game.tar.gz \
+            --repo BigBirdReturns/axm-world \
+            --predicate-type https://cyclonedx.org/bom \
+            --signer-workflow BigBirdReturns/axm-world/.github/workflows/supply-chain-evidence.yml \
+            --source-digest "$WORLD_SHA" \
+            --source-ref refs/heads/main
+          verify_with_retry signed-evidence-verification/arc-provenance.json \
+            signed-evidence-verification/axm-arc-game.tar.gz \
+            --repo BigBirdReturns/axm-arc \
+            --predicate-type https://slsa.dev/provenance/v1 \
+            --signer-workflow BigBirdReturns/axm-arc/.github/workflows/supply-chain-evidence.yml \
+            --source-digest "$ARC_SHA" \
+            --source-ref refs/heads/main
+          verify_with_retry signed-evidence-verification/arc-cyclonedx.json \
+            signed-evidence-verification/axm-arc-game.tar.gz \
+            --repo BigBirdReturns/axm-arc \
+            --predicate-type https://cyclonedx.org/bom \
+            --signer-workflow BigBirdReturns/axm-arc/.github/workflows/supply-chain-evidence.yml \
+            --source-digest "$ARC_SHA" \
+            --source-ref refs/heads/main
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signed-world-and-arc-evidence-verification
+          path: signed-evidence-verification
+          if-no-files-found: warn
+          retention-days: 30
