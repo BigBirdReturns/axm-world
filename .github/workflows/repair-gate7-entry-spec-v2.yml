@@ -1,5 +1,6 @@
 name: Repair and qualify complete Gate 7 entry spec v2
 
+# Synchronize the two-phase repair on the current PR head.
 on:
   pull_request:
   workflow_dispatch:
