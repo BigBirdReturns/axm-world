@@ -1,6 +1,9 @@
 name: Finalize holder-estate hardening
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/apply-holder-estate-ui.yml'
   push:
     branches: [release/holder-estate-v1]
     paths:
@@ -25,7 +28,7 @@ jobs:
       - name: Check out exact holder-estate candidate
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           show-progress: false
 
@@ -86,7 +89,7 @@ jobs:
           set -euo pipefail
           rm -rf test-results holder-estate-receipt
           git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.email '4189828+github-actions[bot]@users.noreply.github.com'
           git add \
             docs/HOLDER_ESTATE_V1.md \
             src/world/Player.tsx \
