@@ -1,0 +1,26 @@
+name: Action source bootstrap
+
+on:
+  push:
+    branches: [feature/action-runtime-v1]
+
+permissions:
+  contents: read
+
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: axm-world-action-source
+          path: |
+            .
+            !.git
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
