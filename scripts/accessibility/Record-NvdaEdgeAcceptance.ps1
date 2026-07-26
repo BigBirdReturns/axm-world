@@ -71,16 +71,32 @@ if (-not (Test-Path (Join-Path $arcRepo ".git"))) { throw "Arc checkout not foun
 
 $worldCommit = Invoke-GitText $worldRepo @("rev-parse", "HEAD")
 $arcCommit = Invoke-GitText $arcRepo @("rev-parse", "HEAD")
+$worldBranch = Invoke-GitText $worldRepo @("rev-parse", "--abbrev-ref", "HEAD")
+$arcBranch = Invoke-GitText $arcRepo @("rev-parse", "--abbrev-ref", "HEAD")
 $worldDirty = Invoke-GitText $worldRepo @("status", "--porcelain")
 $arcDirty = Invoke-GitText $arcRepo @("status", "--porcelain")
 if ($worldDirty) { throw "World checkout must be clean before acceptance." }
 if ($arcDirty) { throw "Arc checkout must be clean before acceptance." }
+if ($worldBranch -ne $lock.repositories.world.branch) {
+  throw "World branch $worldBranch does not match estate lock $($lock.repositories.world.branch)."
+}
+if ($arcBranch -ne $lock.repositories.arc.branch) {
+  throw "Arc branch $arcBranch does not match estate lock $($lock.repositories.arc.branch)."
+}
 if ($arcCommit -ne $lock.repositories.arc.requiredCommit) {
   throw "Arc checkout $arcCommit does not match estate lock $($lock.repositories.arc.requiredCommit)."
 }
 & git -C $worldRepo merge-base --is-ancestor $lock.repositories.world.requiredAncestor $worldCommit
 if ($LASTEXITCODE -ne 0) {
   throw "World checkout $worldCommit does not descend from required ancestor $($lock.repositories.world.requiredAncestor)."
+}
+$worldPackageVersion = [string]((Get-Content -LiteralPath (Join-Path $worldRepo 'package.json') -Raw | ConvertFrom-Json).version)
+$arcPackageVersion = [string]((Get-Content -LiteralPath (Join-Path $arcRepo 'package.json') -Raw | ConvertFrom-Json).version)
+if ($worldPackageVersion -ne $lock.repositories.world.packageVersion) {
+  throw "World package version $worldPackageVersion does not match estate lock $($lock.repositories.world.packageVersion)."
+}
+if ($arcPackageVersion -ne $lock.repositories.arc.packageVersion) {
+  throw "Arc package version $arcPackageVersion does not match estate lock $($lock.repositories.arc.packageVersion)."
 }
 
 $nodeVersion = Invoke-ToolText $worldRepo "node" @("--version")

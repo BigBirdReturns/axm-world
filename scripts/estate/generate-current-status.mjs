@@ -54,15 +54,104 @@ function parseBundledDigests(source) {
 function has(path) {
   return existsSync(resolve(repoRoot, path));
 }
+const COMMIT_PATTERN = /^[0-9a-f]{40}$/;
+const SHA256_PATTERN = /^[0-9a-f]{64}$/;
+const OPERATOR_CHECKS = [
+  "arcOpens",
+  "worldOpens",
+  "bundledPlay",
+  "cleanRoomImport",
+  "portableRunRoundtrip",
+  "publicationLibrary",
+  "snapshotRecovery",
+];
+const NVDA_CHECKS = [
+  "shelfAndIdentity",
+  "keyboardEntry",
+  "viewSwitcher",
+  "contractAndParty",
+  "decisionAndConsequence",
+  "encounterAndRecord",
+  "runExportRestore",
+  "holderEstate",
+  "forcedColorsAndMotion",
+  "semanticRedundancy",
+];
+const WINDOWS_CHECKS = [
+  "doctor",
+  "hydrate",
+  "vendored-plane",
+  "double-build",
+  "arc-suite",
+  "world-suite",
+  "gate6",
+  "gate7",
+  "complete-playwright",
+  "static-health",
+];
+
+function nonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+function allChecksTrue(value, required) {
+  return !!value && typeof value === "object" && required.every((key) => value[key] === true);
+}
+function includesChecks(value, required) {
+  return Array.isArray(value) && required.every((check) => value.includes(check));
+}
+function receiptCommits(value) {
+  return {
+    worldCommit: value?.worldCommit ?? value?.worldHead ?? value?.world?.head ?? null,
+    arcCommit: value?.arcCommit ?? value?.arcHead ?? value?.arc?.head ?? null,
+  };
+}
+function receiptContractValid(value, expectedFormat) {
+  if (!value || value.invalid || value.format !== expectedFormat || value.status !== "pass") return false;
+  const { worldCommit: receiptWorld, arcCommit: receiptArc } = receiptCommits(value);
+  if (!COMMIT_PATTERN.test(receiptWorld ?? "") || !COMMIT_PATTERN.test(receiptArc ?? "")) return false;
+
+  if (expectedFormat === "rodoh-windows-replication-receipt/1") {
+    return nonEmptyString(value.generatedAt) &&
+      nonEmptyString(value.node) &&
+      nonEmptyString(value.npm) &&
+      nonEmptyString(value.operatingSystem) &&
+      includesChecks(value.checks, WINDOWS_CHECKS);
+  }
+  if (expectedFormat === "rodoh-local-operator-acceptance/1") {
+    return nonEmptyString(value.acceptedAt) &&
+      value.releaseTarget === lock.releaseTarget &&
+      SHA256_PATTERN.test(value.machineFingerprintSha256 ?? "") &&
+      value.worldPackageVersion === pkg.version &&
+      value.arcPackageVersion === arcPackageVersion &&
+      value.publicationSha256 === lock.publication.sha256 &&
+      nonEmptyString(value.snapshot?.archive) &&
+      SHA256_PATTERN.test(value.snapshot?.archiveSha256 ?? "") &&
+      SHA256_PATTERN.test(value.snapshot?.manifestSha256 ?? "") &&
+      allChecksTrue(value.checks, OPERATOR_CHECKS);
+  }
+  if (expectedFormat === "rodoh-nvda-edge-acceptance/1") {
+    return nonEmptyString(value.acceptedAt) &&
+      SHA256_PATTERN.test(value.machineFingerprintSha256 ?? "") &&
+      nonEmptyString(value.operatingSystem) &&
+      nonEmptyString(value.edgeVersion) &&
+      nonEmptyString(value.nvdaVersion) &&
+      nonEmptyString(value.nodeVersion) &&
+      nonEmptyString(value.npmVersion) &&
+      nonEmptyString(value.playwrightVersion) &&
+      allChecksTrue(value.checks, NVDA_CHECKS);
+  }
+  return false;
+}
 function receipt(path, expectedFormat) {
   const value = optionalJson(resolve(estateRoot, path));
+  const commits = value && !value.invalid ? receiptCommits(value) : { worldCommit: null, arcCommit: null };
   return {
     path,
     present: value !== null,
-    valid: !!value && !value.invalid && value.format === expectedFormat && value.status === "pass",
+    valid: receiptContractValid(value, expectedFormat),
     format: value && !value.invalid ? value.format ?? null : null,
-    worldCommit: value && !value.invalid ? value.worldCommit ?? value.worldHead ?? null : null,
-    arcCommit: value && !value.invalid ? value.arcCommit ?? value.arcHead ?? null : null,
+    worldCommit: commits.worldCommit,
+    arcCommit: commits.arcCommit,
     operatingSystem: value && !value.invalid ? value.operatingSystem ?? null : null,
     edgeVersion: value && !value.invalid ? value.edgeVersion ?? null : null,
     nvdaVersion: value && !value.invalid ? value.nvdaVersion ?? null : null,
@@ -103,7 +192,13 @@ const capabilities = {
   secondRecension: has("src/godscar/second-recension.ts") && has("docs/SECOND_RECENSION_BOOKS_I-III_ALIGNMENT.md"),
   localEstateReplication: has("RODOH.cmd") && has("scripts/local-estate/Invoke-RodohEstate.ps1"),
   holderEstateCustody: has("src/world/holder-estate.ts") && has("docs/HOLDER_ESTATE_V1.md"),
-  boundedJsonImports: has("src/engine/bounded-json.ts") && has("docs/CART1_CANONICALIZATION.md"),
+  boundedJsonImports:
+    has("src/engine/bounded-json.ts") &&
+    has("tests/engine/bounded-json.test.ts") &&
+    has("tests/engine/bounded-json-fuzz.test.ts"),
+  cart1Canonicalization:
+    has("docs/conformance/cart1-v1-vectors.json") &&
+    has("tests/engine/cart1-conformance-vectors.test.ts"),
   supplyChainEvidence: has("scripts/supply-chain/generate-cyclonedx.mjs") && has(".github/workflows/supply-chain-evidence.yml"),
   browserSupportMatrix: has("docs/SUPPORT_MATRIX.md") && has("playwright.support.config.ts"),
   performanceBudgets: has("docs/performance/RODOH_PERFORMANCE_BUDGETS.json") && has("scripts/performance/audit-static-build.mjs"),

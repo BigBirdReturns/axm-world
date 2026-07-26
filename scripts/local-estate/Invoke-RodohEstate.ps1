@@ -966,11 +966,96 @@ function Ask-Yes {
     return $true
 }
 
+function Get-PackageVersion {
+    param([string]$Root, [string]$Label)
+    $path = Join-Path $Root 'package.json'
+    if (-not (Test-Path -LiteralPath $path)) { throw "$Label package.json is missing: $path" }
+    $package = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    if (-not $package.version) { throw "$Label package.json does not name a version." }
+    return [string]$package.version
+}
+
+function Assert-ReceiptValue {
+    param([string]$Label, $Actual, [string]$Expected)
+    $actualText = if ($null -eq $Actual) { '' } else { [string]$Actual }
+    if ($actualText -ne $Expected) {
+        throw "$Label is '$actualText', expected '$Expected'. Rerun the automated estate on the current repository pair."
+    }
+}
+
+function Assert-CurrentAcceptanceEstate {
+    Assert-CleanRepository $Script:WorldRoot 'AXM World'
+    Assert-CleanRepository $Script:ArcRoot 'AXM Arc'
+
+    $worldHead = Get-GitHead $Script:WorldRoot
+    $arcHead = Get-GitHead $Script:ArcRoot
+    $worldBranch = Get-GitBranch $Script:WorldRoot
+    $arcBranch = Get-GitBranch $Script:ArcRoot
+    $worldVersion = Get-PackageVersion $Script:WorldRoot 'AXM World'
+    $arcVersion = Get-PackageVersion $Script:ArcRoot 'AXM Arc'
+
+    Assert-ReceiptValue 'World branch' $worldBranch ([string]$Script:Lock.repositories.world.branch)
+    Assert-ReceiptValue 'Arc branch' $arcBranch ([string]$Script:Lock.repositories.arc.branch)
+    Assert-ReceiptValue 'Arc head' $arcHead ([string]$Script:Lock.repositories.arc.requiredCommit)
+    Assert-ReceiptValue 'World package version' $worldVersion ([string]$Script:Lock.repositories.world.packageVersion)
+    Assert-ReceiptValue 'Arc package version' $arcVersion ([string]$Script:Lock.repositories.arc.packageVersion)
+    if (-not (Test-GitAncestor $Script:WorldRoot ([string]$Script:Lock.repositories.world.requiredAncestor) $worldHead)) {
+        throw "World head $worldHead does not contain required ancestor $($Script:Lock.repositories.world.requiredAncestor)."
+    }
+
+    return [pscustomobject][ordered]@{
+        worldHead = $worldHead
+        arcHead = $arcHead
+        worldBranch = $worldBranch
+        arcBranch = $arcBranch
+        worldPackageVersion = $worldVersion
+        arcPackageVersion = $arcVersion
+    }
+}
+
 function Invoke-Accept {
     Write-Stage 'Human local operator acceptance'
+    $estate = Assert-CurrentAcceptanceEstate
+    $receipts = @{}
     foreach ($name in @('doctor.json', 'repositories.json', 'dependencies.json', 'verification.json', 'builds.json', 'tests-arc.json', 'tests-world.json', 'tests-browser.json', 'snapshot.json')) {
-        Require-PassReceipt $name | Out-Null
+        $receipts[$name] = Require-PassReceipt $name
     }
+
+    $repositories = $receipts['repositories.json']
+    Assert-ReceiptValue 'Automated repository receipt World head' $repositories.world.head $estate.worldHead
+    Assert-ReceiptValue 'Automated repository receipt Arc head' $repositories.arc.head $estate.arcHead
+    Assert-ReceiptValue 'Automated repository receipt World branch' $repositories.world.branch $estate.worldBranch
+    Assert-ReceiptValue 'Automated repository receipt Arc branch' $repositories.arc.branch $estate.arcBranch
+
+    $dependencies = $receipts['dependencies.json']
+    Assert-ReceiptValue 'Dependency receipt World lock SHA-256' $dependencies.world.packageLockSha256 (Get-Sha256 (Join-Path $Script:WorldRoot 'package-lock.json'))
+    Assert-ReceiptValue 'Dependency receipt Arc lock SHA-256' $dependencies.arc.packageLockSha256 (Get-Sha256 (Join-Path $Script:ArcRoot 'package-lock.json'))
+
+    $verification = $receipts['verification.json']
+    Assert-ReceiptValue 'Verification receipt World head' $verification.worldHead $estate.worldHead
+    Assert-ReceiptValue 'Verification receipt Arc head' $verification.arcHead $estate.arcHead
+    Assert-ReceiptValue 'Verification receipt estate lock SHA-256' $verification.lockSha256 (Get-Sha256 $Script:LockPath)
+    Assert-ReceiptValue 'Verification receipt publication manifest SHA-256' $verification.publicationManifestSha256 (Get-Sha256 (Join-Parts $Script:WorldRoot 'estate' 'publication' 'PUBLICATION_MANIFEST.json'))
+
+    $builds = $receipts['builds.json']
+    Assert-ReceiptValue 'Build receipt World head' $builds.world.sourceHead $estate.worldHead
+    Assert-ReceiptValue 'Build receipt Arc head' $builds.arc.sourceHead $estate.arcHead
+    Assert-ReceiptValue 'World build SOURCE_DATE_EPOCH' $builds.world.sourceDateEpoch '0'
+    Assert-ReceiptValue 'Arc build SOURCE_DATE_EPOCH' $builds.arc.sourceDateEpoch '0'
+    Assert-ReceiptValue 'Arc test receipt head' $receipts['tests-arc.json'].head $estate.arcHead
+    Assert-ReceiptValue 'World test receipt head' $receipts['tests-world.json'].head $estate.worldHead
+    Assert-ReceiptValue 'Browser test receipt head' $receipts['tests-browser.json'].head $estate.worldHead
+    Assert-ReceiptValue 'Browser test receipt mode' $receipts['tests-browser.json'].mode 'complete-desktop-mobile'
+
+    $snapshot = $receipts['snapshot.json']
+    Assert-ReceiptValue 'Snapshot receipt World head' $snapshot.worldHead $estate.worldHead
+    Assert-ReceiptValue 'Snapshot receipt Arc head' $snapshot.arcHead $estate.arcHead
+    Assert-ReceiptValue 'Snapshot publication SHA-256' $snapshot.publicationSha256 ([string]$Script:Lock.publication.sha256)
+    if (-not (Test-Path -LiteralPath $snapshot.archive -PathType Leaf)) {
+        throw "Snapshot archive is missing: $($snapshot.archive)"
+    }
+    Assert-ReceiptValue 'Snapshot archive SHA-256' (Get-Sha256 $snapshot.archive) ([string]$snapshot.archiveSha256)
+
     Wait-HttpReady $Script:Lock.servers.world.url 5
     Wait-HttpReady $Script:Lock.servers.arc.url 5
 
@@ -989,7 +1074,6 @@ function Invoke-Accept {
     $operatorLabel = Read-Host 'Optional operator label for this receipt (leave blank for local-operator)'
     if (-not $operatorLabel) { $operatorLabel = 'local-operator' }
 
-    $snapshot = Get-Content -Raw (Join-Path $Script:ReceiptRoot 'snapshot.json') | ConvertFrom-Json
     $receipt = [ordered]@{
         format = 'rodoh-local-operator-acceptance/1'
         acceptedAt = (Get-Date).ToUniversalTime().ToString('o')
@@ -997,8 +1081,12 @@ function Invoke-Accept {
         releaseTarget = [string]$Script:Lock.releaseTarget
         operatorLabel = $operatorLabel
         machineFingerprintSha256 = Get-MachineFingerprint
-        world = [ordered]@{ head = Get-GitHead $Script:WorldRoot; branch = Get-GitBranch $Script:WorldRoot }
-        arc = [ordered]@{ head = Get-GitHead $Script:ArcRoot; branch = Get-GitBranch $Script:ArcRoot }
+        worldCommit = $estate.worldHead
+        arcCommit = $estate.arcHead
+        worldPackageVersion = $estate.worldPackageVersion
+        arcPackageVersion = $estate.arcPackageVersion
+        world = [ordered]@{ head = $estate.worldHead; branch = $estate.worldBranch }
+        arc = [ordered]@{ head = $estate.arcHead; branch = $estate.arcBranch }
         snapshot = [ordered]@{ archive = $snapshot.archive; archiveSha256 = $snapshot.archiveSha256; manifestSha256 = $snapshot.manifestSha256 }
         publicationSha256 = Get-Sha256 $publication
         checks = $checks

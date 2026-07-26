@@ -10,20 +10,20 @@
       "directory": "axm-arc",
       "branch": "main",
       "requiredAncestor": "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
-      "requiredCommit": "331e9693d3210a1b66de0c5ee3931645bfcbc053",
+      "requiredCommit": "7b576898f7a82409669a97187bcd836296a77e24",
       "productAuthorityCommit": "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
       "role": "creator authority, deterministic engine, source planes, authoring, reference player",
-      "packageVersion": "0.0.1"
+      "packageVersion": "1.0.0"
     },
     "world": {
       "name": "axm-world",
       "url": "https://github.com/BigBirdReturns/axm-world.git",
       "directory": "axm-world",
-      "branch": "release/local-estate-replication",
+      "branch": "main",
       "requiredAncestor": "466ead00a64af07e85d034ad3d6a6ebd7c3e4998",
       "productAuthorityCommit": "466ead00a64af07e85d034ad3d6a6ebd7c3e4998",
       "role": "Rodoh spatial runtime player, local estate orchestrator, release receiver",
-      "packageVersion": "0.0.1"
+      "packageVersion": "1.0.0"
     }
   },
   "toolchain": {

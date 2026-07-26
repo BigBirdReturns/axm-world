@@ -119,6 +119,13 @@ describe("browser support and performance custody", () => {
     expect(recorder).toContain('Invoke-GitText $arcRepo @("status", "--porcelain")');
     expect(recorder).toContain("merge-base --is-ancestor");
     expect(recorder).toContain("playwrightVersion");
+    expect(recorder).toContain('$worldBranch = Invoke-GitText $worldRepo @("rev-parse", "--abbrev-ref", "HEAD")');
+    expect(recorder).toContain('$arcBranch = Invoke-GitText $arcRepo @("rev-parse", "--abbrev-ref", "HEAD")');
+    expect(recorder).toContain("World package version $worldPackageVersion does not match estate lock");
+    expect(recorder).toContain("Arc package version $arcPackageVersion does not match estate lock");
+    const statusGenerator = readFileSync(STATUS_GENERATOR, "utf8");
+    expect(statusGenerator).toContain("value?.world?.head");
+    expect(statusGenerator).toContain("value?.arc?.head");
 
     const schema = JSON.parse(readFileSync(resolve(ROOT, "estate/nvda-edge-acceptance.schema.json"), "utf8"));
     expect(schema.required).toEqual(expect.arrayContaining(["nodeVersion", "npmVersion", "playwrightVersion"]));
@@ -135,63 +142,154 @@ describe("browser support and performance custody", () => {
     expect(mark).not.toContain("RODOH_ROOT_MARK_MAP.flatMap");
   });
 
-  it("refuses every valid-looking acceptance receipt that names a different repository pair", () => {
-    const estateRoot = mkdtempSync(join(tmpdir(), "rodoh-status-"));
-    const receipts = resolve(estateRoot, ".rodoh-estate/receipts");
-    const wrongWorld = "0".repeat(40);
-    const wrongArc = "1".repeat(40);
-    writeReceipt(resolve(receipts, "windows-replication.json"), {
-      format: "rodoh-windows-replication-receipt/1",
-      status: "pass",
-      worldHead: wrongWorld,
-      arcHead: wrongArc,
-    });
-    writeReceipt(resolve(receipts, "local-operator-acceptance.json"), {
-      format: "rodoh-local-operator-acceptance/1",
-      status: "pass",
-      worldCommit: wrongWorld,
-      arcCommit: wrongArc,
-    });
-    writeReceipt(resolve(receipts, "nvda-edge-acceptance.json"), {
-      format: "rodoh-nvda-edge-acceptance/1",
-      status: "pass",
-      worldCommit: wrongWorld,
-      arcCommit: wrongArc,
-    });
-
-    const output = resolve(receipts, "status.json");
-    const markdown = resolve(receipts, "status.md");
-    const result = runNode(STATUS_GENERATOR, [
-      "--repo", ROOT,
-      "--estate-root", estateRoot,
-      "--output-json", output,
-      "--output-markdown", markdown,
-    ]);
-    expect(result.status, result.stderr || result.stdout).toBe(0);
-    const status = JSON.parse(readFileSync(output, "utf8"));
-    expect(status.release.ready).toBe(false);
-    expect(status.release.blockers).toEqual(expect.arrayContaining([
-      "World package version is 0.0.1, not 1.0.0.",
-      "Arc package version is 0.0.1, not 1.0.0.",
-      expect.stringMatching(/^Local operator receipt names World /),
-      expect.stringMatching(/^Local operator receipt names Arc /),
-      expect.stringMatching(/^Windows replication receipt names World /),
-      expect.stringMatching(/^Windows replication receipt names Arc /),
-      expect.stringMatching(/^NVDA and Edge receipt names World /),
-      expect.stringMatching(/^NVDA and Edge receipt names Arc /),
-    ]));
-    expect(status.release.blockers).not.toEqual(expect.arrayContaining([
-      expect.stringMatching(/^Vendored Arc product authority /),
-    ]));
-    expect(status.release).toMatchObject({
-      packageVersion: "0.0.1",
-      arcPackageVersion: "0.0.1",
-    });
-    expect(status.repositories.arc).toMatchObject({
-      vendoredCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
-      productAuthorityCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
-      releaseEvidenceCommit: "331e9693d3210a1b66de0c5ee3931645bfcbc053",
-    });
-    expect(status.repositories.world.commit).toBe(git("rev-parse", "HEAD"));
+  it("refuses every fully valid acceptance receipt that names a different repository pair", () => {
+  const estateRoot = mkdtempSync(join(tmpdir(), "rodoh-status-"));
+  const receipts = resolve(estateRoot, ".rodoh-estate/receipts");
+  const wrongWorld = "0".repeat(40);
+  const wrongArc = "1".repeat(40);
+  const hash = "a".repeat(64);
+  writeReceipt(resolve(receipts, "windows-replication.json"), {
+    format: "rodoh-windows-replication-receipt/1",
+    generatedAt: new Date().toISOString(),
+    status: "pass",
+    worldHead: wrongWorld,
+    arcHead: wrongArc,
+    node: "v22.0.0",
+    npm: "10.0.0",
+    operatingSystem: "Windows 11",
+    checks: ["doctor", "hydrate", "vendored-plane", "double-build", "arc-suite", "world-suite", "gate6", "gate7", "complete-playwright", "static-health"],
   });
+  writeReceipt(resolve(receipts, "local-operator-acceptance.json"), {
+    format: "rodoh-local-operator-acceptance/1",
+    acceptedAt: new Date().toISOString(),
+    status: "pass",
+    releaseTarget: "RODOH v1.0.0",
+    machineFingerprintSha256: hash,
+    worldPackageVersion: "1.0.0",
+    arcPackageVersion: "1.0.0",
+    world: { head: wrongWorld, branch: "main" },
+    arc: { head: wrongArc, branch: "main" },
+    snapshot: { archive: "rodoh-estate.zip", archiveSha256: hash, manifestSha256: hash },
+    publicationSha256: "4c969b20bda7eacd062077a71da2c552aa4c6521abaaef186d01b0c13468822a",
+    checks: {
+      arcOpens: true,
+      worldOpens: true,
+      bundledPlay: true,
+      cleanRoomImport: true,
+      portableRunRoundtrip: true,
+      publicationLibrary: true,
+      snapshotRecovery: true,
+    },
+  });
+  writeReceipt(resolve(receipts, "nvda-edge-acceptance.json"), {
+    format: "rodoh-nvda-edge-acceptance/1",
+    acceptedAt: new Date().toISOString(),
+    status: "pass",
+    machineFingerprintSha256: hash,
+    operatingSystem: "Windows 11",
+    edgeVersion: "150.0.0",
+    nvdaVersion: "2026.1",
+    nodeVersion: "v22.0.0",
+    npmVersion: "10.0.0",
+    playwrightVersion: "1.49.0",
+    worldCommit: wrongWorld,
+    arcCommit: wrongArc,
+    checks: {
+      shelfAndIdentity: true,
+      keyboardEntry: true,
+      viewSwitcher: true,
+      contractAndParty: true,
+      decisionAndConsequence: true,
+      encounterAndRecord: true,
+      runExportRestore: true,
+      holderEstate: true,
+      forcedColorsAndMotion: true,
+      semanticRedundancy: true,
+    },
+  });
+
+  const output = resolve(receipts, "status.json");
+  const markdown = resolve(receipts, "status.md");
+  const result = runNode(STATUS_GENERATOR, [
+    "--repo", ROOT,
+    "--estate-root", estateRoot,
+    "--output-json", output,
+    "--output-markdown", markdown,
+  ]);
+  expect(result.status, result.stderr || result.stdout).toBe(0);
+  const status = JSON.parse(readFileSync(output, "utf8"));
+  expect(status.localEvidence.windowsReplication.valid).toBe(true);
+  expect(status.localEvidence.localOperator.valid).toBe(true);
+  expect(status.localEvidence.nvdaEdge.valid).toBe(true);
+  expect(status.release.ready).toBe(false);
+  expect(status.release.blockers).toEqual(expect.arrayContaining([
+    expect.stringMatching(/^Local operator receipt names World /),
+    expect.stringMatching(/^Local operator receipt names Arc /),
+    expect.stringMatching(/^Windows replication receipt names World /),
+    expect.stringMatching(/^Windows replication receipt names Arc /),
+    expect.stringMatching(/^NVDA and Edge receipt names World /),
+    expect.stringMatching(/^NVDA and Edge receipt names Arc /),
+  ]));
+  expect(status.release.blockers).not.toEqual(expect.arrayContaining([
+    expect.stringMatching(/^Vendored Arc product authority /),
+    "One or more required estate capabilities are not present in this checkout.",
+  ]));
+  expect(status.capabilities).toMatchObject({
+    boundedJsonImports: true,
+    cart1Canonicalization: true,
+  });
+  expect(status.release).toMatchObject({
+    packageVersion: "1.0.0",
+    arcPackageVersion: "1.0.0",
+  });
+  expect(status.repositories.arc).toMatchObject({
+    vendoredCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
+    productAuthorityCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
+    releaseEvidenceCommit: "7b576898f7a82409669a97187bcd836296a77e24",
+  });
+  expect(status.repositories.world.commit).toBe(git("rev-parse", "HEAD"));
+});
+
+it("rejects structurally incomplete pass receipts even when their commits are exact", () => {
+  const estateRoot = mkdtempSync(join(tmpdir(), "rodoh-status-incomplete-"));
+  const receipts = resolve(estateRoot, ".rodoh-estate/receipts");
+  const exactWorld = git("rev-parse", "HEAD");
+  const exactArc = "7b576898f7a82409669a97187bcd836296a77e24";
+  writeReceipt(resolve(receipts, "windows-replication.json"), {
+    format: "rodoh-windows-replication-receipt/1",
+    status: "pass",
+    worldHead: exactWorld,
+    arcHead: exactArc,
+  });
+  writeReceipt(resolve(receipts, "local-operator-acceptance.json"), {
+    format: "rodoh-local-operator-acceptance/1",
+    status: "pass",
+    worldCommit: exactWorld,
+    arcCommit: exactArc,
+  });
+  writeReceipt(resolve(receipts, "nvda-edge-acceptance.json"), {
+    format: "rodoh-nvda-edge-acceptance/1",
+    status: "pass",
+    worldCommit: exactWorld,
+    arcCommit: exactArc,
+  });
+
+  const output = resolve(receipts, "status.json");
+  const result = runNode(STATUS_GENERATOR, [
+    "--repo", ROOT,
+    "--estate-root", estateRoot,
+    "--output-json", output,
+    "--output-markdown", resolve(receipts, "status.md"),
+  ]);
+  expect(result.status, result.stderr || result.stdout).toBe(0);
+  const status = JSON.parse(readFileSync(output, "utf8"));
+  expect(status.localEvidence.windowsReplication.valid).toBe(false);
+  expect(status.localEvidence.localOperator.valid).toBe(false);
+  expect(status.localEvidence.nvdaEdge.valid).toBe(false);
+  expect(status.release.blockers).toEqual(expect.arrayContaining([
+    "Windows replication receipt is absent or invalid.",
+    "Local operator acceptance receipt is absent or invalid.",
+    "NVDA and Edge acceptance receipt is absent or invalid.",
+  ]));
+});
 });

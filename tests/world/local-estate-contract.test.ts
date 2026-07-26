@@ -39,12 +39,12 @@ describe("local estate replication contract", () => {
     expect(lock.repositories.arc).toMatchObject({
       branch: "main",
       requiredAncestor: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
-      requiredCommit: "331e9693d3210a1b66de0c5ee3931645bfcbc053",
+      requiredCommit: "7b576898f7a82409669a97187bcd836296a77e24",
       productAuthorityCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
     });
-    expect(lock.repositories.world.branch).toBe("release/local-estate-replication");
+    expect(lock.repositories.world.branch).toBe("main");
     expect(lock.repositories.world.requiredAncestor).toBe("466ead00a64af07e85d034ad3d6a6ebd7c3e4998");
-    expect(json<{ version: string }>("package.json").version).toBe("0.0.1");
+    expect(json<{ version: string }>("package.json").version).toBe("1.0.0");
   });
 
   it("pins every current product identity and the common custody protocols", () => {
@@ -137,6 +137,24 @@ describe("local estate replication contract", () => {
     expect(powershell).toContain("--offline");
     expect(powershell).toContain("function Start-DetachedLoggedProcess");
     expect(powershell).toContain("-EncodedCommand");
+    expect(powershell).toContain("function Assert-CurrentAcceptanceEstate");
+    expect(powershell).toContain("Automated repository receipt World head");
+    expect(powershell).toContain("Dependency receipt World lock SHA-256");
+    expect(powershell).toContain("Dependency receipt Arc lock SHA-256");
+    expect(powershell).toContain("Verification receipt estate lock SHA-256");
+    expect(powershell).toContain("Verification receipt publication manifest SHA-256");
+    expect(powershell).toContain("World build SOURCE_DATE_EPOCH");
+    expect(powershell).toContain("Arc build SOURCE_DATE_EPOCH");
+    expect(powershell).toContain("Browser test receipt head");
+    expect(powershell).toContain("Browser test receipt mode");
+    expect(powershell).toContain("Snapshot publication SHA-256");
+    expect(powershell).toContain("Snapshot archive SHA-256");
+    expect(powershell).toContain("worldCommit = $estate.worldHead");
+    expect(powershell).toContain("arcCommit = $estate.arcHead");
+    expect(powershell).toContain("worldPackageVersion = $estate.worldPackageVersion");
+    expect(powershell).toContain("arcPackageVersion = $estate.arcPackageVersion");
+    expect(powershell).toContain("'clone', '--branch', [string]$Record.branch, '--single-branch'");
+    expect(powershell).toContain('if ($branch -ne [string]$Record.branch)');
     const serverLifecycle = powershell.slice(
       powershell.indexOf("function Start-DetachedLoggedProcess"),
       powershell.indexOf("function Stop-ProcessTree"),
