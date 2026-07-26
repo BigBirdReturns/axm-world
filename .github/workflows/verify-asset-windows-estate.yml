@@ -1,0 +1,100 @@
+name: Verify final asset Windows estate
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/verify-asset-windows-estate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-final-asset-windows-estate
+  cancel-in-progress: true
+
+env:
+  WORLD_SHA: 4a01e7a40fc732654c600552e9765ab59007764a
+  ARC_SHA: 331e9693d3210a1b66de0c5ee3931645bfcbc053
+  CI: 'true'
+
+jobs:
+  windows:
+    runs-on: windows-2025
+    timeout-minutes: 240
+    steps:
+      - name: Check out exact final asset candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.WORLD_SHA }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+      - name: Check out exact coordinated Arc
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_SHA }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            axm-world/package-lock.json
+            axm-arc/package-lock.json
+      - name: Run exact Windows estate
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force diagnostics\logs, diagnostics\receipts | Out-Null
+          if ((git -C axm-world rev-parse HEAD).Trim() -ne $env:WORLD_SHA) { throw 'World identity mismatch.' }
+          if ((git -C axm-arc rev-parse HEAD).Trim() -ne $env:ARC_SHA) { throw 'Arc identity mismatch.' }
+
+          & .\axm-world\RODOH.cmd doctor -EstateRoot "$PWD" *>&1 | Tee-Object diagnostics\logs\doctor.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\axm-world\RODOH.cmd hydrate -EstateRoot "$PWD" *>&1 | Tee-Object diagnostics\logs\hydrate.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\axm-world\RODOH.cmd verify -EstateRoot "$PWD" *>&1 | Tee-Object diagnostics\logs\verify.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\axm-world\RODOH.cmd build -EstateRoot "$PWD" *>&1 | Tee-Object diagnostics\logs\build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\axm-world\RODOH.cmd test -EstateRoot "$PWD" -Scope Arc *>&1 | Tee-Object diagnostics\logs\test-arc.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\axm-world\RODOH.cmd test -EstateRoot "$PWD" -Scope World -FullBrowser *>&1 | Tee-Object diagnostics\logs\test-world.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\axm-world\RODOH.cmd play -EstateRoot "$PWD" -NoOpen *>&1 | Tee-Object diagnostics\logs\play.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          try {
+            $worldStatus = (Invoke-WebRequest -UseBasicParsing http://127.0.0.1:5173/axm-world/game/).StatusCode
+            $arcStatus = (Invoke-WebRequest -UseBasicParsing http://127.0.0.1:5174/axm-arc/game/).StatusCode
+            if ($worldStatus -ne 200 -or $arcStatus -ne 200) {
+              throw "Static health failed: World=$worldStatus Arc=$arcStatus"
+            }
+          } finally {
+            & .\axm-world\RODOH.cmd stop -EstateRoot "$PWD" *>&1 | Tee-Object -Append diagnostics\logs\play.log
+          }
+          $receipt = [ordered]@{
+            format = 'rodoh-final-asset-windows-verification/1'
+            generatedAt = (Get-Date).ToUniversalTime().ToString('o')
+            status = 'pass'
+            worldHead = $env:WORLD_SHA
+            arcHead = $env:ARC_SHA
+            node = (node --version).Trim()
+            npm = (npm --version).Trim()
+            operatingSystem = [Environment]::OSVersion.VersionString
+            checks = @('doctor','hydrate','verify','double-build','arc-suite','world-suite','complete-playwright','static-health')
+          }
+          $receipt | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf8 diagnostics\receipts\final-asset-windows.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: final-asset-windows-verification
+          path: |
+            diagnostics
+            .rodoh-estate/receipts
+            .rodoh-estate/library/builds
+            .rodoh-estate/logs
+          if-no-files-found: warn
+          retention-days: 30
