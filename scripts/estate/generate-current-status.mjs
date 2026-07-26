@@ -63,6 +63,12 @@ function receipt(path, expectedFormat) {
     format: value && !value.invalid ? value.format ?? null : null,
     worldCommit: value && !value.invalid ? value.worldCommit ?? value.worldHead ?? null : null,
     arcCommit: value && !value.invalid ? value.arcCommit ?? value.arcHead ?? null : null,
+    operatingSystem: value && !value.invalid ? value.operatingSystem ?? null : null,
+    edgeVersion: value && !value.invalid ? value.edgeVersion ?? null : null,
+    nvdaVersion: value && !value.invalid ? value.nvdaVersion ?? null : null,
+    nodeVersion: value && !value.invalid ? value.nodeVersion ?? value.node ?? null : null,
+    npmVersion: value && !value.invalid ? value.npmVersion ?? value.npm ?? null : null,
+    playwrightVersion: value && !value.invalid ? value.playwrightVersion ?? null : null,
   };
 }
 
@@ -112,8 +118,23 @@ if (dirty) blockers.push("World checkout is dirty.");
 if (!localOperator.valid) blockers.push("Local operator acceptance receipt is absent or invalid.");
 if (!windowsReplication.valid) blockers.push("Windows replication receipt is absent or invalid.");
 if (!nvdaEdge.valid) blockers.push("NVDA and Edge acceptance receipt is absent or invalid.");
-if (localOperator.valid && localOperator.worldCommit && localOperator.worldCommit !== worldCommit) blockers.push("Local operator receipt names a different World commit.");
-if (localOperator.valid && localOperator.arcCommit && localOperator.arcCommit !== lock.repositories.arc.requiredCommit) blockers.push("Local operator receipt names a different Arc commit.");
+
+function reconcileReceipt(label, entry) {
+  if (!entry.valid) return;
+  if (!entry.worldCommit) blockers.push(`${label} receipt does not name an exact World commit.`);
+  else if (entry.worldCommit !== worldCommit) blockers.push(`${label} receipt names World ${entry.worldCommit}, not ${worldCommit}.`);
+  if (!entry.arcCommit) blockers.push(`${label} receipt does not name an exact Arc commit.`);
+  else if (entry.arcCommit !== lock.repositories.arc.requiredCommit) {
+    blockers.push(`${label} receipt names Arc ${entry.arcCommit}, not ${lock.repositories.arc.requiredCommit}.`);
+  }
+}
+reconcileReceipt("Local operator", localOperator);
+reconcileReceipt("Windows replication", windowsReplication);
+reconcileReceipt("NVDA and Edge", nvdaEdge);
+
+if (vendored.commit !== lock.repositories.arc.requiredCommit) {
+  blockers.push(`Vendored Arc ${vendored.commit} does not match estate lock ${lock.repositories.arc.requiredCommit}.`);
+}
 if (!Object.values(capabilities).every(Boolean)) blockers.push("One or more required estate capabilities are not present in this checkout.");
 
 const status = {
