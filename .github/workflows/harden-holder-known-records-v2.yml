@@ -33,7 +33,8 @@ jobs:
       - name: Apply the corrected strict known-record transformation
         run: |
           set -euo pipefail
-          python - <<'PY'
+          mkdir -p hardening-diagnostics
+          python - <<'PY' 2>&1 | tee hardening-diagnostics/transformation.log
           from pathlib import Path
           import re
 
@@ -70,17 +71,27 @@ jobs:
           git diff --check
       - run: npm ci --no-audit --no-fund
       - name: Qualify strict holder records and the complete World product
+        shell: bash
         run: |
           set -euo pipefail
-          npm run typecheck
-          npm test -- tests/world/holder-estate.test.ts tests/world/locale.test.ts
-          npm test
-          npm run build
+          set -o pipefail
+          npm run typecheck 2>&1 | tee hardening-diagnostics/typecheck.log
+          npm test -- tests/world/holder-estate.test.ts tests/world/locale.test.ts 2>&1 | tee hardening-diagnostics/focused-tests.log
+          npm test 2>&1 | tee hardening-diagnostics/complete-tests.log
+          npm run build 2>&1 | tee hardening-diagnostics/build.log
           if git ls-files -- docs/game | grep -q .; then
             git restore --source=HEAD --staged --worktree -- docs/game
           fi
           git clean -fdx -- docs/game
           git diff --check
+      - name: Upload holder hardening diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: holder-known-record-hardening-diagnostics
+          path: hardening-diagnostics
+          if-no-files-found: warn
+          retention-days: 7
       - name: Publish the source-only hardening
         run: |
           set -euo pipefail
