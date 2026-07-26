@@ -40,6 +40,7 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           import json
+          import re
           from pathlib import Path
 
           product = '4b07539a06d40b131591f1e9c7d5b90a96ceec31'
@@ -50,36 +51,37 @@ jobs:
           arc = lock['repositories']['arc']
           if arc['requiredAncestor'] != product or arc['productAuthorityCommit'] != product:
               raise SystemExit('Arc product-authority fields no longer match the accepted source/execution head')
-          if arc['requiredCommit'] != product:
-              raise SystemExit(f'Unexpected pre-update Arc requiredCommit: {arc["requiredCommit"]}')
+          if arc['requiredCommit'] not in (product, release):
+              raise SystemExit(f'Unexpected Arc release head: {arc["requiredCommit"]}')
           arc['requiredCommit'] = release
           lock_path.write_text(json.dumps(lock, indent=2) + '\n')
 
           workflow = Path('.github/workflows/local-estate-replication.yml')
           text = workflow.read_text()
-          old = f'ARC_LOCAL_ESTATE_REF: {product}'
-          new = f'ARC_LOCAL_ESTATE_REF: {release}'
-          if text.count(old) != 1:
-              raise SystemExit(f'Expected one local-estate Arc ref, found {text.count(old)}')
-          workflow.write_text(text.replace(old, new))
+          text, count = re.subn(r'(?m)^  ARC_LOCAL_ESTATE_REF: [0-9a-f]{40}$', f'  ARC_LOCAL_ESTATE_REF: {release}', text)
+          if count != 1:
+              raise SystemExit(f'Expected one local-estate Arc ref, found {count}')
+          workflow.write_text(text)
 
           test = Path('tests/world/local-estate-contract.test.ts')
           text = test.read_text()
-          old = f'requiredCommit: "{product}",'
-          new = f'requiredCommit: "{release}",'
-          if text.count(old) != 1:
-              raise SystemExit(f'Expected one structured local-estate Arc commit assertion, found {text.count(old)}')
-          test.write_text(text.replace(old, new))
+          text, count = re.subn(r'(?m)^      requiredCommit: "[0-9a-f]{40}",$', f'      requiredCommit: "{release}",', text, count=1)
+          if count != 1:
+              raise SystemExit(f'Expected one structured local-estate Arc commit assertion, found {count}')
+          test.write_text(text)
 
           doc = Path('docs/SUPPLY_CHAIN_CUSTODY.md')
           text = doc.read_text()
-          anchor = 'World may assemble, checksum, and name the Arc product selected by the exact estate lock. That does not make a World repository attestation evidence of an Arc repository build.'
-          replacement = anchor + f' The coordinated estate checks out Arc release head `{release}`; the byte-identical source and execution plane remains governed by product-authority commit `{product}`.'
-          if text.count(anchor) != 1:
-              raise SystemExit(f'Expected one supply-chain authority anchor, found {text.count(anchor)}')
-          doc.write_text(text.replace(anchor, replacement))
+          sentence = f'The coordinated estate checks out Arc release head `{release}`; the byte-identical source and execution plane remains governed by product-authority commit `{product}`.'
+          if sentence not in text:
+              marker = 'World may assemble, checksum, and name the Arc product selected by the exact estate lock. That does not make a World repository attestation evidence of an Arc repository build.'
+              if marker not in text:
+                  raise SystemExit('Supply-chain authority marker is absent')
+              text = text.replace(marker, marker + ' ' + sentence)
+          doc.write_text(text)
           PY
           git diff --check
+          git diff -- estate/estate.lock.json .github/workflows/local-estate-replication.yml tests/world/local-estate-contract.test.ts docs/SUPPLY_CHAIN_CUSTODY.md
       - run: npm ci --no-audit --no-fund
       - name: Qualify the coordinated lock and release evidence
         run: |
