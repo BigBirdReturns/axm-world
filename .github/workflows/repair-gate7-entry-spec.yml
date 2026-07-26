@@ -1,9 +1,13 @@
 name: Repair and qualify complete Gate 7 entry spec
 
 on:
-  pull_request:
+  push:
+    branches:
+      - fix/gate7-entry-transition-race
     paths:
       - '.github/workflows/repair-gate7-entry-spec.yml'
+      - 'e2e/gate7-clean-room.spec.ts'
+      - 'tests/world/gate7-entry-transition-contract.test.ts'
   workflow_dispatch:
 
 permissions:
@@ -24,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           show-progress: false
       - uses: actions/setup-node@v4
@@ -38,8 +42,9 @@ jobs:
           git show "$BASE_SHA:e2e/gate7-clean-room.spec.ts" > "$RUNNER_TEMP/gate7-original.ts"
           python - <<'PY'
           from pathlib import Path
+          import os
 
-          original = Path(__import__('os').environ['RUNNER_TEMP']) / 'gate7-original.ts'
+          original = Path(os.environ['RUNNER_TEMP']) / 'gate7-original.ts'
           target = Path('e2e/gate7-clean-room.spec.ts')
           source = original.read_text()
           old = '    if (await skip.isVisible().catch(() => false)) await skip.click();'
@@ -77,11 +82,15 @@ jobs:
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/gate7-repair"
           npx playwright test e2e/gate7-clean-room.spec.ts --workers=1 2>&1 | tee "$RUNNER_TEMP/gate7-repair/gate7.log"
-      - name: Publish only the repaired complete spec
+      - name: Publish only the repaired complete spec when it changed
         shell: bash
         run: |
           set -euo pipefail
-          source_head='${{ github.event.pull_request.head.sha || github.sha }}'
+          if git diff --quiet -- e2e/gate7-clean-room.spec.ts; then
+            echo 'Complete Gate 7 spec is already repaired.'
+            exit 0
+          fi
+          source_head="$GITHUB_SHA"
           git fetch --no-tags origin fix/gate7-entry-transition-race
           test "$(git rev-parse origin/fix/gate7-entry-transition-race)" = "$source_head"
           git config user.name 'github-actions[bot]'
