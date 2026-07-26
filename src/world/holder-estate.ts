@@ -4,6 +4,7 @@
 
 import { sha256Hex } from "../engine/cartridge-digest.js";
 import { orderedKeys } from "../engine/determinism.js";
+import { parseBoundedJson, validateBoundedJsonValue, type BoundedJsonLimits } from "../engine/bounded-json.js";
 import { CARTRIDGE_BAY_KEY, LEGACY_CARTRIDGE_BAY_KEY } from "./cartridge-bay.js";
 import { SAVE_KEY_PREFIX, type KVStorage } from "./save.js";
 import { isCostumeId } from "./presentation-prefs.js";
@@ -21,6 +22,24 @@ const SENSORY_KEY = "axm-world:sensory:v1";
 const LOCALE_KEY = "axm-world:locale:v1";
 const HOLDER_NAMESPACES = ["axm-world:", "rodoh:"] as const;
 const CART_DIGEST = /^cart1_[0-9a-f]{64}$/;
+
+const HOLDER_ESTATE_JSON_LIMITS: Partial<BoundedJsonLimits> = {
+  maxBytes: HOLDER_ESTATE_MAX_BYTES,
+  maxDepth: 24,
+  maxNodes: 100_000,
+  maxArrayItems: HOLDER_ESTATE_MAX_RECORDS,
+  maxObjectMembers: HOLDER_ESTATE_MAX_RECORDS * 8,
+  maxStringBytes: HOLDER_ESTATE_MAX_RECORD_BYTES,
+};
+
+const HOLDER_RECORD_JSON_LIMITS: Partial<BoundedJsonLimits> = {
+  maxBytes: HOLDER_ESTATE_MAX_RECORD_BYTES,
+  maxDepth: 96,
+  maxNodes: 250_000,
+  maxArrayItems: 50_000,
+  maxObjectMembers: 50_000,
+  maxStringBytes: HOLDER_ESTATE_MAX_RECORD_BYTES,
+};
 
 export type HolderRecordKind =
   | "cartridge-bay"
@@ -196,7 +215,7 @@ export function buildHolderEstate(
 
 export function isHolderEstateV1(input: unknown): boolean {
   try {
-    const value = typeof input === "string" ? JSON.parse(input) as unknown : input;
+    const value = parseHolderEstateInput(input);
     return !!value && typeof value === "object" && !Array.isArray(value)
       && (value as Record<string, unknown>)["format"] === HOLDER_ESTATE_FORMAT;
   } catch {
@@ -204,18 +223,33 @@ export function isHolderEstateV1(input: unknown): boolean {
   }
 }
 
-export function parseHolderEstate(input: string | unknown): HolderEstateV1 {
-  if (typeof input === "string" && byteLength(input) > HOLDER_ESTATE_MAX_BYTES) {
-    throw new Error(`Holder estate exceeds ${HOLDER_ESTATE_MAX_BYTES} bytes.`);
-  }
-  let value: unknown = input;
+function parseHolderEstateInput(input: unknown): unknown {
   if (typeof input === "string") {
+    if (byteLength(input) > HOLDER_ESTATE_MAX_BYTES) {
+      throw new Error(`Holder estate exceeds ${HOLDER_ESTATE_MAX_BYTES} bytes.`);
+    }
     try {
-      value = JSON.parse(input) as unknown;
-    } catch {
-      throw new Error("Holder estate is not valid JSON.");
+      return parseBoundedJson(input, HOLDER_ESTATE_JSON_LIMITS);
+    } catch (error) {
+      throw new Error(`Holder estate is not valid bounded JSON: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
+
+  try {
+    validateBoundedJsonValue(input, HOLDER_ESTATE_JSON_LIMITS);
+  } catch (error) {
+    throw new Error(`Holder estate is not a valid bounded JSON value: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  const encoded = JSON.stringify(input);
+  if (encoded === undefined) throw new Error("Holder estate does not have a JSON representation.");
+  if (byteLength(encoded) > HOLDER_ESTATE_MAX_BYTES) {
+    throw new Error(`Holder estate exceeds ${HOLDER_ESTATE_MAX_BYTES} bytes.`);
+  }
+  return input;
+}
+
+export function parseHolderEstate(input: string | unknown): HolderEstateV1 {
+  const value = parseHolderEstateInput(input);
   const raw = plainObject(value, "Holder estate");
   assertExactKeys(raw, ["format", "createdAt", "producer", "records", "summary", "integrity"], "Holder estate");
   if (raw.format !== HOLDER_ESTATE_FORMAT) throw new Error(`Unsupported holder estate format "${String(raw.format)}".`);
@@ -327,7 +361,7 @@ function validateKnownRecord(record: HolderEstateRecord): string[] {
       if (!CART_DIGEST.test(digest)) throw new Error("presentation key lacks a cartridge digest");
       return [];
     }
-    const value = JSON.parse(record.value) as unknown;
+    const value = parseBoundedJson(record.value, HOLDER_RECORD_JSON_LIMITS);
     const raw = plainObject(value, record.key);
     if (record.kind === "run") {
       const digest = record.key.slice(SAVE_KEY_PREFIX.length);
@@ -403,13 +437,25 @@ export function importHolderEstate(
 
   const incoming = new Map(estate.records.map((record) => [record.key, record.value]));
   const changedKeys = [...preflight.add, ...preflight.change, ...preflight.remove];
-  const snapshots = changedKeys.map((key): StoredSnapshot => ({ key, value: storage.getItem(key) }));
+  let snapshots: StoredSnapshot[];
+  try {
+    snapshots = changedKeys.map((key): StoredSnapshot => ({ key, value: storage.getItem(key) }));
+  } catch (error) {
+    return {
+      ok: false,
+      errors: [`Holder estate snapshot failed: ${error instanceof Error ? error.message : String(error)}`],
+      rollbackErrors: [],
+    };
+  }
 
   try {
     for (const key of [...preflight.add, ...preflight.change].sort(compareStrings)) {
       storage.setItem(key, incoming.get(key)!);
     }
-    for (const key of preflight.remove) storage.removeItem(key);
+    for (const key of preflight.remove) {
+      storage.removeItem(key);
+      if (storage.getItem(key) !== null) throw new Error(`Holder estate removal verification failed for ${key}.`);
+    }
     for (const [key, value] of incoming) {
       if (storage.getItem(key) !== value) throw new Error(`Holder estate read-back failed for ${key}.`);
     }
@@ -427,11 +473,24 @@ export function importHolderEstate(
 function restoreSnapshots(storage: HolderStorage, snapshots: StoredSnapshot[]): string[] {
   const errors: string[] = [];
   for (const snapshot of [...snapshots].reverse()) {
+    let operationError: unknown = null;
     try {
       if (snapshot.value === null) storage.removeItem(snapshot.key);
       else storage.setItem(snapshot.key, snapshot.value);
     } catch (error) {
-      errors.push(`Rollback failed for ${snapshot.key}: ${error instanceof Error ? error.message : String(error)}`);
+      operationError = error;
+    }
+
+    try {
+      const restored = storage.getItem(snapshot.key);
+      if (restored !== snapshot.value) {
+        const detail = operationError == null
+          ? ""
+          : ` after the storage adapter threw ${operationError instanceof Error ? operationError.message : String(operationError)}`;
+        errors.push(`Rollback verification failed for ${snapshot.key}${detail}.`);
+      }
+    } catch (error) {
+      errors.push(`Rollback read-back failed for ${snapshot.key}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
   return errors;
