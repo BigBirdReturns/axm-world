@@ -4,10 +4,6 @@ on:
   pull_request:
     paths:
       - '.github/workflows/apply-holder-estate-ui.yml'
-  push:
-    branches: [release/holder-estate-v1]
-    paths:
-      - '.github/workflows/apply-holder-estate-ui.yml'
   workflow_dispatch:
 
 permissions:
@@ -24,12 +20,13 @@ jobs:
     env:
       CI: 'true'
       PW_BASE_URL: http://127.0.0.1:5173
+      HOLDER_BASE_SHA: e643e0eee01eb31854add53cb1b2377e9e06952d
     steps:
-      - name: Check out exact holder-estate candidate
+      - name: Check out exact holder-estate qualification head
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 0
+          fetch-depth: 1
           show-progress: false
 
       - uses: actions/setup-node@v4
@@ -37,20 +34,36 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Materialize and apply the reviewed hardening patch
+      - name: Materialize reviewed hardening patch
         run: |
           set -euo pipefail
-          cat .github/holder-hardening/patch-*.b64 | tr -d '\r\n' | base64 --decode > /tmp/holder-hardening.patch
-          printf '%s  %s\n' '06cc4de449af16c4e62a71c9edfff9139d2968a87b54c05138cc30df10786f9a' '/tmp/holder-hardening.patch' | sha256sum --check -
+          mkdir -p holder-hardening-diagnostics
+          cat .github/holder-hardening/patch-*.b64 | tr -d '\r\n' | base64 --decode > holder-hardening-diagnostics/holder-hardening.patch
+          sha256sum holder-hardening-diagnostics/holder-hardening.patch | tee holder-hardening-diagnostics/SHA256SUMS
+          wc -c holder-hardening-diagnostics/holder-hardening.patch | tee holder-hardening-diagnostics/bytes.txt
+
+      - name: Preserve carrier diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: holder-hardening-carrier-diagnostics
+          path: holder-hardening-diagnostics
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Verify and apply hardening patch
+        run: |
+          set -euo pipefail
+          printf '%s  %s\n' '06cc4de449af16c4e62a71c9edfff9139d2968a87b54c05138cc30df10786f9a' 'holder-hardening-diagnostics/holder-hardening.patch' | sha256sum --check -
           git apply --check \
             --exclude=.github/workflows/apply-holder-estate-ui.yml \
             --exclude=.github/workflows/holder-estate.yml \
-            /tmp/holder-hardening.patch
+            holder-hardening-diagnostics/holder-hardening.patch
           git apply \
             --exclude=.github/workflows/apply-holder-estate-ui.yml \
             --exclude=.github/workflows/holder-estate.yml \
-            /tmp/holder-hardening.patch
-          rm -rf .github/holder-hardening
+            holder-hardening-diagnostics/holder-hardening.patch
+          rm -rf .github/holder-hardening holder-hardening-diagnostics
           git diff --check
 
       - name: Install exact dependencies
@@ -84,12 +97,14 @@ jobs:
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
           npx playwright test e2e/holder-estate.spec.ts
 
-      - name: Publish permanent non-workflow bytes
+      - name: Construct and push workflow-neutral permanent commit
         run: |
           set -euo pipefail
-          rm -rf test-results holder-estate-receipt
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          rm -rf test-results holder-estate-receipt holder-hardening-diagnostics
+          git fetch --no-tags origin release/holder-estate-v1
+          base="$(git rev-parse origin/release/holder-estate-v1)"
+          test "$base" = "$HOLDER_BASE_SHA"
+          git read-tree "$base^{tree}"
           git add \
             docs/HOLDER_ESTATE_V1.md \
             src/world/Player.tsx \
@@ -99,5 +114,11 @@ jobs:
             tests/world/holder-estate.test.ts
           git add -A .github/holder-hardening
           git diff --cached --check
-          git commit -m 'Harden whole-holder estate transactions and input custody'
-          git push origin HEAD:release/holder-estate-v1
+          tree="$(git write-tree)"
+          commit="$(printf '%s\n' 'Harden whole-holder estate transactions and input custody' | \
+            GIT_AUTHOR_NAME='github-actions[bot]' \
+            GIT_AUTHOR_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+            GIT_COMMITTER_NAME='github-actions[bot]' \
+            GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+            git commit-tree "$tree" -p "$base")"
+          git push origin "$commit":release/holder-estate-v1
