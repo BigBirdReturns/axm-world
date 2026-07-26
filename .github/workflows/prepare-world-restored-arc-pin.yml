@@ -46,19 +46,22 @@ jobs:
 
           old = os.environ['OLD_ARC_SHA']
           new = os.environ['ARC_SHA']
-          paths = [
-              Path('estate/estate.lock.json'),
-              Path('.github/workflows/local-estate-replication.yml'),
-              Path('tests/world/local-estate-contract.test.ts'),
-              Path('tests/world/browser-support-performance.test.ts'),
-              Path('docs/SUPPLY_CHAIN_CUSTODY.md'),
-          ]
-          for path in paths:
+          expected = {
+              Path('estate/estate.lock.json'): 1,
+              Path('.github/workflows/local-estate-replication.yml'): 1,
+              Path('tests/world/local-estate-contract.test.ts'): 1,
+              Path('tests/world/browser-support-performance.test.ts'): 2,
+              Path('docs/SUPPLY_CHAIN_CUSTODY.md'): 1,
+          }
+          for path, required in expected.items():
               text = path.read_text()
               count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'{path}: expected one {old}, found {count}')
-              path.write_text(text.replace(old, new))
+              if count != required:
+                  raise SystemExit(f'{path}: expected {required} occurrences of {old}, found {count}')
+              updated = text.replace(old, new)
+              if old in updated or updated.count(new) < required:
+                  raise SystemExit(f'{path}: exact replacement did not complete')
+              path.write_text(updated)
           PY
           node - <<'NODE'
           const fs = require('fs');
