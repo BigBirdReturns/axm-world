@@ -9,9 +9,14 @@ import {
 } from "../../src/world/holder-estate.js";
 import { CARTRIDGE_BAY_KEY } from "../../src/world/cartridge-bay.js";
 import { SAVE_KEY_PREFIX } from "../../src/world/save.js";
+import { FIRST_CHARTER, KARAZHAN } from "../../src/arcs/index.js";
+import { cartridgeDigest } from "../../src/engine/cartridge-digest.js";
+import { foundOrganization } from "../../src/engine/founding.js";
+import { serializeGame } from "../../src/engine/save.js";
+import type { Arc } from "../../src/engine/types.js";
 
-const DIGEST = `cart1_${"a".repeat(64)}`;
-const OTHER_DIGEST = `cart1_${"b".repeat(64)}`;
+const DIGEST = cartridgeDigest(FIRST_CHARTER);
+const OTHER_DIGEST = cartridgeDigest(KARAZHAN);
 
 class MemoryStorage implements HolderStorage {
   private readonly values = new Map<string, string>();
@@ -26,48 +31,55 @@ class MemoryStorage implements HolderStorage {
     for (const [key, value] of Object.entries(initial)) this.values.set(key, value);
   }
 
-  get length(): number {
-    return this.values.size;
-  }
-
-  key(index: number): string | null {
-    return [...this.values.keys()][index] ?? null;
-  }
-
-  getItem(key: string): string | null {
-    return this.values.get(key) ?? null;
-  }
-
+  get length(): number { return this.values.size; }
+  key(index: number): string | null { return [...this.values.keys()][index] ?? null; }
+  getItem(key: string): string | null { return this.values.get(key) ?? null; }
   setItem(key: string, value: string): void {
     this.setCount += 1;
     if (this.failOnSet === this.setCount) throw new DOMException("quota", "QuotaExceededError");
     this.values.set(key, value);
     if (this.mutateThenThrowOnSet === this.setCount) throw new Error("adapter mutated then threw");
   }
-
   removeItem(key: string): void {
     this.removeCount += 1;
     if (this.failOnRemove === this.removeCount) throw new Error("remove failed");
     if (this.refusedRemovals.has(key)) return;
     this.values.delete(key);
   }
-
   snapshot(): Record<string, string> {
-    return Object.fromEntries([...this.values.entries()].sort(([a], [b]) => a.localeCompare(b)));
+    return Object.fromEntries([...this.values.entries()].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0));
   }
 }
 
-function runValue(digest = DIGEST): string {
+function bayEntry(arc: Arc) {
+  return {
+    arc,
+    authoredArcDigest: cartridgeDigest(arc),
+    trust: "bundled" as const,
+    importedAt: 0,
+    source: "bundled" as const,
+  };
+}
+
+function bayValue(arcs: Arc[] = [FIRST_CHARTER]): string {
+  return JSON.stringify({ version: 2, entries: arcs.map(bayEntry) });
+}
+
+function runValue(arc: Arc = FIRST_CHARTER): string {
+  const digest = cartridgeDigest(arc);
   return JSON.stringify({
     version: 1,
     authoredArcDigest: digest,
-    game: "{}",
+    game: serializeGame(foundOrganization(arc, { format: "axm-founding-input/1", seed: 424242 }), arc),
     ledger: { version: 2, authoredArcDigest: digest, entries: [] },
     openingChoice: null,
+    openingChoiceId: null,
+    extensions: {},
   });
 }
 
-function checkpointValue(digest = DIGEST): string {
+function checkpointValue(arc: Arc = FIRST_CHARTER): string {
+  const digest = cartridgeDigest(arc);
   return JSON.stringify({
     version: 1,
     authoredArcDigest: digest,
@@ -82,7 +94,7 @@ function checkpointValue(digest = DIGEST): string {
 
 function completeStorage(): MemoryStorage {
   return new MemoryStorage({
-    [CARTRIDGE_BAY_KEY]: JSON.stringify({ version: 2, entries: [] }),
+    [CARTRIDGE_BAY_KEY]: bayValue(),
     [`${SAVE_KEY_PREFIX}${DIGEST}`]: runValue(),
     [`axm-world:experience:v1:${DIGEST}`]: checkpointValue(),
     [`axm-world:costume:v2:${DIGEST}`]: "map",
@@ -141,6 +153,7 @@ describe("rodoh-holder-estate/v1", () => {
 
     const duplicateRun = `{"version":1,"version":1,"authoredArcDigest":"${DIGEST}","game":"{}","ledger":{"version":2,"authoredArcDigest":"${DIGEST}","entries":[]},"openingChoice":null}`;
     const invalidEstate = buildHolderEstate(new MemoryStorage({
+      [CARTRIDGE_BAY_KEY]: bayValue(),
       [`${SAVE_KEY_PREFIX}${DIGEST}`]: duplicateRun,
     }), { createdAt: "2026-07-25T00:00:00.000Z" });
     expect(() => parseHolderEstate(JSON.stringify(invalidEstate))).toThrow(/Duplicate object key.*version/i);
@@ -151,7 +164,7 @@ describe("rodoh-holder-estate/v1", () => {
     const estate = buildHolderEstate(source, { createdAt: "2026-07-25T00:00:00.000Z" });
     const target = new MemoryStorage({
       [CARTRIDGE_BAY_KEY]: JSON.stringify({ version: 2, entries: [{ stale: true }] }),
-      [`${SAVE_KEY_PREFIX}${OTHER_DIGEST}`]: runValue(OTHER_DIGEST),
+      [`${SAVE_KEY_PREFIX}${OTHER_DIGEST}`]: runValue(KARAZHAN),
       "other-app:key": "untouched",
     });
     const before = target.snapshot();
@@ -169,7 +182,7 @@ describe("rodoh-holder-estate/v1", () => {
   it("restores an exact holder estate transactionally and idempotently", () => {
     const estate = buildHolderEstate(completeStorage(), { createdAt: "2026-07-25T00:00:00.000Z" });
     const target = new MemoryStorage({
-      [`${SAVE_KEY_PREFIX}${OTHER_DIGEST}`]: runValue(OTHER_DIGEST),
+      [`${SAVE_KEY_PREFIX}${OTHER_DIGEST}`]: runValue(KARAZHAN),
       "other-app:key": "must-survive",
     });
 
@@ -194,7 +207,7 @@ describe("rodoh-holder-estate/v1", () => {
     const staleKey = `${SAVE_KEY_PREFIX}${OTHER_DIGEST}`;
     const target = new MemoryStorage({
       [CARTRIDGE_BAY_KEY]: JSON.stringify({ version: 2, entries: [{ prior: true }] }),
-      [staleKey]: runValue(OTHER_DIGEST),
+      [staleKey]: runValue(KARAZHAN),
       "other-app:key": "must-survive",
     });
     const before = target.snapshot();
@@ -213,7 +226,7 @@ describe("rodoh-holder-estate/v1", () => {
     const estate = buildHolderEstate(completeStorage(), { createdAt: "2026-07-25T00:00:00.000Z" });
     const target = new MemoryStorage({
       [CARTRIDGE_BAY_KEY]: JSON.stringify({ version: 2, entries: [{ prior: true }] }),
-      [`${SAVE_KEY_PREFIX}${OTHER_DIGEST}`]: runValue(OTHER_DIGEST),
+      [`${SAVE_KEY_PREFIX}${OTHER_DIGEST}`]: runValue(KARAZHAN),
       "other-app:key": "must-survive",
     });
     const before = target.snapshot();
@@ -262,13 +275,48 @@ describe("rodoh-holder-estate/v1", () => {
     expect(target.snapshot()).toEqual(before);
   });
 
+  it("refuses a run whose inner engine save cannot resume", () => {
+  const values = completeStorage().snapshot();
+  const run = JSON.parse(values[`${SAVE_KEY_PREFIX}${DIGEST}`]!) as Record<string, unknown>;
+  run.game = "{}";
+  values[`${SAVE_KEY_PREFIX}${DIGEST}`] = JSON.stringify(run);
+  const estate = buildHolderEstate(new MemoryStorage(values), { createdAt: "2026-07-25T00:00:00.000Z" });
+  expect(() => parseHolderEstate(estate)).toThrow(/run slot|serialized game|version/i);
+});
+
+it("refuses a checkpoint that the held cartridge and run cannot resume", () => {
+  const values = completeStorage().snapshot();
+  const checkpoint = JSON.parse(values[`axm-world:experience:v1:${DIGEST}`]!) as Record<string, unknown>;
+  checkpoint.stage = "teleport";
+  values[`axm-world:experience:v1:${DIGEST}`] = JSON.stringify(checkpoint);
+  const estate = buildHolderEstate(new MemoryStorage(values), { createdAt: "2026-07-25T00:00:00.000Z" });
+  expect(() => parseHolderEstate(estate)).toThrow(/checkpoint|experience/i);
+});
+
+it("refuses a cartridge bay whose declared identity disagrees with its Arc", () => {
+  const values = completeStorage().snapshot();
+  const bay = JSON.parse(values[CARTRIDGE_BAY_KEY]!) as { entries: Array<Record<string, unknown>> };
+  bay.entries[0]!.authoredArcDigest = OTHER_DIGEST;
+  values[CARTRIDGE_BAY_KEY] = JSON.stringify(bay);
+  const estate = buildHolderEstate(new MemoryStorage(values), { createdAt: "2026-07-25T00:00:00.000Z" });
+  expect(() => parseHolderEstate(estate)).toThrow(/cartridge bay|authoredArcDigest/i);
+});
+
+it("refuses malformed sensory preferences instead of importing state that reload will discard", () => {
+  const values = completeStorage().snapshot();
+  values["axm-world:sensory:v1"] = JSON.stringify({ sound: "yes", reducedMotion: true });
+  const estate = buildHolderEstate(new MemoryStorage(values), { createdAt: "2026-07-25T00:00:00.000Z" });
+  expect(() => parseHolderEstate(estate)).toThrow(/sensory preferences/i);
+});
+
   it("preserves opaque future namespaces but refuses malformed known records", () => {
     const estate = buildHolderEstate(completeStorage(), { createdAt: "2026-07-25T00:00:00.000Z" });
     const opaque = estate.records.find((record) => record.kind === "opaque-world");
     expect(opaque?.value).toBe(JSON.stringify({ opaque: [1, "x"] }));
 
     const invalidSource = new MemoryStorage({
-      [`${SAVE_KEY_PREFIX}${DIGEST}`]: runValue(OTHER_DIGEST),
+      [CARTRIDGE_BAY_KEY]: bayValue(),
+      [`${SAVE_KEY_PREFIX}${DIGEST}`]: runValue(KARAZHAN),
     });
     const invalidEstate = buildHolderEstate(invalidSource, { createdAt: "2026-07-25T00:00:00.000Z" });
     expect(() => parseHolderEstate(invalidEstate)).toThrow(/run slot identity/i);
