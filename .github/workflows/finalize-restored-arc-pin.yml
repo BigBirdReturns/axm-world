@@ -1,0 +1,141 @@
+name: Finalize exact restored Arc custody pin
+
+on:
+  push:
+    branches:
+      - release/pin-restored-arc-v1-main
+    paths:
+      - '.github/workflows/finalize-restored-arc-pin.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finalize-exact-restored-arc-custody-pin
+  cancel-in-progress: true
+
+env:
+  BASE_SHA: 04d5aa0b612bc64348b2d71b4cd4c060562b60d1
+  OLD_ARC_SHA: 7b576898f7a82409669a97187bcd836296a77e24
+  ARC_SHA: ec997705131e517fc8b4be6325453c4e14ae815a
+  CI: 'true'
+  SOURCE_DATE_EPOCH: '0'
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/pin-restored-arc-v1-main
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Derive the exact four non-workflow files
+        id: derive
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_head='${{ github.sha }}'
+          test "$(git rev-parse HEAD)" = "$source_head"
+          git merge-base --is-ancestor "$BASE_SHA" HEAD
+          test ! -e PLACEHOLDER
+          test "$(sha256sum .github/workflows/local-estate-replication.yml | cut -d' ' -f1)" = '78052d210535e73253801676ab064a0d023721dd180cdce8f10c8df1c553cf11'
+          if grep -q "$ARC_SHA" estate/estate.lock.json; then
+            echo 'required=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          old = os.environ['OLD_ARC_SHA']
+          new = os.environ['ARC_SHA']
+          expected = {
+              Path('estate/estate.lock.json'): 1,
+              Path('tests/world/local-estate-contract.test.ts'): 1,
+              Path('tests/world/browser-support-performance.test.ts'): 2,
+              Path('docs/SUPPLY_CHAIN_CUSTODY.md'): 1,
+          }
+          for path, required in expected.items():
+              text = path.read_text()
+              count = text.count(old)
+              if count != required:
+                  raise SystemExit(f'{path}: expected {required} occurrences of {old}, found {count}')
+              updated = text.replace(old, new)
+              if old in updated or updated.count(new) < required:
+                  raise SystemExit(f'{path}: exact replacement did not complete')
+              path.write_text(updated)
+          PY
+          cat > "$RUNNER_TEMP/EXPECTED_SHA256SUMS" <<'SUMS'
+          8664737d441161ef0959c3ecadc03ae65d420c6e80b43302cff60ea2ba75a926  estate/estate.lock.json
+          7b4b8ec32c181e72c26120138283098d2d6f45c19f79efa104a0f06c18e96345  docs/SUPPLY_CHAIN_CUSTODY.md
+          d5475cfde65bedda12721735681c6390092ca7bf7d816f1274d3dbd1cf54fe25  tests/world/local-estate-contract.test.ts
+          316e536bc4a5d0bdf354f97ef05532dfa05b32908d1ff028d3475ece16624274  tests/world/browser-support-performance.test.ts
+          SUMS
+          sha256sum -c "$RUNNER_TEMP/EXPECTED_SHA256SUMS"
+          node - <<'NODE'
+          const fs = require('fs');
+          const estate = JSON.parse(fs.readFileSync('estate/estate.lock.json', 'utf8'));
+          if (estate.repositories.world.branch !== 'main') throw new Error('World branch is not main');
+          if (estate.repositories.arc.branch !== 'main') throw new Error('Arc branch is not main');
+          if (estate.repositories.arc.requiredCommit !== process.env.ARC_SHA) throw new Error('Arc restored main is not pinned');
+          if (estate.repositories.world.packageVersion !== '1.0.0') throw new Error('World package is not 1.0.0');
+          if (estate.repositories.arc.packageVersion !== '1.0.0') throw new Error('Arc package is not 1.0.0');
+          NODE
+          git diff --check
+          echo 'required=true' >> "$GITHUB_OUTPUT"
+      - name: Install exact dependencies
+        if: steps.derive.outputs.required == 'true'
+        run: npm ci --no-audit --no-fund
+      - name: Qualify the exact repinned product
+        if: steps.derive.outputs.required == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm test -- \
+            tests/world/local-estate-contract.test.ts \
+            tests/world/browser-support-performance.test.ts \
+            tests/world/supply-chain.test.ts \
+            tests/world/holder-estate.test.ts
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          git diff --check
+      - name: Publish only the four qualified non-workflow files
+        if: steps.derive.outputs.required == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_head='${{ github.sha }}'
+          git fetch --no-tags origin release/pin-restored-arc-v1-main
+          test "$(git rev-parse origin/release/pin-restored-arc-v1-main)" = "$source_head"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            estate/estate.lock.json \
+            docs/SUPPLY_CHAIN_CUSTODY.md \
+            tests/world/local-estate-contract.test.ts \
+            tests/world/browser-support-performance.test.ts
+          expected="$(printf '%s\n' docs/SUPPLY_CHAIN_CUSTODY.md estate/estate.lock.json tests/world/browser-support-performance.test.ts tests/world/local-estate-contract.test.ts)"
+          actual="$(git diff --cached --name-only | sort)"
+          test "$actual" = "$expected"
+          git diff --cached --check
+          git commit -m 'Pin World v1 custody to restored Arc main'
+          git push origin HEAD:release/pin-restored-arc-v1-main
+      - name: Confirm already-published custody
+        if: steps.derive.outputs.required != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p 'JSON.parse(require("fs").readFileSync("estate/estate.lock.json", "utf8")).repositories.arc.requiredCommit')" = "$ARC_SHA"
+          echo 'Restored Arc custody was already published.'
