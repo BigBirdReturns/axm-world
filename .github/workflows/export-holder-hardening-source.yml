@@ -1,0 +1,29 @@
+name: Export holder hardening sources
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/export-holder-hardening-source.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: holder-hardening-exact-sources
+          path: |
+            src/world/holder-estate.ts
+            tests/world/holder-estate.test.ts
+            .github/workflows/harden-holder-known-records.yml
+          if-no-files-found: error
+          retention-days: 3
