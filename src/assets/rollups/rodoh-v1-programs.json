@@ -36,7 +36,7 @@
       "denseDescriptions": [],
       "acceptance": [
         "tests/world/production-asset-wave-one.test.ts",
-        "e2e/cartridge-bay-mobile.spec.ts"
+        "e2e/production-asset-wave-one.spec.ts"
       ],
       "releaseBoundary": "The shell may frame and classify holder-owned cartridges but never lends a first-party identity to an imported cartridge."
     },
@@ -67,9 +67,9 @@
       "denseDescriptions": [],
       "acceptance": [
         "tests/world/asset-standard.test.ts",
-        "tests/world/first-charter-production-assets.test.ts",
+        "tests/world/first-charter-hall-assets.test.ts",
         "tests/world/production-asset-wave-one.test.ts",
-        "e2e/honest-opening.spec.ts"
+        "e2e/first-charter-hall-assets.spec.ts"
       ],
       "releaseBoundary": "Program-owned visuals render Arc-authored identity and state; they do not create rules or consequences."
     },
@@ -102,7 +102,7 @@
         "tests/world/asset-standard.test.ts",
         "tests/world/production-asset-wave-one.test.ts",
         "tests/world/cartridge-parity.test.ts",
-        "e2e/honest-opening.spec.ts"
+        "e2e/production-asset-wave-one.spec.ts"
       ],
       "releaseBoundary": "The internal compatibility id remains karazhan; all player-facing fiction and production identity remain original Waking Tower work."
     },
@@ -134,10 +134,10 @@
         "ilyon-motif-system"
       ],
       "acceptance": [
-        "tests/world/ilyon-visual-assets.test.ts",
+        "tests/world/ilyon-art-assets.test.ts",
         "tests/world/production-asset-wave-one.test.ts",
-        "tests/world/godscar-receiver.test.ts",
-        "e2e/godscar-ilyon.spec.ts"
+        "tests/world/godscar-cartridge.test.ts",
+        "e2e/production-asset-wave-one.spec.ts"
       ],
       "releaseBoundary": "The motif set exposes Pocket, faction, evidence, and consequence relations already carried by Arc; World does not infer missing canon."
     },
@@ -171,8 +171,8 @@
       "acceptance": [
         "tests/world/lamp-district-assets.test.ts",
         "tests/world/underworld-receiver.test.ts",
-        "tests/world/lamp-district-connected-custody.test.ts",
-        "e2e/honest-opening.spec.ts"
+        "tests/world/lamp-district-cartridge.test.ts",
+        "e2e/lamp-district-gate4.spec.ts"
       ],
       "releaseBoundary": "The cross-section is a navigational and relational supplement; Underworld HTML and engine state remain the semantic authority."
     },
@@ -209,7 +209,7 @@
         "tests/world/relief-circuit-production-assets.test.ts",
         "tests/world/common-ship-receiver-prep.test.ts",
         "tests/world/common-ship-preparation-cycle.test.ts",
-        "e2e/relief-circuit-gate6.spec.ts"
+        "scripts/verify-relief-circuit-gate6.mjs"
       ],
       "releaseBoundary": "The vessel art explains Arc-owned composition and state. It is never the only carrier of a watch test, handoff, or connected-operation fact."
     }
