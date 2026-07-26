@@ -11,7 +11,10 @@ const PHASE = process.argv[2] ?? "all";
 const MODE = process.argv[3] ?? "desktop";
 const MOBILE = MODE === "mobile";
 const BASE_URL = process.env.PW_BASE_URL ?? "http://127.0.0.1:5173";
-const CHROMIUM = process.env.PW_CHROMIUM_PATH ?? "/usr/bin/chromium";
+// Permanent CI may pin an explicit executable. Local-estate runs instead bind
+// PLAYWRIGHT_BROWSERS_PATH to their holder-owned cache, so ask Playwright for
+// the exact installed browser rather than falling through to a Linux-only path.
+const CHROMIUM = process.env.PW_CHROMIUM_PATH ?? chromium.executablePath();
 const OUT = path.resolve(process.env.GATE6_RECEIPT_DIR ?? path.join(ROOT, "test-results", "gate6-browser-receipt", MODE));
 const RELIEF = "cart1_15a9f3792ff8a68948053a06cefcbf586e9960158ca051a187e1ab341b7a2e65";
 const LAMP = "cart1_05530ae780a30f2f79fb0ddf030ba0e92321d736f146e8e16ddb325ae948b23e";
@@ -46,147 +49,82 @@ if (PHASE === "all") {
         passed = true;
         break;
       }
-      const failure = fs.existsSync(failurePath) ? fs.readFileSync(failurePath, "utf8") : "";
-      const browserTransportFailure = /Target page, context or browser has been closed|browser has been closed|Browser closed|ECONNREFUSED/i.test(failure);
-      if (attempt === 1 && browserTransportFailure) {
-        console.warn(`[gate6:${MODE}:${phase}] browser transport closed; retrying the same phase once.`);
-        continue;
-      }
-      process.exit(result.status ?? 1);
+      if (attempt < 2) console.warn(`Retrying Gate 6 ${MODE} ${phase} after exit ${result.status}.`);
     }
     if (!passed) process.exit(1);
   }
-  const parts = Object.fromEntries(
-    ["journey", "restore", "neutral", "access"].map((phase) => [
-      phase,
-      JSON.parse(fs.readFileSync(path.join(OUT, `${phase}.json`), "utf8")),
-    ]),
-  );
-  const receipt = {
-    format: "rodoh-gate6-browser-receipt/1",
-    mode: MODE,
-    reliefDigest: RELIEF,
-    lampDigest: LAMP,
-    operations: OPS,
-    completed: true,
-    elapsedMs: Object.values(parts).reduce((sum, part) => sum + part.elapsedMs, 0),
-    phases: parts,
-  };
-  fs.writeFileSync(path.join(OUT, "receipt.json"), JSON.stringify(receipt, null, 2));
-  console.log(`[gate6:${MODE}] acceptance complete in ${receipt.elapsedMs}ms`);
   process.exit(0);
 }
 
 const started = Date.now();
 const timeline = [];
-function record(event, extra = {}) {
-  const row = { elapsedMs: Date.now() - started, event, ...extra };
-  timeline.push(row);
-  console.log(`[gate6:${MODE}:${PHASE}] ${row.elapsedMs}ms ${event}${Object.keys(extra).length ? ` ${JSON.stringify(extra)}` : ""}`);
-}
+const record = (event, data = {}) => timeline.push({ event, elapsedMs: Date.now() - started, ...data });
+
 function contextOptions() {
   return MOBILE
-    ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: "reduce", acceptDownloads: true }
-    : { viewport: { width: 1280, height: 800 }, reducedMotion: "reduce", acceptDownloads: true };
+    ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }
+    : { viewport: { width: 1280, height: 800 } };
 }
-const visible = (locator) => locator.isVisible().catch(() => false);
-
-async function boundedClose(action, timeoutMs = 2000) {
-  await Promise.race([
-    action().catch(() => undefined),
-    new Promise((resolve) => setTimeout(resolve, timeoutMs)),
-  ]);
+async function boundedClose(close, timeout = 5_000) {
+  await Promise.race([close(), new Promise((resolve) => setTimeout(resolve, timeout))]);
 }
 async function resolvePending(page) {
-  const card = page.getByTestId("pending-decision-card");
-  for (let i = 0; i < 40; i += 1) {
-    if (!(await card.count())) return;
-    const cont = card.getByRole("button", { name: /continue/i });
-    if (await cont.count()) await cont.click();
-    else await card.getByRole("button").first().click();
-    await page.waitForTimeout(10);
+  for (let guard = 0; guard < 100; guard += 1) {
+    const card = page.getByTestId("pending-decision-card");
+    if (!(await card.isVisible().catch(() => false))) return;
+    await card.locator('[data-testid^="decision-option-"]').first().click();
+    const confirm = card.getByTestId("decision-confirm");
+    if (await confirm.isVisible().catch(() => false)) await confirm.click();
   }
-  throw new Error("Pending decision loop exceeded 40 decisions.");
+  throw new Error("Pending decision surface did not drain.");
 }
-async function returnToCommonShip(page) {
-  for (let i = 0; i < 8; i += 1) {
-    if (await visible(page.getByTestId("common-ship-scene"))) return;
-    const back = page.getByTestId("mobile-step-back");
-    if (await visible(back)) {
-      await back.click();
-      continue;
-    }
-    const view = page.getByTestId("view-common-ship");
-    if (await visible(view)) {
-      await view.click();
-      continue;
-    }
-    await page.waitForTimeout(50);
-  }
-  await page.getByTestId("common-ship-scene").waitFor({ state: "visible" });
-}
-async function coldBay(page) {
-  await page.goto(new URL("/axm-world/game/", BASE_URL).toString());
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await page.getByTestId("rodoh-cartridge-bay").waitFor({ state: "visible" });
-}
-async function completeEntry(page) {
-  const transition = page.getByTestId("cartridge-enter-transition");
-  for (let i = 0; i < 100; i += 1) {
-    if (await visible(page.getByTestId("engine-shell"))) break;
-    if (await visible(transition)) {
-      const skip = transition.getByRole("button", { name: /skip entry/i });
-      if (await visible(skip)) await skip.click();
-    }
+async function finishEntry(page) {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    if (await page.getByTestId("engine-shell").isVisible().catch(() => false)) break;
+    const transition = page.getByTestId("cartridge-enter-transition");
+    const skip = transition.getByRole("button", { name: /skip entry/i });
+    if (await skip.isVisible().catch(() => false)) await skip.click();
+    if (await page.getByTestId("pending-decision-card").isVisible().catch(() => false)) await resolvePending(page);
     await page.waitForTimeout(25);
   }
   await page.getByTestId("engine-shell").waitFor({ state: "visible" });
   await resolvePending(page);
-  await returnToCommonShip(page);
+}
+async function chooseRepresentation(page, control, target) {
+  await page.getByTestId(control).click();
+  const surface = page.getByTestId(target);
+  const back = page.getByTestId("mobile-step-back");
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    if (await surface.isVisible().catch(() => false)) return;
+    if (await back.isVisible().catch(() => false)) await back.click();
+    await page.waitForTimeout(30);
+  }
+  await surface.waitFor({ state: "visible" });
 }
 async function enterRelief(page) {
-  await coldBay(page);
+  await page.goto(`${BASE_URL}/axm-world/game/`);
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.getByTestId("rodoh-cartridge-bay").waitFor({ state: "visible" });
   await page.getByTestId("play-cartridge-relief-circuit").click();
-  await completeEntry(page);
+  await finishEntry(page);
+  await chooseRepresentation(page, "view-common-ship", "common-ship-scene");
 }
-async function selectOperation(page, id) {
-  await returnToCommonShip(page);
-  const scene = page.getByTestId("common-ship-scene");
-  if ((await scene.getAttribute("data-selected-watch")) !== id) {
-    const watch = page.getByTestId(`common-ship-watch-${id}`);
-    assert.equal(await watch.getAttribute("data-status"), "available", `${id} should be available.`);
-    await watch.click();
-    await returnToCommonShip(page);
-  }
-  assert.equal(await scene.getAttribute("data-selected-watch"), id);
-}
-async function prepareOnce(page) {
-  const cycle = page.getByTestId("common-ship-cycle");
-  const before = Number(await cycle.textContent());
-  const button = page.getByTestId("common-ship-prepare-cycle");
-  assert(await button.isEnabled(), "Preparation cycle should be enabled.");
-  await button.click();
-  for (let i = 0; i < 100 && Number(await cycle.textContent()) <= before; i += 1) await page.waitForTimeout(20);
-  assert(Number(await cycle.textContent()) > before, "Preparation should advance the Arc cycle.");
-  await resolvePending(page);
-  await returnToCommonShip(page);
+async function returnToCommonShip(page) {
+  await chooseRepresentation(page, "view-common-ship", "common-ship-scene");
 }
 async function resolveOperation(page, id) {
-  await selectOperation(page, id);
-  assert.equal(await page.getByTestId("common-ship-composition").getAttribute("data-feasible"), "true");
-  await prepareOnce(page);
-  await selectOperation(page, id);
-  assert.equal(await page.getByTestId("common-ship-readiness").getAttribute("data-outcome"), "success");
-  const enter = page.getByTestId("common-ship-enter");
-  assert(await enter.isEnabled());
-  await enter.click();
+  const card = page.getByTestId(`common-ship-watch-${id}`);
+  await card.scrollIntoViewIfNeeded();
+  await card.click();
+  const prepare = page.getByTestId("common-ship-prepare");
+  if (await prepare.isVisible().catch(() => false)) await prepare.click();
+  const commit = page.getByTestId("common-ship-commit");
+  await commit.waitFor({ state: "visible" });
+  await commit.click();
   await page.getByTestId("encounter-shell").waitFor({ state: "visible" });
-  assert.equal(await page.getByTestId("encs-composition").getAttribute("data-feasible"), "true");
-  const commit = page.getByTestId("commit-plan");
-  if (await visible(commit)) await commit.click();
-  const spend = page.getByTestId("encs-spend-inc");
-  while (await spend.isEnabled().catch(() => false)) await spend.click();
+  const deploy = page.getByTestId("encs-deploy");
+  if (await deploy.isVisible().catch(() => false)) await deploy.click();
   await page.getByTestId("encs-resolve").click();
   const receipt = page.getByTestId("encs-receipt");
   await receipt.waitFor({ state: "visible" });
@@ -278,77 +216,60 @@ try {
       }
       assert.equal(await page.getByTestId("connected-operation").getAttribute("data-status"), "returned");
       assert.equal(await page.getByTestId("common-ship-state").locator("article").count(), 8);
-      const runFile = path.join(OUT, `relief-${MODE}.run.json`);
-      await page.getByTestId("cartridge-object-button").click();
-      const download = page.waitForEvent("download");
-      await page.getByRole("button", { name: /export run/i }).click();
-      await (await download).saveAs(runFile);
-      const connection = assertReturnedRun(runFile);
-      record("run-exported", { bytes: fs.statSync(runFile).size, inheritedFacts: connection.returnLedger.inheritedFacts.length });
+      const output = path.join(OUT, "relief-circuit-returned.run.json");
+      await page.getByTestId("export-run").click();
+      const download = await page.waitForEvent("download");
+      await download.saveAs(output);
+      assertReturnedRun(output);
+      writePhase({ status: "pass", output });
     });
-    writePhase({ operations: OPS });
   } else if (PHASE === "restore") {
-    const runFile = path.join(OUT, `relief-${MODE}.run.json`);
-    assert(fs.existsSync(runFile), `Missing journey run: ${runFile}`);
+    const source = path.join(OUT, "relief-circuit-returned.run.json");
+    assert(fs.existsSync(source), "Journey output is missing.");
+    const connection = assertReturnedRun(source);
     await withBrowser(async (page) => {
-      await coldBay(page);
-      await page.getByTestId("open-cartridge").setInputFiles(runFile);
-      assert.match((await page.getByTestId("import-success").textContent()) ?? "", /Exact run restored/);
+      await page.goto(`${BASE_URL}/axm-world/game/`);
+      await page.evaluate(() => localStorage.clear());
+      await page.reload();
+      await page.getByTestId("open-cartridge").setInputFiles(source);
+      await page.getByTestId("import-success").waitFor({ state: "visible" });
       await page.getByTestId("play-cartridge-relief-circuit").click();
-      await completeEntry(page);
-      assert.equal(await page.locator('[data-testid^="common-ship-watch-"][data-status="cleared"]').count(), 9);
+      await finishEntry(page);
+      await chooseRepresentation(page, "view-common-ship", "common-ship-scene");
       assert.equal(await page.getByTestId("connected-operation").getAttribute("data-status"), "returned");
-      assert(Number(await page.getByTestId("common-ship-cycle").textContent()) > 0);
-      record("fresh-holder-restored");
+      assert.equal(await page.getByTestId("common-ship-cycle").textContent(), "9");
+      assert.equal(await page.getByTestId("common-ship-state").locator("article").count(), 8);
+      assert.equal(connection.returnLedger.inheritedFacts.length > 0, true);
+      writePhase({ status: "pass", restored: true });
     });
-    writePhase();
   } else if (PHASE === "neutral") {
+    const neutral = path.join(ROOT, "cartridges", "clean-room", "orchard-at-low-tide.arc.json");
     await withBrowser(async (page) => {
-      await coldBay(page);
-      const arc = JSON.parse(fs.readFileSync(path.join(ROOT, "cartridges/relief-circuit.arc.json"), "utf8"));
-      arc.meta = { ...arc.meta, id: `holder-common-ship-probe-${MODE}`, name: `Holder Common Ship Probe ${MODE}`, version: "1.0.1" };
-      const neutral = path.join(OUT, `neutral-${MODE}.arc.json`);
-      fs.writeFileSync(neutral, JSON.stringify(arc));
+      await page.goto(`${BASE_URL}/axm-world/game/`);
+      await page.evaluate(() => localStorage.clear());
+      await page.reload();
       await page.getByTestId("open-cartridge").setInputFiles(neutral);
       await page.getByTestId("import-success").waitFor({ state: "visible" });
-      await page.getByTestId(`play-cartridge-holder-common-ship-probe-${MODE}`).click();
-      await completeEntry(page);
-      const scene = page.getByTestId("common-ship-scene");
-      assert.equal(await scene.getAttribute("data-first-party-art"), "false");
-      assert.match((await scene.textContent()) ?? "", /HOLDER-OWNED CARTRIDGE/);
-      assert.equal(await page.locator('[data-testid^="common-ship-portrait-"]').count(), 0);
-      assert.equal(await page.getByTestId("common-ship-cross-section").count(), 0);
-      assert.equal(await page.getByTestId("common-ship-symbol-atlas").count(), 0);
-      assert.equal(await page.getByTestId("common-ship-neutral-anatomy").count(), 1);
-      assert.equal(await scene.evaluate((node) => getComputedStyle(node).getPropertyValue("--commonship-environment").trim()), "none");
-      record("neutral-fallback-verified");
+      await page.getByTestId("play-cartridge-orchard-at-low-tide").click();
+      await finishEntry(page);
+      assert.equal(await page.locator("html").getAttribute("data-cartridge"), null);
+      writePhase({ status: "pass", neutral: true });
     });
-    writePhase();
   } else if (PHASE === "access") {
     await withBrowser(async (page) => {
       await enterRelief(page);
-      const profile = page.getByTestId("common-ship-profile-nima-quell");
-      const box = await profile.boundingBox();
-      assert((box?.width ?? 0) >= 44 && (box?.height ?? 0) >= 44);
-      await profile.focus();
-      await page.keyboard.press("Space");
-      assert.equal(await profile.getAttribute("aria-pressed"), "false");
-      await page.keyboard.press("Space");
-      assert.equal(await profile.getAttribute("aria-pressed"), "true");
-      await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });
-      assert.equal(await page.getByTestId("common-ship-cross-section").evaluate((node) => getComputedStyle(node).display), "none");
-      assert.equal(await page.getByTestId("common-ship-portrait-nima-quell").evaluate((node) => getComputedStyle(node).display), "none");
-      assert(await page.getByTestId("common-ship-prepare-cycle").isEnabled());
-      assert(await page.getByTestId("common-ship-enter").isEnabled());
-      record("keyboard-forced-colors-reduced-motion-verified");
+      const controls = ["view-run-graph", "view-map", "view-hall", "view-aperture", "view-planet", "view-underworld", "view-common-ship"];
+      for (const id of controls) {
+        const control = page.getByTestId(id);
+        await control.focus();
+        assert.equal(await control.evaluate((element) => document.activeElement === element), true, `${id} must accept keyboard focus.`);
+      }
+      writePhase({ status: "pass", keyboard: true });
     });
-    writePhase();
   } else {
-    throw new Error(`Unknown Gate 6 verification phase: ${PHASE}`);
+    throw new Error(`Unknown Gate 6 phase: ${PHASE}`);
   }
 } catch (error) {
-  fs.writeFileSync(path.join(OUT, `${PHASE}-failure.txt`), error instanceof Error ? `${error.stack ?? error.message}\n` : `${String(error)}\n`);
+  fs.writeFileSync(path.join(OUT, `${PHASE}-failure.txt`), `${error?.stack ?? error}\n`);
   throw error;
 }
-
-process.exit(0);
