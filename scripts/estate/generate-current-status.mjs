@@ -103,7 +103,13 @@ const capabilities = {
   secondRecension: has("src/godscar/second-recension.ts") && has("docs/SECOND_RECENSION_BOOKS_I-III_ALIGNMENT.md"),
   localEstateReplication: has("RODOH.cmd") && has("scripts/local-estate/Invoke-RodohEstate.ps1"),
   holderEstateCustody: has("src/world/holder-estate.ts") && has("docs/HOLDER_ESTATE_V1.md"),
-  boundedJsonImports: has("src/engine/bounded-json.ts") && has("docs/CART1_CANONICALIZATION.md"),
+  boundedJsonImports:
+    has("src/engine/bounded-json.ts") &&
+    has("tests/engine/bounded-json.test.ts") &&
+    has("tests/engine/bounded-json-fuzz.test.ts"),
+  cart1Canonicalization:
+    has("docs/conformance/cart1-v1-vectors.json") &&
+    has("tests/engine/cart1-conformance-vectors.test.ts"),
   supplyChainEvidence: has("scripts/supply-chain/generate-cyclonedx.mjs") && has(".github/workflows/supply-chain-evidence.yml"),
   browserSupportMatrix: has("docs/SUPPORT_MATRIX.md") && has("playwright.support.config.ts"),
   performanceBudgets: has("docs/performance/RODOH_PERFORMANCE_BUDGETS.json") && has("scripts/performance/audit-static-build.mjs"),
