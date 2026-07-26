@@ -1,0 +1,183 @@
+name: Prepare exact World 1.0.0 files
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/prepare-world-v1-files.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prepare-exact-world-v1-files
+  cancel-in-progress: true
+
+env:
+  ARC_RELEASE_SHA: 7b576898f7a82409669a97187bcd836296a77e24
+  ARC_PRODUCT_AUTHORITY: 4b07539a06d40b131591f1e9c7d5b90a96ceec31
+  CI: 'true'
+  SOURCE_DATE_EPOCH: '0'
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Derive the coordinated untagged package and custody files
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm version 1.0.0 --no-git-tag-version
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          arc_release = '7b576898f7a82409669a97187bcd836296a77e24'
+          arc_product = '4b07539a06d40b131591f1e9c7d5b90a96ceec31'
+
+          lock_path = Path('estate/estate.lock.json')
+          lock = json.loads(lock_path.read_text())
+          arc = lock['repositories']['arc']
+          world = lock['repositories']['world']
+          if arc.get('requiredAncestor') != arc_product or arc.get('productAuthorityCommit') != arc_product:
+              raise SystemExit('Arc product authority moved unexpectedly')
+          arc['requiredCommit'] = arc_release
+          arc['packageVersion'] = '1.0.0'
+          world['packageVersion'] = '1.0.0'
+          lock_path.write_text(json.dumps(lock, indent=2) + '\n')
+
+          workflow_path = Path('.github/workflows/local-estate-replication.yml')
+          workflow, count = re.subn(
+              r'(?m)^(\s*ARC_LOCAL_ESTATE_REF:)\s*[0-9a-f]{40}\s*$',
+              rf'\1 {arc_release}',
+              workflow_path.read_text(),
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit(f'expected one ARC_LOCAL_ESTATE_REF, found {count}')
+          workflow_path.write_text(workflow)
+
+          local_test_path = Path('tests/world/local-estate-contract.test.ts')
+          local_test = local_test_path.read_text()
+          local_test, count = re.subn(
+              r'requiredCommit:\s*"[0-9a-f]{40}"',
+              f'requiredCommit: "{arc_release}"',
+              local_test,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit(f'expected one local Arc requiredCommit assertion, found {count}')
+          local_test = local_test.replace(
+              'expect(json<{ version: string }>("package.json").version).toBe("0.0.1");',
+              'expect(json<{ version: string }>("package.json").version).toBe("1.0.0");',
+          )
+          if 'toBe("0.0.1")' in local_test:
+              raise SystemExit('stale World package assertion remains in local-estate contract')
+          local_test_path.write_text(local_test)
+
+          browser_test_path = Path('tests/world/browser-support-performance.test.ts')
+          browser_test = browser_test_path.read_text()
+          browser_test = browser_test.replace(
+              '      "World package version is 0.0.1, not 1.0.0.",\n      "Arc package version is 0.0.1, not 1.0.0.",\n',
+              '',
+          )
+          browser_test = browser_test.replace(
+              '      packageVersion: "0.0.1",\n      arcPackageVersion: "0.0.1",',
+              '      packageVersion: "1.0.0",\n      arcPackageVersion: "1.0.0",',
+          )
+          browser_test, count = re.subn(
+              r'releaseEvidenceCommit:\s*"[0-9a-f]{40}"',
+              f'releaseEvidenceCommit: "{arc_release}"',
+              browser_test,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit(f'expected one releaseEvidenceCommit assertion, found {count}')
+          if 'package version is 0.0.1' in browser_test or 'PackageVersion: "0.0.1"' in browser_test:
+              raise SystemExit('stale version blocker remains in status contract')
+          browser_test_path.write_text(browser_test)
+
+          doc_path = Path('docs/SUPPLY_CHAIN_CUSTODY.md')
+          doc, count = re.subn(
+              r'Arc release-evidence head `[0-9a-f]{40}`',
+              f'Arc release-evidence head `{arc_release}`',
+              doc_path.read_text(),
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit(f'expected one Arc release-evidence statement, found {count}')
+          doc_path.write_text(doc)
+          PY
+          node - <<'NODE'
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const packageLock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          const estate = JSON.parse(fs.readFileSync('estate/estate.lock.json', 'utf8'));
+          if (pkg.version !== '1.0.0') throw new Error('World package.json is not 1.0.0');
+          if (packageLock.version !== '1.0.0' || packageLock.packages?.['']?.version !== '1.0.0') throw new Error('World package-lock is not 1.0.0');
+          if (estate.repositories.world.packageVersion !== '1.0.0') throw new Error('World estate package version is not 1.0.0');
+          if (estate.repositories.arc.packageVersion !== '1.0.0') throw new Error('Arc estate package version is not 1.0.0');
+          if (estate.repositories.arc.requiredCommit !== process.env.ARC_RELEASE_SHA) throw new Error('Arc candidate head is not pinned');
+          if (estate.repositories.arc.productAuthorityCommit !== process.env.ARC_PRODUCT_AUTHORITY) throw new Error('Arc product authority moved');
+          NODE
+          git diff --check
+      - run: npm ci --no-audit --no-fund
+      - name: Qualify the derived coordinated release candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/assets/build-release-asset-inventory.mjs \
+            --root "$PWD" \
+            --rollups src/assets/rollups/rodoh-v1-programs.json \
+            --descriptions src/assets/descriptions/rodoh-v1-dense-assets.json \
+            --output docs/release/RODOH_ASSET_INVENTORY.json \
+            --check
+          npm run typecheck
+          npm test -- \
+            tests/world/local-estate-contract.test.ts \
+            tests/world/browser-support-performance.test.ts \
+            tests/world/supply-chain.test.ts \
+            tests/world/asset-release-custody.test.ts \
+            tests/world/holder-estate.test.ts
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          git diff --check
+      - name: Export the exact qualified files
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/world-v1-files"
+          mkdir -p \
+            "$root/.github/workflows" \
+            "$root/estate" \
+            "$root/tests/world" \
+            "$root/docs"
+          cp package.json package-lock.json "$root/"
+          cp estate/estate.lock.json "$root/estate/"
+          cp .github/workflows/local-estate-replication.yml "$root/.github/workflows/"
+          cp tests/world/local-estate-contract.test.ts "$root/tests/world/"
+          cp tests/world/browser-support-performance.test.ts "$root/tests/world/"
+          cp docs/SUPPLY_CHAIN_CUSTODY.md "$root/docs/"
+          find "$root" -type f -print0 | sort -z | xargs -0 sha256sum > "$root/QUALIFIED_SHA256SUMS"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qualified-world-v1-files
+          path: ${{ runner.temp }}/world-v1-files
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
