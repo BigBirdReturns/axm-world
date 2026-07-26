@@ -2,30 +2,15 @@ name: Supply-chain evidence
 
 on:
   pull_request:
-    paths:
-      - 'scripts/supply-chain/**'
-      - 'tests/world/supply-chain.test.ts'
-      - 'docs/SUPPLY_CHAIN_CUSTODY.md'
-      - 'estate/estate.lock.json'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/supply-chain-evidence.yml'
   push:
     branches: [main]
-    paths:
-      - 'scripts/supply-chain/**'
-      - 'tests/world/supply-chain.test.ts'
-      - 'docs/SUPPLY_CHAIN_CUSTODY.md'
-      - 'estate/estate.lock.json'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/supply-chain-evidence.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
   id-token: write
   attestations: write
+  artifact-metadata: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -38,7 +23,7 @@ env:
 jobs:
   evidence:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - name: Check out exact World candidate
         uses: actions/checkout@v4
@@ -47,6 +32,7 @@ jobs:
           path: axm-world
           fetch-depth: 0
           show-progress: false
+
       - name: Resolve exact Arc dependency
         id: arc
         working-directory: axm-world
@@ -56,6 +42,7 @@ jobs:
           ARC_SHA="$(node -p 'JSON.parse(require("fs").readFileSync("estate/estate.lock.json", "utf8")).repositories.arc.requiredCommit')"
           test "${#ARC_SHA}" -eq 40
           printf 'sha=%s\n' "$ARC_SHA" >> "$GITHUB_OUTPUT"
+
       - name: Check out exact Arc dependency
         uses: actions/checkout@v4
         with:
@@ -64,6 +51,7 @@ jobs:
           path: axm-arc
           fetch-depth: 0
           show-progress: false
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -71,20 +59,37 @@ jobs:
           cache-dependency-path: |
             axm-world/package-lock.json
             axm-arc/package-lock.json
+
       - name: Install exact dependencies
         run: |
           set -euo pipefail
           npm --prefix axm-world ci --no-audit --no-fund
           npm --prefix axm-arc ci --no-audit --no-fund
-      - name: Build exact static products
-        run: |
-          set -euo pipefail
-          npm --prefix axm-arc run build
-          npm --prefix axm-world run build
-      - name: Assemble deterministic evidence subjects
+
+      - name: Qualify exact source and products
         shell: bash
         run: |
           set -euo pipefail
+          test "$(git -C axm-world rev-parse HEAD)" = '${{ github.event.pull_request.head.sha || github.sha }}'
+          test "$(git -C axm-arc rev-parse HEAD)" = '${{ steps.arc.outputs.sha }}'
+          test -z "$(git -C axm-world status --porcelain)"
+          test -z "$(git -C axm-arc status --porcelain)"
+          git -C axm-world diff --check
+          git -C axm-arc diff --check
+          npm --prefix axm-world run typecheck
+          npm --prefix axm-arc run typecheck
+          npm --prefix axm-world test -- tests/world/supply-chain.test.ts
+          npm --prefix axm-world test
+          npm --prefix axm-arc test
+          npm --prefix axm-world run build
+          npm --prefix axm-arc run build
+
+      - name: Assemble and verify deterministic evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORLD_SHA='${{ github.event.pull_request.head.sha || github.sha }}'
+          ARC_SHA='${{ steps.arc.outputs.sha }}'
           mkdir -p evidence/artifacts evidence/sbom evidence/attestations
           tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -cf evidence/artifacts/axm-arc-game.tar -C axm-arc/docs game
           gzip -n evidence/artifacts/axm-arc-game.tar
@@ -93,12 +98,12 @@ jobs:
           node axm-world/scripts/supply-chain/generate-cyclonedx.mjs \
             --lock axm-arc/package-lock.json \
             --package axm-arc/package.json \
-            --commit '${{ steps.arc.outputs.sha }}' \
+            --commit "$ARC_SHA" \
             --output evidence/sbom/axm-arc.cdx.json
           node axm-world/scripts/supply-chain/generate-cyclonedx.mjs \
             --lock axm-world/package-lock.json \
             --package axm-world/package.json \
-            --commit '${{ github.event.pull_request.head.sha || github.sha }}' \
+            --commit "$WORLD_SHA" \
             --output evidence/sbom/axm-world.cdx.json
           WORLD_LOCK="$(sha256sum axm-world/package-lock.json | cut -d' ' -f1)"
           ARC_LOCK="$(sha256sum axm-arc/package-lock.json | cut -d' ' -f1)"
@@ -107,14 +112,14 @@ jobs:
             --subject evidence/artifacts/axm-arc-game.tar.gz \
             --output evidence/provenance.intoto.json \
             --repository "$GITHUB_REPOSITORY" \
-            --commit '${{ github.event.pull_request.head.sha || github.sha }}' \
-            --arc-commit '${{ steps.arc.outputs.sha }}' \
+            --commit "$WORLD_SHA" \
+            --arc-commit "$ARC_SHA" \
             --ref "$GITHUB_REF" \
             --workflow "$GITHUB_WORKFLOW_REF" \
             --invocation "$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
             --node "$(node --version)" \
             --npm "$(npm --version)" \
-            --dependency "git+https://github.com/BigBirdReturns/axm-arc@${{ steps.arc.outputs.sha }}=${{ steps.arc.outputs.sha }}" \
+            --dependency "git+https://github.com/BigBirdReturns/axm-arc@$ARC_SHA=$ARC_SHA" \
             --dependency "axm-world-package-lock=$WORLD_LOCK" \
             --dependency "axm-arc-package-lock=$ARC_LOCK"
           (
@@ -124,18 +129,26 @@ jobs:
               printf '%s\0' provenance.intoto.json
             } | sort -z | xargs -0 sha256sum > SHA256SUMS
           )
-          node axm-world/scripts/supply-chain/verify-offline-evidence.mjs --root evidence
-      - name: Focused supply-chain contracts
-        working-directory: axm-world
-        run: |
-          set -euo pipefail
-          npm test -- tests/world/supply-chain.test.ts
+          node axm-world/scripts/supply-chain/verify-offline-evidence.mjs \
+            --root evidence \
+            --require-subject artifacts/axm-arc-game.tar.gz \
+            --require-subject artifacts/rodoh-world-game.tar.gz \
+            --exact-subjects \
+            --require-sbom sbom/axm-arc.cdx.json \
+            --require-sbom sbom/axm-world.cdx.json \
+            --exact-sboms \
+            --expected-repository "$GITHUB_REPOSITORY" \
+            --world-commit "$WORLD_SHA" \
+            --arc-commit "$ARC_SHA" \
+            --expected-workflow "$GITHUB_WORKFLOW_REF"
+
       - name: Attest Rodoh build provenance
         if: github.event_name != 'pull_request'
         id: world-provenance
         uses: actions/attest@v4
         with:
           subject-path: evidence/artifacts/rodoh-world-game.tar.gz
+
       - name: Attest Rodoh SBOM
         if: github.event_name != 'pull_request'
         id: world-sbom
@@ -143,21 +156,81 @@ jobs:
         with:
           subject-path: evidence/artifacts/rodoh-world-game.tar.gz
           sbom-path: evidence/sbom/axm-world.cdx.json
-      - name: Preserve offline attestation material
+
+      - name: Preserve and verify signed evidence
         if: github.event_name != 'pull_request'
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          WORLD_SHA='${{ github.sha }}'
+          ARC_SHA='${{ steps.arc.outputs.sha }}'
           cp '${{ steps.world-provenance.outputs.bundle-path }}' evidence/attestations/rodoh-world-build-provenance.jsonl
           cp '${{ steps.world-sbom.outputs.bundle-path }}' evidence/attestations/rodoh-world-sbom.jsonl
           gh attestation trusted-root > evidence/attestations/trusted_root.jsonl
+          (
+            cd evidence
+            {
+              find artifacts sbom attestations -type f -print0
+              printf '%s\0' provenance.intoto.json
+            } | sort -z | xargs -0 sha256sum > SHA256SUMS
+          )
+          common=(
+            --root evidence
+            --require-subject artifacts/axm-arc-game.tar.gz
+            --require-subject artifacts/rodoh-world-game.tar.gz
+            --exact-subjects
+            --require-sbom sbom/axm-arc.cdx.json
+            --require-sbom sbom/axm-world.cdx.json
+            --exact-sboms
+            --expected-repository "$GITHUB_REPOSITORY"
+            --world-commit "$WORLD_SHA"
+            --arc-commit "$ARC_SHA"
+            --expected-workflow "$GITHUB_WORKFLOW_REF"
+            --trusted-root attestations/trusted_root.jsonl
+            --repo "$GITHUB_REPOSITORY"
+            --attested-subject artifacts/rodoh-world-game.tar.gz
+            --signer-workflow BigBirdReturns/axm-world/.github/workflows/supply-chain-evidence.yml
+            --source-digest "$WORLD_SHA"
+            --source-ref "$GITHUB_REF"
+            --require-signature
+          )
+          node axm-world/scripts/supply-chain/verify-offline-evidence.mjs \
+            "${common[@]}" \
+            --bundle attestations/rodoh-world-build-provenance.jsonl \
+            --predicate-type https://slsa.dev/provenance/v1
+          node axm-world/scripts/supply-chain/verify-offline-evidence.mjs \
+            "${common[@]}" \
+            --bundle attestations/rodoh-world-sbom.jsonl \
+            --predicate-type https://cyclonedx.org/bom
+          gh attestation verify evidence/artifacts/axm-arc-game.tar.gz \
+            --repo BigBirdReturns/axm-arc \
+            --predicate-type https://slsa.dev/provenance/v1 \
+            --signer-workflow BigBirdReturns/axm-arc/.github/workflows/supply-chain-evidence.yml \
+            --source-digest "$ARC_SHA" \
+            --source-ref refs/heads/main \
+            --format json > evidence/attestations/axm-arc-online-verification.json
+          (
+            cd evidence
+            {
+              find artifacts sbom attestations -type f -print0
+              printf '%s\0' provenance.intoto.json
+            } | sort -z | xargs -0 sha256sum > SHA256SUMS
+          )
           node axm-world/scripts/supply-chain/verify-offline-evidence.mjs \
             --root evidence \
-            --bundle evidence/attestations/rodoh-world-build-provenance.jsonl \
-            --trusted-root evidence/attestations/trusted_root.jsonl \
-            --repo "$GITHUB_REPOSITORY" \
-            --attested-subject artifacts/rodoh-world-game.tar.gz \
-            --require-signature
+            --require-subject artifacts/axm-arc-game.tar.gz \
+            --require-subject artifacts/rodoh-world-game.tar.gz \
+            --exact-subjects \
+            --require-sbom sbom/axm-arc.cdx.json \
+            --require-sbom sbom/axm-world.cdx.json \
+            --exact-sboms \
+            --expected-repository "$GITHUB_REPOSITORY" \
+            --world-commit "$WORLD_SHA" \
+            --arc-commit "$ARC_SHA" \
+            --expected-workflow "$GITHUB_WORKFLOW_REF"
+
       - name: Upload supply-chain evidence
         if: always()
         uses: actions/upload-artifact@v4
