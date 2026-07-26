@@ -48,7 +48,7 @@ const NON_NETWORK_NAMESPACE_PREFIXES = [
   "http://www.w3.org/2000/svg",
   "http://www.w3.org/XML/1998/namespace",
 ];
-const URL_LITERAL = "((?:https?:)?//[^\\s\\\"'`<>\\)\\]}]+)";
+const URL_LITERAL = "((?:(?:https?|wss?):)?//[^\\s\\\"'`<>\\)\\]}]+)";
 const JAVASCRIPT_NETWORK_PATTERNS = [
   new RegExp(`\\bfetch\\s*\\(\\s*[\\\"'\`]${URL_LITERAL}`, "gi"),
   new RegExp(`\\bimport\\s*\\(\\s*[\\\"'\`]${URL_LITERAL}`, "gi"),
