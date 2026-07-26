@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axm.tools/schemas/rodoh-program-asset-rollup-set-1.json",
+  "title": "RODOH program asset rollup set",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "releaseTarget", "provenanceCompatibility", "programs"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "format": { "const": "rodoh-program-asset-rollup-set/1" },
+    "releaseTarget": { "type": "string", "minLength": 1 },
+    "provenanceCompatibility": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "programs": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "cartridgeId",
+          "cartridgeDigest",
+          "status",
+          "historicalManifests",
+          "assetRoots",
+          "presentationRoots",
+          "requiredRoles",
+          "denseDescriptions",
+          "acceptance",
+          "releaseBoundary"
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]+$" },
+          "name": { "type": "string", "minLength": 1 },
+          "cartridgeId": { "type": ["string", "null"] },
+          "cartridgeDigest": {
+            "anyOf": [
+              { "type": "null" },
+              { "type": "string", "pattern": "^cart1_[0-9a-f]{64}$" }
+            ]
+          },
+          "status": { "const": "production-dignity-complete" },
+          "historicalManifests": { "$ref": "#/$defs/paths" },
+          "assetRoots": { "$ref": "#/$defs/paths" },
+          "presentationRoots": { "$ref": "#/$defs/paths" },
+          "requiredRoles": { "type": "array", "minItems": 4, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+          "denseDescriptions": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+          "acceptance": { "$ref": "#/$defs/paths" },
+          "releaseBoundary": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "paths": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}
