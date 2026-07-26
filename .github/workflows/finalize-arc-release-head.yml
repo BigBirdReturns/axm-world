@@ -65,10 +65,10 @@ jobs:
 
           test = Path('tests/world/local-estate-contract.test.ts')
           text = test.read_text()
-          old = f'expect(lock.repositories.arc.requiredCommit).toBe("{product}");'
-          new = f'expect(lock.repositories.arc.requiredCommit).toBe("{release}");\n    expect(lock.repositories.arc.productAuthorityCommit).toBe("{product}");'
+          old = f'requiredCommit: "{product}",'
+          new = f'requiredCommit: "{release}",'
           if text.count(old) != 1:
-              raise SystemExit(f'Expected one local-estate Arc commit assertion, found {text.count(old)}')
+              raise SystemExit(f'Expected one structured local-estate Arc commit assertion, found {text.count(old)}')
           test.write_text(text.replace(old, new))
 
           doc = Path('docs/SUPPLY_CHAIN_CUSTODY.md')
