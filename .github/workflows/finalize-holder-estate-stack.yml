@@ -1,8 +1,7 @@
 name: Finalize carrier-free holder-estate stack
 
 on:
-  push:
-    branches: [release/holder-estate-v1]
+  pull_request:
     paths:
       - '.github/workflows/finalize-holder-estate-stack.yml'
       - 'src/world/i18n/.holder-qualification-trigger'
@@ -12,7 +11,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: finalize-carrier-free-holder-estate-stack
+  group: finalize-carrier-free-holder-estate-stack-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -28,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           show-progress: false
       - uses: actions/setup-node@v4
@@ -38,6 +37,8 @@ jobs:
       - name: Construct and check out the deterministic carrier-free commit
         run: |
           set -euo pipefail
+          source_head='${{ github.event.pull_request.head.sha || github.sha }}'
+          test "$(git rev-parse HEAD)" = "$source_head"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git rm .github/workflows/finalize-holder-estate-stack.yml src/world/i18n/.holder-qualification-trigger
@@ -49,7 +50,7 @@ jobs:
             GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
             GIT_AUTHOR_DATE="$FINAL_AUTHOR_DATE" \
             GIT_COMMITTER_DATE="$FINAL_AUTHOR_DATE" \
-            git commit-tree "$tree" -p "${{ github.sha }}")"
+            git commit-tree "$tree" -p "$source_head")"
           git reset --hard "$commit"
           printf '%s\n' "$commit" | tee carrier-free-holder-commit.txt
           test -z "$(git status --porcelain)"
@@ -74,6 +75,7 @@ jobs:
           npx playwright test
           test -z "$(git status --porcelain)"
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: holder-estate-linux-exact-head
           path: |
@@ -89,7 +91,7 @@ jobs:
       - name: Check out exact World carrier
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           path: axm-world
           fetch-depth: 0
           show-progress: false
@@ -113,6 +115,8 @@ jobs:
         working-directory: axm-world
         run: |
           set -euo pipefail
+          source_head='${{ github.event.pull_request.head.sha || github.sha }}'
+          test "$(git rev-parse HEAD)" = "$source_head"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git rm .github/workflows/finalize-holder-estate-stack.yml src/world/i18n/.holder-qualification-trigger
@@ -124,7 +128,7 @@ jobs:
             GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
             GIT_AUTHOR_DATE="$FINAL_AUTHOR_DATE" \
             GIT_COMMITTER_DATE="$FINAL_AUTHOR_DATE" \
-            git commit-tree "$tree" -p "${{ github.sha }}")"
+            git commit-tree "$tree" -p "$source_head")"
           git reset --hard "$commit"
           printf '%s\n' "$commit" | tee ../carrier-free-holder-commit-windows.txt
           test -z "$(git status --porcelain)"
@@ -179,12 +183,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           show-progress: false
       - name: Publish the exact deterministic carrier-free commit
         run: |
           set -euo pipefail
+          source_head='${{ github.event.pull_request.head.sha || github.sha }}'
+          test "$(git rev-parse HEAD)" = "$source_head"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git rm .github/workflows/finalize-holder-estate-stack.yml src/world/i18n/.holder-qualification-trigger
@@ -196,6 +202,6 @@ jobs:
             GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
             GIT_AUTHOR_DATE="$FINAL_AUTHOR_DATE" \
             GIT_COMMITTER_DATE="$FINAL_AUTHOR_DATE" \
-            git commit-tree "$tree" -p "${{ github.sha }}")"
+            git commit-tree "$tree" -p "$source_head")"
           git push origin "$commit":release/holder-estate-v1
           printf '%s\n' "$commit"
