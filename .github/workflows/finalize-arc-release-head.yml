@@ -1,0 +1,106 @@
+name: Finalize qualified Arc release head
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/finalize-arc-release-head.yml'
+  push:
+    branches: [release/supply-chain-attestation]
+    paths:
+      - '.github/workflows/finalize-arc-release-head.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finalize-qualified-arc-release-head-${{ github.event_name }}
+  cancel-in-progress: true
+
+env:
+  ARC_PRODUCT_AUTHORITY: 4b07539a06d40b131591f1e9c7d5b90a96ceec31
+  ARC_RELEASE_HEAD: 547c74f4622f63b203d6601173eec6d569c780f3
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Separate product authority from the coordinated Arc release head
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          product = '4b07539a06d40b131591f1e9c7d5b90a96ceec31'
+          release = '547c74f4622f63b203d6601173eec6d569c780f3'
+
+          lock_path = Path('estate/estate.lock.json')
+          lock = json.loads(lock_path.read_text())
+          arc = lock['repositories']['arc']
+          if arc['requiredAncestor'] != product or arc['productAuthorityCommit'] != product:
+              raise SystemExit('Arc product-authority fields no longer match the accepted source/execution head')
+          if arc['requiredCommit'] != product:
+              raise SystemExit(f'Unexpected pre-update Arc requiredCommit: {arc["requiredCommit"]}')
+          arc['requiredCommit'] = release
+          lock_path.write_text(json.dumps(lock, indent=2) + '\n')
+
+          workflow = Path('.github/workflows/local-estate-replication.yml')
+          text = workflow.read_text()
+          old = f'ARC_LOCAL_ESTATE_REF: {product}'
+          new = f'ARC_LOCAL_ESTATE_REF: {release}'
+          if text.count(old) != 1:
+              raise SystemExit(f'Expected one local-estate Arc ref, found {text.count(old)}')
+          workflow.write_text(text.replace(old, new))
+
+          test = Path('tests/world/local-estate-contract.test.ts')
+          text = test.read_text()
+          old = f'expect(lock.repositories.arc.requiredCommit).toBe("{product}");'
+          new = f'expect(lock.repositories.arc.requiredCommit).toBe("{release}");\n    expect(lock.repositories.arc.productAuthorityCommit).toBe("{product}");'
+          if text.count(old) != 1:
+              raise SystemExit(f'Expected one local-estate Arc commit assertion, found {text.count(old)}')
+          test.write_text(text.replace(old, new))
+
+          doc = Path('docs/SUPPLY_CHAIN_CUSTODY.md')
+          text = doc.read_text()
+          anchor = 'World may assemble, checksum, and name the Arc product selected by the exact estate lock. That does not make a World repository attestation evidence of an Arc repository build.'
+          replacement = anchor + f' The coordinated estate checks out Arc release head `{release}`; the byte-identical source and execution plane remains governed by product-authority commit `{product}`.'
+          if text.count(anchor) != 1:
+              raise SystemExit(f'Expected one supply-chain authority anchor, found {text.count(anchor)}')
+          doc.write_text(text.replace(anchor, replacement))
+          PY
+          git diff --check
+      - run: npm ci --no-audit --no-fund
+      - name: Qualify the coordinated lock and release evidence
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm test -- tests/world/local-estate-contract.test.ts tests/world/supply-chain.test.ts
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          git diff --check
+      - name: Publish the workflow-neutral Arc release pin
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add estate/estate.lock.json .github/workflows/local-estate-replication.yml tests/world/local-estate-contract.test.ts docs/SUPPLY_CHAIN_CUSTODY.md
+          git rm .github/workflows/finalize-arc-release-head.yml
+          git diff --cached --check
+          git commit -m 'Pin the coordinated estate to the qualified Arc release head'
+          git push origin HEAD:release/supply-chain-attestation
