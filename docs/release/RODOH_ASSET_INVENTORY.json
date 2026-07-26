@@ -1,0 +1,1712 @@
+{
+  "format": "rodoh-release-asset-inventory/1",
+  "releaseTarget": "RODOH v1.0.0",
+  "generatedFrom": {
+    "rollups": "src/assets/rollups/rodoh-v1-programs.json",
+    "longDescriptions": "src/assets/descriptions/rodoh-v1-dense-assets.json"
+  },
+  "provenanceCompatibility": [
+    "axm-identity-custody/1",
+    "axm-runtime-asset-provenance/1",
+    "axm-world-root-mark-provenance/1",
+    "rodoh-original-asset-provenance/1"
+  ],
+  "summary": {
+    "programs": 6,
+    "assets": 84,
+    "bytes": 382067,
+    "svgAssets": 23,
+    "vectorElements": 1531,
+    "longDescriptions": 4,
+    "failures": 0
+  },
+  "programs": [
+    {
+      "id": "rodoh-shell",
+      "name": "Rodoh player shell",
+      "cartridgeId": null,
+      "cartridgeDigest": null,
+      "status": "production-dignity-complete",
+      "historicalManifests": [
+        {
+          "path": "src/world/brand/rodoh-root-mark.provenance.json",
+          "format": "axm-identity-custody/1"
+        },
+        {
+          "path": "src/assets/rodoh/bay/provenance.json",
+          "format": "axm-runtime-asset-provenance/1"
+        }
+      ],
+      "assetCount": 28,
+      "denseDescriptions": [],
+      "requiredRoles": [
+        "local cartridge custody",
+        "runtime identity",
+        "trust and save status",
+        "neutral imported entry"
+      ],
+      "acceptance": [
+        "tests/world/production-asset-wave-one.test.ts",
+        "e2e/production-asset-wave-one.spec.ts"
+      ],
+      "releaseBoundary": "The shell may frame and classify holder-owned cartridges but never lends a first-party identity to an imported cartridge."
+    },
+    {
+      "id": "program-001-first-charter",
+      "name": "Program 001: The First Charter",
+      "cartridgeId": "first-charter",
+      "cartridgeDigest": "cart1_d8888842c6a7a7ba758a8eea567c71fcc8f998ff8af75208ed44ef4eee74edeb",
+      "status": "production-dignity-complete",
+      "historicalManifests": [
+        {
+          "path": "docs/design/FIRST_CHARTER_ASSET_BIBLE.md",
+          "format": "human-authority"
+        },
+        {
+          "path": "src/assets/first-charter/hall/provenance.json",
+          "format": "axm-runtime-asset-provenance/1"
+        }
+      ],
+      "assetCount": 10,
+      "denseDescriptions": [],
+      "requiredRoles": [
+        "Maren Vos and founding cast appearances",
+        "campaign-beat and faction motifs",
+        "founding hall environment",
+        "material and state treatment"
+      ],
+      "acceptance": [
+        "tests/world/asset-standard.test.ts",
+        "tests/world/first-charter-hall-assets.test.ts",
+        "tests/world/production-asset-wave-one.test.ts",
+        "e2e/first-charter-hall-assets.spec.ts"
+      ],
+      "releaseBoundary": "Program-owned visuals render Arc-authored identity and state; they do not create rules or consequences."
+    },
+    {
+      "id": "program-002-waking-tower",
+      "name": "Program 002: The Waking Tower",
+      "cartridgeId": "karazhan",
+      "cartridgeDigest": "cart1_776adac1b9372d0331ddd774af8b94c80b46bd6bbc4763334cf01def46111144",
+      "status": "production-dignity-complete",
+      "historicalManifests": [
+        {
+          "path": "docs/design/KARAZHAN_ASSET_BIBLE.md",
+          "format": "human-authority"
+        },
+        {
+          "path": "src/assets/karazhan/hall/provenance.json",
+          "format": "axm-runtime-asset-provenance/1"
+        }
+      ],
+      "assetCount": 11,
+      "denseDescriptions": [],
+      "requiredRoles": [
+        "Seren Vale and tower cast appearances",
+        "violet survey hall environment",
+        "tower campaign and evidence motifs",
+        "material and procedural planet treatment"
+      ],
+      "acceptance": [
+        "tests/world/asset-standard.test.ts",
+        "tests/world/production-asset-wave-one.test.ts",
+        "tests/world/cartridge-parity.test.ts",
+        "e2e/production-asset-wave-one.spec.ts"
+      ],
+      "releaseBoundary": "The internal compatibility id remains karazhan; all player-facing fiction and production identity remain original Waking Tower work."
+    },
+    {
+      "id": "program-003-kind-gods-of-ilyon",
+      "name": "Program 003: The Kind Gods of Ilyon",
+      "cartridgeId": "kind-gods-of-ilyon",
+      "cartridgeDigest": "cart1_17054e128dc6fd517fc47f163d92da58d72f9302a84d9d3b04589083afc10f0e",
+      "status": "production-dignity-complete",
+      "historicalManifests": [
+        {
+          "path": "docs/design/ILYON_ASSET_BIBLE.md",
+          "format": "human-authority"
+        },
+        {
+          "path": "src/assets/ilyon/observatory/provenance.json",
+          "format": "axm-runtime-asset-provenance/1"
+        }
+      ],
+      "assetCount": 10,
+      "denseDescriptions": [
+        "ilyon-symbol-system"
+      ],
+      "requiredRoles": [
+        "Aster Neral and five Godscar cast appearances",
+        "observatory hall environment",
+        "six campaign beats and evidence/faction/consequence motifs",
+        "Aperture and procedural globe identity"
+      ],
+      "acceptance": [
+        "tests/world/ilyon-art-assets.test.ts",
+        "tests/world/production-asset-wave-one.test.ts",
+        "tests/world/godscar-cartridge.test.ts",
+        "e2e/production-asset-wave-one.spec.ts"
+      ],
+      "releaseBoundary": "The motif set exposes Pocket, faction, evidence, and consequence relations already carried by Arc; World does not infer missing canon."
+    },
+    {
+      "id": "program-004-lamp-district",
+      "name": "Program 004: The Lamp District",
+      "cartridgeId": "lamp-district",
+      "cartridgeDigest": "cart1_05530ae780a30f2f79fb0ddf030ba0e92321d736f146e8e16ddb325ae948b23e",
+      "status": "production-dignity-complete",
+      "historicalManifests": [
+        {
+          "path": "docs/design/LAMP_DISTRICT_ASSET_BIBLE.md",
+          "format": "human-authority"
+        },
+        {
+          "path": "src/assets/lamp-district/underworld/provenance.json",
+          "format": "rodoh-original-asset-provenance/1"
+        }
+      ],
+      "assetCount": 10,
+      "denseDescriptions": [
+        "lamp-district-seven-layer-cross-section"
+      ],
+      "requiredRoles": [
+        "Anja Vei and descent cast appearances",
+        "seven-layer civic cross-section",
+        "civic hub and descent/return identity",
+        "alarm, signature, visibility, and inherited-consequence motifs"
+      ],
+      "acceptance": [
+        "tests/world/lamp-district-assets.test.ts",
+        "tests/world/underworld-receiver.test.ts",
+        "tests/world/lamp-district-cartridge.test.ts",
+        "e2e/lamp-district-gate4.spec.ts"
+      ],
+      "releaseBoundary": "The cross-section is a navigational and relational supplement; Underworld HTML and engine state remain the semantic authority."
+    },
+    {
+      "id": "program-005-relief-circuit",
+      "name": "Program 005: The Relief Circuit",
+      "cartridgeId": "relief-circuit",
+      "cartridgeDigest": "cart1_15a9f3792ff8a68948053a06cefcbf586e9960158ca051a187e1ab341b7a2e65",
+      "status": "production-dignity-complete",
+      "historicalManifests": [
+        {
+          "path": "docs/design/RELIEF_CIRCUIT_ASSET_BIBLE.md",
+          "format": "human-authority"
+        },
+        {
+          "path": "src/assets/relief-circuit/vessel/provenance.json",
+          "format": "axm-runtime-asset-provenance/1"
+        }
+      ],
+      "assetCount": 15,
+      "denseDescriptions": [
+        "relief-circuit-vessel-cross-section",
+        "relief-circuit-operational-symbol-atlas"
+      ],
+      "requiredRoles": [
+        "six founding-cast portraits and bodies",
+        "Common Ship vessel environment",
+        "labeled seven-system cross-section",
+        "twenty-one-symbol watch/system/state atlas"
+      ],
+      "acceptance": [
+        "tests/world/relief-circuit-production-assets.test.ts",
+        "tests/world/common-ship-receiver-prep.test.ts",
+        "tests/world/common-ship-preparation-cycle.test.ts",
+        "scripts/verify-relief-circuit-gate6.mjs"
+      ],
+      "releaseBoundary": "The vessel art explains Arc-owned composition and state. It is never the only carrier of a watch test, handoff, or connected-operation fact."
+    }
+  ],
+  "longDescriptions": [
+    {
+      "id": "lamp-district-seven-layer-cross-section",
+      "asset": "src/assets/lamp-district/underworld/lamp-district-cross-section.svg",
+      "title": "The Lamp District seven-layer civic cross-section",
+      "summary": "A vertical civic map of an inhabited district surviving through maintained misclassification. The layers are a political and operational order rather than a measure of literal depth alone.",
+      "entities": [
+        "surface fiction and observer layer",
+        "ordinary neighborhood life",
+        "maintenance and heat-sink systems",
+        "controlled descent routes",
+        "Long Alarm and emergency authority",
+        "breach interfaces and exposed constituencies",
+        "deep civic memory and inherited consequence"
+      ],
+      "relations": [
+        "The surface fiction protects the inhabitants while shifting risk onto people required to perform it.",
+        "Ordinary life depends on quiet maintenance, heat removal, drainage, transport, care, markets, and schools.",
+        "Authorized descent crosses jurisdictions and signature budgets rather than merely moving downward.",
+        "The Long Alarm changes what may be visible, who may decide, and which internal costs become compulsory.",
+        "A breach changes the public map and the next run; the district does not reset to hidden normality."
+      ],
+      "directions": [
+        "Read from exterior classification toward deeper civic custody.",
+        "Cross-links show that wake can move upward through heat, traffic, testimony, missing people, and institutional records.",
+        "Return paths carry evidence and changed constituencies back toward ordinary public life."
+      ],
+      "runtimeEquivalents": [
+        "Long Alarm, signature, visibility, and consequence values are available as text and exact engine state.",
+        "Layer names, objectives, authority, routes, wake sources, and inheritance are rendered in the Underworld representation.",
+        "The image is never the sole route into an expedition or the sole evidence of a changed district."
+      ]
+    },
+    {
+      "id": "relief-circuit-vessel-cross-section",
+      "asset": "src/assets/relief-circuit/vessel/relief-circuit-cross-section.svg",
+      "title": "The Relief Circuit multispecies vessel cross-section",
+      "summary": "A systems map of one moving polity whose inhabitants require incompatible media, gravity, scale, passage, sensorium, interfaces, and clocks.",
+      "entities": [
+        "transit body",
+        "habitat bands",
+        "common thresholds",
+        "translation mesh",
+        "watch lattice",
+        "continuity commons",
+        "sovereign core",
+        "scarway to the Lamp District"
+      ],
+      "relations": [
+        "The transit body carries the ship but cannot be treated as a continuous human-normal hallway.",
+        "Habitat bands preserve incompatible environmental media and gravity regimes.",
+        "Common thresholds are negotiated interfaces where passage, contamination, pressure, translation, and authority become visible.",
+        "The translation mesh connects direct and mediated interfaces without making mediation equivalent to consent.",
+        "The watch lattice binds embodied people to operational roles through Arc-owned feasibility rather than body-based destiny.",
+        "The continuity commons preserves succession, fork, memory, and life-fraction obligations across handoffs.",
+        "The sovereign core records precedent and emergency authority without absorbing the ship's constituent peoples.",
+        "The scarway carries the connected Lamp District operation and its returning consequences."
+      ],
+      "directions": [
+        "Read from the vessel's physical carrying body through habitat and interface systems toward constitutional continuity.",
+        "Operational flow crosses the section through watch composition, common-system allocation, pressure resolution, handoff, and return.",
+        "No arrow implies that one body, clock, or interface is the ship's natural baseline."
+      ],
+      "runtimeEquivalents": [
+        "Every named system appears as localized text in the Common Ship representation.",
+        "Embodiment profiles and role profiles are separately inspectable.",
+        "All eight ship-state tracks, six Common Watch tests, dependencies, single points, and precedents are available without reading the SVG."
+      ]
+    },
+    {
+      "id": "relief-circuit-operational-symbol-atlas",
+      "asset": "src/assets/relief-circuit/vessel/relief-circuit-symbol-atlas.svg",
+      "title": "The Relief Circuit operational symbol atlas",
+      "summary": "A source atlas containing six Common Watch tests, seven ship systems, and eight ship-state tracks. Symbols summarize records already carried by text and engine receipts.",
+      "entities": [
+        "role coverage",
+        "temporal overlap",
+        "habitat compatibility",
+        "translation resilience",
+        "handoff continuity",
+        "life-fraction fairness",
+        "transit body",
+        "habitat bands",
+        "common thresholds",
+        "translation mesh",
+        "watch lattice",
+        "continuity commons",
+        "sovereign core",
+        "habitat integrity",
+        "temporal coherence",
+        "translation trust",
+        "roster resilience",
+        "stores and care",
+        "continuity",
+        "visibility",
+        "compatibility debt"
+      ],
+      "relations": [
+        "Watch-test symbols report Arc-owned feasibility and refusal categories.",
+        "System symbols identify where allocations and dependencies reside.",
+        "State symbols identify engine-owned values that change through operations.",
+        "A shared visual shape never converts a system, test, and state into the same semantic object."
+      ],
+      "directions": [
+        "The atlas is grouped by test, system, and state rather than ordered as one process.",
+        "Runtime use must pair every symbol with its authored or localized label and current value."
+      ],
+      "runtimeEquivalents": [
+        "The Common Ship scene exposes all twenty-one labels and their live records as HTML text.",
+        "Forced-colors mode may suppress decorative atlas presentation without removing operational meaning.",
+        "Imported Common Ships use the neutral symbol set when no cartridge-owned atlas exists."
+      ]
+    },
+    {
+      "id": "ilyon-symbol-system",
+      "asset": "src/world/themes/ilyon/motif-icons.tsx",
+      "title": "Ilyon campaign, faction, evidence, and consequence symbol system",
+      "summary": "A cartridge-owned motif system that distinguishes campaign pressure, faction position, evidence provenance, and inherited consequence in the Confluence Observatory's civic language.",
+      "entities": [
+        "six campaign pressures",
+        "faction positions",
+        "evidence records",
+        "persistent consequences",
+        "Pocket emblem"
+      ],
+      "relations": [
+        "Campaign-pressure marks orient the causal sequence and do not replace the authored pressure names.",
+        "Faction marks identify actors and receipts without assigning one visual style the status of neutral truth.",
+        "Evidence marks supplement the evidence ledger's venue, legitimacy target, upside, downside, failure mode, intervention, and limits.",
+        "Consequence marks point toward inherited run state rather than announcing a clean ending."
+      ],
+      "directions": [
+        "Read campaign marks in authored beat order.",
+        "Read evidence, faction, and consequence marks through their associated ledger text rather than as a universal pictographic language."
+      ],
+      "runtimeEquivalents": [
+        "Aperture renders the complete Pocket, evidence ledger, faction receipts, and persistent consequences as text.",
+        "Neutral imported cartridges receive no Ilyon motif merely because their data resembles one of its concepts.",
+        "Missing motifs never prevent campaign play, run export, or source inspection."
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "path": "src/assets/first-charter/hall/charter-hall-environment.svg",
+      "owners": [
+        "program-001-first-charter"
+      ],
+      "kind": "svg",
+      "bytes": 5729,
+      "sha256": "0b7c06637ebdfaa3db53289463b12b779651a62fa2e5aff3355e4c310722eeff",
+      "viewBox": "0 0 1600 900",
+      "title": "The First Charter founding hall",
+      "description": "A warm civic hall of timber, brass, teal wax seals, ledgers, and a moonlit charter window.",
+      "vectorElements": 76,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/first-charter/hall/charter-hall-foreground.svg",
+      "owners": [
+        "program-001-first-charter"
+      ],
+      "kind": "svg",
+      "bytes": 1869,
+      "sha256": "0b87a0bd5c9da96376ecfd44af4f2d7a0ad66d6e88c2aa77179b919d75c33eb5",
+      "viewBox": "0 0 1600 900",
+      "title": "First Charter Founding Hall foreground frame",
+      "description": "Layered dark timber beams, teal charter cloth, a pale founding emblem, and a low shadowed threshold frame the inhabited Founding Hall without carrying gameplay state or interaction.",
+      "vectorElements": 21,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/first-charter/hall/maren-vos-portrait.svg",
+      "owners": [
+        "program-001-first-charter"
+      ],
+      "kind": "svg",
+      "bytes": 4503,
+      "sha256": "342654eb26c45722a2dec2321ecc5dfa3234829f6af2913d0937069e0e13f817",
+      "viewBox": "0 0 640 800",
+      "title": "Maren Vos, Charter-Keeper",
+      "description": "An original painted-vector portrait of an older charter keeper holding the founding ledger.",
+      "vectorElements": 49,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/first-charter/hall/provenance.json",
+      "owners": [
+        "program-001-first-charter"
+      ],
+      "kind": "json",
+      "bytes": 1971,
+      "sha256": "a42738058d76e8ac35b290bfe760e2701a11b7191f135a760456ecb7aa9a59b4",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/ilyon/observatory/aster-neral-portrait.svg",
+      "owners": [
+        "program-003-kind-gods-of-ilyon"
+      ],
+      "kind": "svg",
+      "bytes": 3935,
+      "sha256": "e4394432fe5f4bc5a15beae913dae1bc51994e140af278e918768037db86b7f1",
+      "viewBox": "0 0 640 800",
+      "title": "Aster Neral, astronomer of Ilyon",
+      "description": "An Ilyon astronomer in deep teal and nacre robes, holding a brass lens before an ocean observatory and the dead neighboring star.",
+      "vectorElements": 53,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/ilyon/observatory/ilyon-observatory-environment.svg",
+      "owners": [
+        "program-003-kind-gods-of-ilyon"
+      ],
+      "kind": "svg",
+      "bytes": 5548,
+      "sha256": "356cdaafc3ca38a25cddf38db447d0154c56c49664c0117d25aa9d797e9305d7",
+      "viewBox": "0 0 1600 900",
+      "title": "The Ilyon Confluence Observatory",
+      "description": "An oceanic civic observatory of nacre, brass, coral, tideglass, and open water, built for astronomy and public refusal.",
+      "vectorElements": 76,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/ilyon/observatory/ilyon-observatory-foreground.svg",
+      "owners": [
+        "program-003-kind-gods-of-ilyon"
+      ],
+      "kind": "svg",
+      "bytes": 2318,
+      "sha256": "70bdd416c86e3e9894abbed9a67cd9d57e416cf1dd4fc9e20e817d47ba1bfab7",
+      "viewBox": "0 0 1600 900",
+      "title": "The Ilyon observatory framing",
+      "description": "Nacre arches, tideglass railings, brass instruments, and coral growth frame the public observatory while preserving the central council space.",
+      "vectorElements": 31,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/ilyon/observatory/provenance.json",
+      "owners": [
+        "program-003-kind-gods-of-ilyon"
+      ],
+      "kind": "json",
+      "bytes": 2121,
+      "sha256": "58d2f5b519941aed9aec5ab08f93e18501a41e87240d89ddd70f34c1212e42e2",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/karazhan/hall/provenance.json",
+      "owners": [
+        "program-002-waking-tower"
+      ],
+      "kind": "json",
+      "bytes": 2008,
+      "sha256": "508ea1656c5478aaa268abb78cc45cb14367f62b2be15695b44cf2ec61900c5e",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/karazhan/hall/seren-vale-portrait.svg",
+      "owners": [
+        "program-002-waking-tower"
+      ],
+      "kind": "svg",
+      "bytes": 3725,
+      "sha256": "a9b6411adcb040fa7c121f5c8abf5f25076d18b297d435edeb899fcf16f320c9",
+      "viewBox": "0 0 640 800",
+      "title": "Seren Vale, Warden of the Lamplit Survey",
+      "description": "A tower survey warden in an amethyst hood and layered violet coat, holding a blue lantern compass before a moonlit gothic window.",
+      "vectorElements": 48,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/karazhan/hall/waking-tower-environment.svg",
+      "owners": [
+        "program-002-waking-tower"
+      ],
+      "kind": "svg",
+      "bytes": 6674,
+      "sha256": "aadaeb5336ad54fa26a57e3312010f6f4415121c92305fd5a3928a4617863c28",
+      "viewBox": "0 0 1600 900",
+      "title": "The Waking Tower survey hall",
+      "description": "A violet-night tower hall with blue survey lanterns, a moonlit orrery window, spiral galleries, chains, and a long raid table.",
+      "vectorElements": 91,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/karazhan/hall/waking-tower-foreground.svg",
+      "owners": [
+        "program-002-waking-tower"
+      ],
+      "kind": "svg",
+      "bytes": 2254,
+      "sha256": "b0a245a6e4e34189c2e41b7803e44c206ece9426df22edd8796b0bf962285a39",
+      "viewBox": "0 0 1600 900",
+      "title": "The Waking Tower hall framing",
+      "description": "Dark tower arches, chainwork, balcony rails, and blue lantern glass frame the survey hall without obscuring its playable center.",
+      "vectorElements": 29,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/lamp-district/underworld/anja-vei-portrait.svg",
+      "owners": [
+        "program-004-lamp-district"
+      ],
+      "kind": "svg",
+      "bytes": 2028,
+      "sha256": "5dfb8a15f3bdee0512207ef89914ccabfa2111c21db0b3d19ba214658a974dc7",
+      "viewBox": "0 0 640 800",
+      "title": "Anja Vei, Lamp District teacher and interlocutor",
+      "description": "A formal vector portrait of a Lamp District teacher carrying witness tablets beneath amber communal lamps.",
+      "vectorElements": 21,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/lamp-district/underworld/lamp-district-cross-section.svg",
+      "owners": [
+        "program-004-lamp-district"
+      ],
+      "kind": "svg",
+      "bytes": 2239,
+      "sha256": "4362cfc913da7b105fb03812d4e11771107ff464b2585d8719fb91e8595ea170",
+      "viewBox": "0 0 1600 900",
+      "title": "Lamp District seven-layer cross section",
+      "description": "Seven labelled functional strata descend from the grave-skin through the shroud, quiet works, common depths, custodial ring, war layer and black core.",
+      "vectorElements": 25,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/lamp-district/underworld/lamp-district-environment.svg",
+      "owners": [
+        "program-004-lamp-district"
+      ],
+      "kind": "svg",
+      "bytes": 4435,
+      "sha256": "c6fe754b47bc438c2cdebfd7d709202b5ab43e0c1b7855ed8962935ec71d7155",
+      "viewBox": "0 0 1600 900",
+      "title": "Lamp District civic underworld",
+      "description": "A layered buried district of communal lamps, cistern bridges, salt-vault radiators, homes, a school, clinic, market and sealed war machinery beneath a ruined survey outpost.",
+      "vectorElements": 75,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/lamp-district/underworld/provenance.json",
+      "owners": [
+        "program-004-lamp-district"
+      ],
+      "kind": "json",
+      "bytes": 842,
+      "sha256": "19b080ac7a35c89e16e2b28235abbbc1438bbd60d9e7bdb0d8c83b3a8e7c574f",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/relief-circuit/vessel/arden-pell-portrait.svg",
+      "owners": [
+        "program-005-relief-circuit"
+      ],
+      "kind": "svg",
+      "bytes": 4782,
+      "sha256": "daf6c913615f62c0142d589a87e956268805abc50f70295d5afd1963b64729ab",
+      "viewBox": "0 0 640 800",
+      "title": "Arden Pell, nine-year analyst",
+      "description": "A short-lived analyst surrounded by compressed calendars, overlapping decision horizons, and a life-fraction ledger that makes routine standby visibly expensive.",
+      "vectorElements": 66,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/relief-circuit/vessel/cinder-continuing-portrait.svg",
+      "owners": [
+        "program-005-relief-circuit"
+      ],
+      "kind": "svg",
+      "bytes": 5241,
+      "sha256": "e77f1484adc2327b5dd193c1b4df7f466701a9aaaad592a0e754a62f0f5f63ef",
+      "viewBox": "0 0 640 800",
+      "title": "Cinder Continuing, Counterborn vessel fork",
+      "description": "A machine person distributed through routing, translation, memory, and hull substrate, shown as several divergent bodies connected to one luminous but contested continuity claim.",
+      "vectorElements": 79,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/relief-circuit/vessel/ilya-venn-portrait.svg",
+      "owners": [
+        "program-005-relief-circuit"
+      ],
+      "kind": "svg",
+      "bytes": 3936,
+      "sha256": "49d7f2702a6af30ebc415835ddf66180eb176794251f21ed1990126c059aab88",
+      "viewBox": "0 0 640 800",
+      "title": "Ilya Venn, rapid-response pilot",
+      "description": "A dry-bodied pilot in a direct-interface flight harness, standing before the Relief Circuit helm with manual abort controls and several incompatible habitat clocks reflected in the canopy.",
+      "vectorElements": 51,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/relief-circuit/vessel/nima-quell-portrait.svg",
+      "owners": [
+        "program-005-relief-circuit"
+      ],
+      "kind": "svg",
+      "bytes": 4857,
+      "sha256": "52d505981f5638d0ff79bab3895c855000a77907a326a73c45e01e1441816ae0",
+      "viewBox": "0 0 640 800",
+      "title": "Nima Quell, aquatic care worker",
+      "description": "A large aquatic citizen suspended in a pressure-continuity care chamber, communicating through pressure song, electroreceptive lights, and a translated dry-space display.",
+      "vectorElements": 65,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/relief-circuit/vessel/orun-sable-portrait.svg",
+      "owners": [
+        "program-005-relief-circuit"
+      ],
+      "kind": "svg",
+      "bytes": 4161,
+      "sha256": "0497729594ff7ef351402bc0c38f66c3891b14c1edb5744ddef710879903911b",
+      "viewBox": "0 0 640 800",
+      "title": "Orun Sable, high-gravity maintainer",
+      "description": "A massive load-bearing maintainer in a reinforced pressure harness, braced against a structural contact wall where ordinary corridors become inaccessible work terrain.",
+      "vectorElements": 59,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/relief-circuit/vessel/provenance.json",
+      "owners": [
+        "program-005-relief-circuit"
+      ],
+      "kind": "json",
+      "bytes": 4714,
+      "sha256": "1795e3de34caa16c501afbbb45e0644d3a2526d4e40dbed9f0688c20480ef1aa",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/relief-circuit/vessel/relief-circuit-cross-section.svg",
+      "owners": [
+        "program-005-relief-circuit"
+      ],
+      "kind": "svg",
+      "bytes": 8728,
+      "sha256": "32281ba8ee3243b23e2a949664fbff9048973776408f95df6293acef3afeec0c",
+      "viewBox": "0 0 1600 900",
+      "title": "The Relief Circuit vessel cross-section",
+      "description": "A cutaway of the Common Ship showing its transit body, habitat bands, exchange thresholds, translation mesh, watch lattice, continuity commons, sovereign core, and route to the Lamp District.",
+      "vectorElements": 128,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/relief-circuit/vessel/relief-circuit-environment.svg",
+      "owners": [
+        "program-005-relief-circuit"
+      ],
+      "kind": "svg",
+      "bytes": 7905,
+      "sha256": "cfb6293d19b8fc4bc3baa367fa39aca8ae0664c1137da0016893ca4a83c13139",
+      "viewBox": "0 0 1600 900",
+      "title": "The Relief Circuit common threshold",
+      "description": "A multispecies ship interior where dry command, aquatic care, high-gravity maintenance, microbial mediation, short-life analysis, and machine continuity meet around one contested operating table.",
+      "vectorElements": 116,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/relief-circuit/vessel/relief-circuit-symbol-atlas.svg",
+      "owners": [
+        "program-005-relief-circuit"
+      ],
+      "kind": "svg",
+      "bytes": 8179,
+      "sha256": "e7491fe55eb8fbb75a32f34b5b3765bb7e42b02379b55ab94a335501e22ebff4",
+      "viewBox": "0 0 1600 900",
+      "title": "The Relief Circuit operational symbol atlas",
+      "description": "Twenty-one direct production symbols for the six Common Watch tests, seven vessel systems, and eight ship-state tracks.",
+      "vectorElements": 154,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/relief-circuit/vessel/tessara-one-portrait.svg",
+      "owners": [
+        "program-005-relief-circuit"
+      ],
+      "kind": "svg",
+      "bytes": 5098,
+      "sha256": "ca0e0d8912d0bc33a79219d815315d20976787d241dc39504a83852101a1068a",
+      "viewBox": "0 0 640 800",
+      "title": "Tessara One, Manyborn mediator",
+      "description": "A distributed Manyborn person rendered across a human-scale carrier, a microbial cloud, chemical vessels, and topological light, none of which is presented as the original body.",
+      "vectorElements": 73,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/rodoh/bay/provenance.json",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "json",
+      "bytes": 1838,
+      "sha256": "ef564f1d7b405581503664cac2f850e3a9680ed8347de82e6d14582d5b4c9442",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/rodoh/bay/rodoh-bay-environment.svg",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "svg",
+      "bytes": 6856,
+      "sha256": "4c516d5ade7bb9cb0b03b90c47c7848f0a7e9fb4c8f6da4410ea693d9950f897",
+      "viewBox": "0 0 1600 900",
+      "title": "The Rodoh cartridge bay",
+      "description": "A dark local-first cartridge vault of stone, brass, labeled cases, offline indicators, and a central loading dais.",
+      "vectorElements": 118,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/rodoh/bay/rodoh-bay-foreground.svg",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "svg",
+      "bytes": 1891,
+      "sha256": "69967ef0c98823d47585af77c46cc3cb480df7876c32c2aaf77c77e35408db9a",
+      "viewBox": "0 0 1600 900",
+      "title": "The Rodoh cartridge bay framing",
+      "description": "Heavy vault jambs, shelf edges, local-status lamps, and a brass footer frame the cartridge bay without obscuring its controls.",
+      "vectorElements": 27,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/brand/RodohRuntimeMark.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 4021,
+      "sha256": "745fbd14031602e64e823fd4f969fd3322e148bb2653d4920437d3453e69978b",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/brand/rodoh-root-mark.provenance.json",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "json",
+      "bytes": 1600,
+      "sha256": "35b3c02581e60d77484a30ce0dd2c53f9db287e6f0dd5a7300bb87b849584f79",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/brand/rodoh-root-mark.ts",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "ts",
+      "bytes": 1818,
+      "sha256": "03a89defa73b758093bae3100186fbbc23319f207155ad5ad44a687c52118692",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/common-ship/CommonShipScene.tsx",
+      "owners": [
+        "program-005-relief-circuit"
+      ],
+      "kind": "tsx",
+      "bytes": 20285,
+      "sha256": "0eca2372a63ee9fb5d63710aea74882aff0bdf76bb2111f91e95451d693de204",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/common-ship/common-ship.css",
+      "owners": [
+        "program-005-relief-circuit"
+      ],
+      "kind": "css",
+      "bytes": 9969,
+      "sha256": "04c8703e0fa294eb9b3e1400dcf499448f24d65c11966e4bf79872389941c1d5",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/common-ship/common-ship.ts",
+      "owners": [
+        "program-005-relief-circuit"
+      ],
+      "kind": "ts",
+      "bytes": 3952,
+      "sha256": "9b723105d8a7d012208c06b011657eebfd687640abd8e0bd1afd3107b5c6d3a5",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/common-ship/connected-relief.ts",
+      "owners": [
+        "program-005-relief-circuit"
+      ],
+      "kind": "ts",
+      "bytes": 4131,
+      "sha256": "fe7f15b542c910b1320a31ea79d2cf988e70253dd2c4ddd6619001efa05be802",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/common-ship/index.ts",
+      "owners": [
+        "program-005-relief-circuit"
+      ],
+      "kind": "ts",
+      "bytes": 34,
+      "sha256": "5830178b53fb217cadf7c888c066afcfd481f95c6674307d34d51de195c2a178",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/PixelAttribute.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 1275,
+      "sha256": "957867b586c759c04909337747f79a80c31e51aff450ab729a45f6b2e293c50d",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/PixelBadge.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 626,
+      "sha256": "b8e5adf20646b1b92bc699e9c2dcf2b023b787af06dab4b745593e98a2887610",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/PixelButton.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 560,
+      "sha256": "e4942bd5bf7c35b46e9ac7f4581ecedc050c69de23eb6eb68667cf5183ef5d84",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/PixelContractCard.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 7352,
+      "sha256": "199f7c4a2fa59aaf699932a7a31d17dd963206c5ddd934956429b3b9b68692a8",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/PixelDoll.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 3404,
+      "sha256": "0eae0acb3f5203ce4457776cf1828fe36b4bf5c858e031d8d97e71e47d0cb04b",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/PixelDollPortrait.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 1501,
+      "sha256": "7a4a87fad35d9139066893e8a918d5ee630c3337301857fe42f079405084a6f4",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/PixelGearSlot.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 1096,
+      "sha256": "d2a24c0a655c7f1145a7b9d1f9ad658a368be917b6e0cb911df0bc42fb3335e3",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/PixelIcon.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 28632,
+      "sha256": "539cfbaeefc148531a764e464b5190bf6f215befbf724f381dbd3fee4a92a399",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/PixelLootCard.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 1211,
+      "sha256": "23ddb1379793adeab3dbb483ff1aa7d612e6d675d5a1da1346c9b7bcf59ae457",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/PixelMeter.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 663,
+      "sha256": "7cb8a4f69aa26b6ef2d4a6c20e832fab39e1617d14e3f4054a5143041d56e596",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/PixelPanel.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 556,
+      "sha256": "750d54d0f7ad9ad2bfa93b50e85da1f43f680c176018c2c05404fd99ae911b09",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/PixelPortrait.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 5739,
+      "sha256": "52533cc3e408a5c144cc4e571e88564433802ed3de82aa18f9c2ac7237b232d8",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/PixelReadinessRow.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 3532,
+      "sha256": "4274d212d12b1bc9e88d23ae0df1081a8259732d5b59b12534fa1a295949d07b",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/PixelRoleBadge.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 692,
+      "sha256": "da95ea014722156645bab8513f88e6a1a22776247d01b4af6ea9d5a54b0a4a89",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/PixelRosterCard.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 5732,
+      "sha256": "614353faff9f513d86cfd41bd7d3f41a656072a31f8691a6956ac608963a2552",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/PixelSprite.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 5427,
+      "sha256": "e93c8954181120551a82d3600ea4a3612eb798dc4f40066ead139a4588f3895a",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/PixelStateBadge.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 830,
+      "sha256": "46bae49c38a254de58732b9276d7a4e17d259a5f1d6ec80f416273b78ba40299",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/PixelStateBands.tsx",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "tsx",
+      "bytes": 2027,
+      "sha256": "5573e26d30c971506f37091a29a98df12b91d0a15a6015a6b808ec9d852c1f03",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/index.ts",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "ts",
+      "bytes": 677,
+      "sha256": "a950975e62e97c88ee3c4a244ad44b55e0b6dff202e044b231a06fc9c2e024cd",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/palette.ts",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "ts",
+      "bytes": 737,
+      "sha256": "b4b98b818fe0f9a841ec0f515382035f9f84aa8e7a159725576a280afe00ffcd",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/pixel-ui/pixel-ui.css",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "css",
+      "bytes": 24492,
+      "sha256": "9c0490e8aa2a9370405a52b995e3dada75070dae3853aa5402e8aa450d0268db",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/rodoh-bay.css",
+      "owners": [
+        "rodoh-shell"
+      ],
+      "kind": "css",
+      "bytes": 2810,
+      "sha256": "d2fbc8b23d3f092fbcf0f657d555478fb0f9ff04e7751bfbbee7a7101c50bedd",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/first-charter/first-charter.css",
+      "owners": [
+        "program-001-first-charter"
+      ],
+      "kind": "css",
+      "bytes": 9711,
+      "sha256": "23fac292190c31be3cc3c80b8816bfc8b7624cde432e18feb1e42fd1ebeda479",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/first-charter/index.ts",
+      "owners": [
+        "program-001-first-charter"
+      ],
+      "kind": "ts",
+      "bytes": 62,
+      "sha256": "87dd03d4175c63857eb50c73a7db4609c3ff775bca76dc447f2ca96c96cfb4f4",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/first-charter/motif-icons.tsx",
+      "owners": [
+        "program-001-first-charter"
+      ],
+      "kind": "tsx",
+      "bytes": 4770,
+      "sha256": "bb98138d8c5b53209a84e80b761dec9ccabd4d7e5b717dd5241c377fb7a4279d",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/first-charter/portrait-icons.tsx",
+      "owners": [
+        "program-001-first-charter"
+      ],
+      "kind": "tsx",
+      "bytes": 4012,
+      "sha256": "762d063052db4144a6b4005708eb696bcfb827224b3fbe720475c881f9d96c6f",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/first-charter/role-appearances.tsx",
+      "owners": [
+        "program-001-first-charter"
+      ],
+      "kind": "tsx",
+      "bytes": 4649,
+      "sha256": "6dadfd823f9e15ce5071e877541ae49519be60c7ca889f9756a1ca752ecb49bd",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/first-charter/theme.ts",
+      "owners": [
+        "program-001-first-charter"
+      ],
+      "kind": "ts",
+      "bytes": 891,
+      "sha256": "906af677018ff5ed92be94172543e0399d60243e7e554d0f959c4b0751dbda1c",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/ilyon/ilyon.css",
+      "owners": [
+        "program-003-kind-gods-of-ilyon"
+      ],
+      "kind": "css",
+      "bytes": 12891,
+      "sha256": "9bb3b0bc4e72a274d02a31a5652b12428094f0c94262df7942f2f4a16ec28463",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/ilyon/index.ts",
+      "owners": [
+        "program-003-kind-gods-of-ilyon"
+      ],
+      "kind": "ts",
+      "bytes": 99,
+      "sha256": "bb585cbe8ba02e632776de01d994c8e7029ba09429e86b6518f4fc5f75092f9c",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/ilyon/motif-icons.tsx",
+      "owners": [
+        "program-003-kind-gods-of-ilyon"
+      ],
+      "kind": "tsx",
+      "bytes": 9190,
+      "sha256": "76c21a46b16663789989fd0874188c02a7972c85a265824fa3a74d15524e070c",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/ilyon/portrait-icons.tsx",
+      "owners": [
+        "program-003-kind-gods-of-ilyon"
+      ],
+      "kind": "tsx",
+      "bytes": 10494,
+      "sha256": "cf746f5e50bc7b79c8e93d074decd49c032af5c29569c1693e5971acef5ad429",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/ilyon/production-assets.css",
+      "owners": [
+        "program-003-kind-gods-of-ilyon"
+      ],
+      "kind": "css",
+      "bytes": 3405,
+      "sha256": "3c3a243739ec129365dcf44b7205dc883a784e06e59cad5f204d2775cb0d4c9f",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/ilyon/theme.ts",
+      "owners": [
+        "program-003-kind-gods-of-ilyon"
+      ],
+      "kind": "ts",
+      "bytes": 2016,
+      "sha256": "53c2381c93751f2a13822a6201aa0ca39a172783aa489f2bba786d46db5c3e4a",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/karazhan/index.ts",
+      "owners": [
+        "program-002-waking-tower"
+      ],
+      "kind": "ts",
+      "bytes": 62,
+      "sha256": "87dd03d4175c63857eb50c73a7db4609c3ff775bca76dc447f2ca96c96cfb4f4",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/karazhan/karazhan.css",
+      "owners": [
+        "program-002-waking-tower"
+      ],
+      "kind": "css",
+      "bytes": 9261,
+      "sha256": "9e7466018b51724c3d3d816647204c6e7dc8acac11a0b48b0f417c004b662c41",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/karazhan/motif-icons.tsx",
+      "owners": [
+        "program-002-waking-tower"
+      ],
+      "kind": "tsx",
+      "bytes": 7427,
+      "sha256": "9615e18ef036403102d6782e0318e5c2d75389bb84871e4fbaae192ac0c40260",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/karazhan/portrait-icons.tsx",
+      "owners": [
+        "program-002-waking-tower"
+      ],
+      "kind": "tsx",
+      "bytes": 4233,
+      "sha256": "ff0594ab1ef43a0de87c2ff28daa2db0b93df427d9620caaca8323c4bb7b721b",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/karazhan/production-assets.css",
+      "owners": [
+        "program-002-waking-tower"
+      ],
+      "kind": "css",
+      "bytes": 3076,
+      "sha256": "507f46840408104f7c95fff4e11cd9ec1c4161f7dbe66ede8f8b0f3f8235c6cd",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/karazhan/role-appearances.tsx",
+      "owners": [
+        "program-002-waking-tower"
+      ],
+      "kind": "tsx",
+      "bytes": 4476,
+      "sha256": "aae9e536deaaf823dc9dfafee859fbb46f189a6020210ca17912688a9b721d40",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/karazhan/theme.ts",
+      "owners": [
+        "program-002-waking-tower"
+      ],
+      "kind": "ts",
+      "bytes": 2705,
+      "sha256": "c5facb5d23a457e4d6b49b0c1ba1eb9869956ad5131bf2c85e3b4756ec81a375",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/lamp-district/index.ts",
+      "owners": [
+        "program-004-lamp-district"
+      ],
+      "kind": "ts",
+      "bytes": 138,
+      "sha256": "279419d98bf223736f654800daa73c1cce43e09d1a4ccb028c82d34ffa426827",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/lamp-district/lamp-district.css",
+      "owners": [
+        "program-004-lamp-district"
+      ],
+      "kind": "css",
+      "bytes": 9093,
+      "sha256": "54421957ffd44b1c00f35a3d483cbc0e46dd8202e41dc6942cb2549fa86330b1",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/lamp-district/motif-icons.tsx",
+      "owners": [
+        "program-004-lamp-district"
+      ],
+      "kind": "tsx",
+      "bytes": 3361,
+      "sha256": "9283b8a360fd4156ae71c2dc5b66bca517206ed208e6ab76a8fc3e76e89d3aa1",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/lamp-district/portrait-icons.tsx",
+      "owners": [
+        "program-004-lamp-district"
+      ],
+      "kind": "tsx",
+      "bytes": 3767,
+      "sha256": "d5fe2567f319ab0a19f588dab51afb636039511907af1608e63220d6345402f5",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/lamp-district/role-appearances.tsx",
+      "owners": [
+        "program-004-lamp-district"
+      ],
+      "kind": "tsx",
+      "bytes": 4005,
+      "sha256": "5483e79bf17670209faadea615c524647c1631395f80781a3ffca60df611fa36",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/themes/lamp-district/theme.ts",
+      "owners": [
+        "program-004-lamp-district"
+      ],
+      "kind": "ts",
+      "bytes": 2507,
+      "sha256": "a35186e956a60f9c753c59efe68da5a01feb04f3f7d92425cfcbf95f88ff3fe0",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    }
+  ],
+  "failures": [],
+  "status": "pass"
+}

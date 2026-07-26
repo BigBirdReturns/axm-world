@@ -1,0 +1,145 @@
+{
+  "format": "rodoh-asset-long-description-set/1",
+  "descriptions": [
+    {
+      "id": "lamp-district-seven-layer-cross-section",
+      "asset": "src/assets/lamp-district/underworld/lamp-district-cross-section.svg",
+      "title": "The Lamp District seven-layer civic cross-section",
+      "summary": "A vertical civic map of an inhabited district surviving through maintained misclassification. The layers are a political and operational order rather than a measure of literal depth alone.",
+      "entities": [
+        "surface fiction and observer layer",
+        "ordinary neighborhood life",
+        "maintenance and heat-sink systems",
+        "controlled descent routes",
+        "Long Alarm and emergency authority",
+        "breach interfaces and exposed constituencies",
+        "deep civic memory and inherited consequence"
+      ],
+      "relations": [
+        "The surface fiction protects the inhabitants while shifting risk onto people required to perform it.",
+        "Ordinary life depends on quiet maintenance, heat removal, drainage, transport, care, markets, and schools.",
+        "Authorized descent crosses jurisdictions and signature budgets rather than merely moving downward.",
+        "The Long Alarm changes what may be visible, who may decide, and which internal costs become compulsory.",
+        "A breach changes the public map and the next run; the district does not reset to hidden normality."
+      ],
+      "directions": [
+        "Read from exterior classification toward deeper civic custody.",
+        "Cross-links show that wake can move upward through heat, traffic, testimony, missing people, and institutional records.",
+        "Return paths carry evidence and changed constituencies back toward ordinary public life."
+      ],
+      "runtimeEquivalents": [
+        "Long Alarm, signature, visibility, and consequence values are available as text and exact engine state.",
+        "Layer names, objectives, authority, routes, wake sources, and inheritance are rendered in the Underworld representation.",
+        "The image is never the sole route into an expedition or the sole evidence of a changed district."
+      ]
+    },
+    {
+      "id": "relief-circuit-vessel-cross-section",
+      "asset": "src/assets/relief-circuit/vessel/relief-circuit-cross-section.svg",
+      "title": "The Relief Circuit multispecies vessel cross-section",
+      "summary": "A systems map of one moving polity whose inhabitants require incompatible media, gravity, scale, passage, sensorium, interfaces, and clocks.",
+      "entities": [
+        "transit body",
+        "habitat bands",
+        "common thresholds",
+        "translation mesh",
+        "watch lattice",
+        "continuity commons",
+        "sovereign core",
+        "scarway to the Lamp District"
+      ],
+      "relations": [
+        "The transit body carries the ship but cannot be treated as a continuous human-normal hallway.",
+        "Habitat bands preserve incompatible environmental media and gravity regimes.",
+        "Common thresholds are negotiated interfaces where passage, contamination, pressure, translation, and authority become visible.",
+        "The translation mesh connects direct and mediated interfaces without making mediation equivalent to consent.",
+        "The watch lattice binds embodied people to operational roles through Arc-owned feasibility rather than body-based destiny.",
+        "The continuity commons preserves succession, fork, memory, and life-fraction obligations across handoffs.",
+        "The sovereign core records precedent and emergency authority without absorbing the ship's constituent peoples.",
+        "The scarway carries the connected Lamp District operation and its returning consequences."
+      ],
+      "directions": [
+        "Read from the vessel's physical carrying body through habitat and interface systems toward constitutional continuity.",
+        "Operational flow crosses the section through watch composition, common-system allocation, pressure resolution, handoff, and return.",
+        "No arrow implies that one body, clock, or interface is the ship's natural baseline."
+      ],
+      "runtimeEquivalents": [
+        "Every named system appears as localized text in the Common Ship representation.",
+        "Embodiment profiles and role profiles are separately inspectable.",
+        "All eight ship-state tracks, six Common Watch tests, dependencies, single points, and precedents are available without reading the SVG."
+      ]
+    },
+    {
+      "id": "relief-circuit-operational-symbol-atlas",
+      "asset": "src/assets/relief-circuit/vessel/relief-circuit-symbol-atlas.svg",
+      "title": "The Relief Circuit operational symbol atlas",
+      "summary": "A source atlas containing six Common Watch tests, seven ship systems, and eight ship-state tracks. Symbols summarize records already carried by text and engine receipts.",
+      "entities": [
+        "role coverage",
+        "temporal overlap",
+        "habitat compatibility",
+        "translation resilience",
+        "handoff continuity",
+        "life-fraction fairness",
+        "transit body",
+        "habitat bands",
+        "common thresholds",
+        "translation mesh",
+        "watch lattice",
+        "continuity commons",
+        "sovereign core",
+        "habitat integrity",
+        "temporal coherence",
+        "translation trust",
+        "roster resilience",
+        "stores and care",
+        "continuity",
+        "visibility",
+        "compatibility debt"
+      ],
+      "relations": [
+        "Watch-test symbols report Arc-owned feasibility and refusal categories.",
+        "System symbols identify where allocations and dependencies reside.",
+        "State symbols identify engine-owned values that change through operations.",
+        "A shared visual shape never converts a system, test, and state into the same semantic object."
+      ],
+      "directions": [
+        "The atlas is grouped by test, system, and state rather than ordered as one process.",
+        "Runtime use must pair every symbol with its authored or localized label and current value."
+      ],
+      "runtimeEquivalents": [
+        "The Common Ship scene exposes all twenty-one labels and their live records as HTML text.",
+        "Forced-colors mode may suppress decorative atlas presentation without removing operational meaning.",
+        "Imported Common Ships use the neutral symbol set when no cartridge-owned atlas exists."
+      ]
+    },
+    {
+      "id": "ilyon-symbol-system",
+      "asset": "src/world/themes/ilyon/motif-icons.tsx",
+      "title": "Ilyon campaign, faction, evidence, and consequence symbol system",
+      "summary": "A cartridge-owned motif system that distinguishes campaign pressure, faction position, evidence provenance, and inherited consequence in the Confluence Observatory's civic language.",
+      "entities": [
+        "six campaign pressures",
+        "faction positions",
+        "evidence records",
+        "persistent consequences",
+        "Pocket emblem"
+      ],
+      "relations": [
+        "Campaign-pressure marks orient the causal sequence and do not replace the authored pressure names.",
+        "Faction marks identify actors and receipts without assigning one visual style the status of neutral truth.",
+        "Evidence marks supplement the evidence ledger's venue, legitimacy target, upside, downside, failure mode, intervention, and limits.",
+        "Consequence marks point toward inherited run state rather than announcing a clean ending."
+      ],
+      "directions": [
+        "Read campaign marks in authored beat order.",
+        "Read evidence, faction, and consequence marks through their associated ledger text rather than as a universal pictographic language."
+      ],
+      "runtimeEquivalents": [
+        "Aperture renders the complete Pocket, evidence ledger, faction receipts, and persistent consequences as text.",
+        "Neutral imported cartridges receive no Ilyon motif merely because their data resembles one of its concepts.",
+        "Missing motifs never prevent campaign play, run export, or source inspection."
+      ]
+    }
+  ]
+}
