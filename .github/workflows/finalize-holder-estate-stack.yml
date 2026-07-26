@@ -1,0 +1,201 @@
+name: Finalize carrier-free holder-estate stack
+
+on:
+  push:
+    branches: [release/holder-estate-v1]
+    paths:
+      - '.github/workflows/finalize-holder-estate-stack.yml'
+      - 'src/world/i18n/.holder-qualification-trigger'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finalize-carrier-free-holder-estate-stack
+  cancel-in-progress: true
+
+env:
+  ARC_AUTHORITY_SHA: 4b07539a06d40b131591f1e9c7d5b90a96ceec31
+  FINAL_AUTHOR_DATE: '2026-07-26T04:00:00Z'
+  CI: 'true'
+  PW_BASE_URL: http://127.0.0.1:5173
+
+jobs:
+  linux-product:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Construct and check out the deterministic carrier-free commit
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/finalize-holder-estate-stack.yml src/world/i18n/.holder-qualification-trigger
+          tree="$(git write-tree)"
+          commit="$(printf '%s\n' 'Finalize transactional whole-holder estate custody' | \
+            GIT_AUTHOR_NAME='github-actions[bot]' \
+            GIT_AUTHOR_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+            GIT_COMMITTER_NAME='github-actions[bot]' \
+            GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+            GIT_AUTHOR_DATE="$FINAL_AUTHOR_DATE" \
+            GIT_COMMITTER_DATE="$FINAL_AUTHOR_DATE" \
+            git commit-tree "$tree" -p "${{ github.sha }}")"
+          git reset --hard "$commit"
+          printf '%s\n' "$commit" | tee carrier-free-holder-commit.txt
+          test -z "$(git status --porcelain)"
+          git diff --check HEAD^
+      - run: npm ci --no-audit --no-fund
+      - name: Exact holder, localization, and complete World contracts
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm test -- tests/world/holder-estate.test.ts tests/world/locale.test.ts tests/world/local-estate-contract.test.ts
+          npm test
+      - name: Production build and complete desktop/mobile browser estate
+        run: |
+          set -euo pipefail
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          npx playwright install --with-deps chromium
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npx playwright test
+          test -z "$(git status --porcelain)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: holder-estate-linux-exact-head
+          path: |
+            carrier-free-holder-commit.txt
+            test-results
+          if-no-files-found: warn
+          retention-days: 30
+
+  windows-estate:
+    runs-on: windows-2025
+    timeout-minutes: 240
+    steps:
+      - name: Check out exact World carrier
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+      - name: Check out exact Arc authority
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_AUTHORITY_SHA }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            axm-world/package-lock.json
+            axm-arc/package-lock.json
+      - name: Construct and check out the same deterministic carrier-free commit
+        shell: bash
+        working-directory: axm-world
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/finalize-holder-estate-stack.yml src/world/i18n/.holder-qualification-trigger
+          tree="$(git write-tree)"
+          commit="$(printf '%s\n' 'Finalize transactional whole-holder estate custody' | \
+            GIT_AUTHOR_NAME='github-actions[bot]' \
+            GIT_AUTHOR_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+            GIT_COMMITTER_NAME='github-actions[bot]' \
+            GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+            GIT_AUTHOR_DATE="$FINAL_AUTHOR_DATE" \
+            GIT_COMMITTER_DATE="$FINAL_AUTHOR_DATE" \
+            git commit-tree "$tree" -p "${{ github.sha }}")"
+          git reset --hard "$commit"
+          printf '%s\n' "$commit" | tee ../carrier-free-holder-commit-windows.txt
+          test -z "$(git status --porcelain)"
+      - name: Run complete Windows local estate
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force .rodoh-estate\logs, .rodoh-estate\receipts | Out-Null
+          & .\axm-world\RODOH.cmd doctor -EstateRoot "$PWD" *>&1 | Tee-Object .rodoh-estate\logs\doctor.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\axm-world\RODOH.cmd hydrate -EstateRoot "$PWD" *>&1 | Tee-Object .rodoh-estate\logs\hydrate.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\axm-world\RODOH.cmd verify -EstateRoot "$PWD" *>&1 | Tee-Object .rodoh-estate\logs\verify.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\axm-world\RODOH.cmd build -EstateRoot "$PWD" *>&1 | Tee-Object .rodoh-estate\logs\build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\axm-world\RODOH.cmd test -EstateRoot "$PWD" -Scope Arc *>&1 | Tee-Object .rodoh-estate\logs\test-arc.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\axm-world\RODOH.cmd test -EstateRoot "$PWD" -Scope World -FullBrowser *>&1 | Tee-Object .rodoh-estate\logs\test-world.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\axm-world\RODOH.cmd play -EstateRoot "$PWD" -NoOpen *>&1 | Tee-Object .rodoh-estate\logs\play.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          try {
+            $worldStatus = (Invoke-WebRequest -UseBasicParsing http://127.0.0.1:5173/axm-world/game/).StatusCode
+            $arcStatus = (Invoke-WebRequest -UseBasicParsing http://127.0.0.1:5174/axm-arc/game/).StatusCode
+            if ($worldStatus -ne 200 -or $arcStatus -ne 200) { throw "Static health failed: World=$worldStatus Arc=$arcStatus" }
+          } finally {
+            & .\axm-world\RODOH.cmd stop -EstateRoot "$PWD" *>&1 | Tee-Object -Append .rodoh-estate\logs\play.log
+          }
+          $receipt = [ordered]@{
+            format = 'rodoh-holder-estate-windows-qualification/1'
+            generatedAt = (Get-Date).ToUniversalTime().ToString('o')
+            status = 'pass'
+            worldHead = (git -C axm-world rev-parse HEAD).Trim()
+            arcHead = (git -C axm-arc rev-parse HEAD).Trim()
+            checks = @('doctor','hydrate','verify','double-build','arc-suite','world-suite','complete-browser','static-health')
+          }
+          $receipt | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8 .rodoh-estate\receipts\holder-estate-windows-qualification.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: holder-estate-windows-exact-head
+          path: |
+            carrier-free-holder-commit-windows.txt
+            .rodoh-estate/receipts
+            .rodoh-estate/logs
+          if-no-files-found: warn
+          retention-days: 30
+
+  publish:
+    needs: [linux-product, windows-estate]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - name: Publish the exact deterministic carrier-free commit
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/finalize-holder-estate-stack.yml src/world/i18n/.holder-qualification-trigger
+          tree="$(git write-tree)"
+          commit="$(printf '%s\n' 'Finalize transactional whole-holder estate custody' | \
+            GIT_AUTHOR_NAME='github-actions[bot]' \
+            GIT_AUTHOR_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+            GIT_COMMITTER_NAME='github-actions[bot]' \
+            GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+            GIT_AUTHOR_DATE="$FINAL_AUTHOR_DATE" \
+            GIT_COMMITTER_DATE="$FINAL_AUTHOR_DATE" \
+            git commit-tree "$tree" -p "${{ github.sha }}")"
+          git push origin "$commit":release/holder-estate-v1
+          printf '%s\n' "$commit"
