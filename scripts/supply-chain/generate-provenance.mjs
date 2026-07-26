@@ -24,7 +24,7 @@ function option(name, fallback = null) {
   return values(name)[0] ?? fallback;
 }
 
-const subjectPaths = values("--subject").map(resolve);
+const subjectPaths = values("--subject").map((path) => resolve(path));
 if (subjectPaths.length === 0) fail("At least one --subject file is required.");
 for (const path of subjectPaths) {
   if (!statSync(path).isFile()) fail(`Subject is not a file: ${path}`);
@@ -46,6 +46,9 @@ const resolvedDependencies = values("--dependency");
 function sha256(path) {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
+function compareStrings(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
 function dependencyRecord(raw) {
   const split = raw.indexOf("=");
   if (split < 1) fail(`Dependency must be name=digest-or-uri: ${raw}`);
@@ -63,7 +66,7 @@ const statement = {
       name: relative(evidenceRoot, path).replace(/\\/g, "/"),
       digest: { sha256: sha256(path) },
     }))
-    .sort((a, b) => a.name.localeCompare(b.name)),
+    .sort((a, b) => compareStrings(a.name, b.name)),
   predicateType: "https://slsa.dev/provenance/v1",
   predicate: {
     buildDefinition: {
@@ -80,7 +83,7 @@ const statement = {
         npmVersion,
         workflow,
       },
-      resolvedDependencies: resolvedDependencies.map(dependencyRecord).sort((a, b) => a.uri.localeCompare(b.uri)),
+      resolvedDependencies: resolvedDependencies.map(dependencyRecord).sort((a, b) => compareStrings(a.uri, b.uri)),
     },
     runDetails: {
       builder: { id: builder },
