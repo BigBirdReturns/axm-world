@@ -87,12 +87,12 @@ $nodeVersion = Invoke-ToolText $worldRepo "node" @("--version")
 $npmVersion = Invoke-ToolText $worldRepo "npm.cmd" @("--version")
 $playwrightVersion = Invoke-ToolText $worldRepo "node" @("-p", "require('./node_modules/@playwright/test/package.json').version")
 $edgeVersion = Find-ExecutableVersion @(
-  "$env:ProgramFiles(x86)\Microsoft\Edge\Application\msedge.exe",
+  "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe",
   "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe",
   "msedge.exe"
 )
 $nvdaVersion = Find-ExecutableVersion @(
-  "$env:ProgramFiles(x86)\NVDA\nvda.exe",
+  "${env:ProgramFiles(x86)}\NVDA\nvda.exe",
   "$env:ProgramFiles\NVDA\nvda.exe",
   "$env:LOCALAPPDATA\Programs\NVDA\nvda.exe",
   "nvda.exe"
