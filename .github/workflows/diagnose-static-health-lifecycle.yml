@@ -1,4 +1,4 @@
-name: Diagnose captured-build server lifecycle
+name: Qualify captured-build server lifecycle
 
 on:
   pull_request:
@@ -11,21 +11,22 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: diagnose-static-health-lifecycle-${{ github.event.pull_request.number || github.ref }}
+  group: qualify-static-health-lifecycle
   cancel-in-progress: true
 
 env:
   ARC_LOCAL_ESTATE_REF: 4b07539a06d40b131591f1e9c7d5b90a96ceec31
+  LOCAL_ESTATE_BASE_SHA: ef12e761e398335b4223519f1aed2ffed0e5fe8a
 
 jobs:
   windows:
     runs-on: windows-2025
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
-      - name: Check out exact World candidate
+      - name: Check out exact qualification head
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -47,7 +48,125 @@ jobs:
           cache-dependency-path: |
             axm-world/package-lock.json
             axm-arc/package-lock.json
-      - name: Hydrate and build the captured products
+      - name: Apply the detached logged-process lifecycle
+        shell: pwsh
+        run: |
+          $path = 'axm-world\scripts\local-estate\Invoke-RodohEstate.ps1'
+          $text = Get-Content -Raw $path
+          $old = @'
+function Start-StaticServer {
+    param([string]$Name, [string]$Root, [int]$Port, [string]$Base)
+    if (-not (Test-Path (Join-Path $Root 'index.html'))) { throw "Missing static build for $Name at $Root. Run build first." }
+    $node = Get-NodeCommand
+    $stdout = Join-Path $Script:LogRoot "$Name-server.stdout.log"
+    $stderr = Join-Path $Script:LogRoot "$Name-server.stderr.log"
+    Remove-Item $stdout, $stderr -Force -ErrorAction SilentlyContinue
+    $serverArguments = Join-ProcessArguments @(
+        $Script:StaticServerScript,
+        '--root', $Root,
+        '--port', [string]$Port,
+        '--base', $Base,
+        '--host', '127.0.0.1'
+    )
+    $process = Start-Process -FilePath $node -ArgumentList $serverArguments -WorkingDirectory $Script:WorldRoot -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+    return [ordered]@{ name = $Name; pid = $process.Id; root = $Root; port = $Port; base = $Base; stdout = $stdout; stderr = $stderr }
+}
+
+function Start-SourceServer {
+    param([string]$Name, [string]$Root, [int]$Port, [string]$Base)
+    $npm = Get-NpmCommand
+    $stdout = Join-Path $Script:LogRoot "$Name-server.stdout.log"
+    $stderr = Join-Path $Script:LogRoot "$Name-server.stderr.log"
+    Remove-Item $stdout, $stderr -Force -ErrorAction SilentlyContinue
+    $serverArguments = Join-ProcessArguments @('run', 'dev', '--', '--host', '127.0.0.1', '--port', [string]$Port, '--strictPort')
+    $process = Start-Process -FilePath $npm -ArgumentList $serverArguments -WorkingDirectory $Root -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+    return [ordered]@{ name = $Name; pid = $process.Id; root = $Root; port = $Port; base = $Base; stdout = $stdout; stderr = $stderr }
+}
+'@
+          $new = @'
+function Quote-PowerShellLiteral {
+    param([Parameter(Mandatory = $true)][string]$Value)
+    return "'" + ($Value -replace "'", "''") + "'"
+}
+
+function Start-DetachedLoggedProcess {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [Parameter(Mandatory = $true)][string[]]$Arguments,
+        [Parameter(Mandatory = $true)][string]$WorkingDirectory,
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][int]$Port,
+        [Parameter(Mandatory = $true)][string]$Base
+    )
+    $stdout = Join-Path $Script:LogRoot "$Name-server.stdout.log"
+    $stderr = Join-Path $Script:LogRoot "$Name-server.stderr.log"
+    Remove-Item $stdout, $stderr -Force -ErrorAction SilentlyContinue
+
+    $hostName = if ($PSVersionTable.PSEdition -eq 'Core') { 'pwsh.exe' } else { 'powershell.exe' }
+    $hostExecutable = Join-Path $PSHOME $hostName
+    if (-not (Test-Path $hostExecutable)) {
+        $hostExecutable = Find-CommandPath @($hostName, 'powershell.exe')
+    }
+    if (-not $hostExecutable) { throw 'A PowerShell host is required to detach the local server process tree.' }
+
+    $quotedArguments = @($Arguments | ForEach-Object { Quote-PowerShellLiteral $_ })
+    $invocation = "Set-Location -LiteralPath $(Quote-PowerShellLiteral $WorkingDirectory); & $(Quote-PowerShellLiteral $FilePath) $($quotedArguments -join ' ') 1>> $(Quote-PowerShellLiteral $stdout) 2>> $(Quote-PowerShellLiteral $stderr); exit `$LASTEXITCODE"
+    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($invocation))
+    # Do not redirect this helper's streams in the parent. PowerShell otherwise
+    # retains the child handles and RODOH.cmd play cannot return while servers run.
+    $process = Start-Process -FilePath $hostExecutable -ArgumentList @('-NoLogo', '-NoProfile', '-EncodedCommand', $encoded) -WorkingDirectory $WorkingDirectory -PassThru -WindowStyle Hidden
+    return [ordered]@{ name = $Name; pid = $process.Id; root = $Root; port = $Port; base = $Base; stdout = $stdout; stderr = $stderr }
+}
+
+function Start-StaticServer {
+    param([string]$Name, [string]$Root, [int]$Port, [string]$Base)
+    if (-not (Test-Path (Join-Path $Root 'index.html'))) { throw "Missing static build for $Name at $Root. Run build first." }
+    $node = Get-NodeCommand
+    return Start-DetachedLoggedProcess -Name $Name -FilePath $node -Arguments @(
+        $Script:StaticServerScript,
+        '--root', $Root,
+        '--port', [string]$Port,
+        '--base', $Base,
+        '--host', '127.0.0.1'
+    ) -WorkingDirectory $Script:WorldRoot -Root $Root -Port $Port -Base $Base
+}
+
+function Start-SourceServer {
+    param([string]$Name, [string]$Root, [int]$Port, [string]$Base)
+    $npm = Get-NpmCommand
+    return Start-DetachedLoggedProcess -Name $Name -FilePath $npm -Arguments @(
+        'run', 'dev', '--', '--host', '127.0.0.1', '--port', [string]$Port, '--strictPort'
+    ) -WorkingDirectory $Root -Root $Root -Port $Port -Base $Base
+}
+'@
+          if (($text.Split($old).Count - 1) -ne 1) { throw 'Expected one static/source server lifecycle block.' }
+          $text = $text.Replace($old, $new)
+          [IO.File]::WriteAllText($path, $text, [Text.UTF8Encoding]::new($false))
+
+          $testPath = 'axm-world\tests\world\local-estate-contract.test.ts'
+          $test = Get-Content -Raw $testPath
+          $anchor = @'
+    expect(powershell).toContain("--offline");
+    expect(powershell).not.toContain("reset --hard");
+'@
+          $replacement = @'
+    expect(powershell).toContain("--offline");
+    expect(powershell).toContain("function Start-DetachedLoggedProcess");
+    expect(powershell).toContain("-EncodedCommand");
+    const serverLifecycle = powershell.slice(
+      powershell.indexOf("function Start-DetachedLoggedProcess"),
+      powershell.indexOf("function Stop-ProcessTree"),
+    );
+    expect(serverLifecycle).not.toContain("-RedirectStandardOutput");
+    expect(serverLifecycle).not.toContain("-RedirectStandardError");
+    expect(powershell).not.toContain("reset --hard");
+'@
+          if (($test.Split($anchor).Count - 1) -ne 1) { throw 'Expected one local-estate test anchor.' }
+          $test = $test.Replace($anchor, $replacement)
+          [IO.File]::WriteAllText($testPath, $test, [Text.UTF8Encoding]::new($false))
+          git -C axm-world diff --check
+      - name: Hydrate exact dependencies
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force diagnostics | Out-Null
@@ -55,6 +174,18 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & .\axm-world\RODOH.cmd hydrate -EstateRoot "$PWD" *>&1 | Tee-Object diagnostics\hydrate.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Qualify source contract and complete World suite
+        shell: pwsh
+        run: |
+          npm --prefix axm-world run typecheck
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm --prefix axm-world test -- tests/world/local-estate-contract.test.ts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm --prefix axm-world test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build captured products
+        shell: pwsh
+        run: |
           & .\axm-world\RODOH.cmd build -EstateRoot "$PWD" *>&1 | Tee-Object diagnostics\build.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Prove play returns, both servers answer, and stop removes the process trees
@@ -76,35 +207,28 @@ jobs:
             if (Test-Path $state) {
               try { $world = (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 http://127.0.0.1:5173/axm-world/game/).StatusCode -eq 200 } catch { $world = $false }
               try { $arc = (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 http://127.0.0.1:5174/axm-arc/game/).StatusCode -eq 200 } catch { $arc = $false }
-              if ($world -and $arc) { break }
+              if ($world -and $arc -and $play.HasExited) { break }
             }
             if ($play.HasExited -and -not (Test-Path $state)) { break }
             Start-Sleep -Milliseconds 250
           }
-          $returnedBeforeStop = $play.HasExited
           $snapshot = [ordered]@{
             format = 'rodoh-static-health-lifecycle-diagnostic/1'
             worldHealthy = $world
             arcHealthy = $arc
             playPid = $play.Id
             playExitCode = $(if ($play.HasExited) { $play.ExitCode } else { $null })
-            playReturnedBeforeStop = $returnedBeforeStop
+            playReturnedBeforeStop = $play.HasExited
             serverStatePresent = (Test-Path $state)
             serverState = $(if (Test-Path $state) { Get-Content -Raw $state | ConvertFrom-Json } else { $null })
           }
           $snapshot | ConvertTo-Json -Depth 12 | Set-Content -Encoding utf8 diagnostics\before-stop.json
           try {
             if (-not $world -or -not $arc) { throw 'Captured products did not both become healthy within 90 seconds.' }
-            if (-not $returnedBeforeStop) { throw 'RODOH.cmd play did not return after both captured products became healthy.' }
+            if (-not $play.HasExited) { throw 'RODOH.cmd play did not return after both captured products became healthy.' }
             if ($play.ExitCode -ne 0) { throw "RODOH.cmd play returned exit code $($play.ExitCode)." }
           } finally {
             & .\axm-world\RODOH.cmd stop -EstateRoot "$PWD" *>&1 | Tee-Object diagnostics\stop.log
-            if (-not $play.HasExited) {
-              $null = $play.WaitForExit(10000)
-            }
-            if (-not $play.HasExited) {
-              taskkill.exe /PID $play.Id /T /F | Out-File -Append diagnostics\stop.log
-            }
             $after = [ordered]@{
               playExited = $play.HasExited
               serverStatePresent = (Test-Path $state)
@@ -113,6 +237,30 @@ jobs:
             }
             $after | ConvertTo-Json -Depth 6 | Set-Content -Encoding utf8 diagnostics\after-stop.json
           }
+          $after = Get-Content -Raw diagnostics\after-stop.json | ConvertFrom-Json
+          if ($after.serverStatePresent -or $after.worldPortListening -or $after.arcPortListening) {
+            throw 'Stop did not remove the complete captured-build server estate.'
+          }
+      - name: Publish the workflow-neutral lifecycle fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C axm-world fetch --no-tags origin release/local-estate-replication
+          base="$(git -C axm-world rev-parse origin/release/local-estate-replication)"
+          test "$base" = "$LOCAL_ESTATE_BASE_SHA"
+          git -C axm-world config user.name 'github-actions[bot]'
+          git -C axm-world config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C axm-world read-tree "$base^{tree}"
+          git -C axm-world add scripts/local-estate/Invoke-RodohEstate.ps1 tests/world/local-estate-contract.test.ts
+          git -C axm-world diff --cached --check
+          tree="$(git -C axm-world write-tree)"
+          commit="$(printf '%s\n' 'Detach local play servers without retaining parent streams' | \
+            GIT_AUTHOR_NAME='github-actions[bot]' \
+            GIT_AUTHOR_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+            GIT_COMMITTER_NAME='github-actions[bot]' \
+            GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+            git -C axm-world commit-tree "$tree" -p "$base")"
+          git -C axm-world push origin "$commit":release/local-estate-replication
       - name: Upload lifecycle diagnostics
         if: always()
         uses: actions/upload-artifact@v4
