@@ -42,7 +42,7 @@ describe("local estate replication contract", () => {
       requiredCommit: "7b576898f7a82409669a97187bcd836296a77e24",
       productAuthorityCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
     });
-    expect(lock.repositories.world.branch).toBe("release/local-estate-replication");
+    expect(lock.repositories.world.branch).toBe("main");
     expect(lock.repositories.world.requiredAncestor).toBe("466ead00a64af07e85d034ad3d6a6ebd7c3e4998");
     expect(json<{ version: string }>("package.json").version).toBe("1.0.0");
   });
@@ -137,6 +137,8 @@ describe("local estate replication contract", () => {
     expect(powershell).toContain("--offline");
     expect(powershell).toContain("function Start-DetachedLoggedProcess");
     expect(powershell).toContain("-EncodedCommand");
+    expect(powershell).toContain("'clone', '--branch', [string]$Record.branch, '--single-branch'");
+    expect(powershell).toContain('if ($branch -ne [string]$Record.branch)');
     const serverLifecycle = powershell.slice(
       powershell.indexOf("function Start-DetachedLoggedProcess"),
       powershell.indexOf("function Stop-ProcessTree"),
