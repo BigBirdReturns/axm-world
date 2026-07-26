@@ -1,0 +1,86 @@
+name: Verify coordinated Arc attestations
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/verify-arc-attestations.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-coordinated-arc-attestations
+  cancel-in-progress: true
+
+env:
+  ARC_SHA: 331e9693d3210a1b66de0c5ee3931645bfcbc053
+  CI: 'true'
+  SOURCE_DATE_EPOCH: '0'
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out exact Arc evidence head
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_SHA }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Rebuild exact Arc static subject
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$ARC_SHA"
+          test -z "$(git status --porcelain)"
+          npm run typecheck
+          npm test -- tests/release/supply-chain.test.ts
+          npm run build
+          mkdir -p arc-attestation-verification
+          tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner \
+            -cf arc-attestation-verification/axm-arc-game.tar -C docs game
+          gzip -n arc-attestation-verification/axm-arc-game.tar
+          sha256sum arc-attestation-verification/axm-arc-game.tar.gz \
+            | tee arc-attestation-verification/SHA256SUMS
+      - name: Verify Arc-owned build provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh attestation verify arc-attestation-verification/axm-arc-game.tar.gz \
+            --repo BigBirdReturns/axm-arc \
+            --predicate-type https://slsa.dev/provenance/v1 \
+            --signer-workflow BigBirdReturns/axm-arc/.github/workflows/supply-chain-evidence.yml \
+            --source-digest "$ARC_SHA" \
+            --source-ref refs/heads/main \
+            --format json \
+            | tee arc-attestation-verification/provenance-verification.json
+          test -s arc-attestation-verification/provenance-verification.json
+      - name: Verify Arc-owned CycloneDX attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh attestation verify arc-attestation-verification/axm-arc-game.tar.gz \
+            --repo BigBirdReturns/axm-arc \
+            --predicate-type https://cyclonedx.org/bom \
+            --signer-workflow BigBirdReturns/axm-arc/.github/workflows/supply-chain-evidence.yml \
+            --source-digest "$ARC_SHA" \
+            --source-ref refs/heads/main \
+            --format json \
+            | tee arc-attestation-verification/cyclonedx-verification.json
+          test -s arc-attestation-verification/cyclonedx-verification.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coordinated-arc-attestation-verification
+          path: arc-attestation-verification
+          if-no-files-found: warn
+          retention-days: 14
