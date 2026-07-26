@@ -19,7 +19,7 @@
       "name": "axm-world",
       "url": "https://github.com/BigBirdReturns/axm-world.git",
       "directory": "axm-world",
-      "branch": "release/local-estate-replication",
+      "branch": "main",
       "requiredAncestor": "466ead00a64af07e85d034ad3d6a6ebd7c3e4998",
       "productAuthorityCommit": "466ead00a64af07e85d034ad3d6a6ebd7c3e4998",
       "role": "Rodoh spatial runtime player, local estate orchestrator, release receiver",
