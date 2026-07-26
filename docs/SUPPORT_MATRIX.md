@@ -2,6 +2,8 @@
 
 RODOH v1 makes a bounded local-first support claim. Standards compliance and a green Chromium run are useful evidence, but neither silently expands the supported environment.
 
+A downstream release train is requalified after every accepted dependency change. A green donor or parent run is useful provenance, but it is not silently treated as evidence for different assembled bytes.
+
 ## Primary support
 
 | Surface | Supported environment | Acceptance |
