@@ -74,7 +74,7 @@ jobs:
           if git ls-files -- docs/game | grep -q .; then git restore --source=HEAD --staged --worktree -- docs/game; fi
           git clean -fdx -- docs/game
           git diff --check
-      - name: Publish the carrier-free asset refresh
+      - name: Publish the qualified asset refresh
         run: |
           set -euo pipefail
           source_head='${{ github.event.pull_request.head.sha || github.sha }}'
@@ -83,7 +83,6 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add estate/estate.lock.json .github/workflows/local-estate-replication.yml tests/world/local-estate-contract.test.ts docs/SUPPLY_CHAIN_CUSTODY.md
-          git rm .github/workflows/refresh-arc-release-evidence-head.yml
           git diff --cached --check
           git commit -m 'Pin asset custody to Arc signed-evidence main'
           git push origin HEAD:qualify/asset-custody-assembled-v1
