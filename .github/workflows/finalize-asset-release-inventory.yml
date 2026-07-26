@@ -12,6 +12,7 @@ on:
       - 'src/assets/rollups/rodoh-v1-programs.json'
       - 'src/assets/descriptions/rodoh-v1-dense-assets.json'
       - 'tests/world/asset-release-custody.test.ts'
+      - 'src/assets/**/*.svg'
   workflow_dispatch:
 
 permissions:
@@ -62,19 +63,20 @@ jobs:
       - name: Qualify asset custody and product
         run: |
           set -euo pipefail
-          npm run typecheck
-          npm test -- tests/world/asset-release-custody.test.ts tests/world/asset-standard.test.ts tests/world/production-asset-wave-one.test.ts tests/world/lamp-district-assets.test.ts tests/world/relief-circuit-production-assets.test.ts
-          npm test
-          npm run build
+          : > asset-qualification.log
+          npm run typecheck 2>&1 | tee -a asset-qualification.log
+          npm test -- tests/world/asset-release-custody.test.ts tests/world/asset-standard.test.ts tests/world/production-asset-wave-one.test.ts tests/world/lamp-district-assets.test.ts tests/world/relief-circuit-production-assets.test.ts 2>&1 | tee -a asset-qualification.log
+          npm test 2>&1 | tee -a asset-qualification.log
+          npm run build 2>&1 | tee -a asset-qualification.log
           node scripts/performance/audit-static-build.mjs \
             --build docs/game \
             --budgets docs/performance/RODOH_PERFORMANCE_BUDGETS.json \
-            --output asset-performance-receipt.json
+            --output asset-performance-receipt.json 2>&1 | tee -a asset-qualification.log
           if git ls-files -- docs/game | grep -q .; then
             git restore --source=HEAD --staged --worktree -- docs/game
           fi
           git clean -fdx -- docs/game
-          git diff --check
+          git diff --check 2>&1 | tee -a asset-qualification.log
       - name: Publish the workflow-neutral inventory
         run: |
           set -euo pipefail
@@ -94,6 +96,7 @@ jobs:
           name: asset-release-inventory-finalization
           path: |
             asset-inventory-build.log
+            asset-qualification.log
             asset-performance-receipt.json
             docs/release/RODOH_ASSET_INVENTORY.json
           if-no-files-found: warn
