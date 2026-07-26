@@ -52,13 +52,21 @@ test("the holder exports and transactionally restores the complete Rodoh browser
   await page.reload();
   await expect(page.getByTestId("rodoh-cartridge-bay")).toBeVisible();
   await expect(page.getByTestId("cartridge-entry-orchard-at-low-tide")).toHaveCount(0);
+  await page.evaluate(() => localStorage.setItem("axm-world:stale-holder-state@1", "remove-only-under-replace"));
 
   await page.getByTestId("holder-estate-input").setInputFiles(firstPath);
   await expect(page.getByTestId("holder-estate-preflight")).toBeVisible();
+  const mergePreflight = page.getByTestId("holder-estate-merge-preflight");
+  const replacePreflight = page.getByTestId("holder-estate-replace-preflight");
+  await expect(mergePreflight).toBeVisible();
+  await expect(replacePreflight).toBeVisible();
+  await expect(mergePreflight).toHaveAttribute("data-remove", "0");
+  await expect(replacePreflight).toHaveAttribute("data-remove", "1");
   await expect(page.getByTestId("holder-estate-preflight")).toContainText(/records|記錄/i);
   await page.getByTestId("holder-estate-replace").click();
 
   await expect.poll(async () => page.evaluate(() => localStorage.getItem("axm-world:locale:v1")), { timeout: 15_000 }).toBe("zh-Hant");
+  await expect.poll(async () => page.evaluate(() => localStorage.getItem("axm-world:stale-holder-state@1")), { timeout: 15_000 }).toBeNull();
   await expect(page.getByTestId("rodoh-cartridge-bay")).toBeVisible({ timeout: 15_000 });
   const orchard = page.getByTestId("cartridge-entry-orchard-at-low-tide");
   await expect(orchard).toBeVisible();
