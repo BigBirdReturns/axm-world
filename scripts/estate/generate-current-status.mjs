@@ -85,12 +85,16 @@ const branch = git("branch", "--show-current");
 const dirty = git("status", "--porcelain") !== "";
 const arcProductAuthority = lock.repositories.arc.productAuthorityCommit ?? lock.repositories.arc.requiredAncestor;
 const arcReleaseEvidence = lock.repositories.arc.requiredCommit;
+const arcPackageVersion = lock.repositories.arc.packageVersion;
 
 if (typeof arcProductAuthority !== "string" || !/^[0-9a-f]{40}$/.test(arcProductAuthority)) {
   fail("estate.lock.json does not name an exact Arc productAuthorityCommit.");
 }
 if (typeof arcReleaseEvidence !== "string" || !/^[0-9a-f]{40}$/.test(arcReleaseEvidence)) {
   fail("estate.lock.json does not name an exact Arc requiredCommit for release evidence.");
+}
+if (typeof arcPackageVersion !== "string" || arcPackageVersion.length === 0) {
+  fail("estate.lock.json does not name the Arc package version.");
 }
 
 const capabilities = {
@@ -123,6 +127,7 @@ if (bookIV.runtimeRegistered || bookIV.programAssigned) bookIV.status = "impleme
 
 const blockers = [];
 if (pkg.version !== "1.0.0") blockers.push(`World package version is ${pkg.version}, not 1.0.0.`);
+if (arcPackageVersion !== "1.0.0") blockers.push(`Arc package version is ${arcPackageVersion}, not 1.0.0.`);
 if (dirty) blockers.push("World checkout is dirty.");
 if (!localOperator.valid) blockers.push("Local operator acceptance receipt is absent or invalid.");
 if (!windowsReplication.valid) blockers.push("Windows replication receipt is absent or invalid.");
@@ -164,7 +169,7 @@ const status = {
       releaseEvidenceCommit: arcReleaseEvidence,
       requiredBranch: lock.repositories.arc.branch,
       vendoredPaths: vendored.paths,
-      packageVersion: lock.repositories.arc.packageVersion,
+      packageVersion: arcPackageVersion,
     },
   },
   protocols: lock.protocols,
@@ -178,13 +183,14 @@ const status = {
   release: {
     target: lock.releaseTarget,
     packageVersion: pkg.version,
+    arcPackageVersion,
     ready: blockers.length === 0,
     blockers,
   },
   bookIV,
 };
 
-const markdown = `# Current RODOH estate status\n\nGenerated from exact local repository facts at \`${status.generatedAt}\`. GitHub issue state is discovery metadata; it is not substituted for source, tests, receipts, or exact content identity.\n\n## Repository pair\n\n| Plane | Identity | Version | Condition |\n|---|---|---:|---|\n| World | \`${worldCommit}\` on \`${branch || "detached"}\` | \`${pkg.version}\` | ${dirty ? "dirty" : "clean"} |\n| Arc product authority | \`${arcProductAuthority}\` | \`${lock.repositories.arc.packageVersion}\` | vendored \`${vendored.commit}\` |\n| Arc release evidence | \`${arcReleaseEvidence}\` on \`${lock.repositories.arc.branch}\` | \`${lock.repositories.arc.packageVersion}\` | coordinated receipt identity |\n\n## Capabilities\n\n${Object.entries(capabilities).map(([name, present]) => `- [${present ? "x" : " "}] \`${name}\``).join("\n")}\n\n## Local evidence\n\n| Receipt | Present | Valid | World | Arc |\n|---|---|---|---|---|\n${[windowsReplication, localOperator, nvdaEdge].map((entry) => `| \`${entry.path}\` | ${entry.present ? "yes" : "no"} | ${entry.valid ? "yes" : "no"} | ${entry.worldCommit ?? "—"} | ${entry.arcCommit ?? "—"} |`).join("\n")}\n\n## Release\n\n**Target:** ${lock.releaseTarget}\n\n**Ready:** ${status.release.ready ? "yes" : "no"}\n\n${blockers.length ? blockers.map((blocker) => `- ${blocker}`).join("\n") : "No recorded blockers."}\n\n## Book IV\n\nPublication canon: ${bookIV.publicationCanon ? "yes" : "no"}. Runtime registered: ${bookIV.runtimeRegistered ? "yes" : "no"}. Program assigned: ${bookIV.programAssigned ? "yes" : "no"}. Current boundary: **${bookIV.status}**.\n`;
+const markdown = `# Current RODOH estate status\n\nGenerated from exact local repository facts at \`${status.generatedAt}\`. GitHub issue state is discovery metadata; it is not substituted for source, tests, receipts, or exact content identity.\n\n## Repository pair\n\n| Plane | Identity | Version | Condition |\n|---|---|---:|---|\n| World | \`${worldCommit}\` on \`${branch || "detached"}\` | \`${pkg.version}\` | ${dirty ? "dirty" : "clean"} |\n| Arc product authority | \`${arcProductAuthority}\` | \`${arcPackageVersion}\` | vendored \`${vendored.commit}\` |\n| Arc release evidence | \`${arcReleaseEvidence}\` on \`${lock.repositories.arc.branch}\` | \`${arcPackageVersion}\` | coordinated receipt identity |\n\n## Capabilities\n\n${Object.entries(capabilities).map(([name, present]) => `- [${present ? "x" : " "}] \`${name}\``).join("\n")}\n\n## Local evidence\n\n| Receipt | Present | Valid | World | Arc |\n|---|---|---|---|---|\n${[windowsReplication, localOperator, nvdaEdge].map((entry) => `| \`${entry.path}\` | ${entry.present ? "yes" : "no"} | ${entry.valid ? "yes" : "no"} | ${entry.worldCommit ?? "—"} | ${entry.arcCommit ?? "—"} |`).join("\n")}\n\n## Release\n\n**Target:** ${lock.releaseTarget}\n\n**Ready:** ${status.release.ready ? "yes" : "no"}\n\n${blockers.length ? blockers.map((blocker) => `- ${blocker}`).join("\n") : "No recorded blockers."}\n\n## Book IV\n\nPublication canon: ${bookIV.publicationCanon ? "yes" : "no"}. Runtime registered: ${bookIV.runtimeRegistered ? "yes" : "no"}. Program assigned: ${bookIV.programAssigned ? "yes" : "no"}. Current boundary: **${bookIV.status}**.\n`;
 
 for (const path of [jsonOutput, markdownOutput]) mkdirSync(dirname(path), { recursive: true });
 writeFileSync(jsonOutput, `${JSON.stringify(status, null, 2)}\n`);
