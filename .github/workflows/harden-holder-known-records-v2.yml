@@ -67,6 +67,14 @@ jobs:
           script = script.replace(old_costume, new_costume)
 
           exec(compile(script, '<holder-known-record-hardening>', 'exec'), {'__name__': '__main__'})
+
+          test_path = Path('tests/world/holder-estate.test.ts')
+          tests = test_path.read_text()
+          old_duplicate = '    const invalidEstate = buildHolderEstate(new MemoryStorage({\n      [`${SAVE_KEY_PREFIX}${DIGEST}`]: duplicateRun,'
+          new_duplicate = '    const invalidEstate = buildHolderEstate(new MemoryStorage({\n      [CARTRIDGE_BAY_KEY]: bayValue(),\n      [`${SAVE_KEY_PREFIX}${DIGEST}`]: duplicateRun,'
+          if tests.count(old_duplicate) != 1:
+              raise SystemExit(f'duplicate-run fixture rewrite count: {tests.count(old_duplicate)}')
+          test_path.write_text(tests.replace(old_duplicate, new_duplicate))
           PY
           git diff --check
       - run: npm ci --no-audit --no-fund
