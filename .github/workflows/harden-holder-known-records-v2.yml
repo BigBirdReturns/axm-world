@@ -1,0 +1,88 @@
+name: Harden holder-estate known records v2
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/harden-holder-known-records-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: harden-holder-known-records-v2
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+
+jobs:
+  qualify-and-publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply the corrected strict known-record transformation
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          workflow = Path('.github/workflows/harden-holder-known-records.yml').read_text().splitlines()
+          start = next(index for index, line in enumerate(workflow) if line.strip() == "python - <<'PY'") + 1
+          end = next(index for index in range(start, len(workflow)) if workflow[index].strip() == 'PY')
+          script = '\n'.join(
+              line[10:] if line.startswith('          ') else line
+              for line in workflow[start:end]
+          ) + '\n'
+
+          replacement = r'''tests = tests.replace(
+              '    const invalidSource = new MemoryStorage({\n      [`${SAVE_KEY_PREFIX}${DIGEST}`]: runValue(KARAZHAN),',
+              '    const invalidSource = new MemoryStorage({\n      [CARTRIDGE_BAY_KEY]: bayValue(),\n      [`${SAVE_KEY_PREFIX}${DIGEST}`]: runValue(KARAZHAN),',
+          )'''
+          script, count = re.subn(
+              r"old_invalid = '''.*?tests = tests\.replace\(old_invalid, new_invalid\)",
+              lambda _: replacement,
+              script,
+              count=1,
+              flags=re.S,
+          )
+          if count != 1:
+              raise SystemExit(f'corrected invalid-run fixture rewrite count: {count}')
+          exec(compile(script, '<holder-known-record-hardening>', 'exec'), {'__name__': '__main__'})
+          PY
+          git diff --check
+      - run: npm ci --no-audit --no-fund
+      - name: Qualify strict holder records and the complete World product
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm test -- tests/world/holder-estate.test.ts tests/world/locale.test.ts
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          git diff --check
+      - name: Publish the source-only hardening
+        run: |
+          set -euo pipefail
+          source_head='${{ github.event.pull_request.head.sha || github.sha }}'
+          git fetch --no-tags origin release/holder-estate-v1
+          test "$(git rev-parse origin/release/holder-estate-v1)" = "$source_head"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/world/holder-estate.ts tests/world/holder-estate.test.ts
+          git diff --cached --check
+          git commit -m 'Refuse holder records that ordinary loaders cannot resume'
+          git push origin HEAD:release/holder-estate-v1
