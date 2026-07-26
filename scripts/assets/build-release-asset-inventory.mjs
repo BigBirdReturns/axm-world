@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
-import { extname, relative, resolve } from "node:path";
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
+import { dirname, extname, relative, resolve } from "node:path";
 
 function fail(message) {
   console.error(message);
@@ -146,9 +146,6 @@ function urlLiterals(text) {
     .map((match) => match[0].replace(/[;,]+$/, ""))
     .filter((value) => !NON_NETWORK_NAMESPACE_PREFIXES.some((prefix) => value.startsWith(prefix)));
 }
-/** Only references capable of loading a runtime asset count here. Repository,
- * provenance, and license URLs inside comments or JSON metadata are records, not
- * network-bearing asset edges. Executable source string literals remain in scope. */
 function remoteReferences(path, text) {
   if (!text) return [];
   const extension = extname(path).toLowerCase();
@@ -301,6 +298,7 @@ if (check) {
   if (readFileSync(outputPath, "utf8") !== output) fail(`Committed asset inventory is stale: ${relative(root, outputPath)}`);
   console.log(`${relative(root, outputPath)} is current.`);
 } else {
+  mkdirSync(dirname(outputPath), { recursive: true });
   writeFileSync(outputPath, output);
   console.log(JSON.stringify({
     format: "rodoh-release-asset-inventory-build/1",
