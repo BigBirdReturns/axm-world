@@ -518,6 +518,18 @@ export type MessageId =
   | "cartridgePanel.ledgerProvenance"
   // ── boot screen (cartridge bay) ──────────────────────────────────────────
   | "boot.openCartridge"
+  | "boot.holderEstateHeading"
+  | "boot.exportHolderEstate"
+  | "boot.restoreHolderEstate"
+  | "boot.holderEstateExported"
+  | "boot.holderEstateRestored"
+  | "boot.holderEstatePreflight"
+  | "boot.holderEstateSummary"
+  | "boot.holderEstateOpaque"
+  | "boot.holderEstateMerge"
+  | "boot.holderEstateReplace"
+  | "boot.holderEstateCancel"
+  | "boot.holderEstateFailed"
   | "boot.remove"
   | "boot.importedNamed"
   | "boot.runRestoredNamed"
@@ -1130,6 +1142,18 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "cartridgePanel.ledgerProvenance": "Each result is recorded under the authored identity above. This ledger checks against the program.",
 
     "boot.openCartridge": "Open cartridge…",
+    "boot.holderEstateHeading": "Holder estate",
+    "boot.exportHolderEstate": "Export holder estate",
+    "boot.restoreHolderEstate": "Restore holder estate",
+    "boot.holderEstateExported": (params) => `Holder estate exported · ${num(params, "count")} records.`,
+    "boot.holderEstateRestored": (params) => `Holder estate restored · ${num(params, "count")} records. Reloading…`,
+    "boot.holderEstatePreflight": "Holder-estate preflight",
+    "boot.holderEstateSummary": (params) => `${num(params, "count")} records · add ${num(params, "add")} · change ${num(params, "change")} · exact-remove ${num(params, "remove")} · opaque ${num(params, "opaque")}`,
+    "boot.holderEstateOpaque": (params) => `${num(params, "count")} opaque future namespace${num(params, "count") === 1 ? "" : "s"}`,
+    "boot.holderEstateMerge": "Merge held records",
+    "boot.holderEstateReplace": "Restore exactly",
+    "boot.holderEstateCancel": "Cancel",
+    "boot.holderEstateFailed": "Holder-estate operation failed:",
     "boot.remove": "Remove",
     "boot.importedNamed": (params) => `Imported "${str(params, "name")}".`,
     "boot.runRestoredNamed": (params) => `Exact run restored: ${str(params, "name")}.`,
@@ -1686,6 +1710,18 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "cartridgePanel.ledgerProvenance": "每筆結果皆記錄於上方的作者身分之下。此帳本可對照程式核對。",
 
     "boot.openCartridge": "開啟卡匣…",
+    "boot.holderEstateHeading": "持有者資產",
+    "boot.exportHolderEstate": "匯出持有者資產",
+    "boot.restoreHolderEstate": "還原持有者資產",
+    "boot.holderEstateExported": (params) => `持有者資產已匯出 · ${num(params, "count")} 筆記錄。`,
+    "boot.holderEstateRestored": (params) => `持有者資產已還原 · ${num(params, "count")} 筆記錄。正在重新載入…`,
+    "boot.holderEstatePreflight": "持有者資產預檢",
+    "boot.holderEstateSummary": (params) => `${num(params, "count")} 筆記錄 · 新增 ${num(params, "add")} · 變更 ${num(params, "change")} · 精確移除 ${num(params, "remove")} · 不透明 ${num(params, "opaque")}`,
+    "boot.holderEstateOpaque": (params) => `${num(params, "count")} 個不透明的未來命名空間`,
+    "boot.holderEstateMerge": "合併持有記錄",
+    "boot.holderEstateReplace": "精確還原",
+    "boot.holderEstateCancel": "取消",
+    "boot.holderEstateFailed": "持有者資產操作失敗：",
     "boot.remove": "移除",
     "boot.importedNamed": (params) => `已匯入「${str(params, "name")}」。`,
     "boot.runRestoredNamed": (params) => `已還原精確執行紀錄：${str(params, "name")}。`,
