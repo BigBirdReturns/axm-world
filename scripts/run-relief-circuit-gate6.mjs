@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import process from "node:process";
 
 const ROOT = new URL("../", import.meta.url);
@@ -26,6 +26,7 @@ const server = spawn(invocation.command, invocation.args, {
   stdio: ["ignore", "pipe", "pipe"],
   detached: process.platform !== "win32",
   shell: invocation.shell,
+  windowsHide: true,
 });
 let serverLog = "";
 let serverError = null;
@@ -53,6 +54,7 @@ function run(mode) {
       cwd: ROOT,
       env: { ...process.env, PW_BASE_URL: BASE_URL },
       stdio: "inherit",
+      windowsHide: true,
     });
     child.on("error", reject);
     child.on("exit", (code, signal) => {
@@ -62,11 +64,53 @@ function run(mode) {
   });
 }
 
-function stopServer() {
-  if (server.exitCode !== null) return;
-  if (process.platform === "win32") server.kill("SIGTERM");
-  else {
+function waitForServerClose(timeoutMs) {
+  if (server.exitCode !== null || server.signalCode !== null) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (closed) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      server.off("close", onClose);
+      resolve(closed);
+    };
+    const onClose = () => finish(true);
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    server.once("close", onClose);
+  });
+}
+
+function killWindowsServerTree() {
+  if (!server.pid) return false;
+  const result = spawnSync("taskkill.exe", ["/PID", String(server.pid), "/T", "/F"], {
+    stdio: "ignore",
+    windowsHide: true,
+  });
+  // A non-zero status is harmless when the process already exited between the
+  // state check and taskkill. Only an inability to invoke taskkill needs fallback.
+  return !result.error;
+}
+
+async function stopServer() {
+  if (server.exitCode !== null || server.signalCode !== null) return;
+
+  if (process.platform === "win32") {
+    if (!killWindowsServerTree()) server.kill();
+  } else {
     try { process.kill(-server.pid, "SIGTERM"); } catch { server.kill("SIGTERM"); }
+  }
+
+  if (await waitForServerClose(10_000)) return;
+
+  if (process.platform === "win32") {
+    if (!killWindowsServerTree()) server.kill();
+  } else {
+    try { process.kill(-server.pid, "SIGKILL"); } catch { server.kill("SIGKILL"); }
+  }
+
+  if (!(await waitForServerClose(5_000))) {
+    throw new Error(`Gate 6 Vite process tree did not terminate.\n${serverLog}`);
   }
 }
 
@@ -75,5 +119,5 @@ try {
   await run("desktop");
   await run("mobile");
 } finally {
-  stopServer();
+  await stopServer();
 }
