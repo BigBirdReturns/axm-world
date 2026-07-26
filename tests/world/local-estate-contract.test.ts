@@ -39,7 +39,7 @@ describe("local estate replication contract", () => {
     expect(lock.repositories.arc).toMatchObject({
       branch: "main",
       requiredAncestor: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
-      requiredCommit: "9345cbeb8f360832d8def5e7a37ac094957b8f14",
+      requiredCommit: "eb3fd7f53fd72641814cb3939648790e64e9adcf",
       productAuthorityCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
     });
     expect(lock.repositories.world.branch).toBe("release/local-estate-replication");
@@ -133,10 +133,10 @@ describe("local estate replication contract", () => {
 
     const powershell = read("scripts/local-estate/Invoke-RodohEstate.ps1");
     expect(powershell).toContain("rodoh-local-operator-acceptance/1");
-    expect(powershell).toContain("bundle', 'create'");
-    expect(powershell).toContain("--offline");
+    expect(powershell.toContain("bundle', 'create'");
+    expect(powershell.toContain("--offline");
     expect(powershell).toContain("function Start-DetachedLoggedProcess");
-    expect(powershell).toContain("-EncodedCommand");
+    expect(powershell.toContain("-EncodedCommand");
     const serverLifecycle = powershell.slice(
       powershell.indexOf("function Start-DetachedLoggedProcess"),
       powershell.indexOf("function Stop-ProcessTree"),
