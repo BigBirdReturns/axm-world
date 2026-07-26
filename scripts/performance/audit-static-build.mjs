@@ -41,12 +41,12 @@ function svgElements(text) {
     .length;
 }
 
-const NON_NETWORK_NAMESPACES = new Set([
+const NON_NETWORK_NAMESPACE_PREFIXES = [
   "http://www.w3.org/1999/xhtml",
   "http://www.w3.org/1999/xlink",
   "http://www.w3.org/2000/svg",
   "http://www.w3.org/XML/1998/namespace",
-]);
+];
 function externalReferenceUrls(path, text) {
   const extension = extname(path).toLowerCase();
   const candidates = [];
@@ -60,15 +60,16 @@ function externalReferenceUrls(path, text) {
     }
   } else if (extension === ".js" || extension === ".mjs") {
     // Built JavaScript can create network traffic without leaving an HTML/CSS
-    // reference. Scan URL-shaped literals and exclude only standards namespaces,
-    // which identify DOM vocabularies rather than fetchable runtime dependencies.
-    for (const match of text.matchAll(/(?:https?:)?\/\/[^\s"'`<>\\)\]}]+/gi)) {
+    // reference. Require either an explicit HTTP scheme or a domain-shaped
+    // protocol-relative literal so comments and source-map directives do not
+    // masquerade as dependencies.
+    for (const match of text.matchAll(/(?:https?:\/\/[^\s"'`<>\\)\]}]+|\/\/(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?:[^\s"'`<>\\)\]}]*))/gi)) {
       candidates.push(match[0]);
     }
   }
   return candidates
     .map((value) => value.replace(/[;,]+$/, ""))
-    .filter((value) => !NON_NETWORK_NAMESPACES.has(value))
+    .filter((value) => !NON_NETWORK_NAMESPACE_PREFIXES.some((prefix) => value.startsWith(prefix)))
     .sort(compareStrings);
 }
 
