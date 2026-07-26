@@ -1,6 +1,9 @@
 name: Repair Gate 6 browser resolution
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/repair-gate6-browser-resolution.yml'
   push:
     branches: [release/local-estate-replication]
     paths:
@@ -18,10 +21,12 @@ jobs:
   repair:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      REPAIR_BASE_SHA: 118bf7b8fc666c4d753547b0e9ce752877f6e817
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: release/local-estate-replication
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           show-progress: false
       - uses: actions/setup-node@v4
@@ -53,12 +58,22 @@ jobs:
           set -euo pipefail
           npm run typecheck
           npm test -- tests/world/gate6-review-regressions.test.ts
-      - name: Publish the exact non-workflow repair
+      - name: Publish a workflow-neutral permanent repair
         run: |
           set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          cp scripts/verify-relief-circuit-gate6.mjs /tmp/verify-relief-circuit-gate6.mjs
+          git fetch --no-tags origin release/local-estate-replication
+          base="$(git rev-parse origin/release/local-estate-replication)"
+          test "$base" = "$REPAIR_BASE_SHA"
+          git read-tree "$base^{tree}"
+          cp /tmp/verify-relief-circuit-gate6.mjs scripts/verify-relief-circuit-gate6.mjs
           git add scripts/verify-relief-circuit-gate6.mjs
           git diff --cached --check
-          git commit -m 'Resolve holder-cached Chromium in the Gate 6 verifier'
-          git push origin HEAD:release/local-estate-replication
+          tree="$(git write-tree)"
+          commit="$(printf '%s\n' 'Resolve holder-cached Chromium in the Gate 6 verifier' | \
+            GIT_AUTHOR_NAME='github-actions[bot]' \
+            GIT_AUTHOR_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+            GIT_COMMITTER_NAME='github-actions[bot]' \
+            GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+            git commit-tree "$tree" -p "$base")"
+          git push origin "$commit":release/local-estate-replication
