@@ -109,6 +109,10 @@ describe("browser support and performance custody", () => {
     expect(workflow).toContain("set -euo pipefail");
     expect(workflow).toContain("Hosted Windows Edge smoke");
     expect(workflow).not.toContain("Windows 11 Edge smoke");
+    expect(workflow).not.toMatch(/^\s+paths:/m);
+    expect(workflow).toContain("Record exact candidate identity");
+    expect(workflow).toContain("TypeScript, support contracts, and complete World regression");
+    expect(workflow).toMatch(/npm test\s*\n/);
 
     const recorder = readFileSync(resolve(ROOT, "scripts/accessibility/Record-NvdaEdgeAcceptance.ps1"), "utf8");
     expect(recorder).toContain('Invoke-GitText $worldRepo @("status", "--porcelain")');
@@ -121,15 +125,15 @@ describe("browser support and performance custody", () => {
   });
 
   it("coalesces exact pixel ledgers instead of emitting one cold-shelf node per pixel", () => {
-  const icons = readFileSync(resolve(ROOT, "src/world/pixel-ui/PixelIcon.tsx"), "utf8");
-  const mark = readFileSync(resolve(ROOT, "src/world/brand/RodohRuntimeMark.tsx"), "utf8");
-  expect(icons).toContain("const GLYPH_PATHS");
-  expect(icons).toContain("pathForTone");
-  expect(icons).not.toContain("cells.push(<rect");
-  expect(mark).toContain("const ROOT_PATHS");
-  expect(mark).toContain("<RodohDandelionGlyph size={RODOH_ROOT_MARK_WIDTH * cell} />");
-  expect(mark).not.toContain("RODOH_ROOT_MARK_MAP.flatMap");
-});
+    const icons = readFileSync(resolve(ROOT, "src/world/pixel-ui/PixelIcon.tsx"), "utf8");
+    const mark = readFileSync(resolve(ROOT, "src/world/brand/RodohRuntimeMark.tsx"), "utf8");
+    expect(icons).toContain("const GLYPH_PATHS");
+    expect(icons).toContain("pathForTone");
+    expect(icons).not.toContain("cells.push(<rect");
+    expect(mark).toContain("const ROOT_PATHS");
+    expect(mark).toContain("<RodohDandelionGlyph size={RODOH_ROOT_MARK_WIDTH * cell} />");
+    expect(mark).not.toContain("RODOH_ROOT_MARK_MAP.flatMap");
+  });
 
   it("refuses every valid-looking acceptance receipt that names a different repository pair", () => {
     const estateRoot = mkdtempSync(join(tmpdir(), "rodoh-status-"));
