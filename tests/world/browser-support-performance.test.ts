@@ -171,8 +171,6 @@ describe("browser support and performance custody", () => {
     const status = JSON.parse(readFileSync(output, "utf8"));
     expect(status.release.ready).toBe(false);
     expect(status.release.blockers).toEqual(expect.arrayContaining([
-      "World package version is 0.0.1, not 1.0.0.",
-      "Arc package version is 0.0.1, not 1.0.0.",
       expect.stringMatching(/^Local operator receipt names World /),
       expect.stringMatching(/^Local operator receipt names Arc /),
       expect.stringMatching(/^Windows replication receipt names World /),
@@ -184,13 +182,13 @@ describe("browser support and performance custody", () => {
       expect.stringMatching(/^Vendored Arc product authority /),
     ]));
     expect(status.release).toMatchObject({
-      packageVersion: "0.0.1",
-      arcPackageVersion: "0.0.1",
+      packageVersion: "1.0.0",
+      arcPackageVersion: "1.0.0",
     });
     expect(status.repositories.arc).toMatchObject({
       vendoredCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
       productAuthorityCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
-      releaseEvidenceCommit: "331e9693d3210a1b66de0c5ee3931645bfcbc053",
+      releaseEvidenceCommit: "7b576898f7a82409669a97187bcd836296a77e24",
     });
     expect(status.repositories.world.commit).toBe(git("rev-parse", "HEAD"));
   });
