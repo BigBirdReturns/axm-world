@@ -1,6 +1,6 @@
 name: Finalize qualified Arc release head
 
-# Push trigger: publish only after the exact pull-request qualification passed.
+# Publish from the same exact pull-request run that performs qualification.
 on:
   pull_request:
     paths:
@@ -105,7 +105,6 @@ jobs:
           git clean -fdx -- docs/game
           git diff --check
       - name: Publish the workflow-neutral Arc release pin
-        if: github.event_name == 'push'
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
