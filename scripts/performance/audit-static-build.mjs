@@ -42,11 +42,28 @@ function svgElements(text) {
 }
 
 const NON_NETWORK_NAMESPACE_PREFIXES = [
+  "http://www.w3.org/1998/Math/MathML",
   "http://www.w3.org/1999/xhtml",
   "http://www.w3.org/1999/xlink",
   "http://www.w3.org/2000/svg",
   "http://www.w3.org/XML/1998/namespace",
 ];
+const URL_LITERAL = "((?:https?:)?//[^\\s\\\"'`<>\\)\\]}]+)";
+const JAVASCRIPT_NETWORK_PATTERNS = [
+  new RegExp(`\\bfetch\\s*\\(\\s*[\\\"'\`]${URL_LITERAL}`, "gi"),
+  new RegExp(`\\bimport\\s*\\(\\s*[\\\"'\`]${URL_LITERAL}`, "gi"),
+  new RegExp(`\\bnew\\s+(?:WebSocket|EventSource|Worker|SharedWorker)\\s*\\(\\s*[\\\"'\`]${URL_LITERAL}`, "gi"),
+  new RegExp(`\\bnavigator\\.sendBeacon\\s*\\(\\s*[\\\"'\`]${URL_LITERAL}`, "gi"),
+  new RegExp(`\\b(?:window\\.)?open\\s*\\(\\s*[\\\"'\`]${URL_LITERAL}`, "gi"),
+  new RegExp(`\\b(?:window\\.)?location\\.(?:assign|replace)\\s*\\(\\s*[\\\"'\`]${URL_LITERAL}`, "gi"),
+  // XMLHttpRequest.open(method, url, ...). Keep the first-argument allowance
+  // bounded so unrelated minified text cannot bridge arbitrarily into a URL.
+  new RegExp(`\\.open\\s*\\(\\s*[^,\\n]{1,80},\\s*[\\\"'\`]${URL_LITERAL}`, "gi"),
+  // Static external ESM imports remain executable network edges even without a
+  // function call. Bundled documentation and namespace strings do not match.
+  new RegExp(`\\b(?:import|export)\\s+(?:[^\\\"'\`\\n]{0,160}?\\s+from\\s+)?[\\\"'\`]${URL_LITERAL}`, "gi"),
+];
+
 function externalReferenceUrls(path, text) {
   const extension = extname(path).toLowerCase();
   const candidates = [];
@@ -59,17 +76,14 @@ function externalReferenceUrls(path, text) {
       candidates.push(match[1]);
     }
   } else if (extension === ".js" || extension === ".mjs") {
-    // Built JavaScript can create network traffic without leaving an HTML/CSS
-    // reference. Require either an explicit HTTP scheme or a domain-shaped
-    // protocol-relative literal so comments and source-map directives do not
-    // masquerade as dependencies.
-    for (const match of text.matchAll(/(?:https?:\/\/[^\s"'`<>\\)\]}]+|\/\/(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?:[^\s"'`<>\\)\]}]*))/gi)) {
-      candidates.push(match[0]);
+    for (const pattern of JAVASCRIPT_NETWORK_PATTERNS) {
+      pattern.lastIndex = 0;
+      for (const match of text.matchAll(pattern)) candidates.push(match[1]);
     }
   }
-  return candidates
+  return [...new Set(candidates
     .map((value) => value.replace(/[;,]+$/, ""))
-    .filter((value) => !NON_NETWORK_NAMESPACE_PREFIXES.some((prefix) => value.startsWith(prefix)))
+    .filter((value) => !NON_NETWORK_NAMESPACE_PREFIXES.some((prefix) => value.startsWith(prefix))))]
     .sort(compareStrings);
 }
 
