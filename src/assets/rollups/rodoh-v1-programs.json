@@ -17,10 +17,10 @@
       "status": "production-dignity-complete",
       "historicalManifests": [
         "src/world/brand/rodoh-root-mark.provenance.json",
-        "src/assets/provenance/rodoh-bay.json"
+        "src/assets/rodoh/bay/provenance.json"
       ],
       "assetRoots": [
-        "src/assets/rodoh-bay",
+        "src/assets/rodoh/bay",
         "src/world/brand"
       ],
       "presentationRoots": [
@@ -47,8 +47,8 @@
       "cartridgeDigest": "cart1_d8888842c6a7a7ba758a8eea567c71fcc8f998ff8af75208ed44ef4eee74edeb",
       "status": "production-dignity-complete",
       "historicalManifests": [
-        "docs/design/FIRST_CHARTER_ASSET_PROVENANCE.json",
-        "src/assets/provenance/first-charter-production.json"
+        "docs/design/FIRST_CHARTER_ASSET_BIBLE.md",
+        "src/assets/first-charter/hall/provenance.json"
       ],
       "assetRoots": [
         "src/assets/first-charter"
@@ -80,7 +80,8 @@
       "cartridgeDigest": "cart1_776adac1b9372d0331ddd774af8b94c80b46bd6bbc4763334cf01def46111144",
       "status": "production-dignity-complete",
       "historicalManifests": [
-        "src/assets/provenance/karazhan-production.json"
+        "docs/design/KARAZHAN_ASSET_BIBLE.md",
+        "src/assets/karazhan/hall/provenance.json"
       ],
       "assetRoots": [
         "src/assets/karazhan"
@@ -112,8 +113,8 @@
       "cartridgeDigest": "cart1_17054e128dc6fd517fc47f163d92da58d72f9302a84d9d3b04589083afc10f0e",
       "status": "production-dignity-complete",
       "historicalManifests": [
-        "docs/design/ILYON_ASSET_PROVENANCE.md",
-        "src/assets/provenance/ilyon-production.json"
+        "docs/design/ILYON_ASSET_BIBLE.md",
+        "src/assets/ilyon/observatory/provenance.json"
       ],
       "assetRoots": [
         "src/assets/ilyon"
@@ -147,8 +148,8 @@
       "cartridgeDigest": "cart1_05530ae780a30f2f79fb0ddf030ba0e92321d736f146e8e16ddb325ae948b23e",
       "status": "production-dignity-complete",
       "historicalManifests": [
-        "docs/design/LAMP_DISTRICT_ASSET_PROVENANCE.json",
-        "src/assets/lamp-district/provenance.json"
+        "docs/design/LAMP_DISTRICT_ASSET_BIBLE.md",
+        "src/assets/lamp-district/underworld/provenance.json"
       ],
       "assetRoots": [
         "src/assets/lamp-district"
@@ -183,7 +184,7 @@
       "status": "production-dignity-complete",
       "historicalManifests": [
         "docs/design/RELIEF_CIRCUIT_ASSET_BIBLE.md",
-        "src/assets/relief-circuit/provenance.json"
+        "src/assets/relief-circuit/vessel/provenance.json"
       ],
       "assetRoots": [
         "src/assets/relief-circuit"
