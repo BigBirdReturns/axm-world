@@ -32,6 +32,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Record exact candidate
+        env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          git diff --check
       - name: Generate deterministic release asset inventory
         run: |
           set -euo pipefail
@@ -64,15 +71,18 @@ jobs:
           fi
           git clean -fdx -- docs/game
           git diff --check
-      - name: Publish inventory and remove finalizer
+      - name: Publish the workflow-neutral inventory
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs/release/RODOH_ASSET_INVENTORY.json
-          git rm .github/workflows/finalize-asset-release-inventory.yml
-          git commit -m 'Publish the RODOH v1 asset custody inventory'
-          git push origin HEAD:release/asset-custody-closure
+          if git diff --cached --quiet; then
+            echo 'Asset inventory is already current.'
+          else
+            git commit -m 'Publish the RODOH v1 asset custody inventory'
+            git push origin HEAD:release/asset-custody-closure
+          fi
       - name: Upload finalization diagnostics
         if: always()
         uses: actions/upload-artifact@v4
