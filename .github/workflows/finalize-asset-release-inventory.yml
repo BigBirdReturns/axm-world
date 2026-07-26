@@ -4,10 +4,12 @@ on:
   pull_request:
     paths:
       - '.github/workflows/finalize-asset-release-inventory.yml'
+      - 'docs/canon/**'
   push:
     branches: [release/asset-custody-closure]
     paths:
       - '.github/workflows/finalize-asset-release-inventory.yml'
+      - 'docs/canon/**'
       - 'scripts/assets/build-release-asset-inventory.mjs'
       - 'src/assets/rollups/rodoh-v1-programs.json'
       - 'src/assets/descriptions/rodoh-v1-dense-assets.json'
