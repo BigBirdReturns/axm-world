@@ -1,0 +1,99 @@
+name: Export dual Arc attestation verification custody
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/export-arc-dual-attestation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: export-dual-arc-attestation-verification
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Require both Arc repository-owned attestations
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          workflow_path = Path('.github/workflows/supply-chain-evidence.yml')
+          workflow = workflow_path.read_text()
+          old = '''          gh attestation verify evidence/artifacts/axm-arc-game.tar.gz \\
+            --repo BigBirdReturns/axm-arc \\
+            --predicate-type https://slsa.dev/provenance/v1 \\
+            --signer-workflow BigBirdReturns/axm-arc/.github/workflows/supply-chain-evidence.yml \\
+            --source-digest "$ARC_SHA" \\
+            --source-ref refs/heads/main \\
+            --format json > evidence/attestations/axm-arc-online-verification.json
+          '''
+          new = '''          gh attestation verify evidence/artifacts/axm-arc-game.tar.gz \\
+            --repo BigBirdReturns/axm-arc \\
+            --predicate-type https://slsa.dev/provenance/v1 \\
+            --signer-workflow BigBirdReturns/axm-arc/.github/workflows/supply-chain-evidence.yml \\
+            --source-digest "$ARC_SHA" \\
+            --source-ref refs/heads/main \\
+            --format json > evidence/attestations/axm-arc-build-provenance-verification.json
+          gh attestation verify evidence/artifacts/axm-arc-game.tar.gz \\
+            --repo BigBirdReturns/axm-arc \\
+            --predicate-type https://cyclonedx.org/bom \\
+            --signer-workflow BigBirdReturns/axm-arc/.github/workflows/supply-chain-evidence.yml \\
+            --source-digest "$ARC_SHA" \\
+            --source-ref refs/heads/main \\
+            --format json > evidence/attestations/axm-arc-cyclonedx-verification.json
+          test -s evidence/attestations/axm-arc-build-provenance-verification.json
+          test -s evidence/attestations/axm-arc-cyclonedx-verification.json
+          '''
+          if workflow.count(old) != 1:
+              raise SystemExit(f'expected one Arc provenance verification block, found {workflow.count(old)}')
+          workflow_path.write_text(workflow.replace(old, new))
+
+          test_path = Path('tests/world/supply-chain-workflow.test.ts')
+          test_path.write_text('''import { readFileSync } from "node:fs";\nimport { resolve } from "node:path";\nimport { describe, expect, it } from "vitest";\n\nconst ROOT = resolve(import.meta.dirname, "../..");\n\ndescribe("coordinated signed-evidence workflow", () => {\n  it("requires Arc-owned provenance and CycloneDX attestations for the exact dependency", () => {\n    const workflow = readFileSync(resolve(ROOT, ".github/workflows/supply-chain-evidence.yml"), "utf8");\n    expect(workflow).toContain("axm-arc-build-provenance-verification.json");\n    expect(workflow).toContain("axm-arc-cyclonedx-verification.json");\n    expect(workflow).toContain("--predicate-type https://slsa.dev/provenance/v1");\n    expect(workflow).toContain("--predicate-type https://cyclonedx.org/bom");\n    expect(workflow.match(/--repo BigBirdReturns\\/axm-arc/g)).toHaveLength(2);\n    expect(workflow.match(/--source-digest \"\\$ARC_SHA\"/g)).toHaveLength(2);\n    expect(workflow.match(/--source-ref refs\\/heads\\/main/g)).toHaveLength(2);\n    expect(workflow.match(/--signer-workflow BigBirdReturns\\/axm-arc\\/.github\\/workflows\\/supply-chain-evidence.yml/g)).toHaveLength(2);\n  });\n});\n''')
+          PY
+          git diff --check
+      - name: Qualify exact workflow contracts and complete World product
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm test -- tests/world/supply-chain.test.ts tests/world/supply-chain-workflow.test.ts
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          git diff --check
+      - name: Export exact permanent files
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/arc-dual-verification/.github/workflows" "$RUNNER_TEMP/arc-dual-verification/tests/world"
+          cp .github/workflows/supply-chain-evidence.yml "$RUNNER_TEMP/arc-dual-verification/.github/workflows/"
+          cp tests/world/supply-chain-workflow.test.ts "$RUNNER_TEMP/arc-dual-verification/tests/world/"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arc-dual-attestation-verification-files
+          path: ${{ runner.temp }}/arc-dual-verification
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 3
