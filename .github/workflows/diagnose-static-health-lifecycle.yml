@@ -1,6 +1,9 @@
 name: Diagnose captured-build server lifecycle
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/diagnose-static-health-lifecycle.yml'
   push:
     branches: [qualify/static-health-lifecycle]
     paths:
@@ -11,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: diagnose-static-health-lifecycle
+  group: diagnose-static-health-lifecycle-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -25,7 +28,7 @@ jobs:
       - name: Check out exact World candidate
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           path: axm-world
           fetch-depth: 0
           show-progress: false
