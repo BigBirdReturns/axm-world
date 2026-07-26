@@ -1,0 +1,125 @@
+name: Prepare exact restored Arc pin
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/prepare-world-restored-arc-pin.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prepare-exact-restored-arc-pin
+  cancel-in-progress: true
+
+env:
+  WORLD_SHA: 04d5aa0b612bc64348b2d71b4cd4c060562b60d1
+  OLD_ARC_SHA: 7b576898f7a82409669a97187bcd836296a77e24
+  ARC_SHA: ec997705131e517fc8b4be6325453c4e14ae815a
+  CI: 'true'
+  SOURCE_DATE_EPOCH: '0'
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Derive the exact five-file Arc repin
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$WORLD_SHA"
+          test ! -e PLACEHOLDER
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          old = os.environ['OLD_ARC_SHA']
+          new = os.environ['ARC_SHA']
+          paths = [
+              Path('estate/estate.lock.json'),
+              Path('.github/workflows/local-estate-replication.yml'),
+              Path('tests/world/local-estate-contract.test.ts'),
+              Path('tests/world/browser-support-performance.test.ts'),
+              Path('docs/SUPPLY_CHAIN_CUSTODY.md'),
+          ]
+          for path in paths:
+              text = path.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one {old}, found {count}')
+              path.write_text(text.replace(old, new))
+          PY
+          node - <<'NODE'
+          const fs = require('fs');
+          const estate = JSON.parse(fs.readFileSync('estate/estate.lock.json', 'utf8'));
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          if (pkg.version !== '1.0.0') throw new Error('World package is not 1.0.0');
+          if (estate.repositories.world.branch !== 'main') throw new Error('World sync branch is not main');
+          if (estate.repositories.arc.branch !== 'main') throw new Error('Arc sync branch is not main');
+          if (estate.repositories.arc.requiredCommit !== process.env.ARC_SHA) throw new Error('Restored Arc main is not pinned');
+          if (estate.repositories.arc.packageVersion !== '1.0.0') throw new Error('Arc package is not 1.0.0');
+          NODE
+          git diff --check
+      - run: npm ci --no-audit --no-fund
+      - name: Qualify the exact repinned estate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm test -- \
+            tests/world/local-estate-contract.test.ts \
+            tests/world/browser-support-performance.test.ts \
+            tests/world/supply-chain.test.ts \
+            tests/world/holder-estate.test.ts
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          git diff --check
+      - name: Export and verify the qualified five-file patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/world-restored-arc-pin"
+          mkdir -p \
+            "$root/.github/workflows" \
+            "$root/estate" \
+            "$root/tests/world" \
+            "$root/docs"
+          cp estate/estate.lock.json "$root/estate/"
+          cp .github/workflows/local-estate-replication.yml "$root/.github/workflows/"
+          cp tests/world/local-estate-contract.test.ts "$root/tests/world/"
+          cp tests/world/browser-support-performance.test.ts "$root/tests/world/"
+          cp docs/SUPPLY_CHAIN_CUSTODY.md "$root/docs/"
+          (
+            cd "$root"
+            find . -type f ! -name QUALIFIED_SHA256SUMS -print0 \
+              | sort -z \
+              | xargs -0 sha256sum \
+              | sed 's#  \./#  #' \
+              > QUALIFIED_SHA256SUMS
+            test "$(wc -l < QUALIFIED_SHA256SUMS)" -eq 5
+            ! grep -q '^/' QUALIFIED_SHA256SUMS
+            ! grep -q 'QUALIFIED_SHA256SUMS' QUALIFIED_SHA256SUMS
+            sha256sum -c QUALIFIED_SHA256SUMS
+          )
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qualified-world-restored-arc-pin
+          path: ${{ runner.temp }}/world-restored-arc-pin
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
