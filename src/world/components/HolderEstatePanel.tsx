@@ -31,6 +31,13 @@ interface PendingEstate {
   replace: HolderEstatePreflight;
 }
 
+interface VisiblePreflight {
+  mode: HolderEstateMode;
+  label: string;
+  result: HolderEstatePreflight;
+  variant: "primary" | "secondary";
+}
+
 export function HolderEstatePanel(): JSX.Element {
   const inputRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<PendingEstate | null>(null);
@@ -89,7 +96,25 @@ export function HolderEstatePanel(): JSX.Element {
     window.setTimeout(() => window.location.reload(), 120);
   };
 
-  const summary = pending?.replace;
+  const visiblePreflights: VisiblePreflight[] = pending
+    ? [
+      {
+        mode: "merge",
+        label: t("boot.holderEstateMerge"),
+        result: pending.merge,
+        variant: "secondary",
+      },
+      {
+        mode: "replace",
+        label: t("boot.holderEstateReplace"),
+        result: pending.replace,
+        variant: "primary",
+      },
+    ]
+    : [];
+  const opaqueKeys = pending?.estate.records
+    .filter((record) => record.kind === "opaque-world")
+    .map((record) => record.key) ?? [];
 
   return (
     <section
@@ -128,7 +153,7 @@ export function HolderEstatePanel(): JSX.Element {
         />
       </div>
 
-      {pending && summary && (
+      {pending && (
         <div
           data-testid="holder-estate-preflight"
           role="group"
@@ -136,34 +161,58 @@ export function HolderEstatePanel(): JSX.Element {
           style={{ marginTop: 10, padding: 10, border: "1px solid #4a4238", background: "rgba(23,21,15,0.82)", font: "11px/1.55 'IBM Plex Mono', ui-monospace, monospace" }}
         >
           <strong style={{ color: "#c9a14a" }}>{t("boot.holderEstatePreflight")}</strong>
-          <div style={{ marginTop: 4, color: "#c9bfae" }}>
-            {t("boot.holderEstateSummary", {
-              count: summary.incomingRecords,
-              add: summary.add.length,
-              change: summary.change.length,
-              remove: summary.remove.length,
-              opaque: pending.estate.summary.opaqueRecords,
-            })}
-          </div>
-          {summary.warnings.length > 0 && (
+          {opaqueKeys.length > 0 && (
             <details style={{ marginTop: 6 }}>
-              <summary>{t("boot.holderEstateOpaque", { count: summary.warnings.length })}</summary>
+              <summary>{t("boot.holderEstateOpaque", { count: opaqueKeys.length })}</summary>
               <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
-                {summary.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+                {opaqueKeys.map((key) => <li key={key}><code>{key}</code></li>)}
               </ul>
             </details>
           )}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 9 }}>
-            <PixelButton type="button" variant="secondary" data-testid="holder-estate-merge" onClick={() => apply("merge")}>
-              {t("boot.holderEstateMerge")}
-            </PixelButton>
-            <PixelButton type="button" variant="primary" data-testid="holder-estate-replace" onClick={() => apply("replace")}>
-              {t("boot.holderEstateReplace")}
-            </PixelButton>
-            <PixelButton type="button" variant="ghost" data-testid="holder-estate-cancel" onClick={() => setPending(null)}>
-              {t("boot.holderEstateCancel")}
-            </PixelButton>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 8, marginTop: 9 }}>
+            {visiblePreflights.map(({ mode, label, result, variant }) => (
+              <div
+                key={mode}
+                role="group"
+                aria-label={label}
+                data-testid={`holder-estate-${mode}-preflight`}
+                data-add={result.add.length}
+                data-change={result.change.length}
+                data-unchanged={result.unchanged.length}
+                data-remove={result.remove.length}
+                style={{ padding: 9, border: "1px solid rgba(165,156,139,0.42)", background: "rgba(8,8,7,0.36)" }}
+              >
+                <strong style={{ color: "#eee4d1" }}>{label}</strong>
+                <div style={{ marginTop: 4, color: "#c9bfae" }}>
+                  {t("boot.holderEstateSummary", {
+                    count: result.incomingRecords,
+                    add: result.add.length,
+                    change: result.change.length,
+                    remove: result.remove.length,
+                    opaque: pending.estate.summary.opaqueRecords,
+                  })}
+                </div>
+                <PixelButton
+                  type="button"
+                  variant={variant}
+                  data-testid={`holder-estate-${mode}`}
+                  onClick={() => apply(mode)}
+                  style={{ marginTop: 8 }}
+                >
+                  {label}
+                </PixelButton>
+              </div>
+            ))}
           </div>
+          <PixelButton
+            type="button"
+            variant="ghost"
+            data-testid="holder-estate-cancel"
+            onClick={() => setPending(null)}
+            style={{ marginTop: 8 }}
+          >
+            {t("boot.holderEstateCancel")}
+          </PixelButton>
         </div>
       )}
 

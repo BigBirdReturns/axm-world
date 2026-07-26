@@ -1,13 +1,13 @@
-import { defineConfig, devices } from "@playwright/test";
+import { chromium, defineConfig, devices } from "@playwright/test";
 
 // End-to-end playability proofs. These are intentionally separate from `npm test`
 // (vitest, unit). They drive the real app in Chromium to prove the cold journey,
 // exact pre/post-resolution resume, and multi-cartridge receiver behavior.
 //
-// The container ships Chromium at PLAYWRIGHT_BROWSERS_PATH; we point Playwright at it
-// rather than downloading (PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 is set in the image).
-const CHROMIUM =
-  process.env.PW_CHROMIUM_PATH ?? "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+// Permanent CI may pin an explicit executable. Local-estate runs bind
+// PLAYWRIGHT_BROWSERS_PATH to their holder-owned cache, so ask Playwright for the
+// exact installed browser rather than falling through to a container-only path.
+const CHROMIUM = process.env.PW_CHROMIUM_PATH ?? chromium.executablePath();
 const BASE_URL = process.env.PW_BASE_URL ?? "http://127.0.0.1:5173";
 
 export default defineConfig({
