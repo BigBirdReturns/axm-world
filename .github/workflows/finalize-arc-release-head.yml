@@ -1,5 +1,6 @@
 name: Finalize qualified Arc release head
 
+# Push trigger: publish only after the exact pull-request qualification passed.
 on:
   pull_request:
     paths:
