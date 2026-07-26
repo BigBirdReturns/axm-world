@@ -11,6 +11,7 @@ const GENERATE_PROVENANCE = join(ROOT, "scripts/supply-chain/generate-provenance
 const VERIFY = join(ROOT, "scripts/supply-chain/verify-offline-evidence.mjs");
 const WORLD_SHA = "fedcba9876543210fedcba9876543210fedcba98";
 const ARC_SHA = "0123456789abcdef0123456789abcdef01234567";
+const UUID_V5_URN = /^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 function run(script: string, args: string[], cwd = ROOT, env: NodeJS.ProcessEnv = process.env) {
   return spawnSync(process.execPath, [script, ...args], { cwd, env, encoding: "utf8" });
@@ -126,10 +127,11 @@ function strictArgs(dir: string): string[] {
 }
 
 describe("release supply-chain evidence", () => {
-  it("generates a deterministic CycloneDX 1.7 dependency graph from the lockfile", () => {
+  it("generates deterministic, source-bound CycloneDX 1.7 dependency graphs", () => {
     const dir = mkdtempSync(join(tmpdir(), "rodoh-sbom-"));
     const first = join(dir, "first.cdx.json");
     const second = join(dir, "second.cdx.json");
+    const changed = join(dir, "changed.cdx.json");
     for (const output of [first, second]) {
       const result = run(GENERATE_SBOM, [
         "--lock", join(ROOT, "package-lock.json"),
@@ -139,9 +141,19 @@ describe("release supply-chain evidence", () => {
       ]);
       expect(result.status, result.stderr || result.stdout).toBe(0);
     }
+    expect(run(GENERATE_SBOM, [
+      "--lock", join(ROOT, "package-lock.json"),
+      "--package", join(ROOT, "package.json"),
+      "--commit", WORLD_SHA,
+      "--output", changed,
+    ]).status).toBe(0);
     expect(readFileSync(first)).toEqual(readFileSync(second));
     const document = JSON.parse(readFileSync(first, "utf8"));
+    const changedDocument = JSON.parse(readFileSync(changed, "utf8"));
     expect(document).toMatchObject({ bomFormat: "CycloneDX", specVersion: "1.7", version: 1 });
+    expect(document.serialNumber).toMatch(UUID_V5_URN);
+    expect(changedDocument.serialNumber).toMatch(UUID_V5_URN);
+    expect(changedDocument.serialNumber).not.toBe(document.serialNumber);
     expect(document.components.length).toBeGreaterThan(10);
     expect(document.dependencies.length).toBe(document.components.length + 1);
     expect(document.metadata.component.properties).toContainEqual({ name: "rodoh:source-commit", value: ARC_SHA });
