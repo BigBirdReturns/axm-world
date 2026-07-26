@@ -245,7 +245,7 @@ describe("browser support and performance custody", () => {
   expect(status.repositories.arc).toMatchObject({
     vendoredCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
     productAuthorityCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
-    releaseEvidenceCommit: "7b576898f7a82409669a97187bcd836296a77e24",
+    releaseEvidenceCommit: "318faaab6fb1c4b0eefe66516d3573bdb8f97369",
   });
   expect(status.repositories.world.commit).toBe(git("rev-parse", "HEAD"));
 });
@@ -254,7 +254,7 @@ it("rejects structurally incomplete pass receipts even when their commits are ex
   const estateRoot = mkdtempSync(join(tmpdir(), "rodoh-status-incomplete-"));
   const receipts = resolve(estateRoot, ".rodoh-estate/receipts");
   const exactWorld = git("rev-parse", "HEAD");
-  const exactArc = "7b576898f7a82409669a97187bcd836296a77e24";
+  const exactArc = "318faaab6fb1c4b0eefe66516d3573bdb8f97369";
   writeReceipt(resolve(receipts, "windows-replication.json"), {
     format: "rodoh-windows-replication-receipt/1",
     status: "pass",
