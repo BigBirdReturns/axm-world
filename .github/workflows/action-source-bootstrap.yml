@@ -1,6 +1,12 @@
 name: Action source bootstrap
 
 on:
+  pull_request:
+    paths:
+      - ".github/workflows/action-source-bootstrap.yml"
+      - "src/world/action/**"
+      - "tests/world/action-*.test.ts"
+      - "docs/design/ACTION_RUNTIME_V1.md"
   push:
     branches: [feature/action-runtime-v1]
 
