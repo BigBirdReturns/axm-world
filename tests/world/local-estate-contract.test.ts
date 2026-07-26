@@ -137,6 +137,13 @@ describe("local estate replication contract", () => {
     expect(powershell).toContain("--offline");
     expect(powershell).not.toContain("reset --hard");
 
+    const playwright = read("playwright.config.ts");
+    expect(playwright).toContain('import { chromium, defineConfig, devices } from "@playwright/test"');
+    expect(playwright).toContain("process.env.PW_CHROMIUM_PATH ?? chromium.executablePath()");
+    expect(playwright).toContain("--host 127.0.0.1 --port 5173 --strictPort");
+    expect(playwright).not.toContain("/opt/pw-browsers/");
+    expect(playwright).not.toContain("/usr/bin/chromium");
+
     for (const path of ["scripts/local-estate/estate-tools.mjs", "scripts/local-estate/static-server.mjs"]) {
       const absolute = new URL(`../../${path}`, import.meta.url);
       const result = spawnSync(process.execPath, ["--check", fileURLToPath(absolute)], { encoding: "utf8" });
