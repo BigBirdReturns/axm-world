@@ -1027,20 +1027,30 @@ function Invoke-Accept {
     Assert-ReceiptValue 'Automated repository receipt World branch' $repositories.world.branch $estate.worldBranch
     Assert-ReceiptValue 'Automated repository receipt Arc branch' $repositories.arc.branch $estate.arcBranch
 
+    $dependencies = $receipts['dependencies.json']
+    Assert-ReceiptValue 'Dependency receipt World lock SHA-256' $dependencies.world.packageLockSha256 (Get-Sha256 (Join-Path $Script:WorldRoot 'package-lock.json'))
+    Assert-ReceiptValue 'Dependency receipt Arc lock SHA-256' $dependencies.arc.packageLockSha256 (Get-Sha256 (Join-Path $Script:ArcRoot 'package-lock.json'))
+
     $verification = $receipts['verification.json']
     Assert-ReceiptValue 'Verification receipt World head' $verification.worldHead $estate.worldHead
     Assert-ReceiptValue 'Verification receipt Arc head' $verification.arcHead $estate.arcHead
+    Assert-ReceiptValue 'Verification receipt estate lock SHA-256' $verification.lockSha256 (Get-Sha256 $Script:LockPath)
+    Assert-ReceiptValue 'Verification receipt publication manifest SHA-256' $verification.publicationManifestSha256 (Get-Sha256 (Join-Parts $Script:WorldRoot 'estate' 'publication' 'PUBLICATION_MANIFEST.json'))
 
     $builds = $receipts['builds.json']
     Assert-ReceiptValue 'Build receipt World head' $builds.world.sourceHead $estate.worldHead
     Assert-ReceiptValue 'Build receipt Arc head' $builds.arc.sourceHead $estate.arcHead
+    Assert-ReceiptValue 'World build SOURCE_DATE_EPOCH' $builds.world.sourceDateEpoch '0'
+    Assert-ReceiptValue 'Arc build SOURCE_DATE_EPOCH' $builds.arc.sourceDateEpoch '0'
     Assert-ReceiptValue 'Arc test receipt head' $receipts['tests-arc.json'].head $estate.arcHead
     Assert-ReceiptValue 'World test receipt head' $receipts['tests-world.json'].head $estate.worldHead
     Assert-ReceiptValue 'Browser test receipt head' $receipts['tests-browser.json'].head $estate.worldHead
+    Assert-ReceiptValue 'Browser test receipt mode' $receipts['tests-browser.json'].mode 'complete-desktop-mobile'
 
     $snapshot = $receipts['snapshot.json']
     Assert-ReceiptValue 'Snapshot receipt World head' $snapshot.worldHead $estate.worldHead
     Assert-ReceiptValue 'Snapshot receipt Arc head' $snapshot.arcHead $estate.arcHead
+    Assert-ReceiptValue 'Snapshot publication SHA-256' $snapshot.publicationSha256 ([string]$Script:Lock.publication.sha256)
     if (-not (Test-Path -LiteralPath $snapshot.archive -PathType Leaf)) {
         throw "Snapshot archive is missing: $($snapshot.archive)"
     }

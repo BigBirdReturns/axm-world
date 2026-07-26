@@ -139,7 +139,15 @@ describe("local estate replication contract", () => {
     expect(powershell).toContain("-EncodedCommand");
     expect(powershell).toContain("function Assert-CurrentAcceptanceEstate");
     expect(powershell).toContain("Automated repository receipt World head");
+    expect(powershell).toContain("Dependency receipt World lock SHA-256");
+    expect(powershell).toContain("Dependency receipt Arc lock SHA-256");
+    expect(powershell).toContain("Verification receipt estate lock SHA-256");
+    expect(powershell).toContain("Verification receipt publication manifest SHA-256");
+    expect(powershell).toContain("World build SOURCE_DATE_EPOCH");
+    expect(powershell).toContain("Arc build SOURCE_DATE_EPOCH");
     expect(powershell).toContain("Browser test receipt head");
+    expect(powershell).toContain("Browser test receipt mode");
+    expect(powershell).toContain("Snapshot publication SHA-256");
     expect(powershell).toContain("Snapshot archive SHA-256");
     expect(powershell).toContain("worldCommit = $estate.worldHead");
     expect(powershell).toContain("arcCommit = $estate.arcHead");
