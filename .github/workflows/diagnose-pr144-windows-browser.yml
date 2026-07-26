@@ -1,0 +1,67 @@
+name: Diagnose PR 144 Windows browser estate
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/diagnose-pr144-windows-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diagnose-pr144-windows-browser
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+
+jobs:
+  diagnose:
+    runs-on: windows-2025
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Install exact Chromium into the estate cache
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force diagnostics, diagnostics\ms-playwright | Out-Null
+          $env:PLAYWRIGHT_BROWSERS_PATH = (Resolve-Path diagnostics\ms-playwright).Path
+          npx playwright install chromium *>&1 | Tee-Object diagnostics\install-chromium.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run Gate 6, Gate 7, and the complete browser estate independently
+        shell: pwsh
+        run: |
+          $env:PLAYWRIGHT_BROWSERS_PATH = (Resolve-Path diagnostics\ms-playwright).Path
+          $results = [ordered]@{}
+
+          npm run test:gate6 *>&1 | Tee-Object diagnostics\gate6.log
+          $results.gate6 = $LASTEXITCODE
+
+          npx playwright test e2e/gate7-clean-room.spec.ts --workers=1 --reporter=line *>&1 | Tee-Object diagnostics\gate7.log
+          $results.gate7 = $LASTEXITCODE
+
+          npx playwright test --workers=1 --reporter=line *>&1 | Tee-Object diagnostics\complete-playwright.log
+          $results.completePlaywright = $LASTEXITCODE
+
+          $results | ConvertTo-Json | Set-Content -Encoding utf8 diagnostics\exit-codes.json
+          if ($results.gate6 -ne 0 -or $results.gate7 -ne 0 -or $results.completePlaywright -ne 0) { exit 1 }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr144-windows-browser-diagnostics
+          path: |
+            diagnostics
+            test-results
+            playwright-report
+          if-no-files-found: warn
+          retention-days: 7
