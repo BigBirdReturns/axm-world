@@ -10,7 +10,7 @@
       "directory": "axm-arc",
       "branch": "main",
       "requiredAncestor": "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
-      "requiredCommit": "ec997705131e517fc8b4be6325453c4e14ae815a",
+      "requiredCommit": "318faaab6fb1c4b0eefe66516d3573bdb8f97369",
       "productAuthorityCommit": "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
       "role": "creator authority, deterministic engine, source planes, authoring, reference player",
       "packageVersion": "1.0.0"
