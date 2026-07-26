@@ -1,5 +1,6 @@
 name: Export dual Arc attestation verification custody
 
+# Structural replacement avoids backslash-newline interpretation in Python literals.
 on:
   pull_request:
     paths:
