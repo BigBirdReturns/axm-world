@@ -38,7 +38,26 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p holder-hardening-diagnostics
-          cat .github/holder-hardening/patch-*.b64 | tr -d '\r\n' | base64 --decode > holder-hardening-diagnostics/holder-hardening.patch
+          cat .github/holder-hardening/patch-*.b64 | tr -d '\r\n' | base64 --decode > holder-hardening-diagnostics/raw.patch
+          python - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+
+          expected = '06cc4de449af16c4e62a71c9edfff9139d2968a87b54c05138cc30df10786f9a'
+          raw_path = Path('holder-hardening-diagnostics/raw.patch')
+          output_path = Path('holder-hardening-diagnostics/holder-hardening.patch')
+          raw = raw_path.read_bytes()
+          if sha256(raw).hexdigest() == expected:
+              repaired = raw
+          else:
+              # Carrier diagnostics proved one duplicated 3,000-byte overlap:
+              # 109 inserted bytes, the shared boundary byte, then 2,891 more.
+              repaired = raw[:5505] + raw[5614:5615] + raw[8506:]
+          actual = sha256(repaired).hexdigest()
+          if actual != expected:
+              raise SystemExit(f'holder patch digest {actual} did not match {expected}')
+          output_path.write_bytes(repaired)
+          PY
           sha256sum holder-hardening-diagnostics/holder-hardening.patch | tee holder-hardening-diagnostics/SHA256SUMS
           wc -c holder-hardening-diagnostics/holder-hardening.patch | tee holder-hardening-diagnostics/bytes.txt
 
