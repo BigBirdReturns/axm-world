@@ -517,6 +517,7 @@ function validateOrganization(org: Organization, arc: Arc): void {
   assertAllowedKeys(raw, [
     "id", "name", "reputation", "unlockedProgressionTiers", "resources", "infrastructure", "agents",
     "relationships", "precedents", "dramaQueue", "cycle", "distributionPolicy", "rngSeed", "cartridgeState",
+    "recruitmentPool",
   ], "run slot organization");
   assertRequiredKeys(raw, [
     "id", "name", "reputation", "resources", "infrastructure", "agents", "relationships",
@@ -540,6 +541,26 @@ function validateOrganization(org: Organization, arc: Arc): void {
   const agents = plainObject(raw.agents, "organization.agents");
   for (const [agentId, value] of Object.entries(agents)) validateAgent(value, agentId);
   const agentIds = new Set(Object.keys(agents));
+
+  if (raw.recruitmentPool !== undefined) {
+    if (!Array.isArray(raw.recruitmentPool)) throw new Error("organization.recruitmentPool must be an array");
+    const candidateIds = new Set<string>();
+    raw.recruitmentPool.forEach((candidate, index) => {
+      const rawCandidate = plainObject(candidate, `organization.recruitmentPool[${index}]`);
+      if (typeof rawCandidate.id !== "string" || rawCandidate.id.length === 0) {
+        throw new Error(`organization recruitment candidate ${index} has an invalid id`);
+      }
+      const candidateId = rawCandidate.id;
+      if (agentIds.has(candidateId)) {
+        throw new Error(`organization recruitment candidate ${candidateId} overlaps an active agent`);
+      }
+      if (candidateIds.has(candidateId)) {
+        throw new Error(`organization recruitment pool duplicates candidate ${candidateId}`);
+      }
+      candidateIds.add(candidateId);
+      validateAgent(candidate, candidateId);
+    });
+  }
 
   const infrastructure = plainObject(raw.infrastructure, "organization.infrastructure");
   for (const [facilityId, value] of Object.entries(infrastructure)) {

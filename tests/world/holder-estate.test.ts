@@ -78,6 +78,20 @@ function runValue(arc: Arc = FIRST_CHARTER): string {
   });
 }
 
+function recruitmentCandidate(arc: Arc = FIRST_CHARTER) {
+  const organization = foundOrganization(arc, { format: "axm-founding-input/1", seed: 424242 });
+  const source = structuredClone(Object.values(organization.agents)[0]!);
+  return { ...source, id: "candidate-001", name: "Candidate One" };
+}
+
+function runWithRecruitmentPool(candidates: unknown[], arc: Arc = FIRST_CHARTER): string {
+  const run = JSON.parse(runValue(arc)) as { game: string };
+  const game = JSON.parse(run.game) as { organization: Record<string, unknown> };
+  game.organization.recruitmentPool = candidates;
+  run.game = JSON.stringify(game);
+  return JSON.stringify(run);
+}
+
 function checkpointValue(arc: Arc = FIRST_CHARTER): string {
   const digest = cartridgeDigest(arc);
   return JSON.stringify({
@@ -274,6 +288,31 @@ describe("rodoh-holder-estate/v1", () => {
     }
     expect(target.snapshot()).toEqual(before);
   });
+
+  it("accepts bounded recruitment candidates preserved by ordinary engine saves", () => {
+  const values = completeStorage().snapshot();
+  values[`${SAVE_KEY_PREFIX}${DIGEST}`] = runWithRecruitmentPool([recruitmentCandidate()]);
+  const estate = buildHolderEstate(new MemoryStorage(values), { createdAt: "2026-07-25T00:00:00.000Z" });
+  expect(parseHolderEstate(estate)).toEqual(estate);
+});
+
+it("refuses duplicate recruitment candidates", () => {
+  const values = completeStorage().snapshot();
+  const candidate = recruitmentCandidate();
+  values[`${SAVE_KEY_PREFIX}${DIGEST}`] = runWithRecruitmentPool([candidate, structuredClone(candidate)]);
+  const estate = buildHolderEstate(new MemoryStorage(values), { createdAt: "2026-07-25T00:00:00.000Z" });
+  expect(() => parseHolderEstate(estate)).toThrow(/recruitment pool duplicates candidate/i);
+});
+
+it("refuses a recruitment candidate that overlaps an active agent", () => {
+  const values = completeStorage().snapshot();
+  const organization = foundOrganization(FIRST_CHARTER, { format: "axm-founding-input/1", seed: 424242 });
+  const activeId = Object.keys(organization.agents)[0]!;
+  const candidate = { ...recruitmentCandidate(), id: activeId };
+  values[`${SAVE_KEY_PREFIX}${DIGEST}`] = runWithRecruitmentPool([candidate]);
+  const estate = buildHolderEstate(new MemoryStorage(values), { createdAt: "2026-07-25T00:00:00.000Z" });
+  expect(() => parseHolderEstate(estate)).toThrow(/overlaps an active agent/i);
+});
 
   it("refuses a run whose inner engine save cannot resume", () => {
   const values = completeStorage().snapshot();
