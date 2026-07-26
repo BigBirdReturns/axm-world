@@ -36,6 +36,7 @@ jobs:
           node-version: 22
           cache: npm
       - name: Restore the complete main spec and apply only the bounded race fix
+        id: repair
         shell: bash
         run: |
           set -euo pipefail
@@ -62,34 +63,17 @@ jobs:
               raise SystemExit(f'expected one unbounded skip click, found {source.count(old)}')
           target.write_text(source.replace(old, new))
           PY
-          test "$(wc -l < e2e/gate7-clean-room.spec.ts)" -ge 280
+          test "$(wc -l < e2e/gate7-clean-room.spec.ts)" -ge 300
           test "$(grep -c 'unbundled clean-room cartridge completes' e2e/gate7-clean-room.spec.ts)" -eq 1
           test "$(grep -c 'clean-room custody preserves unknown memory' e2e/gate7-clean-room.spec.ts)" -eq 1
           test "$(grep -c 'await skip.click();' e2e/gate7-clean-room.spec.ts)" -eq 0
           git diff --check
-          git diff -- e2e/gate7-clean-room.spec.ts
-      - run: npm ci --no-audit --no-fund
-      - name: TypeScript and focused source contract
-        run: |
-          set -euo pipefail
-          npm run typecheck
-          npm test -- tests/world/gate7-entry-transition-contract.test.ts
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Prove Gate 7 on desktop and mobile before publication
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/gate7-repair"
-          npx playwright test e2e/gate7-clean-room.spec.ts --workers=1 2>&1 | tee "$RUNNER_TEMP/gate7-repair/gate7.log"
-      - name: Publish only the repaired complete spec when it changed
-        shell: bash
-        run: |
-          set -euo pipefail
           if git diff --quiet -- e2e/gate7-clean-room.spec.ts; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
             echo 'Complete Gate 7 spec is already repaired.'
             exit 0
           fi
+          git diff -- e2e/gate7-clean-room.spec.ts
           source_head="$GITHUB_SHA"
           git fetch --no-tags origin fix/gate7-entry-transition-race
           test "$(git rev-parse origin/fix/gate7-entry-transition-race)" = "$source_head"
@@ -99,8 +83,27 @@ jobs:
           git diff --cached --check
           git commit -m 'Bound the Gate 7 entry transition race'
           git push origin HEAD:fix/gate7-entry-transition-race
+          echo 'changed=true' >> "$GITHUB_OUTPUT"
+      - run: npm ci --no-audit --no-fund
+        if: steps.repair.outputs.changed == 'false'
+      - name: TypeScript and focused source contract
+        if: steps.repair.outputs.changed == 'false'
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm test -- tests/world/gate7-entry-transition-contract.test.ts
+      - name: Install Chromium
+        if: steps.repair.outputs.changed == 'false'
+        run: npx playwright install --with-deps chromium
+      - name: Prove Gate 7 on desktop and mobile
+        if: steps.repair.outputs.changed == 'false'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/gate7-repair"
+          npx playwright test e2e/gate7-clean-room.spec.ts --workers=1 2>&1 | tee "$RUNNER_TEMP/gate7-repair/gate7.log"
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.repair.outputs.changed == 'false'
         with:
           name: gate7-entry-transition-repair
           path: ${{ runner.temp }}/gate7-repair
