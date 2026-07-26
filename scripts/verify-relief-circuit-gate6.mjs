@@ -11,7 +11,10 @@ const PHASE = process.argv[2] ?? "all";
 const MODE = process.argv[3] ?? "desktop";
 const MOBILE = MODE === "mobile";
 const BASE_URL = process.env.PW_BASE_URL ?? "http://127.0.0.1:5173";
-const CHROMIUM = process.env.PW_CHROMIUM_PATH ?? "/usr/bin/chromium";
+// Permanent CI may pin an explicit executable. Local-estate runs bind
+// PLAYWRIGHT_BROWSERS_PATH to their holder-owned cache, so ask Playwright for
+// the exact installed browser rather than falling through to a Linux-only path.
+const CHROMIUM = process.env.PW_CHROMIUM_PATH ?? chromium.executablePath();
 const OUT = path.resolve(process.env.GATE6_RECEIPT_DIR ?? path.join(ROOT, "test-results", "gate6-browser-receipt", MODE));
 const RELIEF = "cart1_15a9f3792ff8a68948053a06cefcbf586e9960158ca051a187e1ab341b7a2e65";
 const LAMP = "cart1_05530ae780a30f2f79fb0ddf030ba0e92321d736f146e8e16ddb325ae948b23e";

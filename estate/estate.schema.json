@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axm.tools/schemas/rodoh-local-estate-lock-1.json",
+  "title": "RODOH local estate lock",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "status",
+    "releaseTarget",
+    "repositories",
+    "toolchain",
+    "protocols",
+    "products",
+    "localPaths",
+    "servers",
+    "publication",
+    "localGate"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "format": { "const": "rodoh-local-estate-lock/1" },
+    "status": { "enum": ["pre-release-local-acceptance", "locally-accepted", "released"] },
+    "releaseTarget": { "type": "string", "minLength": 1 },
+    "repositories": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["arc", "world"],
+      "properties": {
+        "arc": { "$ref": "#/$defs/repository" },
+        "world": { "$ref": "#/$defs/repository" }
+      }
+    },
+    "toolchain": { "type": "object" },
+    "protocols": { "type": "object" },
+    "products": {
+      "type": "object",
+      "minProperties": 6,
+      "additionalProperties": { "type": "string", "pattern": "^cart1_[0-9a-f]{64}$" }
+    },
+    "localPaths": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "servers": {
+      "type": "object",
+      "required": ["world", "arc"],
+      "properties": {
+        "world": { "$ref": "#/$defs/server" },
+        "arc": { "$ref": "#/$defs/server" }
+      }
+    },
+    "publication": {
+      "type": "object",
+      "required": ["bundle", "sha256", "manifest", "requiredForOperatorAcceptance"],
+      "properties": {
+        "bundle": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "manifest": { "type": "string", "minLength": 1 },
+        "requiredForOperatorAcceptance": { "type": "boolean" }
+      }
+    },
+    "localGate": {
+      "type": "object",
+      "required": ["automated", "receipt"],
+      "properties": {
+        "automated": { "type": "array", "items": { "type": "string" }, "minItems": 1, "uniqueItems": true },
+        "receipt": {
+          "type": "object",
+          "required": ["format", "required", "path", "mayBeGeneratedOnlyAfterAutomatedPass", "blocksV1Release"],
+          "properties": {
+            "format": { "const": "rodoh-local-operator-acceptance/1" },
+            "required": { "const": true },
+            "path": { "type": "string", "minLength": 1 },
+            "mayBeGeneratedOnlyAfterAutomatedPass": { "const": true },
+            "blocksV1Release": { "const": true }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "repository": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["name", "url", "directory", "branch", "requiredAncestor", "role", "packageVersion"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "pattern": "^https://github\\.com/" },
+        "directory": { "type": "string", "minLength": 1 },
+        "branch": { "type": "string", "minLength": 1 },
+        "requiredAncestor": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "requiredCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "productAuthorityCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "role": { "type": "string", "minLength": 1 },
+        "packageVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" }
+      }
+    },
+    "server": {
+      "type": "object",
+      "required": ["port", "url"],
+      "properties": {
+        "port": { "type": "integer", "minimum": 1024, "maximum": 65535 },
+        "url": { "type": "string", "pattern": "^http://127\\.0\\.0\\.1:" }
+      }
+    }
+  }
+}
