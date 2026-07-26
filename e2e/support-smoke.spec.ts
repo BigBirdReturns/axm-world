@@ -1,10 +1,41 @@
 import { expect, test, type Page } from "@playwright/test";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolvePendingDecisions } from "./helpers";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ORCHARD_RUN = path.join(ROOT, "cartridges", "clean-room", "orchard-at-low-tide.changed.run.json");
+
+function recordedChallengeCount(runPath: string): number {
+  const portable = JSON.parse(fs.readFileSync(runPath, "utf8")) as {
+    engine?: { game?: unknown };
+  };
+  if (typeof portable.engine?.game !== "string") {
+    throw new Error(`Support fixture ${runPath} has no serialized engine game.`);
+  }
+  const game = JSON.parse(portable.engine.game) as {
+    organization?: {
+      agents?: Record<string, {
+        assignmentHistory?: Array<{ challengeId?: unknown }>;
+      }>;
+    };
+  };
+  const challengeIds = new Set<string>();
+  for (const agent of Object.values(game.organization?.agents ?? {})) {
+    for (const assignment of agent.assignmentHistory ?? []) {
+      if (typeof assignment.challengeId === "string" && assignment.challengeId) {
+        challengeIds.add(assignment.challengeId);
+      }
+    }
+  }
+  if (challengeIds.size === 0) {
+    throw new Error(`Support fixture ${runPath} contains no recorded challenge assignments.`);
+  }
+  return challengeIds.size;
+}
+
+const ORCHARD_RECORDED_CHALLENGES = recordedChallengeCount(ORCHARD_RUN);
 
 async function finishEntry(page: Page): Promise<void> {
   const transition = page.getByTestId("cartridge-enter-transition");
@@ -48,5 +79,8 @@ test("supported browser can boot, receive an exact run, and render neutral state
     await page.waitForTimeout(25);
   }
   await expect(page.getByTestId("world-map")).toBeVisible();
-  await expect(page.getByTestId("wm-progress")).toHaveAttribute("data-recorded", "1");
+  await expect(page.getByTestId("wm-progress")).toHaveAttribute(
+    "data-recorded",
+    String(ORCHARD_RECORDED_CHALLENGES),
+  );
 });
