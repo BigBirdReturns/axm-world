@@ -409,7 +409,7 @@
         "src/assets/relief-circuit/vessel/relief-circuit-cross-section.svg"
       ],
       "releaseEvidence": [
-        "e2e/relief-circuit-gate6.spec.ts"
+        ".github/workflows/gate6-relief-circuit.yml"
       ],
       "status": "implemented"
     },
