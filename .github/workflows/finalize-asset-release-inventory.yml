@@ -8,6 +8,10 @@ on:
     branches: [release/asset-custody-closure]
     paths:
       - '.github/workflows/finalize-asset-release-inventory.yml'
+      - 'scripts/assets/build-release-asset-inventory.mjs'
+      - 'src/assets/rollups/rodoh-v1-programs.json'
+      - 'src/assets/descriptions/rodoh-v1-dense-assets.json'
+      - 'tests/world/asset-release-custody.test.ts'
   workflow_dispatch:
 
 permissions:
