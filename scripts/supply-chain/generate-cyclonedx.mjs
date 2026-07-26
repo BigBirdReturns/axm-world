@@ -2,7 +2,7 @@
 
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
-import { dirname, relative, resolve } from "node:path";
+import { relative, resolve } from "node:path";
 
 function fail(message) {
   console.error(message);
@@ -37,6 +37,9 @@ if (!lock || typeof lock !== "object" || !lock.packages || typeof lock.packages 
 
 function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
+}
+function compareStrings(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
 }
 function packageNameFromPath(path, entry) {
   if (typeof entry.name === "string" && entry.name) return entry.name;
@@ -79,7 +82,7 @@ const entries = Object.entries(lock.packages)
       purl: npmPurl(name, version),
     };
   })
-  .sort((a, b) => a.path.localeCompare(b.path, "en", { sensitivity: "variant" }));
+  .sort((a, b) => compareStrings(a.path, b.path));
 
 const byPath = new Map(entries.map((entry) => [entry.path, entry]));
 function resolveDependencyPath(parentPath, name) {
@@ -148,7 +151,7 @@ const dependencies = [
         .sort(),
     };
   }),
-].sort((a, b) => a.ref.localeCompare(b.ref));
+].sort((a, b) => compareStrings(a.ref, b.ref));
 
 const document = {
   bomFormat: "CycloneDX",

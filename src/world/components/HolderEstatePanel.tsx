@@ -2,6 +2,7 @@ import { useRef, useState, type CSSProperties } from "react";
 import {
   buildHolderEstate,
   downloadHolderEstate,
+  HOLDER_ESTATE_MAX_BYTES,
   importHolderEstate,
   parseHolderEstate,
   preflightHolderEstate,
@@ -53,6 +54,9 @@ export function HolderEstatePanel(): JSX.Element {
     event.target.value = "";
     if (!file) return;
     try {
+      if (file.size > HOLDER_ESTATE_MAX_BYTES) {
+        throw new Error(`Holder estate exceeds ${HOLDER_ESTATE_MAX_BYTES} bytes.`);
+      }
       const estate = parseHolderEstate(await file.text());
       setPending({
         estate,

@@ -26,6 +26,7 @@ import { SensorySwitcher } from "./components/SensorySwitcher.js";
 import { playPresentationCue } from "./sensory-prefs.js";
 import "./sensory-prefs.css";
 import { CartridgeEnterTransition } from "./components/CartridgeEnterTransition.js";
+import { HolderEstatePanel } from "./components/HolderEstatePanel.js";
 import { RodohRuntimeMark } from "./brand/RodohRuntimeMark.js";
 import "./themes/karazhan/karazhan.css";
 import "./themes/ilyon/ilyon.css";
@@ -313,6 +314,8 @@ export function Player(): JSX.Element {
             )}
           </div>
         )}
+
+        <HolderEstatePanel />
 
         <p style={{ color: "#a59c8b", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, marginTop: 18 }}>
           {t("boot.footerNote")}

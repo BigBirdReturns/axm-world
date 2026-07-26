@@ -73,10 +73,12 @@ jobs:
             axm-arc/package-lock.json
       - name: Install exact dependencies
         run: |
+          set -euo pipefail
           npm --prefix axm-world ci --no-audit --no-fund
           npm --prefix axm-arc ci --no-audit --no-fund
       - name: Build exact static products
         run: |
+          set -euo pipefail
           npm --prefix axm-arc run build
           npm --prefix axm-world run build
       - name: Assemble deterministic evidence subjects
@@ -117,12 +119,17 @@ jobs:
             --dependency "axm-arc-package-lock=$ARC_LOCK"
           (
             cd evidence
-            find artifacts sbom -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            {
+              find artifacts sbom -type f -print0
+              printf '%s\0' provenance.intoto.json
+            } | sort -z | xargs -0 sha256sum > SHA256SUMS
           )
           node axm-world/scripts/supply-chain/verify-offline-evidence.mjs --root evidence
       - name: Focused supply-chain contracts
         working-directory: axm-world
-        run: npm test -- tests/world/supply-chain.test.ts
+        run: |
+          set -euo pipefail
+          npm test -- tests/world/supply-chain.test.ts
       - name: Attest Rodoh build provenance
         if: github.event_name != 'pull_request'
         id: world-provenance
@@ -149,6 +156,7 @@ jobs:
             --bundle evidence/attestations/rodoh-world-build-provenance.jsonl \
             --trusted-root evidence/attestations/trusted_root.jsonl \
             --repo "$GITHUB_REPOSITORY" \
+            --attested-subject artifacts/rodoh-world-game.tar.gz \
             --require-signature
       - name: Upload supply-chain evidence
         if: always()
