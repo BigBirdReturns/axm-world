@@ -1,15 +1,20 @@
 name: Repair and qualify complete Gate 7 entry spec v2
 
-# Synchronize the two-phase repair on the current PR head.
 on:
-  pull_request:
+  push:
+    branches:
+      - fix/gate7-entry-transition-race-v2
+    paths:
+      - '.github/workflows/repair-gate7-entry-spec-v2.yml'
+      - 'e2e/gate7-clean-room.spec.ts'
+      - 'tests/world/gate7-entry-transition-contract.test.ts'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: repair-complete-gate7-entry-spec-v2-${{ github.event.pull_request.number || github.ref }}
+  group: repair-complete-gate7-entry-spec-v2
   cancel-in-progress: true
 
 env:
@@ -23,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           show-progress: false
       - uses: actions/setup-node@v4
@@ -69,8 +74,8 @@ jobs:
             exit 0
           fi
           git diff -- e2e/gate7-clean-room.spec.ts
-          source_head='${{ github.event.pull_request.head.sha || github.sha }}'
-          head_branch='${{ github.event.pull_request.head.ref || github.ref_name }}'
+          source_head="$GITHUB_SHA"
+          head_branch="$GITHUB_REF_NAME"
           git fetch --no-tags origin "$head_branch"
           test "$(git rev-parse "origin/$head_branch")" = "$source_head"
           git config user.name 'github-actions[bot]'
