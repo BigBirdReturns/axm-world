@@ -1,0 +1,94 @@
+name: Verify current Arc main repository-owned attestations
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/verify-arc-current-main-attestations.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  attestations: read
+
+env:
+  ARC_SHA: 318faaab6fb1c4b0eefe66516d3573bdb8f97369
+  ACCEPTED_ARC_TREE: 7b576898f7a82409669a97187bcd836296a77e24
+  CI: 'true'
+  SOURCE_DATE_EPOCH: '0'
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Check out exact current Arc main
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_SHA }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Rebuild the exact Arc static subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$ARC_SHA"
+          git diff --exit-code "$ACCEPTED_ARC_TREE" "$ARC_SHA" -- .
+          test "$(node -p 'require("./package.json").version')" = '1.0.0'
+          npm run typecheck
+          npm test -- tests/release/supply-chain.test.ts
+          npm test
+          npm run build
+          mkdir -p "$RUNNER_TEMP/arc-v1-evidence/artifacts" "$RUNNER_TEMP/arc-v1-evidence/verification"
+          tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner \
+            -cf "$RUNNER_TEMP/arc-v1-evidence/artifacts/axm-arc-game.tar" \
+            -C docs game
+          gzip -n "$RUNNER_TEMP/arc-v1-evidence/artifacts/axm-arc-game.tar"
+      - name: Verify Arc-owned SLSA and CycloneDX predicates
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          verify_predicate() {
+            local predicate="$1"
+            local output="$2"
+            local attempt
+            for attempt in $(seq 1 40); do
+              if gh attestation verify "$RUNNER_TEMP/arc-v1-evidence/artifacts/axm-arc-game.tar.gz" \
+                --repo BigBirdReturns/axm-arc \
+                --predicate-type "$predicate" \
+                --signer-workflow BigBirdReturns/axm-arc/.github/workflows/supply-chain-evidence.yml \
+                --source-digest "$ARC_SHA" \
+                --source-ref refs/heads/main \
+                --format json > "$output" 2>"$output.stderr"; then
+                test -s "$output"
+                rm -f "$output.stderr"
+                return 0
+              fi
+              sleep 15
+            done
+            cat "$output.stderr" >&2 || true
+            return 1
+          }
+          verify_predicate https://slsa.dev/provenance/v1 "$RUNNER_TEMP/arc-v1-evidence/verification/slsa.json"
+          verify_predicate https://cyclonedx.org/bom "$RUNNER_TEMP/arc-v1-evidence/verification/cyclonedx.json"
+          node - <<'NODE'
+          const fs = require('fs');
+          for (const name of ['slsa.json', 'cyclonedx.json']) {
+            const value = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/arc-v1-evidence/verification/${name}`, 'utf8'));
+            if (!Array.isArray(value) || value.length === 0) throw new Error(`${name} has no verified predicate`);
+          }
+          NODE
+      - name: Preserve exact Arc verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: arc-current-main-attestation-verification
+          path: ${{ runner.temp }}/arc-v1-evidence
+          if-no-files-found: error
+          retention-days: 30
