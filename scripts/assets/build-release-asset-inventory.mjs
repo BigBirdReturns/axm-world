@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { extname, relative, resolve } from "node:path";
 
 function fail(message) {
@@ -19,35 +19,70 @@ function option(name, fallback = null) {
 function flag(name) {
   return args.includes(name);
 }
+function compareStrings(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+function normalized(path) {
+  return path.replace(/\\/g, "/").replace(/\/+$/, "");
+}
+function inside(rootPath, candidatePath) {
+  const rootValue = normalized(rootPath);
+  const candidateValue = normalized(candidatePath);
+  return candidateValue === rootValue || candidateValue.startsWith(`${rootValue}/`);
+}
 
 const root = resolve(option("--root") ?? process.cwd());
-const rollupPath = resolve(root, option("--rollups") ?? "src/assets/rollups/rodoh-v1-programs.json");
-const descriptionPath = resolve(root, option("--descriptions") ?? "src/assets/descriptions/rodoh-v1-dense-assets.json");
-const outputPath = resolve(root, option("--output") ?? "docs/release/RODOH_ASSET_INVENTORY.json");
+if (!existsSync(root)) fail(`Repository root is absent: ${root}`);
+const rootReal = realpathSync(root);
+function repositoryPath(path, label) {
+  const absolute = resolve(root, path);
+  if (!inside(root, absolute)) fail(`${label} escapes the repository root: ${path}`);
+  if (existsSync(absolute) && !inside(rootReal, realpathSync(absolute))) {
+    fail(`${label} resolves outside the repository root: ${path}`);
+  }
+  return absolute;
+}
+
+const rollupPath = repositoryPath(option("--rollups") ?? "src/assets/rollups/rodoh-v1-programs.json", "Rollup file");
+const descriptionPath = repositoryPath(option("--descriptions") ?? "src/assets/descriptions/rodoh-v1-dense-assets.json", "Description file");
+const outputPath = repositoryPath(option("--output") ?? "docs/release/RODOH_ASSET_INVENTORY.json", "Inventory output");
 const check = flag("--check");
 const rollups = JSON.parse(readFileSync(rollupPath, "utf8"));
 const descriptions = JSON.parse(readFileSync(descriptionPath, "utf8"));
 if (rollups.format !== "rodoh-program-asset-rollup-set/1") fail("Unsupported asset rollup format.");
 if (descriptions.format !== "rodoh-asset-long-description-set/1") fail("Unsupported long-description format.");
+if (!Array.isArray(rollups.programs) || !Array.isArray(descriptions.descriptions)) fail("Asset custody inputs must contain arrays.");
+
+const programIds = rollups.programs.map((program) => program.id);
+if (new Set(programIds).size !== programIds.length) fail("Asset rollups contain duplicate program ids.");
+const descriptionIds = descriptions.descriptions.map((entry) => entry.id);
+if (new Set(descriptionIds).size !== descriptionIds.length) fail("Asset descriptions contain duplicate ids.");
 
 const acceptedProvenance = new Set(rollups.provenanceCompatibility);
 const descriptionById = new Map(descriptions.descriptions.map((entry) => [entry.id, entry]));
-const supported = new Set([".svg", ".png", ".webp", ".jpg", ".jpeg", ".css", ".ts", ".tsx", ".json"]);
+const supported = new Set([".svg", ".png", ".webp", ".jpg", ".jpeg", ".css", ".ts", ".tsx", ".js", ".mjs", ".json"]);
 
-function walk(path) {
-  if (!existsSync(path)) fail(`Asset rollup path is absent: ${relative(root, path)}`);
-  if (statSync(path).isFile()) return [path];
-  return readdirSync(path, { withFileTypes: true }).flatMap((entry) => {
-    const child = resolve(path, entry.name);
-    return entry.isDirectory() ? walk(child) : [child];
-  });
+function walk(path, label) {
+  const absolute = repositoryPath(path, label);
+  if (!existsSync(absolute)) fail(`${label} is absent: ${relative(root, absolute)}`);
+  const information = lstatSync(absolute);
+  if (information.isSymbolicLink()) fail(`${label} may not be a symbolic link: ${relative(root, absolute)}`);
+  if (information.isFile()) return [absolute];
+  if (!information.isDirectory()) fail(`${label} is neither a file nor directory: ${relative(root, absolute)}`);
+  return readdirSync(absolute, { withFileTypes: true })
+    .sort((left, right) => compareStrings(left.name, right.name))
+    .flatMap((entry) => {
+      const child = resolve(absolute, entry.name);
+      if (entry.isSymbolicLink()) fail(`${label} contains symbolic link ${relative(root, child)}.`);
+      return entry.isDirectory() ? walk(child, label) : [child];
+    });
 }
 function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
 }
 function textOrNull(path) {
   const extension = extname(path).toLowerCase();
-  return [".svg", ".css", ".ts", ".tsx", ".json"].includes(extension) ? readFileSync(path, "utf8") : null;
+  return [".svg", ".css", ".ts", ".tsx", ".js", ".mjs", ".json"].includes(extension) ? readFileSync(path, "utf8") : null;
 }
 function firstMatch(text, pattern) {
   return text ? pattern.exec(text)?.[1] ?? null : null;
@@ -58,24 +93,78 @@ function vectorElements(text) {
     .filter((match) => !["svg", "title", "desc", "metadata", "defs"].includes(match[1].toLowerCase()))
     .length;
 }
+function sourceStringLiterals(text) {
+  const literals = [];
+  for (let index = 0; index < text.length;) {
+    const char = text[index];
+    const next = text[index + 1];
+    if (char === "/" && next === "/") {
+      index += 2;
+      while (index < text.length && text[index] !== "\n") index += 1;
+      continue;
+    }
+    if (char === "/" && next === "*") {
+      index += 2;
+      while (index < text.length && !(text[index] === "*" && text[index + 1] === "/")) index += 1;
+      index = Math.min(text.length, index + 2);
+      continue;
+    }
+    if (char !== '"' && char !== "'" && char !== "`") {
+      index += 1;
+      continue;
+    }
+    const quote = char;
+    let literal = "";
+    index += 1;
+    while (index < text.length) {
+      const current = text[index];
+      if (current === "\\") {
+        literal += current;
+        if (index + 1 < text.length) literal += text[index + 1];
+        index += 2;
+        continue;
+      }
+      if (current === quote) {
+        index += 1;
+        break;
+      }
+      literal += current;
+      index += 1;
+    }
+    literals.push(literal);
+  }
+  return literals;
+}
+const NON_NETWORK_NAMESPACE_PREFIXES = [
+  "http://www.w3.org/1999/xhtml",
+  "http://www.w3.org/1999/xlink",
+  "http://www.w3.org/2000/svg",
+  "http://www.w3.org/XML/1998/namespace",
+];
+function urlLiterals(text) {
+  return [...text.matchAll(/(?:https?:\/\/[^\s"'`<>\\)\]}]+|\/\/(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?:[^\s"'`<>\\)\]}]*))/gi)]
+    .map((match) => match[0].replace(/[;,]+$/, ""))
+    .filter((value) => !NON_NETWORK_NAMESPACE_PREFIXES.some((prefix) => value.startsWith(prefix)));
+}
 /** Only references capable of loading a runtime asset count here. Repository,
- * provenance, and license URLs inside TypeScript comments or JSON metadata are
- * records, not network-bearing asset edges. */
+ * provenance, and license URLs inside comments or JSON metadata are records, not
+ * network-bearing asset edges. Executable source string literals remain in scope. */
 function remoteReferences(path, text) {
   if (!text) return [];
   const extension = extname(path).toLowerCase();
+  let values = [];
   if (extension === ".svg") {
-    return [...text.matchAll(/\b(?:href|xlink:href|src)\s*=\s*["']((?:https?:)?\/\/[^"']+)["']/gi)]
-      .map((match) => match[1])
-      .sort();
-  }
-  if (extension === ".css") {
-    return [
+    values = [...text.matchAll(/\b(?:href|xlink:href|src)\s*=\s*["']((?:https?:)?\/\/[^"']+)["']/gi)]
+      .map((match) => match[1]);
+  } else if (extension === ".css") {
+    values = [
       ...[...text.matchAll(/url\(\s*["']?((?:https?:)?\/\/[^"')\s]+)["']?\s*\)/gi)].map((match) => match[1]),
       ...[...text.matchAll(/@import\s+(?:url\()?\s*["']((?:https?:)?\/\/[^"']+)["']/gi)].map((match) => match[1]),
-    ].sort();
+    ];
+  } else if ([".ts", ".tsx", ".js", ".mjs"].includes(extension)) {
+    values = sourceStringLiterals(text).flatMap(urlLiterals);
   }
-  return [];
+  return [...new Set(values)].sort(compareStrings);
 }
 function embeddedRaster(path, text) {
   return extname(path).toLowerCase() === ".svg"
@@ -90,22 +179,30 @@ function executableSvg(path, text) {
 
 const ownership = new Map();
 const programs = [];
+const referencedDescriptions = new Set();
 for (const program of rollups.programs) {
   const manifests = program.historicalManifests.map((path) => {
-    const absolute = resolve(root, path);
+    const absolute = repositoryPath(path, `${program.id} manifest`);
     if (!existsSync(absolute)) fail(`${program.id} manifest is absent: ${path}`);
-    if (extname(path) !== ".json") return { path, format: "human-authority" };
+    if (lstatSync(absolute).isSymbolicLink()) fail(`${program.id} manifest may not be a symbolic link: ${path}`);
+    if (extname(path).toLowerCase() !== ".json") return { path, format: "human-authority" };
     const value = JSON.parse(readFileSync(absolute, "utf8"));
     if (!acceptedProvenance.has(value.format)) fail(`${path} uses unrecognized provenance format ${String(value.format)}.`);
     return { path, format: value.format };
   });
-  for (const descriptionId of program.denseDescriptions) {
-    if (!descriptionById.has(descriptionId)) fail(`${program.id} references missing long description ${descriptionId}.`);
-  }
   const roots = [...program.assetRoots, ...program.presentationRoots];
-  const paths = [...new Set(roots.flatMap((path) => walk(resolve(root, path))))]
+  const paths = [...new Set(roots.flatMap((path) => walk(path, `${program.id} asset root`)))]
     .filter((path) => supported.has(extname(path).toLowerCase()))
-    .sort();
+    .sort(compareStrings);
+  const pathKeys = new Set(paths.map((path) => relative(root, path).replace(/\\/g, "/")));
+  for (const descriptionId of program.denseDescriptions) {
+    if (referencedDescriptions.has(descriptionId)) fail(`Long description ${descriptionId} is assigned to more than one program.`);
+    const description = descriptionById.get(descriptionId);
+    if (!description) fail(`${program.id} references missing long description ${descriptionId}.`);
+    const descriptionAsset = relative(root, repositoryPath(description.asset, `Long description ${descriptionId} asset`)).replace(/\\/g, "/");
+    if (!pathKeys.has(descriptionAsset)) fail(`${descriptionId} describes ${description.asset}, which is outside ${program.id}'s governed roots.`);
+    referencedDescriptions.add(descriptionId);
+  }
   for (const path of paths) {
     const key = relative(root, path).replace(/\\/g, "/");
     const owners = ownership.get(key) ?? [];
@@ -113,7 +210,9 @@ for (const program of rollups.programs) {
     ownership.set(key, owners);
   }
   for (const path of program.acceptance) {
-    if (!existsSync(resolve(root, path))) fail(`${program.id} acceptance path is absent: ${path}`);
+    const absolute = repositoryPath(path, `${program.id} acceptance path`);
+    if (!existsSync(absolute)) fail(`${program.id} acceptance path is absent: ${path}`);
+    if (lstatSync(absolute).isSymbolicLink()) fail(`${program.id} acceptance path may not be a symbolic link: ${path}`);
   }
   programs.push({
     id: program.id,
@@ -129,9 +228,12 @@ for (const program of rollups.programs) {
     releaseBoundary: program.releaseBoundary,
   });
 }
+for (const description of descriptions.descriptions) {
+  if (!referencedDescriptions.has(description.id)) fail(`Long description ${description.id} is not assigned to a governed program.`);
+}
 
-const assets = [...ownership.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([path, owners]) => {
-  const absolute = resolve(root, path);
+const assets = [...ownership.entries()].sort(([left], [right]) => compareStrings(left, right)).map(([path, owners]) => {
+  const absolute = repositoryPath(path, `Governed asset ${path}`);
   const bytes = readFileSync(absolute);
   const text = textOrNull(absolute);
   const extension = extname(path).toLowerCase();
@@ -141,7 +243,7 @@ const assets = [...ownership.entries()].sort(([a], [b]) => a.localeCompare(b)).m
   const remote = remoteReferences(path, text);
   return {
     path,
-    owners: [...new Set(owners)].sort(),
+    owners: [...new Set(owners)].sort(compareStrings),
     kind: extension.slice(1),
     bytes: bytes.byteLength,
     sha256: sha256(bytes),
@@ -157,7 +259,7 @@ const assets = [...ownership.entries()].sort(([a], [b]) => a.localeCompare(b)).m
 
 const failures = [];
 for (const asset of assets) {
-  if (asset.remoteReferences.length) failures.push(`${asset.path} contains remote runtime references.`);
+  if (asset.remoteReferences.length) failures.push(`${asset.path} contains remote runtime references: ${asset.remoteReferences.join(", ")}.`);
   if (asset.embeddedRaster) failures.push(`${asset.path} contains an embedded raster payload.`);
   if (asset.executableSvg) failures.push(`${asset.path} contains executable or foreign SVG content.`);
   if (asset.kind === "svg" && (!asset.title || !asset.description || !asset.viewBox)) {
@@ -165,7 +267,8 @@ for (const asset of assets) {
   }
 }
 for (const description of descriptions.descriptions) {
-  if (!existsSync(resolve(root, description.asset))) failures.push(`Long description ${description.id} names missing asset ${description.asset}.`);
+  const absolute = repositoryPath(description.asset, `Long description ${description.id} asset`);
+  if (!existsSync(absolute)) failures.push(`Long description ${description.id} names missing asset ${description.asset}.`);
   if (!Array.isArray(description.runtimeEquivalents) || description.runtimeEquivalents.length === 0) failures.push(`${description.id} lacks runtime equivalents.`);
 }
 
@@ -176,7 +279,7 @@ const inventory = {
     rollups: relative(root, rollupPath).replace(/\\/g, "/"),
     longDescriptions: relative(root, descriptionPath).replace(/\\/g, "/"),
   },
-  provenanceCompatibility: [...acceptedProvenance].sort(),
+  provenanceCompatibility: [...acceptedProvenance].sort(compareStrings),
   summary: {
     programs: programs.length,
     assets: assets.length,
