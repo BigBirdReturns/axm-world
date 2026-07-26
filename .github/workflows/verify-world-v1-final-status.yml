@@ -1,0 +1,119 @@
+name: Verify exact World v1 residual release boundary
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/verify-world-v1-final-status.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: verify-exact-world-v1-residual-boundary
+  cancel-in-progress: true
+
+env:
+  WORLD_SHA: dd9d9130178f30cc0edc71e1b6c8b9be31002fb5
+  ARC_RELEASE_SHA: 7b576898f7a82409669a97187bcd836296a77e24
+  WINDOWS_RUN_ID: '30215367534'
+  CI: 'true'
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - name: Check out the immutable World candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.WORLD_SHA }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Require the exact Windows estate run to succeed
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 240); do
+            status="$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$WINDOWS_RUN_ID" --jq '.status')"
+            conclusion="$(gh api "/repos/$GITHUB_REPOSITORY/actions/runs/$WINDOWS_RUN_ID" --jq '.conclusion // ""')"
+            if [ "$status" = completed ]; then
+              test "$conclusion" = success
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "Windows estate run $WINDOWS_RUN_ID did not reach terminal success" >&2
+          exit 1
+      - name: Import only the exact machine receipt
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/status-estate"
+          download="$RUNNER_TEMP/windows-estate-artifact"
+          mkdir -p "$root/.rodoh-estate/receipts" "$download"
+          gh run download "$WINDOWS_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name rodoh-windows-local-replication \
+            --dir "$download"
+          receipt="$(find "$download" -type f -name windows-replication.json -print -quit)"
+          test -n "$receipt"
+          cp "$receipt" "$root/.rodoh-estate/receipts/windows-replication.json"
+          node - "$root/.rodoh-estate/receipts/windows-replication.json" <<'NODE'
+          const fs = require('fs');
+          const receipt = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          if (receipt.format !== 'rodoh-windows-replication-receipt/1') throw new Error('unexpected Windows receipt format');
+          if (receipt.status !== 'pass') throw new Error('Windows receipt does not pass');
+          if (receipt.worldHead !== process.env.WORLD_SHA) throw new Error(`Windows receipt names World ${receipt.worldHead}`);
+          if (receipt.arcHead !== process.env.ARC_RELEASE_SHA) throw new Error(`Windows receipt names Arc ${receipt.arcHead}`);
+          NODE
+      - name: Generate and verify the exact residual status
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/status-estate"
+          node scripts/estate/generate-current-status.mjs \
+            --repo "$GITHUB_WORKSPACE" \
+            --estate-root "$root" \
+            --output-json "$root/.rodoh-estate/receipts/CURRENT_ESTATE_STATUS.json" \
+            --output-markdown "$root/.rodoh-estate/receipts/CURRENT_ESTATE_STATUS.md"
+          node - "$root/.rodoh-estate/receipts/CURRENT_ESTATE_STATUS.json" <<'NODE'
+          const fs = require('fs');
+          const status = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const expected = [
+            'Local operator acceptance receipt is absent or invalid.',
+            'NVDA and Edge acceptance receipt is absent or invalid.',
+          ];
+          if (status.repositories.world.commit !== process.env.WORLD_SHA) throw new Error('status names wrong World commit');
+          if (status.repositories.world.packageVersion !== '1.0.0') throw new Error('World package is not 1.0.0');
+          if (status.repositories.arc.releaseEvidenceCommit !== process.env.ARC_RELEASE_SHA) throw new Error('status names wrong Arc release evidence');
+          if (status.repositories.arc.packageVersion !== '1.0.0') throw new Error('Arc package is not 1.0.0');
+          if (!Object.values(status.capabilities).every(Boolean)) throw new Error('one or more capabilities are false');
+          if (!status.localEvidence.windowsReplication.valid) throw new Error('Windows receipt is not valid');
+          if (status.localEvidence.localOperator.valid) throw new Error('local operator receipt was manufactured');
+          if (status.localEvidence.nvdaEdge.valid) throw new Error('NVDA receipt was manufactured');
+          if (status.release.ready) throw new Error('release incorrectly claims ready');
+          if (JSON.stringify(status.release.blockers) !== JSON.stringify(expected)) {
+            throw new Error(`unexpected blockers: ${JSON.stringify(status.release.blockers)}`);
+          }
+          if (status.bookIV.runtimeRegistered || status.bookIV.programAssigned || status.bookIV.status !== 'staged-post-1.0') {
+            throw new Error('Book IV crossed the v1 runtime boundary');
+          }
+          NODE
+      - name: Preserve the reconciled machine boundary
+        uses: actions/upload-artifact@v4
+        with:
+          name: world-v1-residual-release-boundary
+          path: ${{ runner.temp }}/status-estate/.rodoh-estate/receipts
+          if-no-files-found: error
+          retention-days: 30
