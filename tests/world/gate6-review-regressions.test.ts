@@ -32,10 +32,14 @@ describe("Gate 6 review regressions", () => {
     }
   });
 
-  it("uses npm.cmd for the permanent Gate 6 launcher on Windows", () => {
+  it("launches npm through Node on Windows with a shell-backed npm.cmd fallback", () => {
     const source = read("scripts/run-relief-circuit-gate6.mjs");
-    expect(source).toContain('process.platform === "win32" ? "npm.cmd" : "npm"');
-    expect(source).toContain("spawn(npmCommand,");
+    expect(source).toContain("const npmExecPath = process.env.npm_execpath;");
+    expect(source).toContain("command: process.execPath, args: [npmExecPath, ...args], shell: false");
+    expect(source).toContain('command: process.platform === "win32" ? "npm.cmd" : "npm"');
+    expect(source).toContain('shell: process.platform === "win32"');
+    expect(source).toContain("spawn(invocation.command, invocation.args,");
+    expect(source).not.toContain("spawn(npmCommand,");
     expect(source).not.toContain('spawn("npm",');
   });
 
