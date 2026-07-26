@@ -1,0 +1,60 @@
+name: Repair Common Ship canon evidence pointer
+
+on:
+  push:
+    branches: [release/asset-custody-closure]
+    paths:
+      - '.github/workflows/repair-canon-trace-life-fraction.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-common-ship-canon-evidence
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/asset-custody-closure
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Replace the stale Gate 6 filename with permanent executable evidence
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('docs/canon/GODSCAR_CANON_TRACE.json')
+          source = path.read_text()
+          old = '"e2e/relief-circuit-gate6.spec.ts"'
+          new = '"scripts/verify-relief-circuit-gate6.mjs"'
+          if source.count(old) != 1:
+              raise SystemExit(f'Expected one stale evidence pointer, found {source.count(old)}')
+          path.write_text(source.replace(old, new))
+          PY
+          git diff --check
+      - run: npm ci --no-audit --no-fund
+      - name: Qualify the repaired canon ledger
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm test -- tests/world/canon-trace.test.ts tests/world/second-recension-books-1-3.test.ts
+      - name: Publish the permanent ledger and remove this carrier
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/canon/GODSCAR_CANON_TRACE.json
+          git rm .github/workflows/repair-canon-trace-life-fraction.yml
+          git diff --cached --check
+          git commit -m 'Bind Common Ship life-fraction canon to the permanent Gate 6 verifier'
+          git push origin HEAD:release/asset-custody-closure
