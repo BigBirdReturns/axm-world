@@ -178,6 +178,14 @@ describe("browser support and performance custody", () => {
       expect.stringMatching(/^NVDA and Edge receipt names World /),
       expect.stringMatching(/^NVDA and Edge receipt names Arc /),
     ]));
+    expect(status.release.blockers).not.toEqual(expect.arrayContaining([
+      expect.stringMatching(/^Vendored Arc product authority /),
+    ]));
+    expect(status.repositories.arc).toMatchObject({
+      vendoredCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
+      productAuthorityCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
+      releaseEvidenceCommit: "331e9693d3210a1b66de0c5ee3931645bfcbc053",
+    });
     expect(status.repositories.world.commit).toBe(git("rev-parse", "HEAD"));
   });
 });
