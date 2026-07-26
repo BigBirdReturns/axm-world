@@ -1,19 +1,13 @@
 name: Finalize exact World 1.0.0 candidate
 
 on:
-  push:
-    branches:
-      - release/world-v1-candidate
+  pull_request:
     paths:
       - '.github/workflows/finalize-world-v1-candidate.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
-
-concurrency:
-  group: finalize-exact-world-v1-candidate
-  cancel-in-progress: true
 
 env:
   BASE_SHA: eaab92dda4122b62d2c0435f674583f0e77ceb57
@@ -29,14 +23,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           show-progress: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+      - name: Determine whether finalization is required
+        id: state
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p 'require("./package.json").version')"
+          case "$version" in
+            0.0.1) echo 'required=true' >> "$GITHUB_OUTPUT" ;;
+            1.0.0) echo 'required=false' >> "$GITHUB_OUTPUT" ;;
+            *) echo "unexpected World package version: $version" >&2; exit 1 ;;
+          esac
       - name: Derive the six non-workflow release files
+        if: steps.state.outputs.required == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -125,7 +131,9 @@ jobs:
           sha256sum --check "$RUNNER_TEMP/QUALIFIED_SHA256SUMS"
           git diff --check
       - run: npm ci --no-audit --no-fund
+        if: steps.state.outputs.required == 'true'
       - name: Qualify the exact coordinated release tree
+        if: steps.state.outputs.required == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -151,10 +159,11 @@ jobs:
           sha256sum --check "$RUNNER_TEMP/QUALIFIED_SHA256SUMS"
           git diff --check
       - name: Publish only the six non-workflow files
+        if: steps.state.outputs.required == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          source_head='${{ github.sha }}'
+          source_head='${{ github.event.pull_request.head.sha || github.sha }}'
           git fetch --no-tags origin release/world-v1-candidate
           test "$(git rev-parse origin/release/world-v1-candidate)" = "$source_head"
           git config user.name 'github-actions[bot]'
@@ -170,6 +179,13 @@ jobs:
           test "$(git diff --cached --name-only | wc -l)" -eq 6
           git commit -m 'Prepare the exact untagged RODOH 1.0.0 candidate'
           git push origin HEAD:release/world-v1-candidate
+      - name: Confirm already-finalized tree
+        if: steps.state.outputs.required == 'false'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p 'require("./package.json").version')" = '1.0.0'
+          test "$(sha256sum .github/workflows/local-estate-replication.yml | cut -d' ' -f1)" = '7566dec3e4dad20994e98a603fc741a088ca0b40ff07eac17dfe60133cdafdb7'
       - name: Preserve qualification evidence
         if: always()
         shell: bash
