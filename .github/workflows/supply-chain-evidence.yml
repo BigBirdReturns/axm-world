@@ -210,7 +210,16 @@ jobs:
             --signer-workflow BigBirdReturns/axm-arc/.github/workflows/supply-chain-evidence.yml \
             --source-digest "$ARC_SHA" \
             --source-ref refs/heads/main \
-            --format json > evidence/attestations/axm-arc-online-verification.json
+            --format json > evidence/attestations/axm-arc-build-provenance-verification.json
+          gh attestation verify evidence/artifacts/axm-arc-game.tar.gz \
+            --repo BigBirdReturns/axm-arc \
+            --predicate-type https://cyclonedx.org/bom \
+            --signer-workflow BigBirdReturns/axm-arc/.github/workflows/supply-chain-evidence.yml \
+            --source-digest "$ARC_SHA" \
+            --source-ref refs/heads/main \
+            --format json > evidence/attestations/axm-arc-cyclonedx-verification.json
+          test -s evidence/attestations/axm-arc-build-provenance-verification.json
+          test -s evidence/attestations/axm-arc-cyclonedx-verification.json
           (
             cd evidence
             {
