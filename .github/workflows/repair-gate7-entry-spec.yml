@@ -1,0 +1,99 @@
+name: Repair and qualify complete Gate 7 entry spec
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/repair-gate7-entry-spec.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-complete-gate7-entry-spec
+  cancel-in-progress: true
+
+env:
+  BASE_SHA: e0f8a47e1a31505159ba10eb521a2a5d66403fc1
+  CI: 'true'
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Restore the complete main spec and apply only the bounded race fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show "$BASE_SHA:e2e/gate7-clean-room.spec.ts" > "$RUNNER_TEMP/gate7-original.ts"
+          python - <<'PY'
+          from pathlib import Path
+
+          original = Path(__import__('os').environ['RUNNER_TEMP']) / 'gate7-original.ts'
+          target = Path('e2e/gate7-clean-room.spec.ts')
+          source = original.read_text()
+          old = '    if (await skip.isVisible().catch(() => false)) await skip.click();'
+          new = '''    if (await skip.isVisible().catch(() => false)) {
+      // Visibility is a snapshot. The entry transition may self-complete and
+      // detach this button before the click is dispatched. Race one bounded
+      // click against transition disappearance; the terminal shell assertion
+      // below still fails honestly if neither route reaches playable state.
+      await Promise.race([
+        skip.click({ timeout: 250 }).catch(() => undefined),
+        transition.waitFor({ state: "hidden", timeout: 250 }).catch(() => undefined),
+      ]);
+    }'''
+          if source.count(old) != 1:
+              raise SystemExit(f'expected one unbounded skip click, found {source.count(old)}')
+          target.write_text(source.replace(old, new))
+          PY
+          test "$(wc -l < e2e/gate7-clean-room.spec.ts)" -ge 280
+          test "$(grep -c 'unbundled clean-room cartridge completes' e2e/gate7-clean-room.spec.ts)" -eq 1
+          test "$(grep -c 'clean-room custody preserves unknown memory' e2e/gate7-clean-room.spec.ts)" -eq 1
+          test "$(grep -c 'await skip.click();' e2e/gate7-clean-room.spec.ts)" -eq 0
+          git diff --check
+          git diff -- e2e/gate7-clean-room.spec.ts
+      - run: npm ci --no-audit --no-fund
+      - name: TypeScript and focused source contract
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm test -- tests/world/gate7-entry-transition-contract.test.ts
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Prove Gate 7 on desktop and mobile before publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/gate7-repair"
+          npx playwright test e2e/gate7-clean-room.spec.ts --workers=1 2>&1 | tee "$RUNNER_TEMP/gate7-repair/gate7.log"
+      - name: Publish only the repaired complete spec
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_head='${{ github.event.pull_request.head.sha || github.sha }}'
+          git fetch --no-tags origin fix/gate7-entry-transition-race
+          test "$(git rev-parse origin/fix/gate7-entry-transition-race)" = "$source_head"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add e2e/gate7-clean-room.spec.ts
+          git diff --cached --check
+          git commit -m 'Bound the Gate 7 entry transition race'
+          git push origin HEAD:fix/gate7-entry-transition-race
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate7-entry-transition-repair
+          path: ${{ runner.temp }}/gate7-repair
+          if-no-files-found: warn
+          retention-days: 14
