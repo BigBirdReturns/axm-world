@@ -72,10 +72,12 @@ jobs:
       - name: Desktop and mobile boot budgets
         env:
           PW_CHROMIUM_PATH: ${{ runner.temp }}/pw-chromium-placeholder
+          DEBUG: pw:webserver
         run: |
           set -euo pipefail
+          mkdir -p performance-receipt
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
-          npx playwright test e2e/performance-budget.spec.ts --project desktop --project mobile
+          npx playwright test e2e/performance-budget.spec.ts --project desktop --project mobile 2>&1 | tee performance-receipt/browser-budget.log
       - name: Upload performance receipts
         if: always()
         uses: actions/upload-artifact@v4
@@ -105,13 +107,16 @@ jobs:
       - name: Firefox and WebKit neutral custody smoke
         run: |
           set -euo pipefail
-          npx playwright test e2e/support-smoke.spec.ts --config playwright.support.config.ts --project firefox-desktop-smoke --project webkit-desktop-smoke
+          mkdir -p support-receipt
+          npx playwright test e2e/support-smoke.spec.ts --config playwright.support.config.ts --project firefox-desktop-smoke --project webkit-desktop-smoke 2>&1 | tee support-receipt/firefox-webkit.log
       - name: Upload compatibility traces
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: rodoh-firefox-webkit-smoke
-          path: test-results
+          path: |
+            support-receipt
+            test-results
           if-no-files-found: warn
           retention-days: 30
 
@@ -133,7 +138,8 @@ jobs:
       - name: Microsoft Edge desktop and mobile-layout smoke
         shell: pwsh
         run: |
-          npx playwright test e2e/support-smoke.spec.ts --config playwright.support.config.ts --project edge-desktop --project edge-mobile
+          New-Item -ItemType Directory -Force support-receipt | Out-Null
+          npx playwright test e2e/support-smoke.spec.ts --config playwright.support.config.ts --project edge-desktop --project edge-mobile *>&1 | Tee-Object support-receipt\edge.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Parse the local NVDA receipt recorder
         shell: pwsh
@@ -150,6 +156,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: rodoh-hosted-windows-edge-smoke
-          path: test-results
+          path: |
+            support-receipt
+            test-results
           if-no-files-found: warn
           retention-days: 30
