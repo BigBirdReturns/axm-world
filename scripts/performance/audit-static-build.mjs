@@ -23,6 +23,9 @@ const outputPath = option("--output") ? resolve(option("--output")) : null;
 if (!existsSync(buildRoot)) fail(`Build directory is absent: ${buildRoot}`);
 const budgets = JSON.parse(readFileSync(budgetsPath, "utf8")).staticBuild;
 
+function compareStrings(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
 function walk(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = resolve(dir, entry.name);
@@ -37,41 +40,71 @@ function svgElements(text) {
     .filter((match) => !match[0].startsWith("</") && !match[0].startsWith("<?") && !match[0].startsWith("<!"))
     .length;
 }
-function externalReferences(path, text) {
+
+const NON_NETWORK_NAMESPACES = new Set([
+  "http://www.w3.org/1999/xhtml",
+  "http://www.w3.org/1999/xlink",
+  "http://www.w3.org/2000/svg",
+  "http://www.w3.org/XML/1998/namespace",
+]);
+function externalReferenceUrls(path, text) {
   const extension = extname(path).toLowerCase();
+  const candidates = [];
   if (extension === ".html" || extension === ".svg") {
-    return [...text.matchAll(/\b(?:src|href|xlink:href)\s*=\s*["'](?:https?:)?\/\//gi)].length;
+    for (const match of text.matchAll(/\b(?:src|href|xlink:href)\s*=\s*["']((?:https?:)?\/\/[^"']+)["']/gi)) {
+      candidates.push(match[1]);
+    }
+  } else if (extension === ".css") {
+    for (const match of text.matchAll(/url\(\s*["']?((?:https?:)?\/\/[^\s"')]+)["']?\s*\)/gi)) {
+      candidates.push(match[1]);
+    }
+  } else if (extension === ".js" || extension === ".mjs") {
+    // Built JavaScript can create network traffic without leaving an HTML/CSS
+    // reference. Scan URL-shaped literals and exclude only standards namespaces,
+    // which identify DOM vocabularies rather than fetchable runtime dependencies.
+    for (const match of text.matchAll(/(?:https?:)?\/\/[^\s"'`<>\\)\]}]+/gi)) {
+      candidates.push(match[0]);
+    }
   }
-  if (extension === ".css") return [...text.matchAll(/url\(\s*["']?(?:https?:)?\/\//gi)].length;
-  return 0;
+  return candidates
+    .map((value) => value.replace(/[;,]+$/, ""))
+    .filter((value) => !NON_NETWORK_NAMESPACES.has(value))
+    .sort(compareStrings);
 }
 
-const files = walk(buildRoot).sort();
+const files = walk(buildRoot).sort(compareStrings);
 const rows = files.map((path) => {
   const bytes = statSync(path).size;
   const extension = extname(path).toLowerCase();
-  const text = [".html", ".css", ".svg"].includes(extension) ? readFileSync(path, "utf8") : "";
+  const isText = [".html", ".css", ".svg", ".js", ".mjs"].includes(extension);
+  const text = isText ? readFileSync(path, "utf8") : "";
+  const externalReferenceUrlsForFile = text ? externalReferenceUrls(path, text) : [];
   return {
     path: relative(buildRoot, path).replace(/\\/g, "/"),
     bytes,
     extension,
     sha256: sha256(path),
     svgElements: extension === ".svg" ? svgElements(text) : 0,
-    externalReferences: text ? externalReferences(path, text) : 0,
+    externalReferences: externalReferenceUrlsForFile.length,
+    externalReferenceUrls: externalReferenceUrlsForFile,
   };
 });
 function sum(extension) {
   return rows.filter((row) => row.extension === extension).reduce((total, row) => total + row.bytes, 0);
 }
 function largest(extension) {
-  return rows.filter((row) => row.extension === extension).sort((a, b) => b.bytes - a.bytes)[0] ?? null;
+  return rows
+    .filter((row) => row.extension === extension)
+    .sort((a, b) => b.bytes - a.bytes || compareStrings(a.path, b.path))[0] ?? null;
 }
 
 const summary = {
   files: rows.length,
   totalBytes: rows.reduce((total, row) => total + row.bytes, 0),
-  javascriptBytes: sum(".js"),
-  largestJavaScript: largest(".js"),
+  javascriptBytes: sum(".js") + sum(".mjs"),
+  largestJavaScript: [largest(".js"), largest(".mjs")]
+    .filter(Boolean)
+    .sort((a, b) => b.bytes - a.bytes || compareStrings(a.path, b.path))[0] ?? null,
   cssBytes: sum(".css"),
   svgBytes: sum(".svg"),
   largestSvg: largest(".svg"),
