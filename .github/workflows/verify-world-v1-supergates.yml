@@ -1,0 +1,83 @@
+name: Verify exact World v1 product supergates
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/verify-world-v1-supergates.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-exact-world-v1-product-supergates
+  cancel-in-progress: true
+
+env:
+  WORLD_SHA: d192cb619df7fad910fa532e14ed9621eb7097d5
+  ARC_RELEASE_SHA: 7b576898f7a82409669a97187bcd836296a77e24
+  CI: 'true'
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - name: Check out the immutable World candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.WORLD_SHA }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Prove exact identity and complete source regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$WORLD_SHA"
+          test "$(node -p 'require("./package.json").version')" = '1.0.0'
+          test "$(node -p 'JSON.parse(require("fs").readFileSync("estate/estate.lock.json", "utf8")).repositories.arc.requiredCommit')" = "$ARC_RELEASE_SHA"
+          npm run typecheck
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          test -z "$(git status --porcelain)"
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Gate 6 Relief Circuit desktop and mobile
+        run: npm run test:gate6
+      - name: Gate 7 neutral cartridge and whole-holder custody
+        run: npx playwright test e2e/gate7-clean-room.spec.ts e2e/holder-estate.spec.ts --workers=1
+      - name: Record exact supergate receipt
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/world-v1-supergates"
+          cat > "$RUNNER_TEMP/world-v1-supergates/receipt.json" <<JSON
+          {
+            "format": "rodoh-world-v1-supergate-verification/1",
+            "status": "pass",
+            "worldCommit": "$WORLD_SHA",
+            "arcCommit": "$ARC_RELEASE_SHA",
+            "checks": [
+              "typecheck",
+              "complete-vitest",
+              "production-build",
+              "gate6-desktop-mobile",
+              "gate7-neutral-desktop-mobile",
+              "holder-estate-desktop-mobile"
+            ]
+          }
+          JSON
+      - uses: actions/upload-artifact@v4
+        with:
+          name: world-v1-supergate-verification
+          path: ${{ runner.temp }}/world-v1-supergates
+          if-no-files-found: error
+          retention-days: 30
