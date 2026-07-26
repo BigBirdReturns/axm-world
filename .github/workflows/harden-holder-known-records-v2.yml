@@ -58,6 +58,13 @@ jobs:
           )
           if count != 1:
               raise SystemExit(f'corrected invalid-run fixture rewrite count: {count}')
+
+          old_costume = 'if (entry.preferredCostume !== undefined && !isCostumeId(entry.preferredCostume)) {'
+          new_costume = 'if (entry.preferredCostume !== undefined && (typeof entry.preferredCostume !== "string" || !isCostumeId(entry.preferredCostume))) {'
+          if script.count(old_costume) != 1:
+              raise SystemExit(f'costume narrowing rewrite count: {script.count(old_costume)}')
+          script = script.replace(old_costume, new_costume)
+
           exec(compile(script, '<holder-known-record-hardening>', 'exec'), {'__name__': '__main__'})
           PY
           git diff --check
