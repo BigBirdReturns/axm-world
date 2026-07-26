@@ -1,0 +1,344 @@
+name: Harden exact v1 human receipt custody
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/harden-v1-human-receipts.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: harden-exact-v1-human-receipt-custody
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+
+jobs:
+  harden:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Repair human receipt identity and stale-evidence refusal
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          estate_path = Path('scripts/local-estate/Invoke-RodohEstate.ps1')
+          estate = estate_path.read_text()
+          marker = '''function Ask-Yes {
+              param([string]$Prompt)
+              $answer = Read-Host "$Prompt [type YES]"
+              if ($answer -cne 'YES') { throw "Operator acceptance stopped at: $Prompt" }
+              return $true
+          }
+
+          function Invoke-Accept {'''
+          replacement = '''function Ask-Yes {
+              param([string]$Prompt)
+              $answer = Read-Host "$Prompt [type YES]"
+              if ($answer -cne 'YES') { throw "Operator acceptance stopped at: $Prompt" }
+              return $true
+          }
+
+          function Get-PackageVersion {
+              param([string]$Root, [string]$Label)
+              $path = Join-Path $Root 'package.json'
+              if (-not (Test-Path -LiteralPath $path)) { throw "$Label package.json is missing: $path" }
+              $package = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+              if (-not $package.version) { throw "$Label package.json does not name a version." }
+              return [string]$package.version
+          }
+
+          function Assert-ReceiptValue {
+              param([string]$Label, $Actual, [string]$Expected)
+              $actualText = if ($null -eq $Actual) { '' } else { [string]$Actual }
+              if ($actualText -ne $Expected) {
+                  throw "$Label is '$actualText', expected '$Expected'. Rerun the automated estate on the current repository pair."
+              }
+          }
+
+          function Assert-CurrentAcceptanceEstate {
+              Assert-CleanRepository $Script:WorldRoot 'AXM World'
+              Assert-CleanRepository $Script:ArcRoot 'AXM Arc'
+
+              $worldHead = Get-GitHead $Script:WorldRoot
+              $arcHead = Get-GitHead $Script:ArcRoot
+              $worldBranch = Get-GitBranch $Script:WorldRoot
+              $arcBranch = Get-GitBranch $Script:ArcRoot
+              $worldVersion = Get-PackageVersion $Script:WorldRoot 'AXM World'
+              $arcVersion = Get-PackageVersion $Script:ArcRoot 'AXM Arc'
+
+              Assert-ReceiptValue 'World branch' $worldBranch ([string]$Script:Lock.repositories.world.branch)
+              Assert-ReceiptValue 'Arc branch' $arcBranch ([string]$Script:Lock.repositories.arc.branch)
+              Assert-ReceiptValue 'Arc head' $arcHead ([string]$Script:Lock.repositories.arc.requiredCommit)
+              Assert-ReceiptValue 'World package version' $worldVersion ([string]$Script:Lock.repositories.world.packageVersion)
+              Assert-ReceiptValue 'Arc package version' $arcVersion ([string]$Script:Lock.repositories.arc.packageVersion)
+              if (-not (Test-GitAncestor $Script:WorldRoot ([string]$Script:Lock.repositories.world.requiredAncestor) $worldHead)) {
+                  throw "World head $worldHead does not contain required ancestor $($Script:Lock.repositories.world.requiredAncestor)."
+              }
+
+              return [pscustomobject][ordered]@{
+                  worldHead = $worldHead
+                  arcHead = $arcHead
+                  worldBranch = $worldBranch
+                  arcBranch = $arcBranch
+                  worldPackageVersion = $worldVersion
+                  arcPackageVersion = $arcVersion
+              }
+          }
+
+          function Invoke-Accept {'''
+          if marker not in estate:
+              raise SystemExit('Invoke-Accept insertion marker not found')
+          estate = estate.replace(marker, replacement, 1)
+
+          old_start = '''function Invoke-Accept {
+              Write-Stage 'Human local operator acceptance'
+              foreach ($name in @('doctor.json', 'repositories.json', 'dependencies.json', 'verification.json', 'builds.json', 'tests-arc.json', 'tests-world.json', 'tests-browser.json', 'snapshot.json')) {
+                  Require-PassReceipt $name | Out-Null
+              }
+              Wait-HttpReady $Script:Lock.servers.world.url 5
+              Wait-HttpReady $Script:Lock.servers.arc.url 5
+          '''
+          new_start = '''function Invoke-Accept {
+              Write-Stage 'Human local operator acceptance'
+              $estate = Assert-CurrentAcceptanceEstate
+              $receipts = @{}
+              foreach ($name in @('doctor.json', 'repositories.json', 'dependencies.json', 'verification.json', 'builds.json', 'tests-arc.json', 'tests-world.json', 'tests-browser.json', 'snapshot.json')) {
+                  $receipts[$name] = Require-PassReceipt $name
+              }
+
+              $repositories = $receipts['repositories.json']
+              Assert-ReceiptValue 'Automated repository receipt World head' $repositories.world.head $estate.worldHead
+              Assert-ReceiptValue 'Automated repository receipt Arc head' $repositories.arc.head $estate.arcHead
+              Assert-ReceiptValue 'Automated repository receipt World branch' $repositories.world.branch $estate.worldBranch
+              Assert-ReceiptValue 'Automated repository receipt Arc branch' $repositories.arc.branch $estate.arcBranch
+
+              $verification = $receipts['verification.json']
+              Assert-ReceiptValue 'Verification receipt World head' $verification.worldHead $estate.worldHead
+              Assert-ReceiptValue 'Verification receipt Arc head' $verification.arcHead $estate.arcHead
+
+              $builds = $receipts['builds.json']
+              Assert-ReceiptValue 'Build receipt World head' $builds.world.sourceHead $estate.worldHead
+              Assert-ReceiptValue 'Build receipt Arc head' $builds.arc.sourceHead $estate.arcHead
+              Assert-ReceiptValue 'Arc test receipt head' $receipts['tests-arc.json'].head $estate.arcHead
+              Assert-ReceiptValue 'World test receipt head' $receipts['tests-world.json'].head $estate.worldHead
+              Assert-ReceiptValue 'Browser test receipt head' $receipts['tests-browser.json'].head $estate.worldHead
+
+              $snapshot = $receipts['snapshot.json']
+              Assert-ReceiptValue 'Snapshot receipt World head' $snapshot.worldHead $estate.worldHead
+              Assert-ReceiptValue 'Snapshot receipt Arc head' $snapshot.arcHead $estate.arcHead
+              if (-not (Test-Path -LiteralPath $snapshot.archive -PathType Leaf)) {
+                  throw "Snapshot archive is missing: $($snapshot.archive)"
+              }
+              Assert-ReceiptValue 'Snapshot archive SHA-256' (Get-Sha256 $snapshot.archive) ([string]$snapshot.archiveSha256)
+
+              Wait-HttpReady $Script:Lock.servers.world.url 5
+              Wait-HttpReady $Script:Lock.servers.arc.url 5
+          '''
+          if old_start not in estate:
+              raise SystemExit('Invoke-Accept opening block not found')
+          estate = estate.replace(old_start, new_start, 1)
+
+          old_snapshot = '''    $snapshot = Get-Content -Raw (Join-Path $Script:ReceiptRoot 'snapshot.json') | ConvertFrom-Json
+              $receipt = [ordered]@{
+                  format = 'rodoh-local-operator-acceptance/1'
+                  acceptedAt = (Get-Date).ToUniversalTime().ToString('o')
+                  status = 'pass'
+                  releaseTarget = [string]$Script:Lock.releaseTarget
+                  operatorLabel = $operatorLabel
+                  machineFingerprintSha256 = Get-MachineFingerprint
+                  world = [ordered]@{ head = Get-GitHead $Script:WorldRoot; branch = Get-GitBranch $Script:WorldRoot }
+                  arc = [ordered]@{ head = Get-GitHead $Script:ArcRoot; branch = Get-GitBranch $Script:ArcRoot }
+          '''
+          new_snapshot = '''    $receipt = [ordered]@{
+                  format = 'rodoh-local-operator-acceptance/1'
+                  acceptedAt = (Get-Date).ToUniversalTime().ToString('o')
+                  status = 'pass'
+                  releaseTarget = [string]$Script:Lock.releaseTarget
+                  operatorLabel = $operatorLabel
+                  machineFingerprintSha256 = Get-MachineFingerprint
+                  worldCommit = $estate.worldHead
+                  arcCommit = $estate.arcHead
+                  worldPackageVersion = $estate.worldPackageVersion
+                  arcPackageVersion = $estate.arcPackageVersion
+                  world = [ordered]@{ head = $estate.worldHead; branch = $estate.worldBranch }
+                  arc = [ordered]@{ head = $estate.arcHead; branch = $estate.arcBranch }
+          '''
+          if old_snapshot not in estate:
+              raise SystemExit('operator receipt block not found')
+          estate = estate.replace(old_snapshot, new_snapshot, 1)
+          estate_path.write_text(estate)
+
+          nvda_path = Path('scripts/accessibility/Record-NvdaEdgeAcceptance.ps1')
+          nvda = nvda_path.read_text()
+          old_nvda = '''$worldCommit = Invoke-GitText $worldRepo @("rev-parse", "HEAD")
+          $arcCommit = Invoke-GitText $arcRepo @("rev-parse", "HEAD")
+          $worldDirty = Invoke-GitText $worldRepo @("status", "--porcelain")
+          $arcDirty = Invoke-GitText $arcRepo @("status", "--porcelain")
+          if ($worldDirty) { throw "World checkout must be clean before acceptance." }
+          if ($arcDirty) { throw "Arc checkout must be clean before acceptance." }
+          if ($arcCommit -ne $lock.repositories.arc.requiredCommit) {
+            throw "Arc checkout $arcCommit does not match estate lock $($lock.repositories.arc.requiredCommit)."
+          }
+          & git -C $worldRepo merge-base --is-ancestor $lock.repositories.world.requiredAncestor $worldCommit
+          if ($LASTEXITCODE -ne 0) {
+            throw "World checkout $worldCommit does not descend from required ancestor $($lock.repositories.world.requiredAncestor)."
+          }
+          '''
+          new_nvda = '''$worldCommit = Invoke-GitText $worldRepo @("rev-parse", "HEAD")
+          $arcCommit = Invoke-GitText $arcRepo @("rev-parse", "HEAD")
+          $worldBranch = Invoke-GitText $worldRepo @("rev-parse", "--abbrev-ref", "HEAD")
+          $arcBranch = Invoke-GitText $arcRepo @("rev-parse", "--abbrev-ref", "HEAD")
+          $worldDirty = Invoke-GitText $worldRepo @("status", "--porcelain")
+          $arcDirty = Invoke-GitText $arcRepo @("status", "--porcelain")
+          if ($worldDirty) { throw "World checkout must be clean before acceptance." }
+          if ($arcDirty) { throw "Arc checkout must be clean before acceptance." }
+          if ($worldBranch -ne $lock.repositories.world.branch) {
+            throw "World branch $worldBranch does not match estate lock $($lock.repositories.world.branch)."
+          }
+          if ($arcBranch -ne $lock.repositories.arc.branch) {
+            throw "Arc branch $arcBranch does not match estate lock $($lock.repositories.arc.branch)."
+          }
+          if ($arcCommit -ne $lock.repositories.arc.requiredCommit) {
+            throw "Arc checkout $arcCommit does not match estate lock $($lock.repositories.arc.requiredCommit)."
+          }
+          & git -C $worldRepo merge-base --is-ancestor $lock.repositories.world.requiredAncestor $worldCommit
+          if ($LASTEXITCODE -ne 0) {
+            throw "World checkout $worldCommit does not descend from required ancestor $($lock.repositories.world.requiredAncestor)."
+          }
+          $worldPackageVersion = [string]((Get-Content -LiteralPath (Join-Path $worldRepo 'package.json') -Raw | ConvertFrom-Json).version)
+          $arcPackageVersion = [string]((Get-Content -LiteralPath (Join-Path $arcRepo 'package.json') -Raw | ConvertFrom-Json).version)
+          if ($worldPackageVersion -ne $lock.repositories.world.packageVersion) {
+            throw "World package version $worldPackageVersion does not match estate lock $($lock.repositories.world.packageVersion)."
+          }
+          if ($arcPackageVersion -ne $lock.repositories.arc.packageVersion) {
+            throw "Arc package version $arcPackageVersion does not match estate lock $($lock.repositories.arc.packageVersion)."
+          }
+          '''
+          if old_nvda not in nvda:
+              raise SystemExit('NVDA identity block not found')
+          nvda = nvda.replace(old_nvda, new_nvda, 1)
+          nvda_path.write_text(nvda)
+
+          status_path = Path('scripts/estate/generate-current-status.mjs')
+          status = status_path.read_text()
+          old_status = '''    worldCommit: value && !value.invalid ? value.worldCommit ?? value.worldHead ?? null : null,
+              arcCommit: value && !value.invalid ? value.arcCommit ?? value.arcHead ?? null : null,
+          '''
+          new_status = '''    worldCommit: value && !value.invalid ? value.worldCommit ?? value.worldHead ?? value.world?.head ?? null : null,
+              arcCommit: value && !value.invalid ? value.arcCommit ?? value.arcHead ?? value.arc?.head ?? null : null,
+          '''
+          if old_status not in status:
+              raise SystemExit('status receipt commit parser not found')
+          status = status.replace(old_status, new_status, 1)
+          status_path.write_text(status)
+
+          local_test_path = Path('tests/world/local-estate-contract.test.ts')
+          local_test = local_test_path.read_text()
+          test_marker = '''    expect(powershell).toContain("function Start-DetachedLoggedProcess");
+              expect(powershell).toContain("-EncodedCommand");
+          '''
+          test_replacement = '''    expect(powershell).toContain("function Start-DetachedLoggedProcess");
+              expect(powershell).toContain("-EncodedCommand");
+              expect(powershell).toContain("function Assert-CurrentAcceptanceEstate");
+              expect(powershell).toContain("Automated repository receipt World head");
+              expect(powershell).toContain("Browser test receipt head");
+              expect(powershell).toContain("Snapshot archive SHA-256");
+              expect(powershell).toContain("worldCommit = $estate.worldHead");
+              expect(powershell).toContain("arcCommit = $estate.arcHead");
+              expect(powershell).toContain("worldPackageVersion = $estate.worldPackageVersion");
+              expect(powershell).toContain("arcPackageVersion = $estate.arcPackageVersion");
+          '''
+          if test_marker not in local_test:
+              raise SystemExit('local estate test insertion marker not found')
+          local_test = local_test.replace(test_marker, test_replacement, 1)
+          local_test_path.write_text(local_test)
+
+          browser_test_path = Path('tests/world/browser-support-performance.test.ts')
+          browser_test = browser_test_path.read_text()
+          recorder_marker = '''    expect(recorder).toContain("merge-base --is-ancestor");
+              expect(recorder).toContain("playwrightVersion");
+          '''
+          recorder_replacement = '''    expect(recorder).toContain("merge-base --is-ancestor");
+              expect(recorder).toContain("playwrightVersion");
+              expect(recorder).toContain('$worldBranch = Invoke-GitText $worldRepo @("rev-parse", "--abbrev-ref", "HEAD")');
+              expect(recorder).toContain('$arcBranch = Invoke-GitText $arcRepo @("rev-parse", "--abbrev-ref", "HEAD")');
+              expect(recorder).toContain("World package version $worldPackageVersion does not match estate lock");
+              expect(recorder).toContain("Arc package version $arcPackageVersion does not match estate lock");
+              const statusGenerator = readFileSync(STATUS_GENERATOR, "utf8");
+              expect(statusGenerator).toContain("value.world?.head");
+              expect(statusGenerator).toContain("value.arc?.head");
+          '''
+          if recorder_marker not in browser_test:
+              raise SystemExit('browser test recorder marker not found')
+          browser_test = browser_test.replace(recorder_marker, recorder_replacement, 1)
+
+          old_local_receipt = '''    writeReceipt(resolve(receipts, "local-operator-acceptance.json"), {
+                format: "rodoh-local-operator-acceptance/1",
+                status: "pass",
+                worldCommit: wrongWorld,
+                arcCommit: wrongArc,
+              });
+          '''
+          new_local_receipt = '''    writeReceipt(resolve(receipts, "local-operator-acceptance.json"), {
+                format: "rodoh-local-operator-acceptance/1",
+                status: "pass",
+                world: { head: wrongWorld, branch: "main" },
+                arc: { head: wrongArc, branch: "main" },
+              });
+          '''
+          if old_local_receipt not in browser_test:
+              raise SystemExit('nested local receipt test marker not found')
+          browser_test = browser_test.replace(old_local_receipt, new_local_receipt, 1)
+          browser_test_path.write_text(browser_test)
+          PY
+          git diff --check
+      - run: npm ci --no-audit --no-fund
+      - name: Qualify exact receipt custody
+        shell: bash
+        run: |
+          set -euo pipefail
+          pwsh -NoProfile -Command "[scriptblock]::Create((Get-Content -Raw 'scripts/local-estate/Invoke-RodohEstate.ps1')) | Out-Null; [scriptblock]::Create((Get-Content -Raw 'scripts/accessibility/Record-NvdaEdgeAcceptance.ps1')) | Out-Null"
+          npm run typecheck
+          npm test -- tests/world/local-estate-contract.test.ts tests/world/browser-support-performance.test.ts
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          git diff --check
+      - name: Publish only permanent receipt custody
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_head='${{ github.event.pull_request.head.sha || github.sha }}'
+          git fetch --no-tags origin release/world-v1-candidate
+          test "$(git rev-parse origin/release/world-v1-candidate)" = "$source_head"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            scripts/local-estate/Invoke-RodohEstate.ps1 \
+            scripts/accessibility/Record-NvdaEdgeAcceptance.ps1 \
+            scripts/estate/generate-current-status.mjs \
+            tests/world/local-estate-contract.test.ts \
+            tests/world/browser-support-performance.test.ts
+          git diff --cached --check
+          test "$(git diff --cached --name-only | wc -l)" -eq 5
+          git commit -m 'Bind human receipts to the exact v1 estate pair'
+          git push origin HEAD:release/world-v1-candidate
