@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  WORLD_SHA: dd9d9130178f30cc0edc71e1b6c8b9be31002fb5
+  WORLD_SHA: bd3a8d638b3445c5395d54bb6c0ae4c515c241da
   ARC_RELEASE_SHA: 7b576898f7a82409669a97187bcd836296a77e24
   CI: 'true'
 
@@ -40,6 +40,7 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$WORLD_SHA"
           test "$(node -p 'require("./package.json").version')" = '1.0.0'
+          test "$(node -p 'JSON.parse(require("fs").readFileSync("estate/estate.lock.json", "utf8")).repositories.world.branch')" = 'main'
           test "$(node -p 'JSON.parse(require("fs").readFileSync("estate/estate.lock.json", "utf8")).repositories.arc.requiredCommit')" = "$ARC_RELEASE_SHA"
           npm run typecheck
           npm test
@@ -65,6 +66,7 @@ jobs:
             "status": "pass",
             "worldCommit": "$WORLD_SHA",
             "arcCommit": "$ARC_RELEASE_SHA",
+            "worldBranch": "main",
             "checks": [
               "typecheck",
               "complete-vitest",
