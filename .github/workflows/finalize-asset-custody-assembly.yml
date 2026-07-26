@@ -1,0 +1,272 @@
+name: Finalize exact asset-custody assembly
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/finalize-asset-custody-assembly.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finalize-exact-asset-custody-assembly
+  cancel-in-progress: true
+
+env:
+  BROWSER_SOURCE_SHA: f259aea448e4978cf0270d7cd2ebe044fb345064
+  BROWSER_DONOR_SHA: 095971265f6c9855ce49cb4c0050a88cbe346aed
+  ASSET_SOURCE_SHA: 9b958c71a0fbaf9a8e68d325ae3b96e2bd8ca87c
+  ASSET_WORKFLOW_DONOR_SHA: 54d42fbb631ccb978d452552dc35b40e9b9b52bb
+  BROWSER_AUTHOR_DATE: '2026-07-26T08:00:00Z'
+  ASSET_AUTHOR_DATE: '2026-07-26T08:20:00Z'
+  CI: 'true'
+  PW_BASE_URL: http://127.0.0.1:5173
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    outputs:
+      browser_sha: ${{ steps.publish.outputs.browser_sha }}
+      asset_sha: ${{ steps.publish.outputs.asset_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Derive the exact browser parent and final asset tree
+        id: publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          current='${{ github.event.pull_request.head.sha || github.sha }}'
+          test "$(git rev-parse HEAD)" = "$current"
+          git merge-base --is-ancestor "$BROWSER_SOURCE_SHA" "$current"
+          git fetch --no-tags origin \
+            release/browser-support-performance \
+            release/asset-custody-closure \
+            qualify/asset-custody-whole-product
+          test "$(git rev-parse origin/release/browser-support-performance)" = "$BROWSER_DONOR_SHA"
+          test "$(git rev-parse origin/release/asset-custody-closure)" = "$ASSET_SOURCE_SHA"
+          test "$(git rev-parse origin/qualify/asset-custody-whole-product)" = "$ASSET_WORKFLOW_DONOR_SHA"
+
+          git checkout "$BROWSER_DONOR_SHA" -- \
+            .github/workflows/browser-support-performance.yml \
+            .github/workflows/canon-trace-status.yml \
+            docs/SUPPORT_MATRIX.md \
+            docs/canon/GODSCAR_CANON_TRACE.json \
+            docs/canon/GODSCAR_CANON_TRACE.schema.json \
+            docs/performance/RODOH_PERFORMANCE_BUDGETS.json \
+            e2e/performance-budget.spec.ts \
+            e2e/support-smoke.spec.ts \
+            estate/CURRENT_ESTATE_STATUS.schema.json \
+            estate/nvda-edge-acceptance.schema.json \
+            package.json \
+            playwright.support.config.ts \
+            scripts/accessibility/Record-NvdaEdgeAcceptance.ps1 \
+            scripts/estate/generate-current-status.mjs \
+            scripts/performance/audit-static-build.mjs \
+            src/world/brand/RodohRuntimeMark.tsx \
+            src/world/pixel-ui/PixelIcon.tsx \
+            tests/world/browser-support-performance.test.ts \
+            tests/world/canon-trace.test.ts
+          git rm \
+            .github/workflows/finalize-browser-support-assembly.yml \
+            .github/workflows/finalize-asset-custody-assembly.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          browser_tree="$(git write-tree)"
+          browser_commit="$(printf '%s\n' 'Assemble browser support over exact release provenance' | \
+            GIT_AUTHOR_NAME='github-actions[bot]' \
+            GIT_AUTHOR_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+            GIT_COMMITTER_NAME='github-actions[bot]' \
+            GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+            GIT_AUTHOR_DATE="$BROWSER_AUTHOR_DATE" \
+            GIT_COMMITTER_DATE="$BROWSER_AUTHOR_DATE" \
+            git commit-tree "$browser_tree" -p "$BROWSER_SOURCE_SHA")"
+          git reset --hard "$browser_commit"
+
+          git checkout "$ASSET_SOURCE_SHA" -- \
+            docs/design/RELIEF_CIRCUIT_ASSET_BIBLE.md \
+            docs/schemas/rodoh-program-asset-rollup-v1.schema.json \
+            scripts/assets/build-release-asset-inventory.mjs \
+            src/assets/descriptions/rodoh-v1-dense-assets.json \
+            src/assets/first-charter/hall/charter-hall-foreground.svg \
+            src/assets/rollups/rodoh-v1-programs.json \
+            src/world/sensory-prefs.ts \
+            tests/world/asset-release-custody.test.ts
+          git checkout "$ASSET_WORKFLOW_DONOR_SHA" -- \
+            .github/workflows/asset-release-custody.yml \
+            tests/world/asset-release-workflow.test.ts
+          mkdir -p docs/release
+          node scripts/assets/build-release-asset-inventory.mjs \
+            --root "$PWD" \
+            --rollups src/assets/rollups/rodoh-v1-programs.json \
+            --descriptions src/assets/descriptions/rodoh-v1-dense-assets.json \
+            --output docs/release/RODOH_ASSET_INVENTORY.json
+          node scripts/assets/build-release-asset-inventory.mjs \
+            --root "$PWD" \
+            --rollups src/assets/rollups/rodoh-v1-programs.json \
+            --descriptions src/assets/descriptions/rodoh-v1-dense-assets.json \
+            --output docs/release/RODOH_ASSET_INVENTORY.json \
+            --check
+          git add \
+            .github/workflows/asset-release-custody.yml \
+            docs/design/RELIEF_CIRCUIT_ASSET_BIBLE.md \
+            docs/release/RODOH_ASSET_INVENTORY.json \
+            docs/schemas/rodoh-program-asset-rollup-v1.schema.json \
+            scripts/assets/build-release-asset-inventory.mjs \
+            src/assets/descriptions/rodoh-v1-dense-assets.json \
+            src/assets/first-charter/hall/charter-hall-foreground.svg \
+            src/assets/rollups/rodoh-v1-programs.json \
+            src/world/sensory-prefs.ts \
+            tests/world/asset-release-custody.test.ts \
+            tests/world/asset-release-workflow.test.ts
+          git diff --cached --check
+          asset_tree="$(git write-tree)"
+          asset_commit="$(printf '%s\n' 'Finalize production asset custody and deterministic inventory' | \
+            GIT_AUTHOR_NAME='github-actions[bot]' \
+            GIT_AUTHOR_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+            GIT_COMMITTER_NAME='github-actions[bot]' \
+            GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+            GIT_AUTHOR_DATE="$ASSET_AUTHOR_DATE" \
+            GIT_COMMITTER_DATE="$ASSET_AUTHOR_DATE" \
+            git commit-tree "$asset_tree" -p "$browser_commit")"
+          git reset --hard "$asset_commit"
+          test -z "$(git status --porcelain)"
+          git push origin "$asset_commit":qualify/asset-custody-assembled-v1
+          printf 'browser_sha=%s\n' "$browser_commit" >> "$GITHUB_OUTPUT"
+          printf 'asset_sha=%s\n' "$asset_commit" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$browser_commit" > "$RUNNER_TEMP/browser-parent.txt"
+          printf '%s\n' "$asset_commit" > "$RUNNER_TEMP/asset-candidate.txt"
+          cp docs/release/RODOH_ASSET_INVENTORY.json "$RUNNER_TEMP/asset-inventory.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asset-assembly-identities
+          path: |
+            ${{ runner.temp }}/browser-parent.txt
+            ${{ runner.temp }}/asset-candidate.txt
+            ${{ runner.temp }}/asset-inventory.json
+          if-no-files-found: error
+          retention-days: 30
+
+  linux-product:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.asset_sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Record exact candidate identity
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ needs.prepare.outputs.asset_sha }}'
+          test "$(git rev-parse HEAD^)" = '${{ needs.prepare.outputs.browser_sha }}'
+          test -z "$(git status --porcelain)"
+      - run: npm ci --no-audit --no-fund
+      - name: Exact inventory, focused contracts, and complete World product
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/asset-assembly-receipt"
+          node scripts/assets/build-release-asset-inventory.mjs \
+            --root "$PWD" \
+            --rollups src/assets/rollups/rodoh-v1-programs.json \
+            --descriptions src/assets/descriptions/rodoh-v1-dense-assets.json \
+            --output docs/release/RODOH_ASSET_INVENTORY.json \
+            --check
+          npm run typecheck
+          npm test -- \
+            tests/world/asset-release-custody.test.ts \
+            tests/world/asset-release-workflow.test.ts \
+            tests/world/asset-standard.test.ts \
+            tests/world/browser-support-performance.test.ts \
+            tests/world/canon-trace.test.ts \
+            tests/world/supply-chain.test.ts \
+            tests/world/holder-estate.test.ts
+          npm test
+          npm run build
+          node scripts/performance/audit-static-build.mjs \
+            --build docs/game \
+            --budgets docs/performance/RODOH_PERFORMANCE_BUDGETS.json \
+            --output "$RUNNER_TEMP/asset-assembly-receipt/static-build.json"
+      - name: Install support browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Compatibility smoke and complete Chromium product
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npx playwright test e2e/support-smoke.spec.ts --config playwright.support.config.ts --project firefox-desktop-smoke --project webkit-desktop-smoke 2>&1 | tee "$RUNNER_TEMP/asset-assembly-receipt/firefox-webkit.log"
+          npx playwright test 2>&1 | tee "$RUNNER_TEMP/asset-assembly-receipt/complete-chromium.log"
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game test-results
+          test -z "$(git status --porcelain)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: asset-assembly-linux
+          path: ${{ runner.temp }}/asset-assembly-receipt
+          if-no-files-found: warn
+          retention-days: 30
+
+  hosted-edge:
+    needs: prepare
+    runs-on: windows-2025
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.asset_sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Record exact candidate identity
+        shell: pwsh
+        run: |
+          $expected = '${{ needs.prepare.outputs.asset_sha }}'
+          $parent = '${{ needs.prepare.outputs.browser_sha }}'
+          if ((git rev-parse HEAD).Trim() -ne $expected) { throw 'Asset candidate identity mismatch.' }
+          if ((git rev-parse HEAD^).Trim() -ne $parent) { throw 'Browser parent identity mismatch.' }
+          if (git status --porcelain) { throw 'Asset candidate checkout is dirty.' }
+          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\asset-edge-receipt" | Out-Null
+      - run: npm ci --no-audit --no-fund
+      - name: Hosted Microsoft Edge and NVDA recorder parsing
+        shell: pwsh
+        run: |
+          npx playwright test e2e/support-smoke.spec.ts --config playwright.support.config.ts --project edge-desktop --project edge-mobile *>&1 | Tee-Object "$env:RUNNER_TEMP\asset-edge-receipt\edge.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'scripts/accessibility/Record-NvdaEdgeAcceptance.ps1'),
+            [ref]$null,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) { $errors | Format-List | Out-String | Write-Error }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: asset-assembly-hosted-edge
+          path: ${{ runner.temp }}/asset-edge-receipt
+          if-no-files-found: warn
+          retention-days: 30
