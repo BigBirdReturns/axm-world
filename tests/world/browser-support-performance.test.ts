@@ -34,33 +34,67 @@ const generousStaticBudgets = {
   maximumExternalReferences: 0,
 };
 
+function staticAudit(files: Record<string, string>) {
+  const dir = mkdtempSync(join(tmpdir(), "rodoh-static-audit-"));
+  const build = join(dir, "build");
+  mkdirSync(build);
+  for (const [name, content] of Object.entries(files)) {
+    const path = join(build, name);
+    mkdirSync(resolve(path, ".."), { recursive: true });
+    writeFileSync(path, content);
+  }
+  const budgets = join(dir, "budgets.json");
+  const receipt = join(dir, "receipt.json");
+  writeFileSync(budgets, JSON.stringify({ staticBuild: generousStaticBudgets }));
+  const result = runNode(STATIC_AUDIT, ["--build", build, "--budgets", budgets, "--output", receipt]);
+  return { result, receipt: JSON.parse(readFileSync(receipt, "utf8")) };
+}
+
 describe("browser support and performance custody", () => {
-  it("detects executable JavaScript network dependencies without counting standards namespaces", () => {
-    const dir = mkdtempSync(join(tmpdir(), "rodoh-static-audit-"));
-    const build = join(dir, "build");
-    mkdirSync(build);
-    const budgets = join(dir, "budgets.json");
-    const receipt = join(dir, "receipt.json");
-    writeFileSync(budgets, JSON.stringify({ staticBuild: generousStaticBudgets }));
-    writeFileSync(join(build, "app.js"), 'fetch("https://example.com/runtime.json");\n');
-
-    const rejected = runNode(STATIC_AUDIT, ["--build", build, "--budgets", budgets, "--output", receipt]);
-    expect(rejected.status).not.toBe(0);
-    const rejectedReceipt = JSON.parse(readFileSync(receipt, "utf8"));
-    expect(rejectedReceipt.failures).toContainEqual({ label: "externalReferences", actual: 1, maximum: 0 });
-    expect(rejectedReceipt.files[0].externalReferenceUrls).toEqual(["https://example.com/runtime.json"]);
-
-    writeFileSync(join(build, "app.js"), [
-      'const svgNamespace = "http://www.w3.org/2000/svg";',
-      "// https-like prose is not an executable dependency when no URL literal is present.",
-      "",
-    ].join("\n"));
-    const accepted = runNode(STATIC_AUDIT, ["--build", build, "--budgets", budgets, "--output", receipt]);
-    expect(accepted.status, accepted.stderr || accepted.stdout).toBe(0);
-    expect(JSON.parse(readFileSync(receipt, "utf8"))).toMatchObject({
-      status: "pass",
-      summary: { externalReferences: 0 },
+  it("detects direct JavaScript network-capable call sites without counting bundled documentation or namespace strings", () => {
+    const rejected = staticAudit({
+      "app.js": [
+        'fetch("https://api.example.test/runtime.json");',
+        'new WebSocket("wss://socket.example.test/stream");',
+        'new Worker("//cdn.example.test/worker.js");',
+        'navigator.sendBeacon("https://telemetry.example.test/receipt");',
+        'const request = new XMLHttpRequest(); request.open("GET", "https://api.example.test/other");',
+        'import("https://modules.example.test/remote.mjs");',
+      ].join("\n"),
     });
+    expect(rejected.result.status).not.toBe(0);
+    expect(rejected.receipt.failures).toContainEqual({ label: "externalReferences", actual: 6, maximum: 0 });
+    expect(rejected.receipt.files[0].externalReferenceUrls).toEqual([
+      "//cdn.example.test/worker.js",
+      "https://api.example.test/other",
+      "https://api.example.test/runtime.json",
+      "https://modules.example.test/remote.mjs",
+      "https://telemetry.example.test/receipt",
+      "wss://socket.example.test/stream",
+    ]);
+
+    const accepted = staticAudit({
+      "app.js": [
+        'const svgNamespace = "http://www.w3.org/2000/svg";',
+        'const mathNamespace = "http://www.w3.org/1998/Math/MathML";',
+        'const reactDocs = "https://reactjs.org/docs/error-decoder.html?invariant=";',
+        'const lightingNotes = "https://discourse.threejs.org/t/updates-to-lighting-in-three-js-r155/53733";',
+        'const domainRegex = /\\/\\/i.test(value);',
+        'console.log(svgNamespace, mathNamespace, reactDocs, lightingNotes, domainRegex);',
+      ].join("\n"),
+    });
+    expect(accepted.result.status, accepted.result.stderr || accepted.result.stdout).toBe(0);
+    expect(accepted.receipt).toMatchObject({ status: "pass", summary: { externalReferences: 0 } });
+  });
+
+  it("continues to refuse direct HTML, CSS, and SVG external asset references", () => {
+    const rejected = staticAudit({
+      "index.html": '<img src="https://cdn.example.test/image.png">',
+      "screen.css": 'body { background: url("//cdn.example.test/background.png"); }',
+      "mark.svg": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><image href="https://cdn.example.test/raster.png"/></svg>',
+    });
+    expect(rejected.result.status).not.toBe(0);
+    expect(rejected.receipt.summary.externalReferences).toBe(3);
   });
 
   it("binds support browsers and the NVDA recorder to the declared exact environment", () => {
