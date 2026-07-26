@@ -32,13 +32,16 @@ describe("Gate 6 review regressions", () => {
     }
   });
 
-  it("launches npm through Node on Windows with a shell-backed npm.cmd fallback", () => {
+  it("launches npm portably and terminates the complete Windows Vite process tree", () => {
     const source = read("scripts/run-relief-circuit-gate6.mjs");
     expect(source).toContain("const npmExecPath = process.env.npm_execpath;");
     expect(source).toContain("command: process.execPath, args: [npmExecPath, ...args], shell: false");
     expect(source).toContain('command: process.platform === "win32" ? "npm.cmd" : "npm"');
     expect(source).toContain('shell: process.platform === "win32"');
     expect(source).toContain("spawn(invocation.command, invocation.args,");
+    expect(source).toContain('spawnSync("taskkill.exe", ["/PID", String(server.pid), "/T", "/F"]');
+    expect(source).toContain("await waitForServerClose(10_000)");
+    expect(source).toContain("await stopServer();");
     expect(source).not.toContain("spawn(npmCommand,");
     expect(source).not.toContain('spawn("npm",');
   });
