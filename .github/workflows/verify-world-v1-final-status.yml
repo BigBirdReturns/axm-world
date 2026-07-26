@@ -15,9 +15,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  WORLD_SHA: dd9d9130178f30cc0edc71e1b6c8b9be31002fb5
+  WORLD_SHA: bd3a8d638b3445c5395d54bb6c0ae4c515c241da
   ARC_RELEASE_SHA: 7b576898f7a82409669a97187bcd836296a77e24
-  WINDOWS_RUN_ID: '30215367534'
+  WINDOWS_RUN_ID: '30216081529'
   CI: 'true'
 
 jobs:
