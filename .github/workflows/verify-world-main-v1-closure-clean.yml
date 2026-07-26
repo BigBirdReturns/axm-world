@@ -1,0 +1,338 @@
+name: Verify corrected World main v1 closure
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/verify-world-main-v1-closure-clean.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  attestations: read
+
+concurrency:
+  group: verify-corrected-world-main-v1-closure
+  cancel-in-progress: true
+
+env:
+  WORLD_SHA: 04d5aa0b612bc64348b2d71b4cd4c060562b60d1
+  ACCEPTED_TREE_SHA: 33e76fca537c0bfb0592fbfb380468ded5963e19
+  ARC_SHA: 7b576898f7a82409669a97187bcd836296a77e24
+  CI: 'true'
+  SOURCE_DATE_EPOCH: '0'
+
+jobs:
+  signed-evidence:
+    name: Corrected main products and repository-owned predicates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - name: Check out exact corrected World main
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-world
+          ref: ${{ env.WORLD_SHA }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+      - name: Check out exact Arc main
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_SHA }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            axm-world/package-lock.json
+            axm-arc/package-lock.json
+      - name: Install exact dependencies
+        run: |
+          set -euo pipefail
+          npm --prefix axm-world ci --no-audit --no-fund
+          npm --prefix axm-arc ci --no-audit --no-fund
+      - name: Prove corrected tree identity and qualify both products
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C axm-world rev-parse HEAD)" = "$WORLD_SHA"
+          test "$(git -C axm-arc rev-parse HEAD)" = "$ARC_SHA"
+          test ! -e axm-world/PLACEHOLDER
+          git -C axm-world diff --quiet "$ACCEPTED_TREE_SHA" "$WORLD_SHA"
+          test "$(node -p 'require("./axm-world/package.json").version')" = '1.0.0'
+          test "$(node -p 'require("./axm-arc/package.json").version')" = '1.0.0'
+          test "$(node -p 'JSON.parse(require("fs").readFileSync("axm-world/estate/estate.lock.json", "utf8")).repositories.arc.requiredCommit')" = "$ARC_SHA"
+          npm --prefix axm-world run typecheck
+          npm --prefix axm-arc run typecheck
+          npm --prefix axm-world test
+          npm --prefix axm-arc test
+          npm --prefix axm-world run build
+          npm --prefix axm-arc run build
+          mkdir -p verification/artifacts verification/attestations
+          tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -cf verification/artifacts/rodoh-world-game.tar -C axm-world/docs game
+          gzip -n verification/artifacts/rodoh-world-game.tar
+          tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -cf verification/artifacts/axm-arc-game.tar -C axm-arc/docs game
+          gzip -n verification/artifacts/axm-arc-game.tar
+          sha256sum verification/artifacts/*.tar.gz | tee verification/SHA256SUMS
+      - name: Verify corrected World and Arc attestations
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          verify_predicate() {
+            local subject="$1"
+            local repo="$2"
+            local predicate="$3"
+            local workflow="$4"
+            local digest="$5"
+            local output="$6"
+            local attempt
+            for attempt in $(seq 1 60); do
+              if gh attestation verify "$subject" \
+                --repo "$repo" \
+                --predicate-type "$predicate" \
+                --signer-workflow "$workflow" \
+                --source-digest "$digest" \
+                --source-ref refs/heads/main \
+                --format json > "$output" 2>"$output.stderr"; then
+                test -s "$output"
+                rm -f "$output.stderr"
+                return 0
+              fi
+              sleep 15
+            done
+            cat "$output.stderr" >&2 || true
+            return 1
+          }
+          verify_predicate \
+            verification/artifacts/rodoh-world-game.tar.gz \
+            BigBirdReturns/axm-world \
+            https://slsa.dev/provenance/v1 \
+            BigBirdReturns/axm-world/.github/workflows/supply-chain-evidence.yml \
+            "$WORLD_SHA" \
+            verification/attestations/world-slsa.json
+          verify_predicate \
+            verification/artifacts/rodoh-world-game.tar.gz \
+            BigBirdReturns/axm-world \
+            https://cyclonedx.org/bom \
+            BigBirdReturns/axm-world/.github/workflows/supply-chain-evidence.yml \
+            "$WORLD_SHA" \
+            verification/attestations/world-cyclonedx.json
+          verify_predicate \
+            verification/artifacts/axm-arc-game.tar.gz \
+            BigBirdReturns/axm-arc \
+            https://slsa.dev/provenance/v1 \
+            BigBirdReturns/axm-arc/.github/workflows/supply-chain-evidence.yml \
+            "$ARC_SHA" \
+            verification/attestations/arc-slsa.json
+          verify_predicate \
+            verification/artifacts/axm-arc-game.tar.gz \
+            BigBirdReturns/axm-arc \
+            https://cyclonedx.org/bom \
+            BigBirdReturns/axm-arc/.github/workflows/supply-chain-evidence.yml \
+            "$ARC_SHA" \
+            verification/attestations/arc-cyclonedx.json
+          node - <<'NODE'
+          const fs = require('fs');
+          for (const name of ['world-slsa.json', 'world-cyclonedx.json', 'arc-slsa.json', 'arc-cyclonedx.json']) {
+            const path = `verification/attestations/${name}`;
+            const value = JSON.parse(fs.readFileSync(path, 'utf8'));
+            if (!Array.isArray(value) || value.length === 0) throw new Error(`${name} has no verified attestation`);
+          }
+          NODE
+      - name: Restore clean exact checkouts
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          for repo in axm-world axm-arc; do
+            if git -C "$repo" ls-files -- docs/game | grep -q .; then
+              git -C "$repo" restore --source=HEAD --staged --worktree -- docs/game
+            fi
+            git -C "$repo" clean -fdx -- docs/game
+            test -z "$(git -C "$repo" status --porcelain)"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: corrected-world-main-v1-signed-evidence
+          path: verification
+          if-no-files-found: warn
+          retention-days: 30
+
+  windows-estate:
+    name: Corrected main Windows estate
+    runs-on: windows-2025
+    timeout-minutes: 240
+    steps:
+      - name: Check out exact corrected World main
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-world
+          ref: ${{ env.WORLD_SHA }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+      - name: Check out exact Arc main
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_SHA }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            axm-world/package-lock.json
+            axm-arc/package-lock.json
+      - name: Prepare corrected-main diagnostics
+        shell: pwsh
+        run: |
+          if ((git -C axm-world rev-parse HEAD).Trim() -ne $env:WORLD_SHA) { throw 'World identity mismatch.' }
+          if ((git -C axm-arc rev-parse HEAD).Trim() -ne $env:ARC_SHA) { throw 'Arc identity mismatch.' }
+          if (Test-Path axm-world\PLACEHOLDER) { throw 'Stale PLACEHOLDER remains in corrected main.' }
+          git -C axm-world diff --quiet $env:ACCEPTED_TREE_SHA $env:WORLD_SHA
+          if ($LASTEXITCODE -ne 0) { throw 'Corrected main tree differs from the accepted candidate tree.' }
+          if ((node -p "require('./axm-world/package.json').version").Trim() -ne '1.0.0') { throw 'World package is not 1.0.0.' }
+          if ((node -p "require('./axm-arc/package.json').version").Trim() -ne '1.0.0') { throw 'Arc package is not 1.0.0.' }
+          New-Item -ItemType Directory -Force .rodoh-estate\logs, .rodoh-estate\receipts, corrected-main-v1-receipt | Out-Null
+      - name: Doctor and hydrate corrected estate
+        shell: pwsh
+        run: |
+          & .\axm-world\RODOH.cmd doctor -EstateRoot "$PWD" *>&1 | Tee-Object .rodoh-estate\logs\doctor.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\axm-world\RODOH.cmd hydrate -EstateRoot "$PWD" *>&1 | Tee-Object .rodoh-estate\logs\hydrate.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify custody and reproducible builds
+        shell: pwsh
+        run: |
+          & .\axm-world\RODOH.cmd verify -EstateRoot "$PWD" *>&1 | Tee-Object .rodoh-estate\logs\verify.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\axm-world\RODOH.cmd build -EstateRoot "$PWD" *>&1 | Tee-Object .rodoh-estate\logs\build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Qualify Arc and complete World browser estate
+        shell: pwsh
+        run: |
+          & .\axm-world\RODOH.cmd test -EstateRoot "$PWD" -Scope Arc *>&1 | Tee-Object .rodoh-estate\logs\test-arc.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\axm-world\RODOH.cmd test -EstateRoot "$PWD" -Scope World -FullBrowser *>&1 | Tee-Object .rodoh-estate\logs\test-world.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Boot captured products and prove static health
+        shell: pwsh
+        run: |
+          & .\axm-world\RODOH.cmd play -EstateRoot "$PWD" -NoOpen *>&1 | Tee-Object .rodoh-estate\logs\play.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          try {
+            $worldStatus = (Invoke-WebRequest -UseBasicParsing http://127.0.0.1:5173/axm-world/game/).StatusCode
+            $arcStatus = (Invoke-WebRequest -UseBasicParsing http://127.0.0.1:5174/axm-arc/game/).StatusCode
+            if ($worldStatus -ne 200 -or $arcStatus -ne 200) {
+              throw "Static health check failed: World=$worldStatus Arc=$arcStatus"
+            }
+          } finally {
+            & .\axm-world\RODOH.cmd stop -EstateRoot "$PWD" *>&1 | Tee-Object -Append .rodoh-estate\logs\play.log
+          }
+      - name: Record corrected-main Windows receipt
+        shell: pwsh
+        run: |
+          $receipt = [ordered]@{
+            format = 'rodoh-windows-replication-receipt/1'
+            generatedAt = (Get-Date).ToUniversalTime().ToString('o')
+            status = 'pass'
+            worldHead = (git -C axm-world rev-parse HEAD).Trim()
+            arcHead = (git -C axm-arc rev-parse HEAD).Trim()
+            node = (node --version).Trim()
+            npm = (npm --version).Trim()
+            operatingSystem = [Environment]::OSVersion.VersionString
+            checks = @('doctor', 'hydrate', 'vendored-plane', 'double-build', 'arc-suite', 'world-suite', 'gate6', 'gate7', 'complete-playwright', 'static-health')
+          }
+          $receipt | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf8 .rodoh-estate\receipts\windows-replication.json
+          Copy-Item .rodoh-estate\receipts\windows-replication.json corrected-main-v1-receipt\windows-replication.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: corrected-world-main-v1-windows-estate
+          path: |
+            corrected-main-v1-receipt
+            .rodoh-estate/receipts
+            .rodoh-estate/logs
+            .rodoh-estate/library/builds
+          if-no-files-found: warn
+          retention-days: 30
+
+  residual-boundary:
+    name: Corrected main residual release boundary
+    needs: [signed-evidence, windows-estate]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact corrected World main
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-world
+          ref: ${{ env.WORLD_SHA }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - uses: actions/download-artifact@v4
+        with:
+          name: corrected-world-main-v1-windows-estate
+          path: imported-windows
+      - name: Import exact machine evidence and verify terminal boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e PLACEHOLDER
+          git diff --quiet "$ACCEPTED_TREE_SHA" "$WORLD_SHA"
+          receipt="$(find imported-windows -name windows-replication.json -type f | head -n 1)"
+          test -n "$receipt"
+          mkdir -p "$RUNNER_TEMP/final-estate/.rodoh-estate/receipts" "$RUNNER_TEMP/final-status"
+          cp "$receipt" "$RUNNER_TEMP/final-estate/.rodoh-estate/receipts/windows-replication.json"
+          node scripts/estate/generate-current-status.mjs \
+            --repo "$PWD" \
+            --estate-root "$RUNNER_TEMP/final-estate" \
+            --output-json "$RUNNER_TEMP/final-status/current-estate-status.json" \
+            --output-markdown "$RUNNER_TEMP/final-status/CURRENT_ESTATE_STATUS.md"
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = `${process.env.RUNNER_TEMP}/final-status/current-estate-status.json`;
+          const value = JSON.parse(fs.readFileSync(path, 'utf8'));
+          const expected = [
+            'Local operator acceptance receipt is absent or invalid.',
+            'NVDA and Edge acceptance receipt is absent or invalid.',
+          ];
+          if (value.repositories.world.commit !== process.env.WORLD_SHA) throw new Error('World status identity mismatch');
+          if (value.repositories.arc.releaseEvidenceCommit !== process.env.ARC_SHA) throw new Error('Arc status identity mismatch');
+          if (value.release.packageVersion !== '1.0.0' || value.release.arcPackageVersion !== '1.0.0') throw new Error('Package version mismatch');
+          if (!value.localEvidence.windowsReplication.valid) throw new Error('Windows receipt is not valid');
+          if (value.localEvidence.windowsReplication.worldCommit !== process.env.WORLD_SHA) throw new Error('Windows World mismatch');
+          if (value.localEvidence.windowsReplication.arcCommit !== process.env.ARC_SHA) throw new Error('Windows Arc mismatch');
+          if (value.localEvidence.localOperator.valid || value.localEvidence.nvdaEdge.valid) throw new Error('Human receipt was manufactured');
+          if (JSON.stringify(value.release.blockers) !== JSON.stringify(expected)) {
+            throw new Error(`Unexpected blockers: ${JSON.stringify(value.release.blockers)}`);
+          }
+          if (Object.values(value.capabilities).some((present) => present !== true)) throw new Error('A required capability is absent');
+          if (value.bookIV.status !== 'staged-post-1.0' || value.bookIV.runtimeRegistered || value.bookIV.programAssigned) {
+            throw new Error('Book IV crossed the staged boundary');
+          }
+          if (value.release.ready) throw new Error('Release cannot be ready without human receipts');
+          NODE
+          cp "$receipt" "$RUNNER_TEMP/final-status/windows-replication.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: corrected-world-main-v1-final-boundary
+          path: ${{ runner.temp }}/final-status
+          if-no-files-found: error
+          retention-days: 30
