@@ -31,6 +31,27 @@ function Find-ExecutableVersion([string[]]$Candidates) {
   throw "Required executable was not found: $($Candidates -join ', ')"
 }
 
+function Invoke-GitText([string]$Repository, [string[]]$GitArguments) {
+  $output = & git -C $Repository @GitArguments 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    throw "git -C $Repository $($GitArguments -join ' ') failed: $($output | Out-String)"
+  }
+  return ($output | Out-String).Trim()
+}
+
+function Invoke-ToolText([string]$WorkingDirectory, [string]$Command, [string[]]$Arguments) {
+  Push-Location $WorkingDirectory
+  try {
+    $output = & $Command @Arguments 2>&1
+    if ($LASTEXITCODE -ne 0) {
+      throw "$Command $($Arguments -join ' ') failed: $($output | Out-String)"
+    }
+    return ($output | Out-String).Trim()
+  } finally {
+    Pop-Location
+  }
+}
+
 function Confirm-Check([string]$Label) {
   Write-Host ""
   Write-Host $Label -ForegroundColor Cyan
@@ -45,22 +66,33 @@ $lockPath = Join-Path $worldRepo "estate\estate.lock.json"
 if (-not (Test-Path -LiteralPath $lockPath)) { throw "Estate lock not found: $lockPath" }
 $lock = Get-Content -LiteralPath $lockPath -Raw | ConvertFrom-Json
 $arcRepo = if (Test-Path (Join-Path $root "axm-arc\.git")) { Join-Path $root "axm-arc" } else { Join-Path (Split-Path $worldRepo -Parent) "axm-arc" }
+if (-not (Test-Path (Join-Path $worldRepo ".git"))) { throw "World checkout not found: $worldRepo" }
 if (-not (Test-Path (Join-Path $arcRepo ".git"))) { throw "Arc checkout not found: $arcRepo" }
 
-$worldCommit = (git -C $worldRepo rev-parse HEAD).Trim()
-$arcCommit = (git -C $arcRepo rev-parse HEAD).Trim()
-if ($LASTEXITCODE -ne 0) { throw "Unable to read exact repository identities." }
+$worldCommit = Invoke-GitText $worldRepo @("rev-parse", "HEAD")
+$arcCommit = Invoke-GitText $arcRepo @("rev-parse", "HEAD")
+$worldDirty = Invoke-GitText $worldRepo @("status", "--porcelain")
+$arcDirty = Invoke-GitText $arcRepo @("status", "--porcelain")
+if ($worldDirty) { throw "World checkout must be clean before acceptance." }
+if ($arcDirty) { throw "Arc checkout must be clean before acceptance." }
 if ($arcCommit -ne $lock.repositories.arc.requiredCommit) {
   throw "Arc checkout $arcCommit does not match estate lock $($lock.repositories.arc.requiredCommit)."
 }
+& git -C $worldRepo merge-base --is-ancestor $lock.repositories.world.requiredAncestor $worldCommit
+if ($LASTEXITCODE -ne 0) {
+  throw "World checkout $worldCommit does not descend from required ancestor $($lock.repositories.world.requiredAncestor)."
+}
 
+$nodeVersion = Invoke-ToolText $worldRepo "node" @("--version")
+$npmVersion = Invoke-ToolText $worldRepo "npm.cmd" @("--version")
+$playwrightVersion = Invoke-ToolText $worldRepo "node" @("-p", "require('./node_modules/@playwright/test/package.json').version")
 $edgeVersion = Find-ExecutableVersion @(
-  "$env:ProgramFiles(x86)\Microsoft\Edge\Application\msedge.exe",
+  "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe",
   "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe",
   "msedge.exe"
 )
 $nvdaVersion = Find-ExecutableVersion @(
-  "$env:ProgramFiles(x86)\NVDA\nvda.exe",
+  "${env:ProgramFiles(x86)}\NVDA\nvda.exe",
   "$env:ProgramFiles\NVDA\nvda.exe",
   "$env:LOCALAPPDATA\Programs\NVDA\nvda.exe",
   "nvda.exe"
@@ -70,10 +102,13 @@ $machineGuid = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Cryptography").Machin
 $fingerprint = Get-Sha256Hex("$machineGuid|$($os.Version)|$edgeVersion|$nvdaVersion")
 
 Write-Host "RODOH NVDA + Edge acceptance" -ForegroundColor Yellow
-Write-Host "World: $worldCommit"
-Write-Host "Arc:   $arcCommit"
-Write-Host "Edge:  $edgeVersion"
-Write-Host "NVDA:  $nvdaVersion"
+Write-Host "World:      $worldCommit"
+Write-Host "Arc:        $arcCommit"
+Write-Host "Edge:       $edgeVersion"
+Write-Host "NVDA:       $nvdaVersion"
+Write-Host "Node:       $nodeVersion"
+Write-Host "npm:        $npmVersion"
+Write-Host "Playwright: $playwrightVersion"
 Write-Host ""
 Write-Host "Use keyboard and NVDA speech/braille output. Do not answer YES from visual inspection alone." -ForegroundColor Yellow
 
@@ -103,6 +138,9 @@ $receipt = [ordered]@{
   operatingSystem = "$($os.Caption) $($os.Version) build $($os.BuildNumber)"
   edgeVersion = $edgeVersion
   nvdaVersion = $nvdaVersion
+  nodeVersion = $nodeVersion
+  npmVersion = $npmVersion
+  playwrightVersion = $playwrightVersion
   worldCommit = $worldCommit
   arcCommit = $arcCommit
   checks = $checks

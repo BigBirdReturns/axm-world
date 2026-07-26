@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
-import { basename, dirname, resolve } from "node:path";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
 function fail(message) {
@@ -20,13 +20,24 @@ function option(name, fallback = null) {
 function flag(name) {
   return args.includes(name);
 }
+function normalizePath(path) {
+  return path.replace(/\\/g, "/").replace(/\/+$/, "");
+}
+function isWithin(rootPath, candidatePath) {
+  const normalizedRoot = normalizePath(rootPath);
+  const normalizedCandidate = normalizePath(candidatePath);
+  return normalizedCandidate === normalizedRoot || normalizedCandidate.startsWith(`${normalizedRoot}/`);
+}
 
 const root = resolve(option("--root") ?? ".");
+if (!existsSync(root)) fail(`Evidence root is absent: ${root}`);
+const rootReal = realpathSync(root);
 const sumsPath = resolve(root, option("--sums") ?? "SHA256SUMS");
 const provenancePath = resolve(root, option("--provenance") ?? "provenance.intoto.json");
 const repo = option("--repo") ?? "BigBirdReturns/axm-world";
 const bundle = option("--bundle");
 const trustedRoot = option("--trusted-root");
+const attestedSubject = option("--attested-subject");
 const requireSignature = flag("--require-signature");
 
 function sha256(path) {
@@ -34,10 +45,10 @@ function sha256(path) {
 }
 function insideRoot(path) {
   const resolved = resolve(root, path);
-  const prefix = `${root.replace(/[\\/]+$/, "")}/`;
-  const normalized = resolved.replace(/\\/g, "/");
-  if (normalized !== root.replace(/\\/g, "/") && !normalized.startsWith(prefix.replace(/\\/g, "/"))) {
-    fail(`Checksum path escapes evidence root: ${path}`);
+  if (!isWithin(root, resolved)) fail(`Checksum path escapes evidence root: ${path}`);
+  if (existsSync(resolved)) {
+    const real = realpathSync(resolved);
+    if (!isWithin(rootReal, real)) fail(`Checksum path resolves outside evidence root: ${path}`);
   }
   return resolved;
 }
@@ -61,6 +72,7 @@ if (statement?._type !== "https://in-toto.io/Statement/v1") fail("Provenance is 
 if (statement?.predicateType !== "https://slsa.dev/provenance/v1") fail("Provenance predicate is not SLSA provenance v1.");
 if (!Array.isArray(statement.subject) || statement.subject.length === 0) fail("Provenance has no subjects.");
 for (const subject of statement.subject) {
+  if (!subject || typeof subject.name !== "string") fail("Provenance subject has no name.");
   const path = insideRoot(subject.name);
   if (!existsSync(path)) fail(`Provenance subject is absent: ${subject.name}`);
   const expected = subject?.digest?.sha256;
@@ -80,22 +92,27 @@ for (const sbom of sboms) {
   }
 }
 
-let signature = { attempted: false, verified: false };
-if (bundle || trustedRoot || requireSignature) {
+let signature = { attempted: false, verified: false, subject: null };
+if (bundle || trustedRoot || attestedSubject || requireSignature) {
   signature.attempted = true;
   if (!bundle || !trustedRoot) fail("Offline signature verification requires both --bundle and --trusted-root.");
   if (!existsSync(resolve(bundle))) fail(`Attestation bundle is absent: ${bundle}`);
   if (!existsSync(resolve(trustedRoot))) fail(`Trusted root is absent: ${trustedRoot}`);
-  const artifact = statement.subject[0]?.name;
+  const artifact = attestedSubject
+    ?? statement.subject.find((subject) => subject?.name === "artifacts/rodoh-world-game.tar.gz")?.name;
+  if (!artifact || !statement.subject.some((subject) => subject?.name === artifact)) {
+    fail(`Attested subject is absent from provenance: ${artifact ?? "<unspecified>"}`);
+  }
   const result = spawnSync("gh", [
     "attestation", "verify", insideRoot(artifact),
     "--repo", repo,
     "--bundle", resolve(bundle),
     "--custom-trusted-root", resolve(trustedRoot),
     "--format", "json",
-  ], { encoding: "utf8" });
+  ], { encoding: "utf8", shell: process.platform === "win32" });
+  if (result.error) fail(`Could not launch GitHub attestation verifier: ${result.error.message}`);
   if (result.status !== 0) fail(`GitHub attestation verification failed.\n${result.stdout}\n${result.stderr}`);
-  signature = { attempted: true, verified: true };
+  signature = { attempted: true, verified: true, subject: artifact };
 }
 
 console.log(JSON.stringify({

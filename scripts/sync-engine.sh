@@ -18,6 +18,7 @@ SHARED_PATHS=(
   "tests/dark-tomb"
   "tests/common-ship"
   "tests/source-planes"
+  "docs/conformance"
   "cartridges"
 )
 

@@ -7,6 +7,7 @@ on:
       - 'e2e/support-smoke.spec.ts'
       - 'e2e/performance-budget.spec.ts'
       - 'scripts/performance/**'
+      - 'tests/world/browser-support-performance.test.ts'
       - 'docs/SUPPORT_MATRIX.md'
       - 'docs/performance/**'
       - 'estate/nvda-edge-acceptance.schema.json'
@@ -19,6 +20,7 @@ on:
       - 'e2e/support-smoke.spec.ts'
       - 'e2e/performance-budget.spec.ts'
       - 'scripts/performance/**'
+      - 'tests/world/browser-support-performance.test.ts'
       - 'docs/SUPPORT_MATRIX.md'
       - 'docs/performance/**'
       - 'estate/nvda-edge-acceptance.schema.json'
@@ -51,8 +53,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: TypeScript and support/performance contracts
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm test -- tests/world/browser-support-performance.test.ts
       - name: Build and audit static product
         run: |
+          set -euo pipefail
           npm run build
           mkdir -p performance-receipt
           node scripts/performance/audit-static-build.mjs \
@@ -65,6 +73,7 @@ jobs:
         env:
           PW_CHROMIUM_PATH: ${{ runner.temp }}/pw-chromium-placeholder
         run: |
+          set -euo pipefail
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
           npx playwright test e2e/performance-budget.spec.ts --project desktop --project mobile
       - name: Upload performance receipts
@@ -94,7 +103,9 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npx playwright install --with-deps firefox webkit
       - name: Firefox and WebKit neutral custody smoke
-        run: npx playwright test e2e/support-smoke.spec.ts --config playwright.support.config.ts --project firefox-desktop-smoke --project webkit-desktop-smoke
+        run: |
+          set -euo pipefail
+          npx playwright test e2e/support-smoke.spec.ts --config playwright.support.config.ts --project firefox-desktop-smoke --project webkit-desktop-smoke
       - name: Upload compatibility traces
         if: always()
         uses: actions/upload-artifact@v4
@@ -104,8 +115,9 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-  windows-edge:
-    runs-on: windows-latest
+  hosted-windows-edge:
+    name: Hosted Windows Edge smoke
+    runs-on: windows-2025
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -120,7 +132,9 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Microsoft Edge desktop and mobile-layout smoke
         shell: pwsh
-        run: npx playwright test e2e/support-smoke.spec.ts --config playwright.support.config.ts --project edge-desktop --project edge-mobile
+        run: |
+          npx playwright test e2e/support-smoke.spec.ts --config playwright.support.config.ts --project edge-desktop --project edge-mobile
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Parse the local NVDA receipt recorder
         shell: pwsh
         run: |
@@ -135,7 +149,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rodoh-windows-edge-smoke
+          name: rodoh-hosted-windows-edge-smoke
           path: test-results
           if-no-files-found: warn
           retention-days: 30

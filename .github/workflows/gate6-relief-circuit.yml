@@ -12,6 +12,7 @@ on:
       - 'src/assets/relief-circuit/**'
       - 'src/assets/lamp-district/**'
       - 'cartridges/**'
+      - 'docs/conformance/**'
       - 'tests/common-ship/**'
       - 'tests/engine/connected-operation*.test.ts'
       - 'tests/world/common-ship*.test.ts'
@@ -63,7 +64,7 @@ jobs:
           printf '%s\n' "$actual_sha" | tee gate6-receipt/checkout-sha.txt
           test "$actual_sha" = "$CANDIDATE_SHA"
           cat src/engine/VENDORED_FROM | tee gate6-receipt/arc-source-plane.txt
-          grep -F '94c0e965c09e090d768e73ad29f7820aa50606c0' src/engine/VENDORED_FROM
+          grep -F '4b07539a06d40b131591f1e9c7d5b90a96ceec31' src/engine/VENDORED_FROM
           git diff --check
       - name: Exact accepted Arc baseline provenance
         env:
