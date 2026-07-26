@@ -1,5 +1,6 @@
 name: Align asset canon evidence
 
+# One-shot exact-head reconciliation of the final remaining canon evidence path.
 on:
   pull_request:
     paths:
