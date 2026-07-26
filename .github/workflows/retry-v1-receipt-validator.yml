@@ -1,0 +1,88 @@
+name: Retry complete v1 receipt validation
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/retry-v1-receipt-validator.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: retry-complete-v1-receipt-validation
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+
+jobs:
+  retry:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply the already-reviewed validator patch and update its source assertion
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          workflow = Path('.github/workflows/harden-v1-human-receipts.yml').read_text()
+          marker = "          python - <<'PY'\n"
+          start = workflow.index(marker) + len(marker)
+          end = workflow.index("\n          PY\n", start)
+          lines = workflow[start:end].splitlines()
+          script = '\n'.join(line[10:] if line.startswith('          ') else line for line in lines) + '\n'
+          exec(compile(script, 'embedded-receipt-validator-patch.py', 'exec'), {})
+
+          test_path = Path('tests/world/browser-support-performance.test.ts')
+          test = test_path.read_text()
+          test = test.replace(
+              'expect(statusGenerator).toContain("value.world?.head");',
+              'expect(statusGenerator).toContain("value?.world?.head");',
+          )
+          test = test.replace(
+              'expect(statusGenerator).toContain("value.arc?.head");',
+              'expect(statusGenerator).toContain("value?.arc?.head");',
+          )
+          test_path.write_text(test)
+          PY
+          git diff --check
+      - run: npm ci --no-audit --no-fund
+      - name: Qualify the complete validator and product
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm test -- tests/world/browser-support-performance.test.ts tests/world/local-estate-contract.test.ts
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          git diff --check
+      - name: Publish only permanent receipt validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_head='${{ github.event.pull_request.head.sha || github.sha }}'
+          git fetch --no-tags origin release/world-v1-candidate
+          test "$(git rev-parse origin/release/world-v1-candidate)" = "$source_head"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/estate/generate-current-status.mjs tests/world/browser-support-performance.test.ts
+          git diff --cached --check
+          test "$(git diff --cached --name-only | wc -l)" -eq 2
+          git commit -m 'Validate complete v1 receipt contracts before release readiness'
+          git push origin HEAD:release/world-v1-candidate
