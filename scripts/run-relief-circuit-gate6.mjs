@@ -3,12 +3,29 @@ import process from "node:process";
 
 const ROOT = new URL("../", import.meta.url);
 const BASE_URL = process.env.PW_BASE_URL ?? "http://127.0.0.1:5173";
-const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
-const server = spawn(npmCommand, ["run", "dev", "--", "--host", "127.0.0.1", "--port", "5173", "--strictPort"], {
+
+function npmInvocation(args) {
+  // npm run exposes the exact npm CLI path. Invoking that JavaScript through the
+  // current Node executable avoids Node 22's Windows EINVAL boundary for direct
+  // .cmd spawning while retaining a shell-backed fallback for standalone use.
+  const npmExecPath = process.env.npm_execpath;
+  if (npmExecPath) {
+    return { command: process.execPath, args: [npmExecPath, ...args], shell: false };
+  }
+  return {
+    command: process.platform === "win32" ? "npm.cmd" : "npm",
+    args,
+    shell: process.platform === "win32",
+  };
+}
+
+const invocation = npmInvocation(["run", "dev", "--", "--host", "127.0.0.1", "--port", "5173", "--strictPort"]);
+const server = spawn(invocation.command, invocation.args, {
   cwd: ROOT,
   env: process.env,
   stdio: ["ignore", "pipe", "pipe"],
   detached: process.platform !== "win32",
+  shell: invocation.shell,
 });
 let serverLog = "";
 let serverError = null;
