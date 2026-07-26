@@ -133,10 +133,10 @@ describe("local estate replication contract", () => {
 
     const powershell = read("scripts/local-estate/Invoke-RodohEstate.ps1");
     expect(powershell).toContain("rodoh-local-operator-acceptance/1");
-    expect(powershell.toContain("bundle', 'create'");
-    expect(powershell.toContain("--offline");
+    expect(powershell).toContain("bundle', 'create'");
+    expect(powershell).toContain("--offline");
     expect(powershell).toContain("function Start-DetachedLoggedProcess");
-    expect(powershell.toContain("-EncodedCommand");
+    expect(powershell).toContain("-EncodedCommand");
     const serverLifecycle = powershell.slice(
       powershell.indexOf("function Start-DetachedLoggedProcess"),
       powershell.indexOf("function Stop-ProcessTree"),
