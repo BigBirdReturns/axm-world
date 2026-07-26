@@ -2,30 +2,8 @@ name: Browser support and performance
 
 on:
   pull_request:
-    paths:
-      - 'playwright.support.config.ts'
-      - 'e2e/support-smoke.spec.ts'
-      - 'e2e/performance-budget.spec.ts'
-      - 'scripts/performance/**'
-      - 'tests/world/browser-support-performance.test.ts'
-      - 'docs/SUPPORT_MATRIX.md'
-      - 'docs/performance/**'
-      - 'estate/nvda-edge-acceptance.schema.json'
-      - 'scripts/accessibility/**'
-      - '.github/workflows/browser-support-performance.yml'
   push:
     branches: [main]
-    paths:
-      - 'playwright.support.config.ts'
-      - 'e2e/support-smoke.spec.ts'
-      - 'e2e/performance-budget.spec.ts'
-      - 'scripts/performance/**'
-      - 'tests/world/browser-support-performance.test.ts'
-      - 'docs/SUPPORT_MATRIX.md'
-      - 'docs/performance/**'
-      - 'estate/nvda-edge-acceptance.schema.json'
-      - 'scripts/accessibility/**'
-      - '.github/workflows/browser-support-performance.yml'
   workflow_dispatch:
 
 permissions:
@@ -41,7 +19,7 @@ env:
 jobs:
   static-and-chromium:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,12 +30,19 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Record exact candidate identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha || github.sha }}'
+          test -z "$(git status --porcelain)"
       - run: npm ci --no-audit --no-fund
-      - name: TypeScript and support/performance contracts
+      - name: TypeScript, support contracts, and complete World regression
         run: |
           set -euo pipefail
           npm run typecheck
           npm test -- tests/world/browser-support-performance.test.ts
+          npm test
       - name: Build and audit static product
         run: |
           set -euo pipefail
@@ -102,6 +87,12 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Record exact candidate identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha || github.sha }}'
+          test -z "$(git status --porcelain)"
       - run: npm ci --no-audit --no-fund
       - run: npx playwright install --with-deps firefox webkit
       - name: Firefox and WebKit neutral custody smoke
@@ -134,6 +125,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Record exact candidate identity
+        shell: pwsh
+        run: |
+          $expected = '${{ github.event.pull_request.head.sha || github.sha }}'
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne $expected) { throw "Expected $expected, checked out $actual." }
+          $status = git status --porcelain
+          if ($status) { throw "Candidate checkout is dirty:`n$status" }
       - run: npm ci --no-audit --no-fund
       - name: Microsoft Edge desktop and mobile-layout smoke
         shell: pwsh
