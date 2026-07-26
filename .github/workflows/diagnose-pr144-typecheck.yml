@@ -1,0 +1,48 @@
+name: Diagnose exact PR 144 typecheck
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/diagnose-pr144-typecheck.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diagnose-exact-pr144-typecheck
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Capture exact typecheck
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          mkdir -p diagnostics
+          npm run typecheck 2>&1 | tee diagnostics/typecheck.log
+          code=${PIPESTATUS[0]}
+          printf '%s\n' "$code" > diagnostics/typecheck.exit-code.txt
+          exit "$code"
+      - name: Upload exact diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr144-typecheck-diagnostics
+          path: diagnostics
+          if-no-files-found: error
+          retention-days: 7
