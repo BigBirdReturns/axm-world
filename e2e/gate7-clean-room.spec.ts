@@ -48,7 +48,16 @@ async function finishEntryTransition(page: Page): Promise<void> {
     if (await page.getByTestId("pending-decision-card").isVisible().catch(() => false)) break;
     if (await page.getByTestId("engine-shell").isVisible().catch(() => false)) return;
     const skip = transition.getByRole("button", { name: /skip entry/i });
-    if (await skip.isVisible().catch(() => false)) await skip.click();
+    if (await skip.isVisible().catch(() => false)) {
+      // Visibility is a snapshot. The entry transition may self-complete and
+      // detach this button before the click is dispatched. Race one bounded
+      // click against transition disappearance; the terminal shell assertion
+      // below still fails honestly if neither route reaches playable state.
+      await Promise.race([
+        skip.click({ timeout: 250 }).catch(() => undefined),
+        transition.waitFor({ state: "hidden", timeout: 250 }).catch(() => undefined),
+      ]);
+    }
     await page.waitForTimeout(25);
   }
   if (await page.getByTestId("pending-decision-card").isVisible().catch(() => false)) {
