@@ -57,7 +57,8 @@ Before the first write, Rodoh verifies:
 
 - the root and nested field sets;
 - format and producer version;
-- total file, record-count, and per-record size limits;
+- total file, record-count, and per-record size limits before browser text allocation;
+- bounded, duplicate-aware JSON for the envelope and every interpreted record;
 - key namespace and ordering;
 - value byte length and SHA-256;
 - deterministic summary;
@@ -81,9 +82,9 @@ remove
 
 ### 3. Transaction
 
-Rodoh snapshots every key that can change, writes incoming values in deterministic key order, removes exact-replacement keys, and reads every imported value back. Any thrown write, removal, or read-back mismatch initiates reverse-order rollback.
+Rodoh snapshots every key that can change, writes incoming values in deterministic key order, removes exact-replacement keys, verifies every requested deletion, and reads every imported value back. Any thrown write, refused removal, or read-back mismatch initiates reverse-order rollback.
 
-A failed transaction returns both the initiating error and any rollback failures. It never reports success from a partially installed estate.
+Rollback is also verified key by key. A storage adapter that silently retains an added value, refuses a restoration, or throws after mutating state is judged by exact read-back rather than by its return path. A failed transaction returns both the initiating error and any verified rollback failures. It never reports success from a partially installed estate.
 
 ### 4. Re-entry
 
@@ -133,11 +134,12 @@ The permanent contract requires:
 1. Exact export of multiple cartridge revisions, run slots, checkpoints, preferences, and an unknown namespace.
 2. Exclusion of unrelated browser storage.
 3. Deterministic record ordering, summary, and root integrity.
-4. Tamper refusal before write.
+4. Tamper, duplicate-key, and resource-limit refusal before write.
 5. Merge preflight and idempotent replay.
-6. Replace preflight and exact removal of absent World-owned records.
-7. Forced late-write failure with byte-exact rollback.
-8. Refusal of malformed known records while preserving opaque future namespaces.
-9. Desktop and mobile browser export, context clearing, restore, reload, and resume.
+6. Replace preflight and verified exact removal of absent World-owned records.
+7. Forced late-write and mutate-then-throw failures with byte-exact rollback.
+8. Explicit rollback-verification failure when an adapter silently retains state.
+9. Refusal of malformed known records while preserving opaque future namespaces.
+10. Desktop and mobile browser export, context clearing, restore, reload, and resume.
 
 The control question is: can the holder leave this browser with every Rodoh-owned fact, install those facts elsewhere, and know that either the complete declared transition happened or none of it did?

@@ -16,7 +16,11 @@ const OTHER_DIGEST = `cart1_${"b".repeat(64)}`;
 class MemoryStorage implements HolderStorage {
   private readonly values = new Map<string, string>();
   private setCount = 0;
+  private removeCount = 0;
   failOnSet: number | null = null;
+  mutateThenThrowOnSet: number | null = null;
+  failOnRemove: number | null = null;
+  readonly refusedRemovals = new Set<string>();
 
   constructor(initial: Record<string, string> = {}) {
     for (const [key, value] of Object.entries(initial)) this.values.set(key, value);
@@ -38,9 +42,13 @@ class MemoryStorage implements HolderStorage {
     this.setCount += 1;
     if (this.failOnSet === this.setCount) throw new DOMException("quota", "QuotaExceededError");
     this.values.set(key, value);
+    if (this.mutateThenThrowOnSet === this.setCount) throw new Error("adapter mutated then threw");
   }
 
   removeItem(key: string): void {
+    this.removeCount += 1;
+    if (this.failOnRemove === this.removeCount) throw new Error("remove failed");
+    if (this.refusedRemovals.has(key)) return;
     this.values.delete(key);
   }
 
@@ -122,6 +130,22 @@ describe("rodoh-holder-estate/v1", () => {
     expect(() => parseHolderEstate(summaryTamper)).toThrow(/summary|integrity/i);
   });
 
+  it("refuses duplicate keys in the estate envelope and in interpreted record JSON", () => {
+    const estate = buildHolderEstate(completeStorage(), { createdAt: "2026-07-25T00:00:00.000Z" });
+    const encoded = JSON.stringify(estate);
+    const duplicateEnvelope = encoded.replace(
+      `{"format":"${HOLDER_ESTATE_FORMAT}",`,
+      `{"format":"${HOLDER_ESTATE_FORMAT}","format":"${HOLDER_ESTATE_FORMAT}",`,
+    );
+    expect(() => parseHolderEstate(duplicateEnvelope)).toThrow(/Duplicate object key.*format/i);
+
+    const duplicateRun = `{"version":1,"version":1,"authoredArcDigest":"${DIGEST}","game":"{}","ledger":{"version":2,"authoredArcDigest":"${DIGEST}","entries":[]},"openingChoice":null}`;
+    const invalidEstate = buildHolderEstate(new MemoryStorage({
+      [`${SAVE_KEY_PREFIX}${DIGEST}`]: duplicateRun,
+    }), { createdAt: "2026-07-25T00:00:00.000Z" });
+    expect(() => parseHolderEstate(JSON.stringify(invalidEstate))).toThrow(/Duplicate object key.*version/i);
+  });
+
   it("preflights merge and exact replacement without changing storage", () => {
     const source = completeStorage();
     const estate = buildHolderEstate(source, { createdAt: "2026-07-25T00:00:00.000Z" });
@@ -165,6 +189,26 @@ describe("rodoh-holder-estate/v1", () => {
     }
   });
 
+  it("treats a silently refused exact-replace deletion as failure and restores the prior estate", () => {
+    const estate = buildHolderEstate(completeStorage(), { createdAt: "2026-07-25T00:00:00.000Z" });
+    const staleKey = `${SAVE_KEY_PREFIX}${OTHER_DIGEST}`;
+    const target = new MemoryStorage({
+      [CARTRIDGE_BAY_KEY]: JSON.stringify({ version: 2, entries: [{ prior: true }] }),
+      [staleKey]: runValue(OTHER_DIGEST),
+      "other-app:key": "must-survive",
+    });
+    const before = target.snapshot();
+    target.refusedRemovals.add(staleKey);
+
+    const result = importHolderEstate(target, estate, { mode: "replace" });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.join(" ")).toMatch(/removal verification failed/i);
+      expect(result.rollbackErrors).toEqual([]);
+    }
+    expect(target.snapshot()).toEqual(before);
+  });
+
   it("rolls back every touched key when a later write fails", () => {
     const estate = buildHolderEstate(completeStorage(), { createdAt: "2026-07-25T00:00:00.000Z" });
     const target = new MemoryStorage({
@@ -179,6 +223,40 @@ describe("rodoh-holder-estate/v1", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.errors.join(" ")).toMatch(/quota/i);
+      expect(result.rollbackErrors).toEqual([]);
+    }
+    expect(target.snapshot()).toEqual(before);
+  });
+
+  it("reports rollback verification when the storage adapter silently retains a newly added key", () => {
+    const estate = buildHolderEstate(completeStorage(), { createdAt: "2026-07-25T00:00:00.000Z" });
+    const target = new MemoryStorage();
+    const firstAddedKey = estate.records[0]!.key;
+    target.failOnSet = 2;
+    target.refusedRemovals.add(firstAddedKey);
+
+    const result = importHolderEstate(target, estate, { mode: "replace" });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.join(" ")).toMatch(/quota/i);
+      expect(result.rollbackErrors.join(" ")).toMatch(/Rollback verification failed/i);
+    }
+    expect(target.getItem(firstAddedKey)).toBe(estate.records[0]!.value);
+  });
+
+  it("recovers exact state after an adapter mutates a write and then throws", () => {
+    const estate = buildHolderEstate(completeStorage(), { createdAt: "2026-07-25T00:00:00.000Z" });
+    const target = new MemoryStorage({
+      [CARTRIDGE_BAY_KEY]: JSON.stringify({ version: 2, entries: [{ prior: true }] }),
+      "other-app:key": "must-survive",
+    });
+    const before = target.snapshot();
+    target.mutateThenThrowOnSet = 2;
+
+    const result = importHolderEstate(target, estate, { mode: "replace" });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.join(" ")).toMatch(/mutated then threw/i);
       expect(result.rollbackErrors).toEqual([]);
     }
     expect(target.snapshot()).toEqual(before);
