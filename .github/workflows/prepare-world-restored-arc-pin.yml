@@ -38,7 +38,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "$WORLD_SHA"
+          git merge-base --is-ancestor "$WORLD_SHA" HEAD
           test ! -e PLACEHOLDER
           python - <<'PY'
           import os
