@@ -54,7 +54,6 @@ jobs:
           npm test -- tests/world/canon-trace.test.ts tests/world/second-recension-books-1-3.test.ts
           npm test
       - name: Publish workflow-neutral canon alignment
-        if: github.event_name == 'push'
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
