@@ -45,7 +45,10 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - name: TypeScript
-        run: npm run typecheck
+        run: |
+          set -euo pipefail
+          mkdir -p current-status
+          npm run typecheck 2>&1 | tee current-status/typecheck.log
       - name: Canon trace and Second Recension contracts
         run: npm test -- tests/world/canon-trace.test.ts tests/world/second-recension-books-1-3.test.ts
       - name: Browser support, performance, and receipt reconciliation contracts
