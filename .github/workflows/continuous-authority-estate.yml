@@ -1,0 +1,153 @@
+name: Continuous authority estate
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/continuous-authority-estate.yml'
+      - 'estate/post-v1/**'
+      - 'scripts/continuous-authority/**'
+      - 'tests/world/continuous-authority-estate.test.ts'
+      - 'docs/CONTINUOUS_AUTHORITY_ESTATE.md'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+  ARC_CONTINUOUS_SHA: e54a7799f780d69719512db1b119c565b49637e1
+  EMBODIED_CLOSURE_SHA: a5bfe8be5340821bab7190d211856bd6a8367a80
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - name: Check out exact World candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Check out exact Arc continuous authority
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_CONTINUOUS_SHA }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Check out exact embodied closure
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-embodied
+          ref: ${{ env.EMBODIED_CLOSURE_SHA }}
+          path: axm-embodied
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            axm-world/package-lock.json
+            axm-arc/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: axm-embodied/pyproject.toml
+
+      - name: Install exact dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix axm-world ci --no-audit --no-fund
+          npm --prefix axm-arc ci --no-audit --no-fund
+          python -m pip install --disable-pip-version-check -e './axm-embodied[dev]'
+
+      - name: Verify the three-checkout estate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/continuous-authority-estate"
+          node axm-world/scripts/continuous-authority/verify-estate.mjs \
+            --lock axm-world/estate/post-v1/continuous-authority.lock.json \
+            --world axm-world \
+            --arc axm-arc \
+            --embodied axm-embodied \
+            --output "$RUNNER_TEMP/continuous-authority-estate/estate-verification.json" \
+            | tee "$RUNNER_TEMP/continuous-authority-estate/estate-verification.log"
+
+      - name: Qualify World orchestration and complete product
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix axm-world run typecheck
+          npm --prefix axm-world test -- tests/world/continuous-authority-estate.test.ts
+          npm --prefix axm-world test
+          npm --prefix axm-world run build
+          if git -C axm-world ls-files -- docs/game | grep -q .; then
+            git -C axm-world restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git -C axm-world clean -fdx -- docs/game
+
+      - name: Qualify Arc action-to-narrative authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix axm-arc run typecheck
+          npm --prefix axm-arc run test:continuous-authority
+
+      - name: Qualify embodied strict session custody
+        working-directory: axm-embodied
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/test_action_session.py \
+            tests/test_action_spool.py \
+            tests/test_strict_action_json.py \
+            tests/test_action_evidence_workflow.py \
+            | tee "$RUNNER_TEMP/continuous-authority-estate/embodied-focused.log"
+
+      - name: Require clean exact checkouts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for repo in axm-world axm-arc axm-embodied; do
+            status="$(git -C "$repo" status --porcelain)"
+            if [[ -n "$status" ]]; then
+              printf '%s\n' "$status"
+              echo "$repo is dirty after qualification" >&2
+              exit 1
+            fi
+            git -C "$repo" diff --check
+          done
+          printf '%s\n' '${{ github.event.pull_request.head.sha || github.sha }}' > "$RUNNER_TEMP/continuous-authority-estate/world-candidate.txt"
+          printf '%s\n' "$ARC_CONTINUOUS_SHA" > "$RUNNER_TEMP/continuous-authority-estate/arc-continuous.txt"
+          printf '%s\n' "$EMBODIED_CLOSURE_SHA" > "$RUNNER_TEMP/continuous-authority-estate/embodied-closure.txt"
+          (
+            cd "$RUNNER_TEMP/continuous-authority-estate"
+            find . -type f ! -name SHA256SUMS -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS
+          )
+
+      - name: Upload the coordinated qualification estate
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rodoh-continuous-authority-estate
+          path: ${{ runner.temp }}/continuous-authority-estate
+          if-no-files-found: warn
+          retention-days: 30
