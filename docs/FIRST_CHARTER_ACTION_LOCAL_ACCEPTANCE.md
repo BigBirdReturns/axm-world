@@ -100,6 +100,46 @@ rodoh-first-charter-action-local-run/1
 
 It binds the exact World commit, Arc action-authority commit, Arc cartridge digest, action-spec digest, action-spec SHA-256, presentation SHA-256, Unity estate receipt, and optional platform-build receipts.
 
+## Complete a physical session from that receipt
+
+After Quest play, the return path consumes the wrapper receipt instead of asking the operator to re-enter its Arc worktree or action-spec path:
+
+```powershell
+$embodied = "D:\Projects\axm-embodied"
+$job = "first-charter-action-quest-001"
+$runReceipt = "$lab\local\scene-jobs\$job\output\first-charter-local-run.json"
+$journal = "D:\RODOH\action-sessions\first-charter-quest-001"
+
+& "$world\scripts\complete-embodied-action-session.ps1" `
+  -AxmEmbodiedRoot $embodied `
+  -FirstCharterRunReceipt $runReceipt `
+  -JournalPath $journal `
+  -RemoteSpoolPath "/sdcard/Android/data/<package>/files/axm-action-session-spool/first-charter-quest-001" `
+  -QuestSerial "<adb-device-serial>" `
+  -KeepPulledSpool
+```
+
+For a workstation-local spool, replace `-RemoteSpoolPath` and `-QuestSerial` with:
+
+```powershell
+-SpoolPath "D:\RODOH\spools\first-charter-action-001"
+```
+
+Before journal mutation, the completion runner requires:
+
+- a passing `rodoh-first-charter-action-local-run/1` receipt;
+- the exact Arc authority worktree and a pristine Arc checkout;
+- the exact action-spec SHA-256 and `actspec1_` identity named by the launcher;
+- exactly one provisional candidate in the spool;
+- `authority: Arc replay required`;
+- the same action-spec digest in the candidate and generated Arc spec.
+
+It then ingests the physical spool, replays the candidate through exact Arc authority, attaches the accepted `axm-action-receipt/1`, verifies the journal, projects the Genesis-facing shard, and writes:
+
+```text
+rodoh-embodied-action-session-completion/1
+```
+
 ## Acceptance boundary
 
 A green local wrapper receipt proves that the real Arc challenge compiled and entered the actual Unity project through the maintained package and runner. The Windows build receipt additionally proves the generated player and internal terminal-state smoke. The Quest build receipt proves the APK and, when requested, installation to the named ADB device.
