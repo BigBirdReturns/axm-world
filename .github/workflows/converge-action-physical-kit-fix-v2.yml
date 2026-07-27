@@ -1,0 +1,65 @@
+name: Converge action physical acceptance kit fix v2
+
+on:
+  push:
+    branches:
+      - qualify/action-runtime-physical-acceptance-kit-v1
+    paths:
+      - '.github/workflows/converge-action-physical-kit-fix-v2.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: converge-action-physical-kit-fix-v2
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: qualify/action-runtime-physical-acceptance-kit-v1
+          fetch-depth: 0
+          show-progress: false
+      - name: Repair the demonstrated PowerShell variable boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('tools/action-physical-acceptance/Invoke-RodohActionPhysicalAcceptance.ps1')
+          source = path.read_text(encoding='utf-8')
+          old = 'if ($actual -ne $Commit) { throw "$Label worktree names $actual instead of $Commit: $Path" }'
+          new = 'if ($actual -ne $Commit) { throw "$Label worktree names $actual instead of ${Commit}: $Path" }'
+          if source.count(old) != 1:
+              raise SystemExit(f'Expected one demonstrated variable-boundary defect, found {source.count(old)}.')
+          path.write_text(source.replace(old, new), encoding='utf-8', newline='\n')
+          PY
+          git diff --check
+      - name: Parse the repaired driver before publication
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'tools/action-physical-acceptance/Invoke-RodohActionPhysicalAcceptance.ps1'),
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if (@($errors).Count -gt 0) {
+            $errors | Format-List | Out-String | Write-Error
+            throw 'PowerShell parse errors remain after the bounded repair.'
+          }
+      - name: Publish the bounded repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tools/action-physical-acceptance/Invoke-RodohActionPhysicalAcceptance.ps1
+          git commit -m 'Fix physical acceptance kit variable boundary'
+          git push origin HEAD:qualify/action-runtime-physical-acceptance-kit-v1
