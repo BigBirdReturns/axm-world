@@ -52,8 +52,8 @@ if ($unityProcesses) {
 New-Item -ItemType Directory -Force ([System.IO.Path]::GetDirectoryName($output)), $receipts | Out-Null
 $logRoot = Join-Path $receipts "logs"
 New-Item -ItemType Directory -Force $logRoot | Out-Null
-$log = Join-Path $logRoot "unity-governed-action-production.log"
-$arguments = @(
+$assetLog = Join-Path $logRoot "unity-governed-action-production.log"
+$assetArguments = @(
     "-batchmode",
     "-nographics",
     "-quit",
@@ -63,21 +63,82 @@ $arguments = @(
     "-outputManifest", $output,
     "-assetRoot", $AssetRoot,
     "-outputRoot", $receipts,
-    "-logFile", $log
+    "-logFile", $assetLog
 )
-Write-Host "Generating governed low-cost action bodies, motion, and arena assets..."
-$process = Start-Process -FilePath $unityPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow
-if ($process.ExitCode -ne 0) { throw "Governed action production generation failed with exit $($process.ExitCode). See $log" }
-$receiptPath = Join-Path $receipts "governed-production-assets.json"
-if (-not (Test-Path $receiptPath)) { throw "Unity did not write the governed-production receipt: $receiptPath" }
+Write-Host "Generating governed low-cost action bodies, motion clips, and arena assets..."
+$assetProcess = Start-Process -FilePath $unityPath -ArgumentList $assetArguments -Wait -PassThru -NoNewWindow
+if ($assetProcess.ExitCode -ne 0) { throw "Governed action production generation failed with exit $($assetProcess.ExitCode). See $assetLog" }
+$assetReceiptPath = Join-Path $receipts "governed-production-assets.json"
+if (-not (Test-Path $assetReceiptPath)) { throw "Unity did not write the governed-production receipt: $assetReceiptPath" }
 if (-not (Test-Path $output)) { throw "Unity did not write the governed presentation manifest: $output" }
-$receipt = Get-Content $receiptPath -Raw | ConvertFrom-Json
-if ($receipt.status -ne "pass") { throw "Governed action production receipt reports failure: $($receipt.error)" }
-if ($receipt.activePhysicsAuthority -ne $false -or $receipt.remoteRuntimeReferences -ne $false) {
+$assetReceipt = Get-Content $assetReceiptPath -Raw | ConvertFrom-Json
+if ($assetReceipt.status -ne "pass") { throw "Governed action production receipt reports failure: $($assetReceipt.error)" }
+if ($assetReceipt.activePhysicsAuthority -ne $false -or $assetReceipt.remoteRuntimeReferences -ne $false) {
     throw "Governed production crossed the physics or remote-runtime authority boundary."
 }
-if ($receipt.bodyPrefabs -ne 6 -or $receipt.enemyKits -ne 5 -or $receipt.motionClipCount -lt 8 -or $receipt.authoredArena -ne $true) {
+if ($assetReceipt.bodyPrefabs -ne 6 -or $assetReceipt.enemyKits -ne 5 -or $assetReceipt.motionClipCount -lt 8 -or $assetReceipt.authoredArena -ne $true) {
     throw "Governed production asset inventory is incomplete."
 }
+
+$motionLog = Join-Path $logRoot "unity-governed-action-motion.log"
+$motionArguments = @(
+    "-batchmode",
+    "-nographics",
+    "-quit",
+    "-projectPath", $projectRoot,
+    "-executeMethod", "Axm.Rodoh.Action.Editor.ActionGovernedMotionAugmentBatch.Run",
+    "-manifest", $output,
+    "-assetRoot", $assetReceipt.assetRoot,
+    "-outputRoot", $receipts,
+    "-logFile", $motionLog
+)
+Write-Host "Binding governed motion clips to deterministic-state player and enemy controllers..."
+$motionProcess = Start-Process -FilePath $unityPath -ArgumentList $motionArguments -Wait -PassThru -NoNewWindow
+if ($motionProcess.ExitCode -ne 0) { throw "Governed action motion augmentation failed with exit $($motionProcess.ExitCode). See $motionLog" }
+$motionReceiptPath = Join-Path $receipts "governed-motion-augmentation.json"
+if (-not (Test-Path $motionReceiptPath)) { throw "Unity did not write the governed-motion receipt: $motionReceiptPath" }
+$motionReceipt = Get-Content $motionReceiptPath -Raw | ConvertFrom-Json
+if ($motionReceipt.status -ne "pass") { throw "Governed motion receipt reports failure: $($motionReceipt.error)" }
+if ($motionReceipt.controllers -ne 2 -or $motionReceipt.prefabsBound -ne 6 -or $motionReceipt.motionClips -lt 8) {
+    throw "Governed motion controller inventory is incomplete."
+}
+if ($motionReceipt.rootMotion -ne $false -or $motionReceipt.actionStateDriven -ne $true -or $motionReceipt.proceduralFallbackRetained -ne $true) {
+    throw "Governed motion crossed the action-authority or fallback boundary."
+}
+
+$manifestValue = Get-Content $output -Raw | ConvertFrom-Json
+if ([string]::IsNullOrWhiteSpace([string]$manifestValue.player.animatorController)) { throw "Governed player controller was not bound into the output manifest." }
+foreach ($enemy in @($manifestValue.enemies)) {
+    if ([string]::IsNullOrWhiteSpace([string]$enemy.animatorController)) { throw "Governed enemy controller was not bound into the output manifest: $($enemy.kit)" }
+}
+$aggregate = [ordered]@{
+    format = "rodoh-action-governed-production-run/1"
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    status = "pass"
+    projectRoot = $projectRoot
+    unityEditor = $unityPath
+    unityVersion = $motionReceipt.unityVersion
+    sourceManifest = $source
+    outputManifest = $output
+    outputManifestId = $manifestValue.manifestId
+    outputManifestSha256 = (Get-FileHash $output -Algorithm SHA256).Hash.ToLowerInvariant()
+    assetRoot = $assetReceipt.assetRoot
+    bodyPrefabs = $assetReceipt.bodyPrefabs
+    enemyKits = $assetReceipt.enemyKits
+    motionClips = $motionReceipt.motionClips
+    controllers = $motionReceipt.controllers
+    prefabsBound = $motionReceipt.prefabsBound
+    authoredArena = $assetReceipt.authoredArena
+    neutralFallbackBodies = $assetReceipt.neutralFallbackBodies
+    activePhysicsAuthority = $assetReceipt.activePhysicsAuthority
+    remoteRuntimeReferences = $assetReceipt.remoteRuntimeReferences
+    rootMotion = $motionReceipt.rootMotion
+    actionStateDriven = $motionReceipt.actionStateDriven
+    proceduralFallbackRetained = $motionReceipt.proceduralFallbackRetained
+    assetReceipt = $assetReceiptPath
+    motionReceipt = $motionReceiptPath
+}
+$aggregatePath = Join-Path $receipts "governed-production-run.json"
+$aggregate | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf8 $aggregatePath
 Write-Host "RODOH governed action production generation passed."
-Write-Host $receiptPath
+Write-Host $aggregatePath
