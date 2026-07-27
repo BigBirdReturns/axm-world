@@ -1,6 +1,9 @@
 name: Converge action kernel objective law
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/converge-action-kernel-fix.yml'
   push:
     branches:
       - feature/action-runtime-v1
