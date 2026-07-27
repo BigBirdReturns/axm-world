@@ -79,7 +79,8 @@ describe("continuous post-v1 authority estate", () => {
     const verifier = readFileSync(VERIFY, "utf8");
     expect(verifier).toContain("src/narrative/action-receipt-seam.ts");
     expect(verifier).toContain("scripts/complete-embodied-action-session.ps1");
-    expect(verifier).toContain("git merge-base");
+    expect(verifier).toContain("merge-base");
+    expect(verifier).toContain("--is-ancestor");
     expect(verifier).toContain("actionNarrativeIngestion");
     expect(verifier).not.toContain("bookIVActivated: true");
 
