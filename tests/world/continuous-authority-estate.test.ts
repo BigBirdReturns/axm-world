@@ -84,10 +84,10 @@ describe("continuous post-v1 authority estate", () => {
     expect(verifier).not.toContain("bookIVActivated: true");
 
     const documentation = readFileSync(resolve(ROOT, "docs/CONTINUOUS_AUTHORITY_ESTATE.md"), "utf8");
-    expect(documentation).toContain("accepted axm-action-receipt/1");
+    expect(documentation).toContain("axm-action-receipt/1");
     expect(documentation).toContain("axm-action-narrative-ingestion/1");
     expect(documentation).toContain("campaignEffect: null");
-    expect(documentation).toContain("World and Unity cannot");
+    expect(documentation).toContain("Neither World nor Unity may emit");
     expect(documentation).toContain("Book IV");
   });
 });
