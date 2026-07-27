@@ -64,4 +64,14 @@ describe("Unity action source remains bound to the deployed action-state contrac
     expect(source).not.toContain("ActionEnemyMode.Attack");
     expect(source).not.toContain("ActionEnemyMode.Recovery");
   });
+
+  it("preserves the authored prefab visual root when assigning runtime actor identity", () => {
+    const source = readFileSync(
+      join(packageRoot, "Runtime/Unity/ActionProductionPresentation.cs"),
+      "utf8",
+    );
+    expect(source).toContain("var visualRoot = binding == null ? instance.transform : binding.VisualRoot;");
+    expect(source).toContain("binding.Configure(id, animator, visualRoot);");
+    expect(source).not.toContain("binding.Configure(id, animator, instance.transform);");
+  });
 });
