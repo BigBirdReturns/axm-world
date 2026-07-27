@@ -95,6 +95,22 @@ function canonicalResult(value: any) {
   };
 }
 
+function stableValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, child]) => [key, stableValue(child)]),
+    );
+  }
+  return value;
+}
+
+function stableJson(value: unknown): string {
+  return JSON.stringify(stableValue(value));
+}
+
 describe("Unity candidate to Arc receipt convergence", () => {
   it("replays the candidate through the exact Arc receipt API", () => {
     const specSource = required(specPath, "AXM_ACTION_NATIVE_SPEC");
@@ -140,7 +156,7 @@ describe("Unity candidate to Arc receipt convergence", () => {
 
     const acceptedResult = canonicalResult(receipt.result);
     const provisionalResult = canonicalResult(candidate.provisionalResult);
-    const provisionalParity = JSON.stringify(acceptedResult) === JSON.stringify(provisionalResult);
+    const provisionalParity = stableJson(acceptedResult) === stableJson(provisionalResult);
     const reconciliation = {
       format: "rodoh-action-result-reconciliation/2",
       status: "accepted",
