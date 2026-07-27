@@ -75,6 +75,18 @@ describe("one-command First Charter action launcher", () => {
     expect(motionBatch).toContain("actionStateDriven = true");
   });
 
+  it("binds built products and the Quest spool to the exact Unity application identifier", () => {
+    const buildBatch = read("unity/Packages/com.axm.rodoh-action/Editor/ActionBuildBatch.cs");
+    const playerBuild = read("scripts/build-unity-action-player.ps1");
+    const questBuild = read("scripts/build-unity-action-quest.ps1");
+
+    expect(buildBatch).toContain("PlayerSettings.GetApplicationIdentifier(configuration.group)");
+    expect(buildBatch).toContain("public string applicationIdentifier;");
+    expect(playerBuild).toContain("applicationIdentifier = $buildReceipt.applicationIdentifier");
+    expect(questBuild).toContain("remoteSpoolRoot");
+    expect(questBuild).toContain("/sdcard/Android/data/$applicationIdentifier/files/axm-action-session-spool");
+  });
+
   it("derives physical replay custody from the launcher receipt before journal mutation", () => {
     const path = "scripts/complete-embodied-action-session.ps1";
     expect(existsSync(resolve(ROOT, path))).toBe(true);
@@ -92,6 +104,26 @@ describe("one-command First Charter action launcher", () => {
     expect(script).toContain('format = "rodoh-embodied-action-session-completion/1"');
     expect(script).toContain("candidateSha256");
     expect(script).toContain("genesisShard = $shardPath");
+  });
+
+  it("keeps physical Quest execution in a two-phase unaccepted-then-replayed boundary", () => {
+    const path = "scripts/run-first-charter-physical-session.ps1";
+    expect(existsSync(resolve(ROOT, path))).toBe(true);
+    const script = read(path);
+
+    expect(script).toContain('[ValidateSet("Prepare", "Status", "Complete")]');
+    expect(script).toContain("BuildWindows = $true");
+    expect(script).toContain("BuildQuest = $true");
+    expect(script).toContain("InstallQuest = $true");
+    expect(script).toContain("awaiting-physical-execution");
+    expect(script).toContain("Quest spool observation only; Arc replay still required");
+    expect(script).toContain("candidateEntries -eq 1");
+    expect(script).toContain("complete-embodied-action-session.ps1");
+    expect(script).toContain("sessionStart.platform -ne \"Android\"");
+    expect(script).toContain("sessionStart.unityJobDigest -ne $planValue.sceneJobDigest");
+    expect(script).toContain('format = "rodoh-first-charter-physical-session-completion/1"');
+    expect(script).toContain("acceptedReceiptSha256");
+    expect(script).toContain("genesisShardSha256");
   });
 
   it("does not retain the temporary source-bootstrap workflow", () => {
