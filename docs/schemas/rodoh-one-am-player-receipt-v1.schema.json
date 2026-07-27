@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axm.tools/schemas/rodoh-one-am-player-receipt-v1.schema.json",
+  "title": "RODOH one-a.m. player receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "candidate", "run", "observer", "timing", "structural", "comprehension", "behavior"],
+  "properties": {
+    "format": { "const": "rodoh-one-am-player-receipt/1" },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "commit", "authoredIdentity", "experienceId"],
+      "properties": {
+        "repository": { "type": "string", "minLength": 1 },
+        "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "authoredIdentity": { "type": "string", "minLength": 1 },
+        "experienceId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "startedAt", "completedAt", "device", "viewport"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "completedAt": { "type": "string", "format": "date-time" },
+        "device": { "enum": ["desktop", "mobile", "other"] },
+        "viewport": { "type": "string", "minLength": 1 }
+      }
+    },
+    "observer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["independent", "authoredCandidate", "inspectedSource", "receivedWalkthrough", "assistanceEvents"],
+      "properties": {
+        "independent": { "type": "boolean" },
+        "authoredCandidate": { "type": "boolean" },
+        "inspectedSource": { "type": "boolean" },
+        "receivedWalkthrough": { "type": "boolean" },
+        "assistanceEvents": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["firstAuthoredDecisionMs", "firstAcceptedConsequenceMs"],
+      "properties": {
+        "firstAuthoredDecisionMs": { "type": "number", "minimum": 0 },
+        "firstAcceptedConsequenceMs": { "type": "number", "minimum": 0 }
+      }
+    },
+    "structural": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primaryActionEntersAuthoredSituation",
+        "technicalLanguageRequiredOnPrimaryPath",
+        "tutorialOverlapsDecision",
+        "maximumAdvancingActionsPerBeat",
+        "authoredDecisionBeforeActionCommit",
+        "choiceChangesRuntimeSurface",
+        "objectiveLabelsMatchPlayerVerbs",
+        "importantRevealOccursDuringPlay",
+        "actorMethodsVisibleDuringPlay",
+        "resultAcceptedByOwningAuthority",
+        "visiblePersistentWorldDelta",
+        "durableRecord",
+        "exactResume",
+        "nextPlayableActionImplemented",
+        "firstMistakePreservesAuthoredContext",
+        "missedPromptCanHardLock",
+        "desktopMobileDecisionParity",
+        "requiredNetworkRequests"
+      ],
+      "properties": {
+        "primaryActionEntersAuthoredSituation": { "type": "boolean" },
+        "technicalLanguageRequiredOnPrimaryPath": { "type": "boolean" },
+        "tutorialOverlapsDecision": { "type": "boolean" },
+        "maximumAdvancingActionsPerBeat": { "type": "integer", "minimum": 0 },
+        "authoredDecisionBeforeActionCommit": { "type": "boolean" },
+        "choiceChangesRuntimeSurface": { "type": "boolean" },
+        "objectiveLabelsMatchPlayerVerbs": { "type": "boolean" },
+        "importantRevealOccursDuringPlay": { "type": "boolean" },
+        "actorMethodsVisibleDuringPlay": { "type": "boolean" },
+        "resultAcceptedByOwningAuthority": { "type": "boolean" },
+        "visiblePersistentWorldDelta": { "type": "boolean" },
+        "durableRecord": { "type": "boolean" },
+        "exactResume": { "type": "boolean" },
+        "nextPlayableActionImplemented": { "type": "boolean" },
+        "firstMistakePreservesAuthoredContext": { "type": "boolean" },
+        "missedPromptCanHardLock": { "type": "boolean" },
+        "desktopMobileDecisionParity": { "type": "boolean" },
+        "requiredNetworkRequests": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "comprehension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["playerRole", "immediateConflict", "authoredChoice", "acceptedConsequence", "nextPlayableAction"],
+      "properties": {
+        "playerRole": { "$ref": "#/$defs/answer" },
+        "immediateConflict": { "$ref": "#/$defs/answer" },
+        "authoredChoice": { "$ref": "#/$defs/answer" },
+        "acceptedConsequence": { "$ref": "#/$defs/answer" },
+        "nextPlayableAction": { "$ref": "#/$defs/answer" }
+      }
+    },
+    "behavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wrongTurns", "knockdowns", "retries", "abandonedBeforeConsequence", "voluntarilyContinuedAfterConsequence"],
+      "properties": {
+        "wrongTurns": { "type": "integer", "minimum": 0 },
+        "knockdowns": { "type": "integer", "minimum": 0 },
+        "retries": { "type": "integer", "minimum": 0 },
+        "abandonedBeforeConsequence": { "type": "boolean" },
+        "voluntarilyContinuedAfterConsequence": { "type": ["boolean", "null"] }
+      }
+    }
+  },
+  "$defs": {
+    "answer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expectedId", "observedId", "matched", "adjudicatorId"],
+      "properties": {
+        "expectedId": { "type": "string", "minLength": 1 },
+        "observedId": { "type": ["string", "null"] },
+        "matched": { "type": "boolean" },
+        "adjudicatorId": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
