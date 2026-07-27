@@ -106,10 +106,12 @@ jobs:
           ) 2>&1 | tee receipts/real-action-spec.log
           rm -f axm-arc/tests/action/unity-real-action-spec.test.ts
           test -s receipts/real.action-spec.json
+          test -s receipts/real.action-spec.json.receipt.json
           test "$(jq -r '.format' receipts/real.action-spec.json)" = 'axm-action-spec/1'
           test "$(jq -r '.tickRate' receipts/real.action-spec.json)" = '30'
           jq -e '.arcDigest | test("^cart1_[0-9a-f]{64}$")' receipts/real.action-spec.json >/dev/null
           jq -e '.specDigest | test("^actspec1_[0-9a-f]{64}$")' receipts/real.action-spec.json >/dev/null
+          jq -e '.execution.orgSeed >= 0 and .execution.seed >= 0 and .execution.cycle >= 0' receipts/real.action-spec.json.receipt.json >/dev/null
 
       - name: Derive the exact Unity projection, presentation, and scene job
         shell: bash
@@ -138,19 +140,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          execution='receipts/real.action-spec.json.receipt.json'
           dotnet run \
             --configuration Release \
             --project axm-world/unity/Conformance/Axm.Rodoh.Action.Candidate.csproj \
             -- \
             receipts/real.unity-action-spec.json \
             receipts/real.action-candidate.json \
-            4 \
-            20775 \
-            real-cartridge-player \
+            "$(jq -r '.execution.cycle' "$execution")" \
+            "$(jq -r '.execution.seed' "$execution")" \
+            "$(jq -r '.execution.controlledAgentId' "$execution")" \
             2>&1 | tee receipts/candidate-generation.log
           test "$(jq -r '.format' receipts/real.action-candidate.json)" = 'rodoh-action-execution-candidate/1'
           test "$(jq -r '.authority' receipts/real.action-candidate.json)" = 'Arc replay required'
           test "$(jq -r '.actionSpecDigest' receipts/real.action-candidate.json)" = "$(jq -r '.specDigest' receipts/real.action-spec.json)"
+          test "$(jq -r '.seed' receipts/real.action-candidate.json)" = "$(jq -r '.execution.seed' "$execution")"
           test "$(jq '[.trace[].ticks] | add' receipts/real.action-candidate.json)" = "$(jq '.totalTicks' receipts/real.action-candidate.json)"
 
       - name: Require exact Arc-to-Csharp terminal-state parity on the real cartridge
@@ -185,6 +189,7 @@ jobs:
           export AXM_ACTION_CANDIDATE="$GITHUB_WORKSPACE/receipts/real.action-candidate.json"
           export AXM_ACTION_RECEIPT_OUT="$GITHUB_WORKSPACE/receipts/real.accepted-action-receipt.json"
           export AXM_ACTION_RECONCILIATION_OUT="$GITHUB_WORKSPACE/receipts/real.result-reconciliation.json"
+          export AXM_ACTION_ORG_SEED="$(jq -r '.execution.orgSeed' receipts/real.action-spec.json.receipt.json)"
           (
             cd axm-arc
             npx vitest run tests/action/unity-real-receipt.test.ts --reporter=verbose
@@ -208,7 +213,7 @@ jobs:
           git -C axm-world diff --check
           if test -s receipts/real.accepted-action-receipt.json; then
             jq -n \
-              --arg format 'rodoh-unity-real-cartridge-convergence/1' \
+              --arg format 'rodoh-unity-real-cartridge-convergence/2' \
               --arg status pass \
               --arg world '${{ github.event.pull_request.head.sha || github.sha }}' \
               --arg arc "$ARC_ACTION_AUTHORITY_SHA" \
