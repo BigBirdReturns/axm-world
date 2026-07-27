@@ -1,0 +1,90 @@
+name: Diagnose action matrix
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/diagnose-action-matrix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diagnose-action-matrix-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARC_ACTION_AUTHORITY_SHA: 6eef311836ee7cb3a43a94ce51f448a2699c3b04
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out exact World candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+      - name: Check out exact Arc action authority
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_ACTION_AUTHORITY_SHA }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: axm-arc/package-lock.json
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: npm --prefix axm-arc ci --no-audit --no-fund
+      - name: Generate the exact Arc vector matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p diagnostics/vectors diagnostics/parity
+          cp axm-world/unity/Conformance/arc-vector-matrix.test.ts axm-arc/tests/action/unity-vector-matrix.test.ts
+          export AXM_UNITY_NATIVE_SPEC="$GITHUB_WORKSPACE/axm-world/unity/Fixtures/frog-pit.action-spec.json"
+          export AXM_UNITY_PROJECTION="$GITHUB_WORKSPACE/axm-world/unity/Fixtures/frog-pit.unity-action-spec.json"
+          export AXM_UNITY_VECTOR_MATRIX_OUT="$GITHUB_WORKSPACE/diagnostics/arc-vector-matrix.json"
+          (cd axm-arc && npx vitest run tests/action/unity-vector-matrix.test.ts --reporter=verbose) 2>&1 | tee diagnostics/arc-vector-matrix.log
+      - name: Capture every Csharp result without stopping at the first mismatch
+        shell: bash
+        run: |
+          set -u
+          authority="$(jq -r '.arcActionAuthorityCommit' diagnostics/arc-vector-matrix.json)"
+          arc_digest="$(jq -r '.sourceArcDigest' diagnostics/arc-vector-matrix.json)"
+          count="$(jq '.vectors | length' diagnostics/arc-vector-matrix.json)"
+          printf '{"format":"rodoh-action-matrix-diagnostic/1","vectors":[' > diagnostics/summary.json
+          first=true
+          for index in $(seq 0 $((count - 1))); do
+            id="$(jq -r ".vectors[$index].id" diagnostics/arc-vector-matrix.json)"
+            jq --arg authority "$authority" --arg arc "$arc_digest" --argjson index "$index" '{format:"axm-action-cross-language-vector/1",arcActionAuthorityCommit:$authority,sourceSpecDigest:.vectors[$index].projection.sourceSpecDigest,sourceArcDigest:$arc,seed:.vectors[$index].seed,projection:.vectors[$index].projection,trace:.vectors[$index].trace,expected:.vectors[$index].expected}' diagnostics/arc-vector-matrix.json > "diagnostics/vectors/$id.json"
+            set +e
+            dotnet run --configuration Release --project axm-world/unity/Conformance/Axm.Rodoh.Action.ArcParity.csproj -- "diagnostics/vectors/$id.json" "diagnostics/parity/$id.json" > "diagnostics/parity/$id.stdout.log" 2> "diagnostics/parity/$id.stderr.log"
+            code=$?
+            set -e
+            printf '%s\n' "$code" > "diagnostics/parity/$id.exit-code.txt"
+            if [ "$first" = true ]; then first=false; else printf ',' >> diagnostics/summary.json; fi
+            jq -n --arg id "$id" --argjson code "$code" --arg status "$(jq -r '.status // "missing"' "diagnostics/parity/$id.json" 2>/dev/null || printf missing)" --arg error "$(jq -r '.error // ""' "diagnostics/parity/$id.json" 2>/dev/null || true)" '{id:$id,exitCode:$code,status:$status,error:$error}' >> diagnostics/summary.json
+          done
+          printf '],"status":"captured"}\n' >> diagnostics/summary.json
+          rm -f axm-arc/tests/action/unity-vector-matrix.test.ts
+          git -C axm-world diff --check
+          test "$(git -C axm-arc rev-parse HEAD)" = "$ARC_ACTION_AUTHORITY_SHA"
+          test -z "$(git -C axm-arc status --porcelain)"
+      - name: Upload complete vector diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: action-matrix-complete-diagnostics
+          path: diagnostics
+          if-no-files-found: error
+          retention-days: 7
