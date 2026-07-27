@@ -1,0 +1,64 @@
+name: One a.m. authored experience
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Record exact candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha || github.sha }}'
+          test -z "$(git status --porcelain)"
+          git diff --check
+      - run: npm ci --no-audit --no-fund
+      - name: Qualify the refusal boundary
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm test -- tests/world/one-am-player.test.ts
+      - name: Prove the gate does not fracture the receiver
+        run: |
+          set -euo pipefail
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          test -z "$(git status --porcelain)"
+      - name: Preserve the standard and exact test receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: one-am-authored-experience-standard
+          path: |
+            docs/design/ONE_AM_PLAYER_STANDARD.md
+            docs/schemas/rodoh-one-am-player-receipt-v1.schema.json
+            tests/world/one-am-player.test.ts
+          if-no-files-found: error
+          retention-days: 30
