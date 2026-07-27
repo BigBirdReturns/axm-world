@@ -86,18 +86,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm --prefix axm-world ci --no-audit --no-fund
-          npm --prefix axm-arc ci --no-audit --no-fund
-          python -m pip install --disable-pip-version-check -e './axm-embodied[dev]'
+          npm --prefix axm-world ci --no-audit --no-fund \
+            2>&1 | tee "$RUNNER_TEMP/continuous-authority-estate/world-install.log"
+          npm --prefix axm-arc ci --no-audit --no-fund \
+            2>&1 | tee "$RUNNER_TEMP/continuous-authority-estate/arc-install.log"
+          python -m pip install --disable-pip-version-check -e './axm-embodied[dev]' \
+            2>&1 | tee "$RUNNER_TEMP/continuous-authority-estate/embodied-install.log"
 
       - name: Qualify World orchestration and complete product
         shell: bash
         run: |
           set -euo pipefail
-          npm --prefix axm-world run typecheck
-          npm --prefix axm-world test -- tests/world/continuous-authority-estate.test.ts
-          npm --prefix axm-world test
-          npm --prefix axm-world run build
+          npm --prefix axm-world run typecheck \
+            2>&1 | tee "$RUNNER_TEMP/continuous-authority-estate/world-typecheck.log"
+          npm --prefix axm-world test -- tests/world/continuous-authority-estate.test.ts \
+            2>&1 | tee "$RUNNER_TEMP/continuous-authority-estate/world-focused.log"
+          npm --prefix axm-world test \
+            2>&1 | tee "$RUNNER_TEMP/continuous-authority-estate/world-complete.log"
+          npm --prefix axm-world run build \
+            2>&1 | tee "$RUNNER_TEMP/continuous-authority-estate/world-build.log"
           if git -C axm-world ls-files -- docs/game | grep -q .; then
             git -C axm-world restore --source=HEAD --staged --worktree -- docs/game
           fi
@@ -107,8 +114,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm --prefix axm-arc run typecheck
-          npm --prefix axm-arc run test:continuous-authority
+          npm --prefix axm-arc run typecheck \
+            2>&1 | tee "$RUNNER_TEMP/continuous-authority-estate/arc-typecheck.log"
+          npm --prefix axm-arc run test:continuous-authority \
+            2>&1 | tee "$RUNNER_TEMP/continuous-authority-estate/arc-seam.log"
 
       - name: Qualify embodied strict session custody
         working-directory: axm-embodied
@@ -129,7 +138,7 @@ jobs:
           for repo in axm-world axm-arc axm-embodied; do
             status="$(git -C "$repo" status --porcelain)"
             if [[ -n "$status" ]]; then
-              printf '%s\n' "$status"
+              printf '%s\n' "$status" | tee "$RUNNER_TEMP/continuous-authority-estate/${repo}-dirty.log"
               echo "$repo is dirty after qualification" >&2
               exit 1
             fi
