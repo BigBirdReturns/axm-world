@@ -17,6 +17,8 @@ param(
     [ValidateSet("left", "right")]
     [string]$DominantHand = "right",
     [switch]$OneHanded,
+    [switch]$GovernedProduction,
+    [string]$GovernedAssetRoot = "Assets/AXM/Generated/ActionProduction/GovernedV1",
     [switch]$DisableAdaptiveQuality,
     [switch]$SkipUnityTests,
     [string]$UnityVersion = "6000.0.66f2",
@@ -72,15 +74,26 @@ Invoke-CheckedScript $v2Script @{
     TrackedHeadPath = $TrackedHeadPath
     UnityVersion = $UnityVersion
     UnityEditor = $unityPath
+    GovernedProduction = $GovernedProduction
+    GovernedAssetRoot = $GovernedAssetRoot
     DisableAdaptiveQuality = $DisableAdaptiveQuality
     SkipUnityTests = $true
     ForceCloseUnity = $ForceCloseUnity
 } "Compiling and postprocessing the deterministic Unity action estate..."
 
+$jobRoot = Join-Path $projectRoot "local\scene-jobs\$JobId"
+$outputRoot = Join-Path $jobRoot "output"
+$baseReceiptPath = Join-Path $outputRoot "local-run-v2.json"
+if (-not (Test-Path $baseReceiptPath)) { throw "Postprocessed action estate receipt is absent: $baseReceiptPath" }
+$base = Get-Content $baseReceiptPath -Raw | ConvertFrom-Json
+if ($base.status -ne "pass") { throw "Postprocessed action estate did not pass." }
+$effectivePresentation = [string]$base.presentationManifest
+if ([string]::IsNullOrWhiteSpace($effectivePresentation) -or -not (Test-Path $effectivePresentation)) { throw "Postprocessed action estate did not retain its effective presentation manifest." }
+
 Invoke-CheckedScript $polishScript @{
     EmbodiedArLabRoot = $projectRoot
     JobId = $JobId
-    PresentationManifest = $PresentationManifest
+    PresentationManifest = $effectivePresentation
     ReducedMotion = $ReducedMotion
     HighContrast = $HighContrast
     UnityVersion = $UnityVersion
@@ -101,8 +114,6 @@ if ($Quest) {
     } "Installing the Quest and OpenXR action receiver..."
 }
 
-$jobRoot = Join-Path $projectRoot "local\scene-jobs\$JobId"
-$outputRoot = Join-Path $jobRoot "output"
 $logRoot = Join-Path $jobRoot "logs"
 $testResults = Join-Path $outputRoot "action-estate-v3-editmode-tests.xml"
 $testLog = Join-Path $logRoot "unity-action-estate-v3-tests.log"
@@ -127,7 +138,6 @@ if (-not $SkipUnityTests) {
     $testsStatus = "pass"
 }
 
-$baseReceiptPath = Join-Path $outputRoot "local-run-v2.json"
 $polishReceiptPath = Join-Path $outputRoot "polish-run.json"
 $questReceiptPath = Join-Path $outputRoot "quest-prepare-run.json"
 foreach ($path in @($baseReceiptPath, $polishReceiptPath)) { if (-not (Test-Path $path)) { throw "Required completed-estate receipt is absent: $path" } }
@@ -154,6 +164,9 @@ $receipt = [ordered]@{
     questSpool = $base.questSpool
     safetySpool = $base.safetySpool
     performanceReceipt = $base.performanceReceipt
+    governedProduction = [bool]$GovernedProduction
+    governedProductionReceipt = $base.governedProductionReceipt
+    presentationManifest = $base.presentationManifest
     proceduralMotion = $polish.proceduralMotion
     boundedCamera = $polish.boundedCamera
     visualFeedback = $polish.visualFeedback
