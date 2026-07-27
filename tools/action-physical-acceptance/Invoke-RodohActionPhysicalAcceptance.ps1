@@ -333,7 +333,7 @@ if ($Phase -eq "Status") {
 }
 
 if (-not $status.readyForArcReplay) { throw "Physical session is not ready for exact Arc replay. See $statusPath" }
-if (Test-Path ([string]$planValue.journalPath) { throw "Embodied journal already exists; completion is single-use." }
+if (Test-Path ([string]$planValue.journalPath)) { throw "Embodied journal already exists; completion is single-use." }
 $completionScript = Join-Path ([string]$planValue.worldWorktree) "scripts\complete-embodied-action-session.ps1"
 Require-Path $completionScript "Frozen embodied action-session completion script"
 & $completionScript `
