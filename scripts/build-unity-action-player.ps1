@@ -82,6 +82,7 @@ $buildReceiptPath = Join-Path $receiptRoot "build-$Target.json"
 if (-not (Test-Path $buildReceiptPath)) { throw "Unity did not write the build receipt: $buildReceiptPath" }
 $buildReceipt = Get-Content $buildReceiptPath -Raw | ConvertFrom-Json
 if ($buildReceipt.status -ne "pass") { throw "Unity build receipt reports $($buildReceipt.status): $($buildReceipt.error)" }
+if ([string]::IsNullOrWhiteSpace([string]$buildReceipt.applicationIdentifier)) { throw "Unity build receipt does not identify the built application." }
 if (-not (Test-Path $buildOutput)) { throw "Built action product is absent: $buildOutput" }
 
 $smokeStatus = "not-applicable"
@@ -121,6 +122,7 @@ $runReceipt = [ordered]@{
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
     status = "pass"
     target = $Target
+    applicationIdentifier = $buildReceipt.applicationIdentifier
     projectRoot = $projectRoot
     jobId = $JobId
     scenePath = $scenePath
