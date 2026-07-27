@@ -117,7 +117,7 @@ describe("one-command First Charter action launcher", () => {
     expect(script).toContain("InstallQuest = $true");
     expect(script).toContain("awaiting-physical-execution");
     expect(script).toContain("Quest spool observation only; Arc replay still required");
-    expect(script).toContain("candidateEntries -eq 1");
+    expect(script).toContain("$candidateEntries.Count -eq 1");
     expect(script).toContain("complete-embodied-action-session.ps1");
     expect(script).toContain("sessionStart.platform -ne \"Android\"");
     expect(script).toContain("sessionStart.unityJobDigest -ne $planValue.sceneJobDigest");
