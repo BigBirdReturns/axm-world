@@ -12,6 +12,7 @@ on:
       - 'scripts/build-unity-action-player.ps1'
       - 'scripts/build-unity-action-quest.ps1'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionGovernedProductionBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionGovernedMotionAugmentBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionPresentation.cs'
       - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProceduralMotionDriver.cs'
       - 'docs/FIRST_CHARTER_ACTION_LOCAL_ACCEPTANCE.md'
@@ -21,6 +22,7 @@ on:
   push:
     branches:
       - feature/action-runtime-v1
+      - qualify/action-runtime-closure-v1
     paths:
       - 'scripts/run-first-charter-action.ps1'
       - 'scripts/complete-embodied-action-session.ps1'
@@ -31,6 +33,7 @@ on:
       - 'scripts/build-unity-action-player.ps1'
       - 'scripts/build-unity-action-quest.ps1'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionGovernedProductionBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionGovernedMotionAugmentBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionPresentation.cs'
       - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProceduralMotionDriver.cs'
       - 'docs/FIRST_CHARTER_ACTION_LOCAL_ACCEPTANCE.md'
