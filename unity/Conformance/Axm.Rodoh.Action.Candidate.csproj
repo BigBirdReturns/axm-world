@@ -7,6 +7,9 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <Deterministic>true</Deterministic>
+    <AssemblyName>Axm.Rodoh.Action.Candidate</AssemblyName>
+    <BaseIntermediateOutputPath>obj/Candidate/</BaseIntermediateOutputPath>
+    <BaseOutputPath>bin/Candidate/</BaseOutputPath>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="CandidateProgram.cs" />
