@@ -7,13 +7,15 @@ const contractPath = join(packageRoot, "Runtime/Core/ActionContract.cs");
 
 function enumMembers(source: string, enumName: string): Set<string> {
   const match = source.match(new RegExp(`public\\s+enum\\s+${enumName}\\s*\\{([\\s\\S]*?)\\}`));
-  if (!match) throw new Error(`Unable to locate ${enumName} in ${contractPath}.`);
+  const body = match?.[1];
+  if (body === undefined) throw new Error(`Unable to locate ${enumName} in ${contractPath}.`);
   return new Set(
-    match[1]
+    body
       .split(",")
       .map((value) => value.replace(/\/\/.*$/gm, "").trim())
       .filter(Boolean)
-      .map((value) => value.split("=")[0].trim()),
+      .map((value) => value.split("=")[0]?.trim())
+      .filter((value): value is string => value !== undefined && value.length > 0),
   );
 }
 
@@ -29,7 +31,8 @@ function sourceFiles(root: string): string[] {
 
 function references(source: string, enumName: string): string[] {
   return [...source.matchAll(new RegExp(`${enumName}\\.([A-Za-z_][A-Za-z0-9_]*)`, "g"))]
-    .map((match) => match[1]);
+    .map((match) => match[1])
+    .filter((value): value is string => value !== undefined);
 }
 
 describe("Unity action source remains bound to the deployed action-state contract", () => {
