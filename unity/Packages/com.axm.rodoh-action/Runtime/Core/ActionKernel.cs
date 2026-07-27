@@ -46,17 +46,17 @@ namespace Axm.Rodoh.Action
 
         public static ActionSimulationState Step(ActionSpecProjection spec, ActionSimulationState state, ActionInputFrame rawInput)
         {
+            RequireValid(spec);
             if (state == null) throw new ArgumentNullException(nameof(state));
             if (state.result != null) return state;
+
             var input = ActionInputFrame.Normalize(rawInput);
             state.events.Clear();
-
             StepPlayer(spec, state, input);
             StepEnemies(spec, state);
-            UpdateObjective(spec, state);
-
             state.tick += 1;
             state.previousButtons = input.buttons;
+            AdvanceWave(spec, state);
             ClassifyTerminal(spec, state);
             return state;
         }
@@ -65,15 +65,23 @@ namespace Axm.Rodoh.Action
         {
             var state = InitialState(spec, seed);
             if (trace == null) return state;
+            var totalTicks = 0;
             foreach (var run in trace)
             {
-                if (run == null || run.ticks <= 0) throw new InvalidOperationException("Action trace contains a non-positive run.");
+                if (run == null || run.ticks <= 0 || run.ticks > spec.maxTicks)
+                    throw new InvalidOperationException("Action trace contains an invalid run length.");
+                checked { totalTicks += run.ticks; }
+                if (totalTicks > spec.maxTicks)
+                    throw new InvalidOperationException("Action trace exceeds the encounter tick budget.");
                 var input = ActionInputFrame.Normalize(run.input);
                 for (var index = 0; index < run.ticks; index += 1)
                 {
-                    if (state.result != null) throw new InvalidOperationException("Action trace contains trailing input after terminal state.");
+                    if (state.result != null)
+                        throw new InvalidOperationException("Action trace contains trailing input after terminal state.");
                     Step(spec, state, input);
                 }
+                if (state.result != null && totalTicks != state.result.totalTicks)
+                    throw new InvalidOperationException("Action trace terminal tick does not match its encoded length.");
             }
             return state;
         }
@@ -171,7 +179,7 @@ namespace Axm.Rodoh.Action
             if (objectiveIndex < 0 || objectiveIndex >= spec.objectives.Length) return;
             var objective = spec.objectives[objectiveIndex];
             var law = spec.EnemyLaw(objective.enemyKit);
-            var baseIndex = ((int)state.seed + objectiveIndex * 5) & 15;
+            var baseIndex = ((int)(state.seed & 15) + objectiveIndex * 5) & 15;
             var spawnRadius = Math.Max(1800, spec.arena.radius - law.radius - 500);
             for (var index = 0; index < objective.enemyCount; index += 1)
             {
@@ -252,7 +260,6 @@ namespace Axm.Rodoh.Action
                 ClampToArena(player.x + dx, player.y + dy, spec.arena.radius - spec.player.radius, out player.x, out player.y);
                 return;
             }
-
             if (player.mode == ActionPlayerMode.Dodge)
             {
                 var directionX = input.moveX != 0 ? input.moveX : player.facingX;
@@ -267,7 +274,6 @@ namespace Axm.Rodoh.Action
                 }
                 return;
             }
-
             if (player.mode == ActionPlayerMode.Parry)
             {
                 player.modeTick += 1;
@@ -278,7 +284,6 @@ namespace Axm.Rodoh.Action
                 }
                 return;
             }
-
             if (player.mode == ActionPlayerMode.Stagger)
             {
                 player.modeTick += 1;
@@ -289,8 +294,8 @@ namespace Axm.Rodoh.Action
                 }
                 return;
             }
-
             if (player.mode != ActionPlayerMode.Light && player.mode != ActionPlayerMode.Heavy) return;
+
             var attack = spec.AttackLaw(player.mode == ActionPlayerMode.Light ? "light" : "heavy");
             var activeStart = attack.startupTicks;
             var activeEnd = activeStart + attack.activeTicks;
@@ -335,11 +340,7 @@ namespace Axm.Rodoh.Action
         private static void StepEnemies(ActionSpecProjection spec, ActionSimulationState state)
         {
             state.enemies.Sort((left, right) => string.CompareOrdinal(left.id, right.id));
-            foreach (var enemy in state.enemies)
-            {
-                StepEnemy(spec, state, enemy);
-                if (state.player.mode == ActionPlayerMode.Defeated) break;
-            }
+            foreach (var enemy in state.enemies) StepEnemy(spec, state, enemy);
         }
 
         private static void StepEnemy(ActionSpecProjection spec, ActionSimulationState state, ActionEnemyState enemy)
@@ -347,7 +348,6 @@ namespace Axm.Rodoh.Action
             var law = spec.EnemyLaw(enemy.kit);
             var player = state.player;
             if (enemy.mode == ActionEnemyMode.Defeated) return;
-
             if (enemy.mode == ActionEnemyMode.Stagger)
             {
                 enemy.modeTick += 1;
@@ -358,7 +358,6 @@ namespace Axm.Rodoh.Action
                 }
                 return;
             }
-
             if (enemy.mode == ActionEnemyMode.Approach)
             {
                 if (DistanceSquared(enemy.x, enemy.y, player.x, player.y) <= (long)law.attackRange * law.attackRange)
@@ -373,7 +372,6 @@ namespace Axm.Rodoh.Action
                 }
                 return;
             }
-
             if (enemy.mode == ActionEnemyMode.Telegraph)
             {
                 enemy.modeTick += 1;
@@ -385,20 +383,18 @@ namespace Axm.Rodoh.Action
                 }
                 return;
             }
-
             if (enemy.mode == ActionEnemyMode.Active)
             {
                 if (!enemy.attackResolved)
                 {
-                    enemy.attackResolved = true;
                     var inRange = DistanceSquared(enemy.x, enemy.y, player.x, player.y) <= (long)law.attackRange * law.attackRange;
                     if (inRange && PlayerParrying(spec, player))
                     {
-                        enemy.mode = ActionEnemyMode.Stagger;
-                        enemy.modeTick = 0;
-                        enemy.attackResolved = false;
                         state.stats.parries += 1;
                         state.events.Add(new ActionEvent { type = "parry", enemyId = enemy.id });
+                        enemy.mode = ActionEnemyMode.Stagger;
+                        enemy.modeTick = 0;
+                        enemy.attackResolved = true;
                         return;
                     }
                     if (inRange && PlayerInvulnerable(spec, player))
@@ -408,8 +404,10 @@ namespace Axm.Rodoh.Action
                     }
                     else if (inRange && player.mode != ActionPlayerMode.Defeated)
                     {
+                        var priorHealth = player.health;
                         player.health = Math.Max(0, player.health - law.attackDamage);
-                        state.stats.damageTaken += law.attackDamage;
+                        var damage = priorHealth - player.health;
+                        state.stats.damageTaken += damage;
                         player.mode = player.health == 0 ? ActionPlayerMode.Defeated : ActionPlayerMode.Stagger;
                         player.modeTick = 0;
                         player.hitEnemyIds.Clear();
@@ -417,10 +415,11 @@ namespace Axm.Rodoh.Action
                         {
                             type = "player_hit",
                             enemyId = enemy.id,
-                            damage = law.attackDamage,
+                            damage = damage,
                             health = player.health
                         });
                     }
+                    enemy.attackResolved = true;
                 }
                 enemy.modeTick += 1;
                 if (enemy.modeTick >= law.activeTicks)
@@ -430,7 +429,6 @@ namespace Axm.Rodoh.Action
                 }
                 return;
             }
-
             if (enemy.mode == ActionEnemyMode.Recover)
             {
                 enemy.modeTick += 1;
@@ -443,87 +441,103 @@ namespace Axm.Rodoh.Action
             }
         }
 
-        private static void UpdateObjective(ActionSpecProjection spec, ActionSimulationState state)
+        private static void AdvanceWave(ActionSpecProjection spec, ActionSimulationState state)
         {
-            if (state.activeObjectiveIndex < 0 || state.activeObjectiveIndex >= spec.objectives.Length) return;
-            var objective = spec.objectives[state.activeObjectiveIndex];
-            var defeated = 0;
             foreach (var enemy in state.enemies)
             {
-                if (enemy.objectiveId == objective.id && enemy.mode == ActionEnemyMode.Defeated) defeated += 1;
+                if (enemy.mode != ActionEnemyMode.Defeated) return;
             }
-            if (defeated < objective.targetDefeats || state.completedObjectiveIds.Contains(objective.id)) return;
+            if (state.activeObjectiveIndex < 0 || state.activeObjectiveIndex >= spec.objectives.Length) return;
 
-            state.completedObjectiveIds.Add(objective.id);
+            var objective = spec.objectives[state.activeObjectiveIndex];
+            if (!state.completedObjectiveIds.Contains(objective.id)) state.completedObjectiveIds.Add(objective.id);
             state.completedObjectiveIds.Sort(StringComparer.Ordinal);
+            var nextIndex = state.activeObjectiveIndex + 1;
             state.events.Add(new ActionEvent { type = "objective_completed", objectiveId = objective.id });
+            if (nextIndex < spec.objectives.Length)
+                state.events.Add(new ActionEvent { type = "wave_started", objectiveId = spec.objectives[nextIndex].id });
+            state.activeObjectiveIndex = nextIndex;
 
-            if (spec.completion.kind == "clear" && state.completedObjectiveIds.Count >= spec.completion.successObjectiveCount) return;
-            var next = state.activeObjectiveIndex + 1;
-            if (next >= spec.objectives.Length)
-            {
-                state.activeObjectiveIndex = next;
-                state.enemies.Clear();
-                return;
-            }
-            state.activeObjectiveIndex = next;
-            state.events.Add(new ActionEvent { type = "wave_started", objectiveId = spec.objectives[next].id });
-            SpawnWave(spec, state, next);
+            var successThresholdReached = spec.completion.kind == "clear"
+                && state.completedObjectiveIds.Count >= spec.completion.successObjectiveCount;
+            if (successThresholdReached) state.enemies.Clear();
+            else SpawnWave(spec, state, nextIndex);
         }
 
-        private static void ClassifyTerminal(ActionSpecProjection spec, ActionSimulationState state)
-        {
-            string outcome = null;
-            var completed = state.completedObjectiveIds.Count;
-            if (state.player.health <= 0 || state.player.mode == ActionPlayerMode.Defeated)
-            {
-                outcome = completed >= spec.completion.partialObjectiveCount && spec.completion.partialObjectiveCount > 0 ? "partial" : "failure";
-            }
-            else if (spec.completion.kind == "clear" && completed >= spec.completion.successObjectiveCount)
-            {
-                outcome = "success";
-            }
-            else if (state.tick >= spec.maxTicks)
-            {
-                if (spec.completion.kind == "survive") outcome = "success";
-                else if (completed >= spec.completion.successObjectiveCount) outcome = "success";
-                else if (completed >= spec.completion.partialObjectiveCount && spec.completion.partialObjectiveCount > 0) outcome = "partial";
-                else outcome = "failure";
-            }
-            if (outcome == null) return;
-            Finish(spec, state, outcome);
-        }
-
-        private static void Finish(ActionSpecProjection spec, ActionSimulationState state, string outcome)
+        private static ActionObjectiveProgress[] ObjectiveProgress(ActionSpecProjection spec, ActionSimulationState state)
         {
             var progress = new ActionObjectiveProgress[spec.objectives.Length];
             for (var index = 0; index < spec.objectives.Length; index += 1)
             {
                 var objective = spec.objectives[index];
-                var defeated = 0;
-                if (index < state.activeObjectiveIndex) defeated = objective.targetDefeats;
-                else
+                if (state.completedObjectiveIds.Contains(objective.id))
                 {
-                    foreach (var enemy in state.enemies)
+                    progress[index] = new ActionObjectiveProgress
                     {
-                        if (enemy.objectiveId == objective.id && enemy.mode == ActionEnemyMode.Defeated) defeated += 1;
-                    }
+                        id = objective.id,
+                        defeated = objective.targetDefeats,
+                        target = objective.targetDefeats,
+                        completed = true
+                    };
+                    continue;
+                }
+                if (index != state.activeObjectiveIndex)
+                {
+                    progress[index] = new ActionObjectiveProgress
+                    {
+                        id = objective.id,
+                        defeated = 0,
+                        target = objective.targetDefeats,
+                        completed = false
+                    };
+                    continue;
+                }
+                var living = 0;
+                foreach (var enemy in state.enemies)
+                {
+                    if (enemy.objectiveId == objective.id && enemy.mode != ActionEnemyMode.Defeated) living += 1;
                 }
                 progress[index] = new ActionObjectiveProgress
                 {
                     id = objective.id,
-                    defeated = Math.Min(defeated, objective.targetDefeats),
+                    defeated = Math.Max(0, objective.enemyCount - living),
                     target = objective.targetDefeats,
-                    completed = state.completedObjectiveIds.Contains(objective.id)
+                    completed = false
                 };
             }
+            return progress;
+        }
+
+        private static void ClassifyTerminal(ActionSpecProjection spec, ActionSimulationState state)
+        {
+            var completed = state.completedObjectiveIds.Count;
+            var playerDefeated = state.player.health <= 0 || state.player.mode == ActionPlayerMode.Defeated;
+            var timedOut = state.tick >= spec.maxTicks;
+            var terminal = false;
+            var outcome = "failure";
+
+            if (spec.completion.kind == "survive")
+            {
+                terminal = playerDefeated || timedOut;
+                if (timedOut && !playerDefeated) outcome = "success";
+                else if (completed >= spec.completion.partialObjectiveCount) outcome = "partial";
+            }
+            else
+            {
+                var allComplete = completed >= spec.completion.successObjectiveCount;
+                terminal = allComplete || playerDefeated || timedOut;
+                if (allComplete) outcome = "success";
+                else if (completed >= spec.completion.partialObjectiveCount) outcome = "partial";
+            }
+            if (!terminal) return;
+
             state.result = new ActionSimulationResult
             {
                 outcome = outcome,
                 completedObjectiveIds = state.completedObjectiveIds.ToArray(),
-                objectives = progress,
+                objectives = ObjectiveProgress(spec, state),
                 playerHealth = state.player.health,
-                playerDefeated = state.player.health <= 0 || state.player.mode == ActionPlayerMode.Defeated,
+                playerDefeated = playerDefeated,
                 totalTicks = state.tick,
                 stats = state.stats.Clone()
             };
