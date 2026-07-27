@@ -91,12 +91,22 @@ if ($GovernedProduction) {
         -UnityEditor $unityPath `
         -ForceCloseUnity:$ForceCloseUnity
     if ($LASTEXITCODE -ne 0) { throw "Governed action production generation failed with exit $LASTEXITCODE." }
-    $governedProductionReceipt = Join-Path $outputRoot "governed-production-assets.json"
+    $governedProductionReceipt = Join-Path $outputRoot "governed-production-run.json"
     if (-not (Test-Path $governedProductionReceipt)) { throw "Governed production receipt is absent: $governedProductionReceipt" }
     $governed = Get-Content $governedProductionReceipt -Raw | ConvertFrom-Json
     if ($governed.status -ne "pass" -or $governed.activePhysicsAuthority -ne $false -or $governed.neutralFallbackBodies -ne $false) {
         throw "Governed production did not establish an authored presentation boundary."
     }
+    if ($governed.bodyPrefabs -ne 6 -or $governed.enemyKits -ne 5 -or $governed.authoredArena -ne $true) {
+        throw "Governed production did not preserve the complete body and arena inventory."
+    }
+    if ($governed.controllers -ne 2 -or $governed.prefabsBound -ne 6 -or $governed.motionClips -lt 8) {
+        throw "Governed production did not bind its complete motion kit into runtime bodies."
+    }
+    if ($governed.rootMotion -ne $false -or $governed.actionStateDriven -ne $true -or $governed.proceduralFallbackRetained -ne $true) {
+        throw "Governed motion crossed the action-authority or constrained-device fallback boundary."
+    }
+    if ($governed.remoteRuntimeReferences -ne $false) { throw "Governed production retained a remote runtime presentation reference." }
     $presentationPath = $governedManifestPath
 }
 
