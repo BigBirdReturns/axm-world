@@ -83,7 +83,7 @@ function Ensure-Commit([string]$Repository, [string]$Commit, [string]$Label, [bo
 function Ensure-DetachedWorktree([string]$Repository, [string]$Commit, [string]$Path, [string]$Label) {
     if (Test-Path $Path) {
         $actual = Invoke-GitText $Path @("rev-parse", "HEAD")
-        if ($actual -ne $Commit) { throw "$Label worktree names $actual instead of $Commit: $Path" }
+        if ($actual -ne $Commit) { throw "$Label worktree names $actual instead of ${Commit}: $Path" }
         if (Invoke-GitText $Path @("status", "--porcelain")) { throw "$Label worktree is dirty: $Path" }
         return [System.IO.Path]::GetFullPath($Path)
     }
