@@ -35,28 +35,44 @@ describe("one-command First Charter action launcher", () => {
     expect(script).toContain("unityEstateReceipt = $v3ReceiptPath");
   });
 
-  it("builds governed local bodies, motion, five enemy kits, and an arena by default", () => {
+  it("builds governed local bodies, runtime-bound motion, five enemy kits, and an arena by default", () => {
     const launcher = read("scripts/run-first-charter-action.ps1");
     const baseRunner = read("scripts/run-unity-action-estate.ps1");
     const generator = read("scripts/generate-unity-action-production.ps1");
-    const batch = read("unity/Packages/com.axm.rodoh-action/Editor/ActionGovernedProductionBatch.cs");
+    const assetBatch = read("unity/Packages/com.axm.rodoh-action/Editor/ActionGovernedProductionBatch.cs");
+    const motionBatch = read("unity/Packages/com.axm.rodoh-action/Editor/ActionGovernedMotionAugmentBatch.cs");
 
     expect(launcher).toContain("[switch]$NeutralPresentation");
     expect(launcher).toContain("GovernedProduction = -not $NeutralPresentation");
     expect(launcher).toContain("governedProductionReceipt");
     expect(baseRunner).toContain("generate-unity-action-production.ps1");
+    expect(baseRunner).toContain("governed-production-run.json");
     expect(baseRunner).toContain("authoredPlayerPrefabs -ne 1");
     expect(baseRunner).toContain("authoredEnemyPrefabs -ne 5");
     expect(baseRunner).toContain("neutralFallbackBodies -ne 0");
+    expect(baseRunner).toContain("controllers -ne 2");
+    expect(baseRunner).toContain("prefabsBound -ne 6");
+    expect(baseRunner).toContain("rootMotion -ne $false");
+    expect(baseRunner).toContain("actionStateDriven -ne $true");
     expect(generator).toContain("ActionGovernedProductionBatch.Run");
+    expect(generator).toContain("ActionGovernedMotionAugmentBatch.Run");
     expect(generator).toContain("bodyPrefabs -ne 6");
     expect(generator).toContain("enemyKits -ne 5");
-    expect(batch).toContain("BuildPlayerPrefab");
-    expect(batch).toContain("BuildFrogPrefab");
-    expect(batch).toContain("BuildMotionKit");
-    expect(batch).toContain("BuildArenaPrefab");
-    expect(batch).toContain("activePhysicsAuthority = false");
-    expect(batch).toContain("remoteRuntimeReferences = false");
+    expect(generator).toContain("controllers -ne 2");
+    expect(generator).toContain("prefabsBound -ne 6");
+    expect(generator).toContain("governed-production-run.json");
+    expect(assetBatch).toContain("BuildPlayerPrefab");
+    expect(assetBatch).toContain("BuildFrogPrefab");
+    expect(assetBatch).toContain("BuildMotionKit");
+    expect(assetBatch).toContain("BuildArenaPrefab");
+    expect(assetBatch).toContain("activePhysicsAuthority = false");
+    expect(assetBatch).toContain("remoteRuntimeReferences = false");
+    expect(motionBatch).toContain("AnimatorController.CreateAnimatorControllerAtPath");
+    expect(motionBatch).toContain('controller.AddParameter("AXM_Mode"');
+    expect(motionBatch).toContain("prefabsBound = prefabs");
+    expect(motionBatch).toContain("rootMotion = false");
+    expect(motionBatch).toContain("proceduralFallbackRetained = true");
+    expect(motionBatch).toContain("actionStateDriven = true");
   });
 
   it("derives physical replay custody from the launcher receipt before journal mutation", () => {
