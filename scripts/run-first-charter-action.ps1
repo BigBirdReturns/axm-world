@@ -81,7 +81,7 @@ $authorityRoot = Join-Path $authorityParent "axm-arc-$($ArcActionAuthority.Subst
 New-Item -ItemType Directory -Force $authorityParent | Out-Null
 if (Test-Path $authorityRoot) {
     $authorityHead = Get-GitText $authorityRoot @("rev-parse", "HEAD")
-    if ($authorityHead -ne $ArcActionAuthority) { throw "Existing authority worktree names $authorityHead instead of $ArcActionAuthority: $authorityRoot" }
+    if ($authorityHead -ne $ArcActionAuthority) { throw "Existing authority worktree names $authorityHead instead of ${ArcActionAuthority}: $authorityRoot" }
     if (Get-GitText $authorityRoot @("status", "--porcelain")) { throw "Existing Arc authority worktree is dirty: $authorityRoot" }
 } else {
     & git.exe -C $arcRepo worktree add --detach $authorityRoot $ArcActionAuthority
