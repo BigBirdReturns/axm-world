@@ -1,12 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import {
-  initialActionState,
-  stepActionSimulation,
-  type ActionInput,
-  type ActionSimulationState,
-} from "../../src/engine/action/simulation.js";
+import { initialActionState, stepActionSimulation } from "../../src/engine/action/simulation.js";
+import type { ActionInput, ActionSimulationState } from "../../src/engine/action/types.js";
 
 const nativeSpecPath = process.env.AXM_UNITY_NATIVE_SPEC;
 const projectionPath = process.env.AXM_UNITY_PROJECTION;
