@@ -16,6 +16,8 @@ param(
     [ValidateSet("left", "right")]
     [string]$DominantHand = "right",
     [switch]$OneHanded,
+    [switch]$NeutralPresentation,
+    [string]$GovernedAssetRoot = "Assets/AXM/Generated/ActionProduction/GovernedV1",
     [switch]$DisableAdaptiveQuality,
     [switch]$BuildWindows,
     [switch]$BuildQuest,
@@ -95,7 +97,7 @@ $outputRoot = Join-Path $jobRoot "output"
 New-Item -ItemType Directory -Force $authorityOutput, $inputRoot, $logRoot, $outputRoot | Out-Null
 $nativeSpec = Join-Path $authorityOutput "first-charter.action-spec.json"
 $adapterReceipt = "$nativeSpec.receipt.json"
-$presentation = Join-Path $authorityOutput "first-charter.presentation.json"
+$sourcePresentation = Join-Path $authorityOutput "first-charter.presentation.json"
 $adapterLog = Join-Path $logRoot "first-charter-action-spec.log"
 $presentationLog = Join-Path $logRoot "first-charter-presentation.log"
 
@@ -130,15 +132,15 @@ if ($adapter.status -ne "pass" -or $adapter.arcActionAuthorityCommit -ne $ArcAct
 
 $presentationTemplate = Join-Path $worldRoot "unity\Fixtures\frog-pit.presentation.json"
 $presentationProjector = Join-Path $worldRoot "unity\Conformance\project-presentation-manifest.mjs"
-Invoke-Native $node @($presentationProjector, $nativeSpec, $presentationTemplate, $presentation) $worldRoot "Binding the neutral production floor to the exact First Charter spec..." $presentationLog
-$presentationValue = Get-Content $presentation -Raw | ConvertFrom-Json
-if ($presentationValue.sourceActionSpecDigest -ne $adapter.actionSpecDigest) { throw "Projected presentation does not bind the exact action spec." }
+Invoke-Native $node @($presentationProjector, $nativeSpec, $presentationTemplate, $sourcePresentation) $worldRoot "Binding the source presentation floor to the exact First Charter spec..." $presentationLog
+$sourcePresentationValue = Get-Content $sourcePresentation -Raw | ConvertFrom-Json
+if ($sourcePresentationValue.sourceActionSpecDigest -ne $adapter.actionSpecDigest) { throw "Projected presentation does not bind the exact action spec." }
 
 $estateScript = Join-Path $worldRoot "scripts\run-unity-action-estate-v3.ps1"
 $estateParameters = @{
     EmbodiedArLabRoot = $labRoot
     NativeActionSpec = $nativeSpec
-    PresentationManifest = $presentation
+    PresentationManifest = $sourcePresentation
     JobId = $JobId
     SessionId = $SessionId
     DeviceId = $DeviceId
@@ -149,6 +151,8 @@ $estateParameters = @{
     Quest = $Quest
     DominantHand = $DominantHand
     OneHanded = $OneHanded
+    GovernedProduction = -not $NeutralPresentation
+    GovernedAssetRoot = $GovernedAssetRoot
     DisableAdaptiveQuality = $DisableAdaptiveQuality
     SkipUnityTests = $SkipUnityTests
     UnityVersion = $UnityVersion
@@ -161,6 +165,14 @@ $v3ReceiptPath = Join-Path $outputRoot "local-run-v3.json"
 if (-not (Test-Path $v3ReceiptPath)) { throw "Unity v3 receipt is absent: $v3ReceiptPath" }
 $v3 = Get-Content $v3ReceiptPath -Raw | ConvertFrom-Json
 if ($v3.status -ne "pass" -or $v3.actionSpecDigest -ne $adapter.actionSpecDigest) { throw "Unity v3 receipt does not accept the exact First Charter action spec." }
+if (-not $NeutralPresentation) {
+    if ($v3.governedProduction -ne $true) { throw "The First Charter run did not enable governed production assets." }
+    if ([string]::IsNullOrWhiteSpace([string]$v3.governedProductionReceipt) -or -not (Test-Path $v3.governedProductionReceipt)) { throw "Governed production receipt is absent." }
+}
+$effectivePresentation = [string]$v3.presentationManifest
+if ([string]::IsNullOrWhiteSpace($effectivePresentation) -or -not (Test-Path $effectivePresentation)) { throw "Unity v3 receipt did not retain the effective presentation manifest." }
+$effectivePresentationValue = Get-Content $effectivePresentation -Raw | ConvertFrom-Json
+if ($effectivePresentationValue.sourceActionSpecDigest -ne $adapter.actionSpecDigest) { throw "Effective presentation manifest lost the exact action-spec identity." }
 
 $windowsReceiptPath = $null
 if ($BuildWindows) {
@@ -193,9 +205,13 @@ $receipt = [ordered]@{
     nativeActionSpec = $nativeSpec
     nativeActionSpecSha256 = (Get-FileHash $nativeSpec -Algorithm SHA256).Hash.ToLowerInvariant()
     adapterReceipt = $adapterReceipt
-    presentationManifest = $presentation
-    presentationManifestSha256 = (Get-FileHash $presentation -Algorithm SHA256).Hash.ToLowerInvariant()
-    presentationManifestId = $presentationValue.manifestId
+    sourcePresentationManifest = $sourcePresentation
+    sourcePresentationManifestSha256 = (Get-FileHash $sourcePresentation -Algorithm SHA256).Hash.ToLowerInvariant()
+    presentationManifest = $effectivePresentation
+    presentationManifestSha256 = (Get-FileHash $effectivePresentation -Algorithm SHA256).Hash.ToLowerInvariant()
+    presentationManifestId = $effectivePresentationValue.manifestId
+    governedProduction = -not [bool]$NeutralPresentation
+    governedProductionReceipt = $v3.governedProductionReceipt
     unityEstateReceipt = $v3ReceiptPath
     windowsBuildReceipt = $windowsReceiptPath
     questBuildReceipt = $questReceiptPath
