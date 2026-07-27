@@ -1,0 +1,190 @@
+name: Unity action multi-cartridge generalization
+
+on:
+  pull_request:
+    paths:
+      - 'unity/Conformance/arc-multi-action-specs.test.ts'
+      - 'unity/Conformance/arc-vector.test.ts'
+      - 'unity/Conformance/arc-receipt-adapter.test.ts'
+      - 'unity/Conformance/project-action-spec.mjs'
+      - 'unity/Conformance/project-presentation-manifest.mjs'
+      - 'unity/Conformance/build-action-scene-job.mjs'
+      - 'unity/Conformance/CandidateProgram.cs'
+      - 'unity/Conformance/ArcParityProgram.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Core/**'
+      - 'unity/Fixtures/frog-pit.presentation.json'
+      - '.github/workflows/unity-action-multi-cartridge.yml'
+  push:
+    branches:
+      - feature/action-runtime-v1
+    paths:
+      - 'unity/Conformance/arc-multi-action-specs.test.ts'
+      - 'unity/Conformance/arc-vector.test.ts'
+      - 'unity/Conformance/arc-receipt-adapter.test.ts'
+      - 'unity/Conformance/project-action-spec.mjs'
+      - 'unity/Conformance/project-presentation-manifest.mjs'
+      - 'unity/Conformance/build-action-scene-job.mjs'
+      - 'unity/Conformance/CandidateProgram.cs'
+      - 'unity/Conformance/ArcParityProgram.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Core/**'
+      - 'unity/Fixtures/frog-pit.presentation.json'
+      - '.github/workflows/unity-action-multi-cartridge.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unity-action-multi-cartridge-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARC_ACTION_AUTHORITY_SHA: 6eef311836ee7cb3a43a94ce51f448a2699c3b04
+
+jobs:
+  generalization:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Check out exact World candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Check out exact Arc action authority
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_ACTION_AUTHORITY_SHA }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: axm-arc/package-lock.json
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - run: npm --prefix axm-arc ci --no-audit --no-fund
+
+      - name: Compile multiple bundled cartridges through exact Arc authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p receipts/specs receipts/cartridges
+          cp axm-world/unity/Conformance/arc-multi-action-specs.test.ts axm-arc/tests/action/unity-multi-action-specs.test.ts
+          export AXM_MULTI_ACTION_SPECS_OUT="$GITHUB_WORKSPACE/receipts/multi-action-specs.json"
+          (
+            cd axm-arc
+            npx vitest run tests/action/unity-multi-action-specs.test.ts --reporter=verbose
+          ) 2>&1 | tee receipts/multi-action-specs.log
+          rm -f axm-arc/tests/action/unity-multi-action-specs.test.ts
+          test "$(jq -r '.status' receipts/multi-action-specs.json)" = 'pass'
+          test "$(jq '.selected | length' receipts/multi-action-specs.json)" -ge 2
+          jq -r '.selected[].arcDigest' receipts/multi-action-specs.json | sort -u | wc -l | grep -qE '^[2-9][0-9]*$'
+          jq -r '.selected[].spec.specDigest' receipts/multi-action-specs.json | sort -u | wc -l | grep -qE '^[2-9][0-9]*$'
+          count="$(jq '.selected | length' receipts/multi-action-specs.json)"
+          for index in $(seq 0 $((count - 1))); do
+            jq ".selected[$index].spec" receipts/multi-action-specs.json > "receipts/specs/$index.action-spec.json"
+            jq ".selected[$index] | del(.spec)" receipts/multi-action-specs.json > "receipts/specs/$index.metadata.json"
+          done
+
+      - name: Project, execute, compare, and receipt every selected cartridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp axm-world/unity/Conformance/arc-vector.test.ts axm-arc/tests/action/unity-multi-vector.test.ts
+          cp axm-world/unity/Conformance/arc-receipt-adapter.test.ts axm-arc/tests/action/unity-multi-receipt.test.ts
+          count="$(jq '.selected | length' receipts/multi-action-specs.json)"
+          for index in $(seq 0 $((count - 1))); do
+            root="receipts/cartridges/$index"
+            mkdir -p "$root"
+            spec="$GITHUB_WORKSPACE/receipts/specs/$index.action-spec.json"
+            projection="$GITHUB_WORKSPACE/$root/unity-action-spec.json"
+            presentation="$GITHUB_WORKSPACE/$root/presentation.json"
+            scene_job="$GITHUB_WORKSPACE/$root/scene-job.json"
+            candidate="$GITHUB_WORKSPACE/$root/action-candidate.json"
+            vector="$GITHUB_WORKSPACE/$root/arc-vector.json"
+            parity="$GITHUB_WORKSPACE/$root/arc-csharp-parity.json"
+            accepted="$GITHUB_WORKSPACE/$root/accepted-action-receipt.json"
+            reconciliation="$GITHUB_WORKSPACE/$root/result-reconciliation.json"
+
+            node axm-world/unity/Conformance/project-action-spec.mjs "$spec" "$projection" 2>&1 | tee "$root/projection.log"
+            node axm-world/unity/Conformance/project-presentation-manifest.mjs "$spec" axm-world/unity/Fixtures/frog-pit.presentation.json "$presentation" 2>&1 | tee "$root/presentation.log"
+            node axm-world/unity/Conformance/build-action-scene-job.mjs "$projection" "$presentation" "$scene_job" 2>&1 | tee "$root/scene-job.log"
+            dotnet run --configuration Release --project axm-world/unity/Conformance/Axm.Rodoh.Action.Candidate.csproj -- "$projection" "$candidate" "$((index + 1))" "$((30000 + index))" "multi-player-$index" 2>&1 | tee "$root/candidate.log"
+
+            export AXM_UNITY_NATIVE_SPEC="$spec"
+            export AXM_UNITY_PROJECTION="$projection"
+            export AXM_UNITY_VECTOR_OUT="$vector"
+            (
+              cd axm-arc
+              npx vitest run tests/action/unity-multi-vector.test.ts --reporter=verbose
+            ) 2>&1 | tee "$root/arc-vector.log"
+            dotnet run --configuration Release --project axm-world/unity/Conformance/Axm.Rodoh.Action.ArcParity.csproj -- "$vector" "$parity" 2>&1 | tee "$root/parity.log"
+            grep -q '"parity": true' "$parity"
+
+            export AXM_ACTION_NATIVE_SPEC="$spec"
+            export AXM_ACTION_CANDIDATE="$candidate"
+            export AXM_ACTION_RECEIPT_OUT="$accepted"
+            export AXM_ACTION_RECONCILIATION_OUT="$reconciliation"
+            (
+              cd axm-arc
+              npx vitest run tests/action/unity-multi-receipt.test.ts --reporter=verbose
+            ) 2>&1 | tee "$root/arc-receipt.log"
+            test "$(jq -r '.format' "$accepted")" = 'axm-action-receipt/1'
+            test "$(jq -r '.status' "$reconciliation")" = 'accepted'
+            test "$(jq -r '.campaignAuthority' "$reconciliation")" = 'Arc only'
+            test "$(jq -r '.source.actionSpecDigest' "$scene_job")" = "$(jq -r '.specDigest' "$spec")"
+          done
+          rm -f axm-arc/tests/action/unity-multi-vector.test.ts axm-arc/tests/action/unity-multi-receipt.test.ts
+
+      - name: Prove no selected challenge id is embedded in the shared runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r challenge; do
+            test -n "$challenge"
+            if grep -R -F -- "$challenge" \
+              axm-world/unity/Packages/com.axm.rodoh-action/Runtime/Core \
+              axm-world/unity/Packages/com.axm.rodoh-action/Runtime/Unity \
+              axm-world/unity/Packages/com.axm.rodoh-action/Editor; then
+              echo "Shared Unity runtime contains selected challenge id: $challenge" >&2
+              exit 1
+            fi
+          done < <(jq -r '.selected[].challengeId' receipts/multi-action-specs.json)
+
+      - name: Summarize the material generalization proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          count="$(jq '.selected | length' receipts/multi-action-specs.json)"
+          jq -n \
+            --arg format 'rodoh-unity-action-multi-cartridge/1' \
+            --arg status pass \
+            --arg world '${{ github.event.pull_request.head.sha || github.sha }}' \
+            --arg arc "$ARC_ACTION_AUTHORITY_SHA" \
+            --argjson cartridges "$count" \
+            --argjson distinctArcs "$(jq '[.selected[].arcDigest] | unique | length' receipts/multi-action-specs.json)" \
+            --argjson distinctSpecs "$(jq '[.selected[].spec.specDigest] | unique | length' receipts/multi-action-specs.json)" \
+            --argjson distinctChallenges "$(jq '[.selected[].challengeId] | unique | length' receipts/multi-action-specs.json)" \
+            '{format:$format,status:$status,worldCandidate:$world,arcActionAuthorityCommit:$arc,cartridges:$cartridges,distinctArcs:$distinctArcs,distinctSpecs:$distinctSpecs,distinctChallenges:$distinctChallenges,challengeSpecificRuntimeBranches:0}' \
+            > receipts/multi-cartridge-summary.json
+          test -z "$(git -C axm-arc status --porcelain)"
+          git -C axm-world diff --check
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rodoh-unity-action-multi-cartridge
+          path: receipts
+          if-no-files-found: warn
+          retention-days: 30
