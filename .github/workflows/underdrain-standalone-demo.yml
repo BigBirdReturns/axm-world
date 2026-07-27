@@ -1,0 +1,148 @@
+name: UNDERDRAIN standalone demo
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/underdrain-standalone-demo.yml'
+      - 'demos/underdrain-draft/**'
+      - 'scripts/demos/build-underdrain-draft.mjs'
+      - 'scripts/demos/verify-underdrain-draft.mjs'
+      - 'tests/world/underdrain-draft-standalone.test.ts'
+      - 'e2e/underdrain-draft.spec.ts'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+  SOURCE_DATE_EPOCH: '0'
+  ARC_UNDERDRAIN_SHA: fffdb5da5c09654670fe76e1ac92d43d80d19dc9
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - name: Check out exact World candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Check out exact Arc authority candidate
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_UNDERDRAIN_SHA }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            axm-world/package-lock.json
+            axm-arc/package-lock.json
+
+      - name: Install exact dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix axm-world ci --no-audit --no-fund
+          npm --prefix axm-arc ci --no-audit --no-fund
+
+      - name: Require exact Arc-to-World authoring custody
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmp axm-arc/examples/underdrain-draft/authoring.json axm-world/demos/underdrain-draft/authoring.json
+          (
+            cd axm-arc/examples/underdrain-draft
+            sha256sum -c SHA256SUMS
+          )
+          npm --prefix axm-arc run typecheck
+          npm --prefix axm-arc test -- tests/demos/underdrain-draft.test.ts
+
+      - name: Build and verify the exact standalone file
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/underdrain-demo"
+          node axm-world/scripts/demos/build-underdrain-draft.mjs \
+            --root axm-world/demos/underdrain-draft \
+            --output axm-world/local/underdrain-draft/index.html \
+            | tee "$RUNNER_TEMP/underdrain-demo/build.json"
+          node axm-world/scripts/demos/verify-underdrain-draft.mjs \
+            --root axm-world/demos/underdrain-draft \
+            --html axm-world/local/underdrain-draft/index.html \
+            --output "$RUNNER_TEMP/underdrain-demo/static-verification.json" \
+            | tee "$RUNNER_TEMP/underdrain-demo/static-verification.log"
+
+      - name: Qualify World contracts and product
+        working-directory: axm-world
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm test -- tests/world/underdrain-draft-standalone.test.ts
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+
+      - name: Install Chromium
+        working-directory: axm-world
+        run: npx playwright install --with-deps chromium
+
+      - name: Cold-walk desktop and mobile
+        working-directory: axm-world
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx playwright test e2e/underdrain-draft.spec.ts \
+            --project=desktop \
+            --project=mobile
+
+      - name: Assemble retained demo receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/underdrain-demo"
+          cp axm-world/local/underdrain-draft/index.html "$root/"
+          cp axm-world/demos/underdrain-draft/authoring.json "$root/"
+          cp axm-world/demos/underdrain-draft/playtest.json "$root/"
+          cp axm-world/demos/underdrain-draft/PLAYTEST.md "$root/"
+          cp axm-world/demos/underdrain-draft/README.md "$root/"
+          if [[ -d axm-world/test-results ]]; then
+            cp -a axm-world/test-results "$root/playwright-test-results"
+          fi
+          printf '%s\n' '${{ github.event.pull_request.head.sha || github.sha }}' > "$root/world-candidate.txt"
+          printf '%s\n' "$ARC_UNDERDRAIN_SHA" > "$root/arc-candidate.txt"
+          (
+            cd "$root"
+            find . -type f ! -name SHA256SUMS -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS
+          )
+          rm -rf axm-world/local/underdrain-draft
+          git -C axm-world diff --check
+          test -z "$(git -C axm-world status --porcelain)"
+          git -C axm-arc diff --check
+          test -z "$(git -C axm-arc status --porcelain)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-standalone-demo
+          path: ${{ runner.temp }}/underdrain-demo
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
