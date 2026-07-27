@@ -100,52 +100,52 @@
       "type": "string",
       "pattern": "^[0-9a-f]{40}$"
     },
-    "repositoryCommon": {
+    "repositoryName": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+    },
+    "worldRepository": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["repository", "branch", "role"],
+      "required": ["repository", "branch", "receiverCommit", "role"],
       "properties": {
-        "repository": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" },
+        "repository": { "$ref": "#/$defs/repositoryName" },
         "branch": { "type": "string", "minLength": 1 },
+        "receiverCommit": { "$ref": "#/$defs/commit" },
         "role": { "type": "string", "minLength": 1 }
       }
     },
-    "worldRepository": {
-      "allOf": [
-        { "$ref": "#/$defs/repositoryCommon" },
-        {
-          "type": "object",
-          "required": ["receiverCommit"],
-          "properties": { "receiverCommit": { "$ref": "#/$defs/commit" } }
-        }
-      ]
-    },
     "arcRepository": {
-      "allOf": [
-        { "$ref": "#/$defs/repositoryCommon" },
-        {
-          "type": "object",
-          "required": ["actionAuthorityCommit", "narrativeBaselineCommit", "continuousAuthorityCommit"],
-          "properties": {
-            "actionAuthorityCommit": { "$ref": "#/$defs/commit" },
-            "narrativeBaselineCommit": { "$ref": "#/$defs/commit" },
-            "continuousAuthorityCommit": { "$ref": "#/$defs/commit" }
-          }
-        }
-      ]
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "branch",
+        "actionAuthorityCommit",
+        "narrativeBaselineCommit",
+        "continuousAuthorityCommit",
+        "role"
+      ],
+      "properties": {
+        "repository": { "$ref": "#/$defs/repositoryName" },
+        "branch": { "type": "string", "minLength": 1 },
+        "actionAuthorityCommit": { "$ref": "#/$defs/commit" },
+        "narrativeBaselineCommit": { "$ref": "#/$defs/commit" },
+        "continuousAuthorityCommit": { "$ref": "#/$defs/commit" },
+        "role": { "type": "string", "minLength": 1 }
+      }
     },
     "embodiedRepository": {
-      "allOf": [
-        { "$ref": "#/$defs/repositoryCommon" },
-        {
-          "type": "object",
-          "required": ["functionalCommit", "closureCommit"],
-          "properties": {
-            "functionalCommit": { "$ref": "#/$defs/commit" },
-            "closureCommit": { "$ref": "#/$defs/commit" }
-          }
-        }
-      ]
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "branch", "functionalCommit", "closureCommit", "role"],
+      "properties": {
+        "repository": { "$ref": "#/$defs/repositoryName" },
+        "branch": { "type": "string", "minLength": 1 },
+        "functionalCommit": { "$ref": "#/$defs/commit" },
+        "closureCommit": { "$ref": "#/$defs/commit" },
+        "role": { "type": "string", "minLength": 1 }
+      }
     }
   }
 }
