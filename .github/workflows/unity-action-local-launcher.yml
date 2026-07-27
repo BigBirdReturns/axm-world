@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'scripts/run-first-charter-action.ps1'
+      - 'scripts/complete-embodied-action-session.ps1'
       - 'scripts/run-unity-action-estate.ps1'
       - 'scripts/run-unity-action-estate-v2.ps1'
       - 'scripts/run-unity-action-estate-v3.ps1'
@@ -17,6 +18,7 @@ on:
       - feature/action-runtime-v1
     paths:
       - 'scripts/run-first-charter-action.ps1'
+      - 'scripts/complete-embodied-action-session.ps1'
       - 'scripts/run-unity-action-estate.ps1'
       - 'scripts/run-unity-action-estate-v2.ps1'
       - 'scripts/run-unity-action-estate-v3.ps1'
@@ -67,6 +69,7 @@ jobs:
         run: |
           $paths = @(
             'scripts/run-first-charter-action.ps1',
+            'scripts/complete-embodied-action-session.ps1',
             'scripts/run-unity-action-estate.ps1',
             'scripts/run-unity-action-estate-v2.ps1',
             'scripts/run-unity-action-estate-v3.ps1',
