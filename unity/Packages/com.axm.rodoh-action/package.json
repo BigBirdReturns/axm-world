@@ -1,0 +1,20 @@
+{
+  "name": "com.axm.rodoh-action",
+  "version": "0.1.0",
+  "displayName": "RODOH Action Runtime Bridge",
+  "description": "Unity renderer, embodied-input adapter, and deterministic conformance mirror for Arc-owned axm-action-spec/1 encounters.",
+  "unity": "6000.0",
+  "author": {
+    "name": "AXM",
+    "url": "https://github.com/BigBirdReturns/axm-world"
+  },
+  "license": "MIT",
+  "keywords": [
+    "AXM",
+    "RODOH",
+    "action",
+    "deterministic",
+    "AR",
+    "XR"
+  ]
+}
