@@ -8,6 +8,8 @@ param(
     [string]$JobId = "frog-pit-estate-001",
     [string]$UnityVersion = "6000.0.66f2",
     [string]$UnityEditor,
+    [switch]$GovernedProduction,
+    [string]$GovernedAssetRoot = "Assets/AXM/Generated/ActionProduction/GovernedV1",
     [switch]$SkipUnityTests,
     [switch]$ForceCloseUnity
 )
@@ -73,6 +75,30 @@ $compileLog = Join-Path $logRoot "unity-action-estate-compile.log"
 $testLog = Join-Path $logRoot "unity-action-estate-tests.log"
 $testResults = Join-Path $outputRoot "action-estate-editmode-tests.xml"
 $validationPath = Join-Path $outputRoot "validation.json"
+$governedProductionReceipt = $null
+
+if ($GovernedProduction) {
+    $governedManifestPath = Join-Path $inputRoot "action.governed-presentation.json"
+    $governedGenerator = Join-Path $worldRoot "scripts\generate-unity-action-production.ps1"
+    if (-not (Test-Path $governedGenerator)) { throw "Governed action production generator is absent: $governedGenerator" }
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $governedGenerator `
+        -EmbodiedArLabRoot $projectRoot `
+        -SourceManifest $presentationPath `
+        -OutputManifest $governedManifestPath `
+        -OutputRoot $outputRoot `
+        -AssetRoot $GovernedAssetRoot `
+        -UnityVersion $UnityVersion `
+        -UnityEditor $unityPath `
+        -ForceCloseUnity:$ForceCloseUnity
+    if ($LASTEXITCODE -ne 0) { throw "Governed action production generation failed with exit $LASTEXITCODE." }
+    $governedProductionReceipt = Join-Path $outputRoot "governed-production-assets.json"
+    if (-not (Test-Path $governedProductionReceipt)) { throw "Governed production receipt is absent: $governedProductionReceipt" }
+    $governed = Get-Content $governedProductionReceipt -Raw | ConvertFrom-Json
+    if ($governed.status -ne "pass" -or $governed.activePhysicsAuthority -ne $false -or $governed.neutralFallbackBodies -ne $false) {
+        throw "Governed production did not establish an authored presentation boundary."
+    }
+    $presentationPath = $governedManifestPath
+}
 
 Invoke-Checked $node @(
     (Join-Path $worldRoot "unity\Conformance\project-action-spec.mjs"),
@@ -108,6 +134,9 @@ if ($validation.status -ne "pass") { throw "Unity action estate validation repor
 if ($validation.deterministicReplay -ne $true) { throw "Unity estate did not prove deterministic replay." }
 if ($validation.activePhysicsAuthority -ne $false) { throw "Unity estate retained active physics combat authority." }
 if ($validation.maximumActiveEnemies -lt 1 -or $validation.maximumActiveEnemies -gt 12) { throw "Unity estate enemy ceiling is outside action v1." }
+if ($GovernedProduction -and ($validation.authoredPlayerPrefabs -ne 1 -or $validation.authoredEnemyPrefabs -ne 5 -or $validation.neutralFallbackBodies -ne 0 -or $validation.arenaAuthored -ne $true)) {
+    throw "Unity scene did not materialize the complete governed production asset set."
+}
 
 $testsStatus = "skipped"
 if (-not $SkipUnityTests) {
@@ -152,6 +181,9 @@ $receipt = [ordered]@{
     authoredPlayerPrefabs = $validation.authoredPlayerPrefabs
     authoredEnemyPrefabs = $validation.authoredEnemyPrefabs
     neutralFallbackBodies = $validation.neutralFallbackBodies
+    arenaAuthored = $validation.arenaAuthored
+    governedProduction = [bool]$GovernedProduction
+    governedProductionReceipt = $governedProductionReceipt
     editModeTests = $testsStatus
     validation = $validationPath
     testResults = if ($SkipUnityTests) { $null } else { $testResults }
