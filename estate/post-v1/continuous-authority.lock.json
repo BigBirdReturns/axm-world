@@ -56,6 +56,7 @@
       "rodoh-unity-action-estate/3",
       "rodoh-action-player-build/1",
       "rodoh-action-quest-build/1",
+      "rodoh-action-execution-candidate/1",
       "axm-embodied-action-session/1",
       "axm-action-receipt/1",
       "axm-action-narrative-ingestion/1"
