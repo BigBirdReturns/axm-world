@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axm.tools/schemas/rodoh-continuous-authority-lock-v1.json",
+  "title": "RODOH continuous authority estate lock v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "format",
+    "status",
+    "releaseEffect",
+    "repositories",
+    "genesis",
+    "unity",
+    "formats",
+    "acceptance"
+  ],
+  "properties": {
+    "$schema": { "type": "string", "const": "./continuous-authority.schema.json" },
+    "format": { "type": "string", "const": "rodoh-continuous-authority-lock/1" },
+    "status": { "type": "string", "const": "post-v1-integration" },
+    "releaseEffect": { "type": "string", "const": "none" },
+    "repositories": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["world", "arc", "embodied"],
+      "properties": {
+        "world": { "$ref": "#/$defs/worldRepository" },
+        "arc": { "$ref": "#/$defs/arcRepository" },
+        "embodied": { "$ref": "#/$defs/embodiedRepository" }
+      }
+    },
+    "genesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kernelCommit"],
+      "properties": {
+        "kernelCommit": { "$ref": "#/$defs/commit" }
+      }
+    },
+    "unity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "projectPathHint", "physicalReceiptRequired"],
+      "properties": {
+        "version": { "type": "string", "const": "6000.0.66f2" },
+        "projectPathHint": { "type": "string", "minLength": 1 },
+        "physicalReceiptRequired": { "type": "boolean", "const": true }
+      }
+    },
+    "formats": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actionProfile",
+        "actionSpec",
+        "unitySpec",
+        "presentationManifest",
+        "sceneJob",
+        "executionCandidate",
+        "embodiedSession",
+        "actionReceipt",
+        "actionNarrativeBinding",
+        "actionNarrativeIngestion",
+        "narrativeLedger"
+      ],
+      "properties": {
+        "actionProfile": { "const": "axm-action-profile/1" },
+        "actionSpec": { "const": "axm-action-spec/1" },
+        "unitySpec": { "const": "rodoh-unity-action-spec/1" },
+        "presentationManifest": { "const": "rodoh-action-presentation-manifest/1" },
+        "sceneJob": { "const": "rodoh-action-scene-job/1" },
+        "executionCandidate": { "const": "rodoh-action-execution-candidate/1" },
+        "embodiedSession": { "const": "axm-embodied-action-session/1" },
+        "actionReceipt": { "const": "axm-action-receipt/1" },
+        "actionNarrativeBinding": { "const": "axm-action-narrative-binding/1" },
+        "actionNarrativeIngestion": { "const": "axm-action-narrative-ingestion/1" },
+        "narrativeLedger": { "const": "axm-narrative-ledger/1" }
+      }
+    },
+    "acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["physicalIssue", "operatorKitPr", "bookIVActivated", "requiredReceipts"],
+      "properties": {
+        "physicalIssue": { "type": "string", "const": "BigBirdReturns/axm-world#204" },
+        "operatorKitPr": { "type": "string", "const": "BigBirdReturns/axm-world#205" },
+        "bookIVActivated": { "type": "boolean", "const": false },
+        "requiredReceipts": {
+          "type": "array",
+          "uniqueItems": true,
+          "minItems": 6,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "repositoryCommon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "branch", "role"],
+      "properties": {
+        "repository": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" },
+        "branch": { "type": "string", "minLength": 1 },
+        "role": { "type": "string", "minLength": 1 }
+      }
+    },
+    "worldRepository": {
+      "allOf": [
+        { "$ref": "#/$defs/repositoryCommon" },
+        {
+          "type": "object",
+          "required": ["receiverCommit"],
+          "properties": { "receiverCommit": { "$ref": "#/$defs/commit" } }
+        }
+      ]
+    },
+    "arcRepository": {
+      "allOf": [
+        { "$ref": "#/$defs/repositoryCommon" },
+        {
+          "type": "object",
+          "required": ["actionAuthorityCommit", "narrativeBaselineCommit", "continuousAuthorityCommit"],
+          "properties": {
+            "actionAuthorityCommit": { "$ref": "#/$defs/commit" },
+            "narrativeBaselineCommit": { "$ref": "#/$defs/commit" },
+            "continuousAuthorityCommit": { "$ref": "#/$defs/commit" }
+          }
+        }
+      ]
+    },
+    "embodiedRepository": {
+      "allOf": [
+        { "$ref": "#/$defs/repositoryCommon" },
+        {
+          "type": "object",
+          "required": ["functionalCommit", "closureCommit"],
+          "properties": {
+            "functionalCommit": { "$ref": "#/$defs/commit" },
+            "closureCommit": { "$ref": "#/$defs/commit" }
+          }
+        }
+      ]
+    }
+  }
+}
