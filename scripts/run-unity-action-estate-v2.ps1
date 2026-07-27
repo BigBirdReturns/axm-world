@@ -13,6 +13,8 @@ param(
     [string]$TrackedHeadPath,
     [string]$UnityVersion = "6000.0.66f2",
     [string]$UnityEditor,
+    [switch]$GovernedProduction,
+    [string]$GovernedAssetRoot = "Assets/AXM/Generated/ActionProduction/GovernedV1",
     [switch]$DisableAdaptiveQuality,
     [switch]$SkipUnityTests,
     [switch]$ForceCloseUnity
@@ -61,6 +63,8 @@ $baseParameters = @{
     JobId = $JobId
     UnityVersion = $UnityVersion
     UnityEditor = $unityPath
+    GovernedProduction = $GovernedProduction
+    GovernedAssetRoot = $GovernedAssetRoot
     SkipUnityTests = $true
     ForceCloseUnity = $ForceCloseUnity
 }
@@ -71,11 +75,16 @@ $inputRoot = Join-Path $jobRoot "input"
 $outputRoot = Join-Path $jobRoot "output"
 $logRoot = Join-Path $jobRoot "logs"
 $baseValidationPath = Join-Path $outputRoot "validation.json"
+$baseRunPath = Join-Path $outputRoot "local-run.json"
 $sceneJobPath = Join-Path $inputRoot "action.scene-job.json"
 if (-not (Test-Path $baseValidationPath)) { throw "Base action validation is absent: $baseValidationPath" }
+if (-not (Test-Path $baseRunPath)) { throw "Base action local-run receipt is absent: $baseRunPath" }
 if (-not (Test-Path $sceneJobPath)) { throw "Action scene job is absent: $sceneJobPath" }
 $baseValidation = Get-Content $baseValidationPath -Raw | ConvertFrom-Json
-if ($baseValidation.status -ne "pass") { throw "Base action estate did not pass: $($baseValidation.error)" }
+$baseRun = Get-Content $baseRunPath -Raw | ConvertFrom-Json
+if ($baseValidation.status -ne "pass" -or $baseRun.status -ne "pass") { throw "Base action estate did not pass: $($baseValidation.error)" }
+$presentationPath = [string]$baseRun.presentationManifest
+if ([string]::IsNullOrWhiteSpace($presentationPath) -or -not (Test-Path $presentationPath)) { throw "Base action estate did not identify its effective presentation manifest." }
 $scenePath = [string]$baseValidation.scenePath
 if ([string]::IsNullOrWhiteSpace($scenePath)) { throw "Base action validation did not identify the generated scene." }
 
@@ -155,6 +164,8 @@ $receipt = [ordered]@{
     questSpool = $postprocessReceipt.questSpool
     safetySpool = $postprocessReceipt.safetySpool
     performanceReceipt = $postprocessReceipt.performanceReceipt
+    governedProduction = [bool]$GovernedProduction
+    governedProductionReceipt = $baseRun.governedProductionReceipt
     editModeTests = $testsStatus
     baseValidation = $baseValidationPath
     postprocessValidation = $postprocessReceiptPath
