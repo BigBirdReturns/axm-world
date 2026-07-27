@@ -1,15 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import * as simulation from "../../src/engine/action/simulation.js";
+import { initialActionState, stepActionSimulation } from "../../src/engine/action/simulation.js";
 
 const nativeSpecPath = process.env.AXM_UNITY_NATIVE_SPEC;
 const projectionPath = process.env.AXM_UNITY_PROJECTION;
 const outputPath = process.env.AXM_UNITY_VECTOR_MATRIX_OUT;
-const enemyKits = ["skirmisher", "duelist", "swarm", "hexer", "breaker"] as const;
 
-type InputFrame = { moveX: number; moveY: number; aimX: number; aimY: number; buttons: number };
-
+type Axis = -1 | 0 | 1;
+type InputFrame = { moveX: Axis; moveY: Axis; aimX: Axis; aimY: Axis; buttons: number };
 type Policy = (spec: any, state: any) => InputFrame;
 
 function required(value: string | undefined, name: string): string {
@@ -17,12 +16,8 @@ function required(value: string | undefined, name: string): string {
   return resolve(value);
 }
 
-function functionExport(names: string[]): (...args: any[]) => any {
-  for (const name of names) {
-    const candidate = (simulation as Record<string, unknown>)[name];
-    if (typeof candidate === "function") return candidate as (...args: any[]) => any;
-  }
-  throw new Error(`Action simulation export not found. Tried ${names.join(", ")}. Available: ${Object.keys(simulation).sort().join(", ")}`);
+function axis(value: number): Axis {
+  return value > 0 ? 1 : value < 0 ? -1 : 0;
 }
 
 function mode(value: unknown): string {
@@ -92,7 +87,14 @@ function compress(frames: InputFrame[]) {
   const runs: Array<{ ticks: number; input: InputFrame }> = [];
   for (const input of frames) {
     const previous = runs[runs.length - 1];
-    if (previous && previous.input.moveX === input.moveX && previous.input.moveY === input.moveY && previous.input.aimX === input.aimX && previous.input.aimY === input.aimY && previous.input.buttons === input.buttons) previous.ticks += 1;
+    if (
+      previous
+      && previous.input.moveX === input.moveX
+      && previous.input.moveY === input.moveY
+      && previous.input.aimX === input.aimX
+      && previous.input.aimY === input.aimY
+      && previous.input.buttons === input.buttons
+    ) previous.ticks += 1;
     else runs.push({ ticks: 1, input });
   }
   return runs;
@@ -118,14 +120,17 @@ function attackPolicy(attackButton: number, defenseButton: number): Policy {
   return (spec, state) => {
     const { target, distance } = nearest(state);
     if (!target) return { moveX: 0, moveY: 0, aimX: 0, aimY: 0, buttons: 0 };
-    const dx = Math.sign(target.x - state.player.x);
-    const dy = Math.sign(target.y - state.player.y);
+    const dx = axis(target.x - state.player.x);
+    const dy = axis(target.y - state.player.y);
     const attack = spec.player.attacks.find((value: any) => value.id === (attackButton === 2 ? "heavy" : "light"));
     const inRange = distance <= attack.range * attack.range;
     let buttons = 0;
     if (mode(state.player.mode) === "idle") {
       const law = spec.enemyLaws[target.kit];
-      if (mode(target.mode) === "telegraph" && target.modeTick >= Math.max(0, law.telegraphTicks - (defenseButton === 8 ? spec.player.parryActiveTicks : spec.player.dodgeInvulnerableTicks))) buttons = defenseButton;
+      if (
+        mode(target.mode) === "telegraph"
+        && target.modeTick >= Math.max(0, law.telegraphTicks - (defenseButton === 8 ? spec.player.parryActiveTicks : spec.player.dodgeInvulnerableTicks))
+      ) buttons = defenseButton;
       else if (inRange && state.tick % (attackButton === 2 ? 8 : 5) === 0) buttons = attackButton;
     }
     return {
@@ -179,8 +184,6 @@ describe("Unity cross-language action vector matrix", () => {
     const native = JSON.parse(readFileSync(required(nativeSpecPath, "AXM_UNITY_NATIVE_SPEC"), "utf8"));
     const baseProjection = JSON.parse(readFileSync(required(projectionPath, "AXM_UNITY_PROJECTION"), "utf8"));
     const destination = required(outputPath, "AXM_UNITY_VECTOR_MATRIX_OUT");
-    const initialize = functionExport(["initialActionState", "createInitialActionState", "initializeActionState"]);
-    const advance = functionExport(["stepAction", "stepActionState", "advanceActionState", "runActionTick"]);
     const cases: Array<{ id: string; kit: string; count: number; maxTicks: number; completion: "clear" | "survive"; policy: Policy; seed: number }> = [
       { id: "idle-failure", kit: "skirmisher", count: 1, maxTicks: 120, completion: "clear", policy: idlePolicy, seed: 11 },
       { id: "light-parry-skirmisher", kit: "skirmisher", count: 3, maxTicks: 900, completion: "clear", policy: attackPolicy(1, 8), seed: 12 },
@@ -188,17 +191,16 @@ describe("Unity cross-language action vector matrix", () => {
       { id: "light-dodge-swarm", kit: "swarm", count: 6, maxTicks: 1200, completion: "clear", policy: attackPolicy(1, 4), seed: 14 },
       { id: "heavy-parry-hexer", kit: "hexer", count: 2, maxTicks: 1200, completion: "clear", policy: attackPolicy(2, 8), seed: 15 },
       { id: "heavy-dodge-breaker", kit: "breaker", count: 1, maxTicks: 1200, completion: "clear", policy: attackPolicy(2, 4), seed: 16 },
-      { id: "survive-timeout", kit: "skirmisher", count: 1, maxTicks: 60, completion: "survive", policy: (spec, state) => ({ moveX: state.tick % 40 < 20 ? 1 : -1, moveY: 1, aimX: 1, aimY: 0, buttons: state.tick % 30 === 10 ? 4 : 0 }), seed: 17 },
+      { id: "survive-timeout", kit: "skirmisher", count: 1, maxTicks: 60, completion: "survive", policy: (_spec, state) => ({ moveX: state.tick % 40 < 20 ? 1 : -1, moveY: 1, aimX: 1, aimY: 0, buttons: state.tick % 30 === 10 ? 4 : 0 }), seed: 17 },
     ];
     const vectors = cases.map((entry) => {
       const spec = vectorSpec(native, entry.kit, entry.count, entry.maxTicks, entry.completion);
-      let state = initialize(spec, entry.seed);
+      let state = initialActionState(spec, entry.seed);
       const frames: InputFrame[] = [];
       while (!state.result && state.tick < spec.maxTicks) {
         const input = entry.policy(spec, state);
         frames.push(input);
-        const next = advance(spec, state, input);
-        if (next !== undefined) state = next;
+        state = stepActionSimulation(spec, state, input);
       }
       expect(state.result, `${entry.id} did not reach a terminal state`).toBeTruthy();
       return {
@@ -218,6 +220,6 @@ describe("Unity cross-language action vector matrix", () => {
     mkdirSync(dirname(destination), { recursive: true });
     writeFileSync(destination, JSON.stringify(result, null, 2) + "\n");
     expect(vectors).toHaveLength(cases.length);
-    expect(new Set(vectors.map((vector) => vector.expected.result.outcome)).size).toBeGreaterThan(1);
+    expect(new Set(vectors.map((vector) => vector.expected.result?.outcome)).size).toBeGreaterThan(1);
   });
 });
