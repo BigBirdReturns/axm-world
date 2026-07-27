@@ -134,6 +134,51 @@ function underdrainReceiverPrototypeReceipt(): OneAmPlayerReceipt {
   };
 }
 
+function underdrainScriptedEpisodeReceipt(): OneAmPlayerReceipt {
+  const receipt = passingReceipt();
+  return {
+    ...receipt,
+    candidate: {
+      ...receipt.candidate,
+      authoredIdentity: "cart1_249b41f73ac97a7d41433db44801f394116ebb989f8db7433eb1064e29661bb0",
+      experienceId: "underdrain-authored-episode-v3",
+    },
+    observer: {
+      independent: false,
+      authoredCandidate: true,
+      inspectedSource: true,
+      receivedWalkthrough: false,
+      assistanceEvents: 0,
+    },
+    timing: {
+      firstAuthoredDecisionMs: 20_000,
+      firstAcceptedConsequenceMs: 150_000,
+    },
+    structural: {
+      ...receipt.structural,
+      objectiveLabelsMatchPlayerVerbs: false,
+      resultAcceptedByOwningAuthority: false,
+      durableRecord: false,
+      exactResume: false,
+      nextPlayableActionImplemented: false,
+    },
+    comprehension: {
+      playerRole: { ...answer("bellwether-plumber"), observedId: null, matched: false },
+      immediateConflict: { ...answer("restore-water-without-starting-war"), observedId: null, matched: false },
+      authoredChoice: { ...answer("protect-trade-evidence-or-water"), observedId: null, matched: false },
+      acceptedConsequence: { ...answer("accepted-pump-seven-world-change"), observedId: null, matched: false },
+      nextPlayableAction: { ...answer("playable-root-gate-parley"), observedId: null, matched: false },
+    },
+    behavior: {
+      wrongTurns: 0,
+      knockdowns: 0,
+      retries: 0,
+      abandonedBeforeConsequence: false,
+      voluntarilyContinuedAfterConsequence: null,
+    },
+  };
+}
+
 describe("one-a.m. player authored-experience gate", () => {
   it("accepts a zero-explanation run that closes the full authored loop despite a wrong turn", () => {
     const evaluation = evaluateOneAmPlayerReceipt(passingReceipt());
@@ -166,6 +211,27 @@ describe("one-a.m. player authored-experience gate", () => {
       "Next obligation is a teaser rather than a playable action.",
       "Player role did not match the authored identity.",
       "Immediate conflict did not match the authored identity.",
+      "Authored choice was not independently observed.",
+      "Accepted consequence was not independently observed.",
+      "Next playable action was not independently observed.",
+      "Player did not voluntarily continue after the first consequence.",
+    ]));
+  });
+
+  it("refuses an authored-episode self-audit that injects state and supplies its own expected answers", () => {
+    const evaluation = evaluateOneAmPlayerReceipt(underdrainScriptedEpisodeReceipt());
+    expect(evaluation.status).toBe("fail");
+    expect(evaluation.blockers).toEqual(expect.arrayContaining([
+      "Observer was not independent.",
+      "Candidate author cannot supply the blind-player receipt.",
+      "Observer inspected source or authoring data before play.",
+      "Authored objective labels do not match the verbs the player performs.",
+      "Result is provisional and was not accepted by the owning authority.",
+      "Consequence has no durable authored record.",
+      "Incomplete or completed experience cannot resume exactly.",
+      "Next obligation is a teaser rather than a playable action.",
+      "Player role was not independently observed.",
+      "Immediate conflict was not independently observed.",
       "Authored choice was not independently observed.",
       "Accepted consequence was not independently observed.",
       "Next playable action was not independently observed.",
