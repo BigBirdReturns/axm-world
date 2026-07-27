@@ -40,6 +40,15 @@ function Resolve-FullPath([string]$Value, [string]$Base) {
     return [System.IO.Path]::GetFullPath((Join-Path $Base $Value))
 }
 
+function Resolve-RepositoryRoot([string]$Value, [string]$Base, [string]$Marker) {
+    $root = Resolve-FullPath $Value $Base
+    if ($null -eq $root) { return $null }
+    if (Test-Path (Join-Path $root $Marker)) { return $root }
+    $main = Join-Path $root "main"
+    if (Test-Path (Join-Path $main $Marker)) { return [System.IO.Path]::GetFullPath($main) }
+    return $root
+}
+
 function Require-Path([string]$Value, [string]$Label) {
     if ([string]::IsNullOrWhiteSpace($Value) -or -not (Test-Path $Value)) { throw "$Label is absent: $Value" }
 }
@@ -55,7 +64,7 @@ function Get-AdbPrefix([string]$Serial) {
 
 function Invoke-AdbText([string]$Command, [string[]]$Prefix, [string[]]$Arguments, [string]$Label) {
     $value = & $Command @($Prefix + $Arguments) 2>&1
-    if ($LASTEXITCODE -ne 0) { throw "$Label failed with exit $LASTEXITCODE: $($value -join ' ')" }
+    if ($LASTEXITCODE -ne 0) { throw "$Label failed with exit ${LASTEXITCODE}: $($value -join ' ')" }
     return ([string]($value -join "`n")).Trim()
 }
 
@@ -97,13 +106,16 @@ function Read-Plan([string]$Path) {
 $worldRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $workingRoot = (Get-Location).Path
 if (-not [string]::IsNullOrWhiteSpace($EmbodiedArLabRoot)) { $EmbodiedArLabRoot = Resolve-FullPath $EmbodiedArLabRoot $workingRoot }
-if (-not [string]::IsNullOrWhiteSpace($AxmEmbodiedRoot)) { $AxmEmbodiedRoot = Resolve-FullPath $AxmEmbodiedRoot $workingRoot }
-if (-not [string]::IsNullOrWhiteSpace($ArcRepositoryRoot)) { $ArcRepositoryRoot = Resolve-FullPath $ArcRepositoryRoot $workingRoot }
+$AxmEmbodiedRoot = Resolve-RepositoryRoot $AxmEmbodiedRoot $workingRoot "src\axm_embodied\action_spool.py"
+$ArcRepositoryRoot = Resolve-RepositoryRoot $ArcRepositoryRoot $workingRoot ".git"
 
 if ($Phase -eq "Prepare") {
     Require-Path $EmbodiedArLabRoot "Embodied-AR-Lab root"
+    Require-Path (Join-Path $EmbodiedArLabRoot "Assets") "Embodied-AR-Lab Assets"
     Require-Path $AxmEmbodiedRoot "axm-embodied root"
+    Require-Path (Join-Path $AxmEmbodiedRoot "src\axm_embodied\action_spool.py") "axm-embodied action spool"
     Require-Path $ArcRepositoryRoot "Arc repository root"
+    Require-Path (Join-Path $ArcRepositoryRoot ".git") "Arc Git identity"
     $adbCommand = Resolve-AdbCommand $Adb
     $adbPrefix = Get-AdbPrefix $QuestSerial
     $state = Invoke-AdbText $adbCommand $adbPrefix @("get-state") "Quest ADB connectivity check"
@@ -142,16 +154,21 @@ if ($Phase -eq "Prepare") {
     Require-Path $runReceiptPath "First Charter local-run receipt"
     $run = Get-Content $runReceiptPath -Raw | ConvertFrom-Json
     if ($run.format -ne "rodoh-first-charter-action-local-run/1" -or $run.status -ne "pass") { throw "First Charter local run did not pass." }
-    if ([string]::IsNullOrWhiteSpace([string]$run.questBuildReceipt)) { throw "First Charter local run does not carry a Quest build receipt." }
-    if ([string]::IsNullOrWhiteSpace([string]$run.windowsBuildReceipt)) { throw "First Charter local run does not carry a Windows build receipt." }
-    Require-Path ([string]$run.questBuildReceipt) "Quest build receipt"
-    Require-Path ([string]$run.windowsBuildReceipt) "Windows build receipt"
+    foreach ($required in @("questBuildReceipt", "windowsBuildReceipt", "unityEstateReceipt", "governedProductionReceipt")) {
+        if ([string]::IsNullOrWhiteSpace([string]$run.$required)) { throw "First Charter local run lacks $required." }
+        Require-Path ([string]$run.$required) "First Charter $required"
+    }
     $quest = Get-Content ([string]$run.questBuildReceipt) -Raw | ConvertFrom-Json
     $windows = Get-Content ([string]$run.windowsBuildReceipt) -Raw | ConvertFrom-Json
+    $estate = Get-Content ([string]$run.unityEstateReceipt) -Raw | ConvertFrom-Json
+    $production = Get-Content ([string]$run.governedProductionReceipt) -Raw | ConvertFrom-Json
     if ($quest.format -ne "rodoh-unity-action-quest-build-run/1" -or $quest.status -ne "pass" -or $quest.installed -ne "pass") { throw "Quest build was not installed successfully." }
     if ($windows.format -ne "rodoh-unity-action-build-run/1" -or $windows.status -ne "pass" -or $windows.playerSmoke -ne "pass") { throw "Windows standalone build did not pass its internal action smoke." }
+    if ($estate.format -ne "rodoh-unity-action-estate-v3-local-run/1" -or $estate.status -ne "pass" -or $estate.editModeTests -ne "pass") { throw "Unity estate did not preserve a passing EditMode receipt." }
+    if ($production.format -ne "rodoh-action-governed-production-run/1" -or $production.status -ne "pass" -or $production.controllers -ne 2 -or $production.prefabsBound -ne 6) { throw "Governed production did not preserve its complete runtime-bound body and motion set." }
     if ([string]::IsNullOrWhiteSpace([string]$quest.applicationIdentifier) -or [string]::IsNullOrWhiteSpace([string]$quest.remoteSpoolRoot)) { throw "Quest build receipt lacks package or spool identity." }
     $remoteSpool = ([string]$quest.remoteSpoolRoot).TrimEnd('/') + "/" + $SessionId
+    if (Test-AdbPath $adbCommand $adbPrefix $remoteSpool) { throw "Quest already contains spool identity $remoteSpool. Choose a new SessionId rather than replacing immutable evidence." }
     $packagePath = Invoke-AdbText $adbCommand $adbPrefix @("shell", "pm", "path", [string]$quest.applicationIdentifier) "Verifying installed Quest package"
     if ($packagePath -notmatch '^package:') { throw "Quest package is not installed: $($quest.applicationIdentifier)" }
 
@@ -163,6 +180,7 @@ if ($Phase -eq "Prepare") {
 
     if ([string]::IsNullOrWhiteSpace($JournalPath)) { $JournalPath = Join-Path $AxmEmbodiedRoot "local\action-sessions\$SessionId" }
     $JournalPath = Resolve-FullPath $JournalPath $workingRoot
+    if (Test-Path $JournalPath) { throw "Embodied journal path already exists. Choose a new SessionId or JournalPath: $JournalPath" }
     if ([string]::IsNullOrWhiteSpace($PullRoot)) { $PullRoot = Join-Path $AxmEmbodiedRoot "local\quest-action-spools" }
     $PullRoot = Resolve-FullPath $PullRoot $workingRoot
     if ([string]::IsNullOrWhiteSpace($PlanPath)) { $PlanPath = Join-Path $jobRoot "physical\physical-session-plan.json" }
@@ -177,6 +195,7 @@ if ($Phase -eq "Prepare") {
         arcActionAuthorityCommit = $run.arcActionAuthorityCommit
         arcDigest = $run.arcDigest
         actionSpecDigest = $run.actionSpecDigest
+        sceneJobDigest = $estate.sceneJobDigest
         jobId = $JobId
         sessionId = $SessionId
         deviceId = $DeviceId
@@ -190,6 +209,8 @@ if ($Phase -eq "Prepare") {
         governedProductionReceipt = $run.governedProductionReceipt
         windowsBuildReceipt = $run.windowsBuildReceipt
         questBuildReceipt = $run.questBuildReceipt
+        windowsProductSha256 = $windows.productSha256
+        questApkSha256 = $quest.apkSha256
         axmEmbodiedRoot = $AxmEmbodiedRoot
         journalPath = $JournalPath
         pullRoot = $PullRoot
@@ -218,6 +239,8 @@ $effectiveSerial = if ([string]::IsNullOrWhiteSpace($QuestSerial)) { [string]$pl
 $adbPrefix = Get-AdbPrefix $effectiveSerial
 $state = Invoke-AdbText $adbCommand $adbPrefix @("get-state") "Quest ADB connectivity check"
 if ($state -ne "device") { throw "Quest ADB state is $state, expected device." }
+$packagePath = Invoke-AdbText $adbCommand $adbPrefix @("shell", "pm", "path", [string]$planValue.applicationIdentifier) "Verifying prepared Quest package"
+if ($packagePath -notmatch '^package:') { throw "Prepared Quest package is not installed: $($planValue.applicationIdentifier)" }
 $status = Get-RemoteSpoolStatus $adbCommand $adbPrefix ([string]$planValue.remoteSpool)
 $statusReceipt = [ordered]@{
     format = "rodoh-first-charter-physical-session-status/1"
@@ -228,6 +251,7 @@ $statusReceipt = [ordered]@{
     planSha256 = (Get-FileHash $PlanPath -Algorithm SHA256).Hash.ToLowerInvariant()
     questSerial = $effectiveSerial
     questModel = Invoke-AdbText $adbCommand $adbPrefix @("shell", "getprop", "ro.product.model") "Reading Quest model"
+    applicationIdentifier = $planValue.applicationIdentifier
     remoteSpool = $status.remoteSpool
     sessionStartPresent = $status.sessionStartPresent
     indexPresent = $status.indexPresent
@@ -269,9 +293,11 @@ if ($completion.actionSpecDigest -ne $planValue.actionSpecDigest -or $completion
 Require-Path ([string]$completion.acceptedReceipt) "Accepted Arc action receipt"
 Require-Path ([string]$completion.genesisShard) "Genesis-facing embodied shard"
 $effectiveSpool = [string]$completion.effectiveSpool
-Require-Path (Join-Path $effectiveSpool "session-start.json") "Pulled Quest session start"
-$sessionStart = Get-Content (Join-Path $effectiveSpool "session-start.json") -Raw | ConvertFrom-Json
+$sessionStartPath = Join-Path $effectiveSpool "session-start.json"
+Require-Path $sessionStartPath "Pulled Quest session start"
+$sessionStart = Get-Content $sessionStartPath -Raw | ConvertFrom-Json
 if ($sessionStart.platform -ne "Android" -or $sessionStart.sessionId -ne $planValue.sessionId -or $sessionStart.deviceId -ne $planValue.deviceId) { throw "Pulled spool does not prove the prepared Android physical-session identity." }
+if ($sessionStart.arcDigest -ne $planValue.arcDigest -or $sessionStart.actionSpecDigest -ne $planValue.actionSpecDigest -or $sessionStart.unityJobDigest -ne $planValue.sceneJobDigest) { throw "Pulled spool differs from the prepared Arc, action-spec, or Unity job identity." }
 
 $final = [ordered]@{
     format = "rodoh-first-charter-physical-session-completion/1"
@@ -290,6 +316,7 @@ $final = [ordered]@{
     arcActionAuthorityCommit = $completion.arcActionAuthorityCommit
     arcDigest = $planValue.arcDigest
     actionSpecDigest = $completion.actionSpecDigest
+    sceneJobDigest = $planValue.sceneJobDigest
     candidateSha256 = $completion.candidateSha256
     provisionalParity = $completion.provisionalParity
     resolution = $completion.resolution
