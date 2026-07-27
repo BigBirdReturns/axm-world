@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import * as simulation from "../../src/engine/action/simulation.js";
+import {
+  initialActionState,
+  stepActionSimulation,
+  type ActionInput,
+  type ActionSimulationState,
+} from "../../src/engine/action/simulation.js";
 
 const nativeSpecPath = process.env.AXM_UNITY_NATIVE_SPEC;
 const projectionPath = process.env.AXM_UNITY_PROJECTION;
@@ -12,21 +17,13 @@ function required(value: string | undefined, name: string): string {
   return resolve(value);
 }
 
-function functionExport(names: string[]): (...args: any[]) => any {
-  for (const name of names) {
-    const candidate = (simulation as Record<string, unknown>)[name];
-    if (typeof candidate === "function") return candidate as (...args: any[]) => any;
-  }
-  throw new Error(`Action simulation export not found. Tried ${names.join(", ")}. Available: ${Object.keys(simulation).sort().join(", ")}`);
-}
-
 function normalizeMode(value: unknown): string {
   return String(value ?? "").replace(/_/g, "-").toLowerCase();
 }
 
-function snapshot(state: any) {
-  const enemies = [...(state.enemies ?? [])]
-    .map((enemy: any) => ({
+function snapshot(state: ActionSimulationState) {
+  const enemies = [...state.enemies]
+    .map((enemy) => ({
       id: String(enemy.id),
       objectiveId: String(enemy.objectiveId),
       kit: String(enemy.kit),
@@ -37,13 +34,13 @@ function snapshot(state: any) {
       modeTick: Number(enemy.modeTick),
       attackResolved: Boolean(enemy.attackResolved),
     }))
-    .sort((left: any, right: any) => left.id.localeCompare(right.id));
-  const completedObjectiveIds = [...(state.completedObjectiveIds ?? [])].map(String).sort();
+    .sort((left, right) => left.id.localeCompare(right.id));
+  const completedObjectiveIds = [...state.completedObjectiveIds].map(String).sort();
   const result = state.result
     ? {
         outcome: String(state.result.outcome),
-        completedObjectiveIds: [...(state.result.completedObjectiveIds ?? [])].map(String).sort(),
-        objectives: [...(state.result.objectives ?? [])].map((objective: any) => ({
+        completedObjectiveIds: [...state.result.completedObjectiveIds].map(String).sort(),
+        objectives: [...state.result.objectives].map((objective) => ({
           id: String(objective.id),
           defeated: Number(objective.defeated),
           target: Number(objective.target),
@@ -53,12 +50,12 @@ function snapshot(state: any) {
         playerDefeated: Boolean(state.result.playerDefeated),
         totalTicks: Number(state.result.totalTicks),
         stats: {
-          hitsLanded: Number(state.result.stats?.hitsLanded ?? 0),
-          heavyHits: Number(state.result.stats?.heavyHits ?? 0),
-          damageTaken: Number(state.result.stats?.damageTaken ?? 0),
-          parries: Number(state.result.stats?.parries ?? 0),
-          dodgedAttacks: Number(state.result.stats?.dodgedAttacks ?? 0),
-          enemiesDefeated: Number(state.result.stats?.enemiesDefeated ?? 0),
+          hitsLanded: Number(state.result.stats.hitsLanded),
+          heavyHits: Number(state.result.stats.heavyHits),
+          damageTaken: Number(state.result.stats.damageTaken),
+          parries: Number(state.result.stats.parries),
+          dodgedAttacks: Number(state.result.stats.dodgedAttacks),
+          enemiesDefeated: Number(state.result.stats.enemiesDefeated),
         },
       }
     : null;
@@ -78,22 +75,22 @@ function snapshot(state: any) {
     enemies,
     completedObjectiveIds,
     stats: {
-      hitsLanded: Number(state.stats?.hitsLanded ?? 0),
-      heavyHits: Number(state.stats?.heavyHits ?? 0),
-      damageTaken: Number(state.stats?.damageTaken ?? 0),
-      parries: Number(state.stats?.parries ?? 0),
-      dodgedAttacks: Number(state.stats?.dodgedAttacks ?? 0),
-      enemiesDefeated: Number(state.stats?.enemiesDefeated ?? 0),
+      hitsLanded: Number(state.stats.hitsLanded),
+      heavyHits: Number(state.stats.heavyHits),
+      damageTaken: Number(state.stats.damageTaken),
+      parries: Number(state.stats.parries),
+      dodgedAttacks: Number(state.stats.dodgedAttacks),
+      enemiesDefeated: Number(state.stats.enemiesDefeated),
     },
     result,
   };
 }
 
-function scheduledInput(tick: number) {
-  let moveX = 0;
-  let moveY = 0;
-  let aimX = -1;
-  let aimY = 1;
+function scheduledInput(tick: number): ActionInput {
+  let moveX: ActionInput["moveX"] = 0;
+  let moveY: ActionInput["moveY"] = 0;
+  let aimX: ActionInput["aimX"] = -1;
+  let aimY: ActionInput["aimY"] = 1;
   if (tick < 150) {
     moveX = -1;
     moveY = 1;
@@ -116,11 +113,18 @@ function scheduledInput(tick: number) {
   return { moveX, moveY, aimX, aimY, buttons };
 }
 
-function compress(frames: any[]) {
-  const runs: Array<{ ticks: number; input: any }> = [];
+function compress(frames: ActionInput[]) {
+  const runs: Array<{ ticks: number; input: ActionInput }> = [];
   for (const input of frames) {
     const previous = runs[runs.length - 1];
-    if (previous && JSON.stringify(previous.input) === JSON.stringify(input)) previous.ticks += 1;
+    if (
+      previous
+      && previous.input.moveX === input.moveX
+      && previous.input.moveY === input.moveY
+      && previous.input.aimX === input.aimX
+      && previous.input.aimY === input.aimY
+      && previous.input.buttons === input.buttons
+    ) previous.ticks += 1;
     else runs.push({ ticks: 1, input });
   }
   return runs;
@@ -133,16 +137,13 @@ describe("Unity cross-language action vector", () => {
     const vectorPath = required(outputPath, "AXM_UNITY_VECTOR_OUT");
     const spec = JSON.parse(readFileSync(nativePath, "utf8"));
     const projection = JSON.parse(readFileSync(projectedPath, "utf8"));
-    const initialize = functionExport(["initialActionState", "createInitialActionState", "initializeActionState"]);
-    const advance = functionExport(["stepAction", "stepActionState", "advanceActionState", "runActionTick"]);
     const seed = 0x51a7;
-    let state = initialize(spec, seed);
-    const frames: any[] = [];
+    let state = initialActionState(spec, seed);
+    const frames: ActionInput[] = [];
     while (!state.result && state.tick < spec.maxTicks) {
       const input = scheduledInput(state.tick);
       frames.push(input);
-      const next = advance(spec, state, input);
-      if (next !== undefined) state = next;
+      state = stepActionSimulation(spec, state, input);
     }
     expect(state.result).toBeTruthy();
     const vector = {
