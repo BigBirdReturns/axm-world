@@ -80,7 +80,7 @@ describe("continuous post-v1 authority estate", () => {
     expect(verifier).toContain("src/narrative/action-receipt-seam.ts");
     expect(verifier).toContain("scripts/complete-embodied-action-session.ps1");
     expect(verifier).toContain("git merge-base");
-    expect(verifier).toContain("Accepted action party");
+    expect(verifier).toContain("actionNarrativeIngestion");
     expect(verifier).not.toContain("bookIVActivated: true");
 
     const documentation = readFileSync(resolve(ROOT, "docs/CONTINUOUS_AUTHORITY_ESTATE.md"), "utf8");
