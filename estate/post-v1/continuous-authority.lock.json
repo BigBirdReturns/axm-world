@@ -1,0 +1,64 @@
+{
+  "$schema": "./continuous-authority.schema.json",
+  "format": "rodoh-continuous-authority-lock/1",
+  "status": "post-v1-integration",
+  "releaseEffect": "none",
+  "repositories": {
+    "world": {
+      "repository": "BigBirdReturns/axm-world",
+      "branch": "integration/continuous-authority-estate-v1",
+      "receiverCommit": "52162c757f905aae5c2383f6896de3b258e7cf8f",
+      "role": "Unity and Quest presentation, provisional execution, and physical acceptance orchestration"
+    },
+    "arc": {
+      "repository": "BigBirdReturns/axm-arc",
+      "branch": "integration/continuous-authority-estate-v1",
+      "actionAuthorityCommit": "6eef311836ee7cb3a43a94ce51f448a2699c3b04",
+      "narrativeBaselineCommit": "3c09166af33fb24dd185b0559b5a80183d514d3e",
+      "continuousAuthorityCommit": "e54a7799f780d69719512db1b119c565b49637e1",
+      "role": "action authoring and acceptance, narrative succession, and accepted-result consequence authority"
+    },
+    "embodied": {
+      "repository": "BigBirdReturns/axm-embodied",
+      "branch": "qualify/action-evidence-closure-v1",
+      "functionalCommit": "69b7f9a7bad5b4a94210313ca267a9b479402f09",
+      "closureCommit": "a5bfe8be5340821bab7190d211856bd6a8367a80",
+      "role": "physical-session spool, strict evidence journal, and Genesis-facing custody"
+    }
+  },
+  "genesis": {
+    "kernelCommit": "9074e7fb2e9cedde692b248cdd0c6a805e77d8ac"
+  },
+  "unity": {
+    "version": "6000.0.66f2",
+    "projectPathHint": "D:\\Projects\\Embodied-AR-Lab\\worktrees\\scene-compiler-v0.1-integration",
+    "physicalReceiptRequired": true
+  },
+  "formats": {
+    "actionProfile": "axm-action-profile/1",
+    "actionSpec": "axm-action-spec/1",
+    "unitySpec": "rodoh-unity-action-spec/1",
+    "presentationManifest": "rodoh-action-presentation-manifest/1",
+    "sceneJob": "rodoh-action-scene-job/1",
+    "executionCandidate": "rodoh-action-execution-candidate/1",
+    "embodiedSession": "axm-embodied-action-session/1",
+    "actionReceipt": "axm-action-receipt/1",
+    "actionNarrativeBinding": "axm-action-narrative-binding/1",
+    "actionNarrativeIngestion": "axm-action-narrative-ingestion/1",
+    "narrativeLedger": "axm-narrative-ledger/1"
+  },
+  "acceptance": {
+    "physicalIssue": "BigBirdReturns/axm-world#204",
+    "operatorKitPr": "BigBirdReturns/axm-world#205",
+    "bookIVActivated": false,
+    "requiredReceipts": [
+      "rodoh-first-charter-action-local-run/1",
+      "rodoh-unity-action-estate/3",
+      "rodoh-action-player-build/1",
+      "rodoh-action-quest-build/1",
+      "axm-embodied-action-session/1",
+      "axm-action-receipt/1",
+      "axm-action-narrative-ingestion/1"
+    ]
+  }
+}
