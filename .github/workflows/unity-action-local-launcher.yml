@@ -74,6 +74,7 @@ jobs:
             'scripts/build-unity-action-quest.ps1'
           )
           $results = @()
+          $failures = @()
           foreach ($path in $paths) {
             $tokens = $null
             $errors = $null
@@ -82,22 +83,37 @@ jobs:
               [ref]$tokens,
               [ref]$errors
             ) | Out-Null
-            if ($errors.Count -gt 0) {
-              $errors | Format-List | Out-String | Write-Error
-              throw "$path contains PowerShell parse errors."
+            $errorRecords = @($errors | ForEach-Object {
+              [ordered]@{
+                message = $_.Message
+                startLine = $_.Extent.StartLineNumber
+                startColumn = $_.Extent.StartColumnNumber
+                text = $_.Extent.Text
+                errorId = $_.ErrorId
+              }
+            })
+            $results += [ordered]@{
+              path = $path
+              parseErrors = $errorRecords.Count
+              errors = $errorRecords
             }
-            $results += [ordered]@{ path = $path; parseErrors = 0 }
+            if ($errorRecords.Count -gt 0) { $failures += $path }
           }
           $receipt = [ordered]@{
             format = 'rodoh-unity-action-local-launcher-qualification/1'
-            status = 'pass'
+            status = if ($failures.Count -eq 0) { 'pass' } else { 'fail' }
             worldCandidate = (git rev-parse HEAD).Trim()
             arcActionAuthorityCommit = $env:ARC_ACTION_AUTHORITY_SHA
             operatingSystem = [Environment]::OSVersion.VersionString
             powershell = $PSVersionTable.PSVersion.ToString()
             scripts = $results
           }
-          $receipt | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8 "$env:RUNNER_TEMP\launcher-receipt\powershell.json"
+          $receiptPath = "$env:RUNNER_TEMP\launcher-receipt\powershell.json"
+          $receipt | ConvertTo-Json -Depth 12 | Set-Content -Encoding utf8 $receiptPath
+          if ($failures.Count -gt 0) {
+            Get-Content -Raw $receiptPath | Write-Error
+            throw "PowerShell parse errors remain in: $($failures -join ', ')"
+          }
       - name: Run the launcher custody contract and complete World regression
         shell: pwsh
         run: |
