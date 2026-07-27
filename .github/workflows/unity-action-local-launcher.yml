@@ -5,13 +5,18 @@ on:
     paths:
       - 'scripts/run-first-charter-action.ps1'
       - 'scripts/complete-embodied-action-session.ps1'
+      - 'scripts/generate-unity-action-production.ps1'
       - 'scripts/run-unity-action-estate.ps1'
       - 'scripts/run-unity-action-estate-v2.ps1'
       - 'scripts/run-unity-action-estate-v3.ps1'
       - 'scripts/build-unity-action-player.ps1'
       - 'scripts/build-unity-action-quest.ps1'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionGovernedProductionBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionPresentation.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProceduralMotionDriver.cs'
       - 'docs/FIRST_CHARTER_ACTION_LOCAL_ACCEPTANCE.md'
       - 'tests/world/action-local-launcher.test.ts'
+      - 'tests/world/action-unity-source-contract.test.ts'
       - '.github/workflows/unity-action-local-launcher.yml'
   push:
     branches:
@@ -19,13 +24,18 @@ on:
     paths:
       - 'scripts/run-first-charter-action.ps1'
       - 'scripts/complete-embodied-action-session.ps1'
+      - 'scripts/generate-unity-action-production.ps1'
       - 'scripts/run-unity-action-estate.ps1'
       - 'scripts/run-unity-action-estate-v2.ps1'
       - 'scripts/run-unity-action-estate-v3.ps1'
       - 'scripts/build-unity-action-player.ps1'
       - 'scripts/build-unity-action-quest.ps1'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionGovernedProductionBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionPresentation.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProceduralMotionDriver.cs'
       - 'docs/FIRST_CHARTER_ACTION_LOCAL_ACCEPTANCE.md'
       - 'tests/world/action-local-launcher.test.ts'
+      - 'tests/world/action-unity-source-contract.test.ts'
       - '.github/workflows/unity-action-local-launcher.yml'
   workflow_dispatch:
 
@@ -70,6 +80,7 @@ jobs:
           $paths = @(
             'scripts/run-first-charter-action.ps1',
             'scripts/complete-embodied-action-session.ps1',
+            'scripts/generate-unity-action-production.ps1',
             'scripts/run-unity-action-estate.ps1',
             'scripts/run-unity-action-estate-v2.ps1',
             'scripts/run-unity-action-estate-v3.ps1',
@@ -117,10 +128,10 @@ jobs:
             Get-Content -Raw $receiptPath | Write-Error
             throw "PowerShell parse errors remain in: $($failures -join ', ')"
           }
-      - name: Run the launcher custody contract and complete World regression
+      - name: Run the launcher, governed-production, and complete World contracts
         shell: pwsh
         run: |
-          npm test -- tests/world/action-local-launcher.test.ts *>&1 | Tee-Object "$env:RUNNER_TEMP\launcher-receipt\focused.log"
+          npm test -- tests/world/action-local-launcher.test.ts tests/world/action-unity-source-contract.test.ts *>&1 | Tee-Object "$env:RUNNER_TEMP\launcher-receipt\focused.log"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm test *>&1 | Tee-Object "$env:RUNNER_TEMP\launcher-receipt\complete.log"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
