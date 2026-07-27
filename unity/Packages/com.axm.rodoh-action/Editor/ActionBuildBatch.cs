@@ -44,6 +44,7 @@ namespace Axm.Rodoh.Action.Editor
             public string unityVersion = Application.unityVersion;
             public string target;
             public string buildTarget;
+            public string applicationIdentifier;
             public string scenePath;
             public string outputPath;
             public string jobId;
@@ -71,7 +72,7 @@ namespace Axm.Rodoh.Action.Editor
             var receipt = new Receipt();
             try
             {
-                var scenePath = GetRequiredArgument("-scenePath").Replace('\\', '/');
+                var scenePath = GetRequiredArgument("-scenePath").Replace('\', '/');
                 if (!scenePath.StartsWith("Assets/", StringComparison.Ordinal)) throw new InvalidOperationException("Action build scene must remain under Assets/.");
                 var sceneJobPath = Path.GetFullPath(GetRequiredArgument("-sceneJob"));
                 var sceneJob = JsonUtility.FromJson<SceneJob>(File.ReadAllText(sceneJobPath));
@@ -85,6 +86,8 @@ namespace Axm.Rodoh.Action.Editor
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath) ?? throw new InvalidOperationException("Build output directory is unavailable."));
 
                 if (!EditorUserBuildSettings.SwitchActiveBuildTarget(configuration.group, configuration.target)) throw new InvalidOperationException("Unity refused to switch to build target " + configuration.target + ".");
+                var applicationIdentifier = PlayerSettings.GetApplicationIdentifier(configuration.group);
+                if (string.IsNullOrWhiteSpace(applicationIdentifier)) throw new InvalidOperationException("Unity project does not declare an application identifier for " + configuration.group + ".");
                 var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
                 var runtime = FindExactlyOne<ActionRuntimeBehaviour>(scene);
                 if (runtime.GetComponent<ActionStandaloneSmoke>() == null) runtime.gameObject.AddComponent<ActionStandaloneSmoke>();
@@ -108,6 +111,7 @@ namespace Axm.Rodoh.Action.Editor
                 var summary = report.summary;
                 receipt.target = targetToken;
                 receipt.buildTarget = configuration.target.ToString();
+                receipt.applicationIdentifier = applicationIdentifier;
                 receipt.scenePath = scenePath;
                 receipt.outputPath = outputPath;
                 receipt.jobId = sceneJob.jobId;
@@ -201,7 +205,7 @@ namespace Axm.Rodoh.Action.Editor
             {
                 foreach (var file in files)
                 {
-                    var relative = Path.GetRelativePath(Path.GetDirectoryName(fullOutput) ?? Directory.GetCurrentDirectory(), file).Replace('\\', '/');
+                    var relative = Path.GetRelativePath(Path.GetDirectoryName(fullOutput) ?? Directory.GetCurrentDirectory(), file).Replace('\', '/');
                     var pathBytes = Encoding.UTF8.GetBytes(relative + "\0");
                     aggregate.TransformBlock(pathBytes, 0, pathBytes.Length, null, 0);
                     using (var stream = File.OpenRead(file))
