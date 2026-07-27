@@ -11,6 +11,10 @@ using System.Text.Json;
 
 namespace Axm.Rodoh.Action
 {
+    /// <summary>
+    /// Renderer-independent trace custody pinned by the hosted real-cartridge,
+    /// cross-language matrix, and multi-cartridge Arc replay gates.
+    /// </summary>
     public sealed class ActionTraceRecorder
     {
         private readonly List<ActionInputRun> _runs = new List<ActionInputRun>();
