@@ -33,14 +33,14 @@ internal static class CandidateProgram
             var firstFingerprint = ActionConformanceFingerprint.State(spec, state);
             var replayFingerprint = ActionConformanceFingerprint.State(spec, replay);
             if (firstFingerprint != replayFingerprint) throw new InvalidOperationException("Candidate trace does not reproduce the provisional terminal state.");
-            var context = new ActionExecutionContext
-            {
-                cycle = cycle,
-                seed = seed,
-                controlledAgentId = controlledAgent,
-                partyAgentIds = new[] { controlledAgent }
-            };
-            var candidate = ActionExecutionCandidateBuilder.Build(spec, context, recorder.Snapshot(), state);
+            var candidate = ActionCandidateBuilder.Build(
+                spec,
+                cycle,
+                seed,
+                controlledAgent,
+                new[] { controlledAgent },
+                recorder,
+                state);
             var json = ActionBridgeJson.SerializeObject(candidate);
             Directory.CreateDirectory(Path.GetDirectoryName(candidatePath) ?? Directory.GetCurrentDirectory());
             File.WriteAllText(candidatePath, json + "\n");
