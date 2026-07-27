@@ -83,6 +83,40 @@ namespace Axm.Rodoh.Action.Tests
         }
 
         [Test]
+        public void AuthoredVisualRootSurvivesRuntimeIdentityBinding()
+        {
+            var host = new GameObject("authored-body-host");
+            var presentationRoot = new GameObject("presentation-root");
+            var authored = new GameObject("authored-player");
+            var visual = new GameObject("Visual");
+            try
+            {
+                presentationRoot.transform.SetParent(host.transform, false);
+                visual.transform.SetParent(authored.transform, false);
+                visual.transform.localScale = new Vector3(0.75f, 1.25f, 0.8f);
+                var authoredBinding = authored.AddComponent<ActionActorBinding>();
+                authoredBinding.Configure("author-template", null, visual.transform);
+
+                var presentation = host.AddComponent<ActionProductionPresentation>();
+                presentation.Configure(null, presentationRoot.transform, authored, null, false, 1f, System.Array.Empty<ActionEnemyPrefabBinding>(), 0.0005f);
+                var state = ActionKernel.InitialState(TestActionSpec(), 17u);
+                presentation.ApplyState(state);
+
+                var instance = presentationRoot.GetComponentInChildren<ActionActorBinding>(true);
+                Assert.That(instance, Is.Not.Null);
+                Assert.That(instance.ActorId, Is.EqualTo("player"));
+                Assert.That(instance.VisualRoot, Is.Not.EqualTo(instance.transform));
+                Assert.That(instance.VisualRoot.name, Is.EqualTo("Visual"));
+                Assert.That(instance.VisualRoot.localScale, Is.EqualTo(new Vector3(0.75f, 1.25f, 0.8f)));
+            }
+            finally
+            {
+                Object.DestroyImmediate(authored);
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
         public void ProceduralPolishComponentsExposeNoActionMutationApi()
         {
             foreach (var type in new[]
