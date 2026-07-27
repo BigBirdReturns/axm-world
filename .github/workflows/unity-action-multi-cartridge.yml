@@ -95,6 +95,7 @@ jobs:
           for index in $(seq 0 $((count - 1))); do
             jq ".selected[$index].spec" receipts/multi-action-specs.json > "receipts/specs/$index.action-spec.json"
             jq ".selected[$index] | del(.spec)" receipts/multi-action-specs.json > "receipts/specs/$index.metadata.json"
+            jq -e '.execution.orgSeed >= 0 and .execution.seed >= 0 and .execution.cycle >= 0' "receipts/specs/$index.metadata.json" >/dev/null
           done
 
       - name: Project, execute, compare, and receipt every selected cartridge
@@ -108,6 +109,7 @@ jobs:
             root="receipts/cartridges/$index"
             mkdir -p "$root"
             spec="$GITHUB_WORKSPACE/receipts/specs/$index.action-spec.json"
+            metadata="$GITHUB_WORKSPACE/receipts/specs/$index.metadata.json"
             projection="$GITHUB_WORKSPACE/$root/unity-action-spec.json"
             presentation="$GITHUB_WORKSPACE/$root/presentation.json"
             scene_job="$GITHUB_WORKSPACE/$root/scene-job.json"
@@ -120,7 +122,17 @@ jobs:
             node axm-world/unity/Conformance/project-action-spec.mjs "$spec" "$projection" 2>&1 | tee "$root/projection.log"
             node axm-world/unity/Conformance/project-presentation-manifest.mjs "$spec" axm-world/unity/Fixtures/frog-pit.presentation.json "$presentation" 2>&1 | tee "$root/presentation.log"
             node axm-world/unity/Conformance/build-action-scene-job.mjs "$projection" "$presentation" "$scene_job" 2>&1 | tee "$root/scene-job.log"
-            dotnet run --configuration Release --project axm-world/unity/Conformance/Axm.Rodoh.Action.Candidate.csproj -- "$projection" "$candidate" "$((index + 1))" "$((30000 + index))" "multi-player-$index" 2>&1 | tee "$root/candidate.log"
+            dotnet run \
+              --configuration Release \
+              --project axm-world/unity/Conformance/Axm.Rodoh.Action.Candidate.csproj \
+              -- \
+              "$projection" \
+              "$candidate" \
+              "$(jq -r '.execution.cycle' "$metadata")" \
+              "$(jq -r '.execution.seed' "$metadata")" \
+              "$(jq -r '.execution.controlledAgentId' "$metadata")" \
+              2>&1 | tee "$root/candidate.log"
+            test "$(jq -r '.seed' "$candidate")" = "$(jq -r '.execution.seed' "$metadata")"
 
             export AXM_UNITY_NATIVE_SPEC="$spec"
             export AXM_UNITY_PROJECTION="$projection"
@@ -136,6 +148,7 @@ jobs:
             export AXM_ACTION_CANDIDATE="$candidate"
             export AXM_ACTION_RECEIPT_OUT="$accepted"
             export AXM_ACTION_RECONCILIATION_OUT="$reconciliation"
+            export AXM_ACTION_ORG_SEED="$(jq -r '.execution.orgSeed' "$metadata")"
             (
               cd axm-arc
               npx vitest run tests/action/unity-multi-receipt.test.ts --reporter=verbose
@@ -168,7 +181,7 @@ jobs:
           set -euo pipefail
           count="$(jq '.selected | length' receipts/multi-action-specs.json)"
           jq -n \
-            --arg format 'rodoh-unity-action-multi-cartridge/1' \
+            --arg format 'rodoh-unity-action-multi-cartridge/2' \
             --arg status pass \
             --arg world '${{ github.event.pull_request.head.sha || github.sha }}' \
             --arg arc "$ARC_ACTION_AUTHORITY_SHA" \
