@@ -131,7 +131,7 @@ jobs:
             receipts/real.presentation.json \
             receipts/real.scene-job.json \
             2>&1 | tee receipts/scene-job.log
-          test "$(jq -r '.sourceActionSpecDigest' receipts/real.unity-action-spec.json)" = "$(jq -r '.specDigest' receipts/real.action-spec.json)"
+          test "$(jq -r '.sourceSpecDigest' receipts/real.unity-action-spec.json)" = "$(jq -r '.specDigest' receipts/real.action-spec.json)"
           test "$(jq -r '.sourceActionSpecDigest' receipts/real.presentation.json)" = "$(jq -r '.specDigest' receipts/real.action-spec.json)"
           test "$(jq -r '.source.actionSpecDigest' receipts/real.scene-job.json)" = "$(jq -r '.specDigest' receipts/real.action-spec.json)"
           jq -e '.jobDigest | test("^unityjob1_[0-9a-f]{64}$")' receipts/real.scene-job.json >/dev/null
