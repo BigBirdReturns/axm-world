@@ -17,6 +17,10 @@ namespace Axm.Rodoh.Action
             public Vector3 baseScale;
             public Quaternion rotation;
             public Vector3 scale;
+            public int lastStateTick = -1;
+            public int lastX;
+            public int lastY;
+            public bool movedThisStateTick;
         }
 
         [SerializeField] private ActionRuntimeBehaviour runtime;
@@ -108,8 +112,15 @@ namespace Axm.Rodoh.Action
         private void ApplyPlayer(PoseCache cache, ActionSimulationState state)
         {
             var player = state.player;
+            if (cache.lastStateTick != state.tick)
+            {
+                cache.movedThisStateTick = cache.lastStateTick >= 0 && (cache.lastX != player.x || cache.lastY != player.y);
+                cache.lastStateTick = state.tick;
+                cache.lastX = player.x;
+                cache.lastY = player.y;
+            }
             var facing = Facing(player.facingX, player.facingY, cache.binding.VisualRoot.localRotation);
-            var pose = PlayerPose(player.mode, player.modeTick, state.tick);
+            var pose = PlayerPose(player.mode, player.modeTick, state.tick, cache.movedThisStateTick);
             Apply(cache, facing, pose.euler, pose.scale, player.mode == ActionPlayerMode.Defeated);
         }
 
@@ -133,10 +144,10 @@ namespace Axm.Rodoh.Action
             cache.binding.VisualRoot.localScale = cache.scale;
         }
 
-        private (Vector3 euler, Vector3 scale) PlayerPose(ActionPlayerMode mode, int modeTick, int tick)
+        private (Vector3 euler, Vector3 scale) PlayerPose(ActionPlayerMode mode, int modeTick, int tick, bool moving)
         {
             var pulse = Mathf.Sin((tick + modeTick * 0.5f) * 0.35f);
-            if (mode == ActionPlayerMode.Move) return (new Vector3(moveLeanDegrees, 0f, -pulse * 4f), new Vector3(1f - idleBob, 1f + idleBob, 1f));
+            if (mode == ActionPlayerMode.Idle && moving) return (new Vector3(moveLeanDegrees, 0f, -pulse * 4f), new Vector3(1f - idleBob, 1f + idleBob, 1f));
             if (mode == ActionPlayerMode.Light) return (AttackPose(modeTick, 8f, 46f), new Vector3(0.94f, 1.04f, 1.08f));
             if (mode == ActionPlayerMode.Heavy) return (AttackPose(modeTick, 18f, 78f), new Vector3(0.88f, 1.12f, 1.16f));
             if (mode == ActionPlayerMode.Dodge) return (new Vector3(24f, 0f, -32f), new Vector3(1.18f, 0.72f, 1.22f));
@@ -152,11 +163,11 @@ namespace Axm.Rodoh.Action
             var pulse = Mathf.Sin(tick * 0.32f + phase);
             if (mode == ActionEnemyMode.Approach) return (new Vector3(8f + pulse * 5f, 0f, pulse * 6f), new Vector3(1f - idleBob, 1f + idleBob * 1.4f, 1f));
             if (mode == ActionEnemyMode.Telegraph) return (new Vector3(-18f, 0f, pulse * 8f), new Vector3(1.14f + pulse * 0.04f, 0.82f - pulse * 0.03f, 1.14f + pulse * 0.04f));
-            if (mode == ActionEnemyMode.Attack) return (new Vector3(34f, 0f, -pulse * 10f), new Vector3(0.82f, 1.08f, 1.28f));
-            if (mode == ActionEnemyMode.Recovery) return (new Vector3(-16f, 0f, pulse * 6f), new Vector3(1.08f, 0.92f, 0.94f));
+            if (mode == ActionEnemyMode.Active) return (new Vector3(34f, 0f, -pulse * 10f), new Vector3(0.82f, 1.08f, 1.28f));
+            if (mode == ActionEnemyMode.Recover) return (new Vector3(-16f, 0f, pulse * 6f), new Vector3(1.08f, 0.92f, 0.94f));
             if (mode == ActionEnemyMode.Stagger) return (new Vector3(-26f, 0f, pulse * 20f), new Vector3(1.18f, 0.72f, 1.1f));
             if (mode == ActionEnemyMode.Defeated) return (new Vector3(0f, 0f, 92f), new Vector3(1.22f, 0.28f, 1.08f));
-            return (new Vector3(pulse * 2f, 0f, -pulse * 2f), new Vector3(1f + pulse * idleBob, 1f - pulse * idleBob, 1f));
+            return (new Vector3(pulse * 2f, 0f, -pulse * 2f), new Vector3(1f + pulse * idleBob, 1f - pulse * idleBob, 1f + pulse * idleBob));
         }
 
         private static Vector3 AttackPose(int modeTick, float windup, float swing)
