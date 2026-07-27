@@ -211,8 +211,10 @@ namespace Axm.Rodoh.Action
                 animator.applyRootMotion = false;
                 if (controller != null) animator.runtimeAnimatorController = controller;
             }
-            var binding = instance.GetComponent<ActionActorBinding>() ?? instance.AddComponent<ActionActorBinding>();
-            binding.Configure(id, animator, instance.transform);
+            var binding = instance.GetComponent<ActionActorBinding>();
+            var visualRoot = binding == null ? instance.transform : binding.VisualRoot;
+            if (binding == null) binding = instance.AddComponent<ActionActorBinding>();
+            binding.Configure(id, animator, visualRoot);
             return binding;
         }
 
