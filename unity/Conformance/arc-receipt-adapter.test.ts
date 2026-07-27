@@ -1,129 +1,83 @@
 import { describe, expect, it } from "vitest";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import * as receiptModule from "../../src/engine/action/receipt.js";
-import * as simulationModule from "../../src/engine/action/simulation.js";
-import * as actionIndexModule from "../../src/engine/action/index.js";
+import { compileActionEncounter } from "../../src/engine/action/compile.js";
+import {
+  actionSeed,
+  buildActionReceipt,
+  verifyActionReceipt,
+} from "../../src/engine/action/receipt.js";
+import type { Arc, Challenge } from "../../src/engine/types.js";
 
 const specPath = process.env.AXM_ACTION_NATIVE_SPEC;
 const candidatePath = process.env.AXM_ACTION_CANDIDATE;
 const receiptOutputPath = process.env.AXM_ACTION_RECEIPT_OUT;
 const reconciliationOutputPath = process.env.AXM_ACTION_RECONCILIATION_OUT;
+const arcModules = import.meta.glob("../../src/arcs/*.{ts,js}", { eager: true });
 
 function required(value: string | undefined, name: string): string {
   if (!value) throw new Error(`Missing ${name}.`);
   return resolve(value);
 }
 
-function isPromise(value: unknown): value is Promise<unknown> {
-  return !!value && typeof (value as { then?: unknown }).then === "function";
+function requiredInteger(value: string | undefined, name: string): number {
+  if (!value) throw new Error(`Missing ${name}.`);
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 0 || parsed > 0xffff_ffff) {
+    throw new Error(`${name} must be an unsigned 32-bit integer.`);
+  }
+  return parsed;
 }
 
-async function call(fn: (...args: any[]) => any, args: any[]): Promise<any> {
-  const value = fn(...args);
-  return isPromise(value) ? await value : value;
+function isArc(value: unknown): value is Arc {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Arc;
+  return !!candidate.meta?.id && Array.isArray(candidate.challenges) && Array.isArray(candidate.roles);
 }
 
-function functionEntries(modules: Array<Record<string, unknown>>) {
-  const values: Array<[string, (...args: any[]) => any]> = [];
+function discoverArcs(): Arc[] {
+  const arcs: Arc[] = [];
   const seen = new Set<unknown>();
-  for (const module of modules) {
-    for (const [name, value] of Object.entries(module)) {
-      if (typeof value !== "function" || seen.has(value)) continue;
-      seen.add(value);
-      values.push([name, value as (...args: any[]) => any]);
+  for (const moduleValue of Object.values(arcModules as Record<string, Record<string, unknown>>)) {
+    for (const candidate of Object.values(moduleValue)) {
+      if (!isArc(candidate) || seen.has(candidate)) continue;
+      seen.add(candidate);
+      arcs.push(candidate);
     }
   }
-  return values;
+  return arcs.sort((left, right) => left.meta.id.localeCompare(right.meta.id));
 }
 
-function actionExecution(candidate: any) {
-  return {
-    arcDigest: candidate.arcDigest,
+function findAuthority(spec: any, candidate: any): { arc: Arc; challenge: Challenge } {
+  const difficultyModeId = candidate.difficultyModeId ?? null;
+  const attempts: Array<{ arcId: string; challengeId: string; error: string }> = [];
+  for (const arc of discoverArcs()) {
+    for (const challenge of arc.challenges) {
+      if (challenge.id !== candidate.challengeId) continue;
+      try {
+        const compiled = compileActionEncounter(arc, challenge, difficultyModeId);
+        if (compiled.arcDigest === spec.arcDigest && compiled.specDigest === spec.specDigest) {
+          return { arc, challenge };
+        }
+        attempts.push({
+          arcId: arc.meta.id,
+          challengeId: challenge.id,
+          error: `compiled ${compiled.arcDigest}/${compiled.specDigest}`,
+        });
+      } catch (error) {
+        attempts.push({
+          arcId: arc.meta.id,
+          challengeId: challenge.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+  }
+  throw new Error(JSON.stringify({
+    message: "No exact Arc cartridge and challenge reproduce the candidate action spec.",
+    expectedArcDigest: spec.arcDigest,
+    expectedSpecDigest: spec.specDigest,
     challengeId: candidate.challengeId,
-    difficultyModeId: candidate.difficultyModeId ?? null,
-    cycle: candidate.cycle,
-    seed: candidate.seed,
-    controlledAgentId: candidate.controlledAgentId,
-    partyAgentIds: candidate.partyAgentIds,
-    trace: candidate.trace,
-  };
-}
-
-async function mintReceipt(spec: any, candidate: any) {
-  const entries = functionEntries([
-    receiptModule as Record<string, unknown>,
-    actionIndexModule as Record<string, unknown>,
-    simulationModule as Record<string, unknown>,
-  ]);
-  const creators = entries
-    .filter(([name]) => /receipt/i.test(name) && /(create|mint|build|execute|resolve|run)/i.test(name) && !/verify|parse|digest|canonical/i.test(name))
-    .sort(([left], [right]) => left.localeCompare(right));
-  const execution = actionExecution(candidate);
-  const attempts: Array<{ functionName: string; arguments: string; error: string }> = [];
-  for (const [name, fn] of creators) {
-    const argumentSets: Array<[string, any[]]> = [
-      ["spec,execution", [spec, execution]],
-      ["execution,spec", [execution, spec]],
-      ["spec,execution,provisional", [spec, execution, candidate.provisionalResult]],
-      ["execution", [execution]],
-      ["candidate,spec", [candidate, spec]],
-      ["spec,candidate", [spec, candidate]],
-    ];
-    for (const [label, args] of argumentSets) {
-      try {
-        const value = await call(fn, args);
-        const receipt = value?.receipt ?? value;
-        if (receipt?.format === "axm-action-receipt/1") {
-          return { receipt, creator: name, invocation: label, attempts };
-        }
-        attempts.push({ functionName: name, arguments: label, error: `returned ${String(receipt?.format ?? typeof receipt)}` });
-      } catch (error) {
-        attempts.push({ functionName: name, arguments: label, error: error instanceof Error ? error.message : String(error) });
-      }
-    }
-  }
-  throw new Error(JSON.stringify({
-    message: "No Arc export minted axm-action-receipt/1.",
-    exports: entries.map(([name]) => name).sort(),
-    creators: creators.map(([name]) => name),
-    attempts,
-  }, null, 2));
-}
-
-async function verifyReceipt(spec: any, receipt: any) {
-  const entries = functionEntries([
-    receiptModule as Record<string, unknown>,
-    actionIndexModule as Record<string, unknown>,
-  ]);
-  const verifiers = entries
-    .filter(([name]) => /receipt/i.test(name) && /(verify|validate|parse)/i.test(name))
-    .sort(([left], [right]) => left.localeCompare(right));
-  const attempts: Array<{ functionName: string; arguments: string; error: string }> = [];
-  for (const [name, fn] of verifiers) {
-    const argumentSets: Array<[string, any[]]> = [
-      ["receipt,spec", [receipt, spec]],
-      ["spec,receipt", [spec, receipt]],
-      ["receipt", [receipt]],
-    ];
-    for (const [label, args] of argumentSets) {
-      try {
-        const result = await call(fn, args);
-        if (result === true || result?.valid === true || result?.ok === true || result?.format === "axm-action-receipt/1") {
-          return { verifier: name, invocation: label, result, attempts };
-        }
-        if (result === undefined) {
-          return { verifier: name, invocation: label, result: "returned without refusal", attempts };
-        }
-        attempts.push({ functionName: name, arguments: label, error: `returned ${JSON.stringify(result)}` });
-      } catch (error) {
-        attempts.push({ functionName: name, arguments: label, error: error instanceof Error ? error.message : String(error) });
-      }
-    }
-  }
-  throw new Error(JSON.stringify({
-    message: "No Arc export accepted the minted action receipt.",
-    verifiers: verifiers.map(([name]) => name),
     attempts,
   }, null, 2));
 }
@@ -142,13 +96,15 @@ function canonicalResult(value: any) {
 }
 
 describe("Unity candidate to Arc receipt convergence", () => {
-  it("replays the candidate through exact Arc authority and emits an accepted receipt", async () => {
+  it("replays the candidate through the exact Arc receipt API", () => {
     const specSource = required(specPath, "AXM_ACTION_NATIVE_SPEC");
     const candidateSource = required(candidatePath, "AXM_ACTION_CANDIDATE");
     const receiptDestination = required(receiptOutputPath, "AXM_ACTION_RECEIPT_OUT");
     const reconciliationDestination = required(reconciliationOutputPath, "AXM_ACTION_RECONCILIATION_OUT");
+    const orgSeed = requiredInteger(process.env.AXM_ACTION_ORG_SEED, "AXM_ACTION_ORG_SEED");
     const spec = JSON.parse(readFileSync(specSource, "utf8"));
     const candidate = JSON.parse(readFileSync(candidateSource, "utf8"));
+
     expect(spec.format).toBe("axm-action-spec/1");
     expect(candidate.format).toBe("rodoh-action-execution-candidate/1");
     expect(candidate.authority).toBe("Arc replay required");
@@ -156,23 +112,47 @@ describe("Unity candidate to Arc receipt convergence", () => {
     expect(candidate.actionSpecDigest).toBe(spec.specDigest);
     expect(candidate.trace.reduce((total: number, run: any) => total + run.ticks, 0)).toBe(candidate.totalTicks);
 
-    const minted = await mintReceipt(spec, candidate);
-    expect(minted.receipt.format).toBe("axm-action-receipt/1");
-    const verified = await verifyReceipt(spec, minted.receipt);
-    const acceptedResult = canonicalResult(minted.receipt.result ?? minted.receipt.actionResult ?? minted.receipt);
+    const { arc, challenge } = findAuthority(spec, candidate);
+    const difficultyModeId = candidate.difficultyModeId ?? null;
+    const expectedSeed = actionSeed(orgSeed, candidate.cycle, challenge.id, difficultyModeId);
+    expect(candidate.seed).toBe(expectedSeed);
+
+    const receipt = buildActionReceipt({
+      arc,
+      challenge,
+      difficultyModeId,
+      cycle: candidate.cycle,
+      orgSeed,
+      controlledAgentId: candidate.controlledAgentId,
+      partyAgentIds: candidate.partyAgentIds,
+      trace: candidate.trace,
+    });
+    const verified = verifyActionReceipt({
+      arc,
+      challenge,
+      difficultyModeId,
+      cycle: candidate.cycle,
+      orgSeed,
+      partyAgentIds: candidate.partyAgentIds,
+      receipt,
+    });
+    expect(verified.receipt.receiptDigest).toBe(receipt.receiptDigest);
+
+    const acceptedResult = canonicalResult(receipt.result);
     const provisionalResult = canonicalResult(candidate.provisionalResult);
     const provisionalParity = JSON.stringify(acceptedResult) === JSON.stringify(provisionalResult);
     const reconciliation = {
-      format: "rodoh-action-result-reconciliation/1",
+      format: "rodoh-action-result-reconciliation/2",
       status: "accepted",
       arcActionAuthorityCommit: process.env.ARC_ACTION_AUTHORITY_SHA ?? "unknown",
+      arcId: arc.meta.id,
       arcDigest: spec.arcDigest,
       actionSpecDigest: spec.specDigest,
       challengeId: candidate.challengeId,
-      creator: minted.creator,
-      creatorInvocation: minted.invocation,
-      verifier: verified.verifier,
-      verifierInvocation: verified.invocation,
+      creator: "buildActionReceipt",
+      creatorInvocation: "exact Arc, challenge, execution context, and Unity trace",
+      verifier: "verifyActionReceipt",
+      verifierInvocation: "exact Arc, challenge, execution context, and minted receipt",
       provisionalParity,
       provisionalResult,
       acceptedResult,
@@ -181,7 +161,7 @@ describe("Unity candidate to Arc receipt convergence", () => {
     };
     mkdirSync(dirname(receiptDestination), { recursive: true });
     mkdirSync(dirname(reconciliationDestination), { recursive: true });
-    writeFileSync(receiptDestination, JSON.stringify(minted.receipt, null, 2) + "\n");
+    writeFileSync(receiptDestination, JSON.stringify(receipt, null, 2) + "\n");
     writeFileSync(reconciliationDestination, JSON.stringify(reconciliation, null, 2) + "\n");
     expect(readFileSync(receiptDestination, "utf8")).toContain('"format": "axm-action-receipt/1"');
   });
