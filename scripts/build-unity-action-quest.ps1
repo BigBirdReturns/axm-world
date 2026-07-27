@@ -79,8 +79,11 @@ if (-not (Test-Path $prepareReceiptPath)) { throw "Quest prepare receipt is abse
 $buildReceipt = Get-Content $buildReceiptPath -Raw | ConvertFrom-Json
 $prepareReceipt = Get-Content $prepareReceiptPath -Raw | ConvertFrom-Json
 if ($buildReceipt.status -ne "pass" -or $prepareReceipt.status -ne "pass") { throw "Quest preparation or build did not pass." }
+$applicationIdentifier = [string]$buildReceipt.applicationIdentifier
+if ([string]::IsNullOrWhiteSpace($applicationIdentifier)) { throw "Quest build receipt does not name its Android application identifier." }
 $apk = [System.IO.Path]::GetFullPath([string]$buildReceipt.product)
 if (-not (Test-Path $apk)) { throw "Quest APK is absent: $apk" }
+$remoteSpoolRoot = "/sdcard/Android/data/$applicationIdentifier/files/axm-action-session-spool"
 
 $installation = "not-requested"
 $device = $null
@@ -107,6 +110,8 @@ $receipt = [ordered]@{
     scenePath = $prepareReceipt.scenePath
     actionSpecDigest = $buildReceipt.actionSpecDigest
     sceneJob = $buildReceipt.sceneJob
+    applicationIdentifier = $applicationIdentifier
+    remoteSpoolRoot = $remoteSpoolRoot
     apk = $apk
     apkSha256 = $buildReceipt.productSha256
     apkBytes = $buildReceipt.totalBytes
