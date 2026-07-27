@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'scripts/run-first-charter-action.ps1'
+      - 'scripts/run-first-charter-physical-session.ps1'
       - 'scripts/complete-embodied-action-session.ps1'
       - 'scripts/generate-unity-action-production.ps1'
       - 'scripts/run-unity-action-estate.ps1'
@@ -11,6 +12,7 @@ on:
       - 'scripts/run-unity-action-estate-v3.ps1'
       - 'scripts/build-unity-action-player.ps1'
       - 'scripts/build-unity-action-quest.ps1'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionBuildBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionGovernedProductionBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionGovernedMotionAugmentBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionPresentation.cs'
@@ -24,6 +26,7 @@ on:
       - feature/action-runtime-v1
     paths:
       - 'scripts/run-first-charter-action.ps1'
+      - 'scripts/run-first-charter-physical-session.ps1'
       - 'scripts/complete-embodied-action-session.ps1'
       - 'scripts/generate-unity-action-production.ps1'
       - 'scripts/run-unity-action-estate.ps1'
@@ -31,6 +34,7 @@ on:
       - 'scripts/run-unity-action-estate-v3.ps1'
       - 'scripts/build-unity-action-player.ps1'
       - 'scripts/build-unity-action-quest.ps1'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionBuildBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionGovernedProductionBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionGovernedMotionAugmentBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionPresentation.cs'
@@ -81,6 +85,7 @@ jobs:
         run: |
           $paths = @(
             'scripts/run-first-charter-action.ps1',
+            'scripts/run-first-charter-physical-session.ps1',
             'scripts/complete-embodied-action-session.ps1',
             'scripts/generate-unity-action-production.ps1',
             'scripts/run-unity-action-estate.ps1',
@@ -130,7 +135,7 @@ jobs:
             Get-Content -Raw $receiptPath | Write-Error
             throw "PowerShell parse errors remain in: $($failures -join ', ')"
           }
-      - name: Run the launcher, governed-production, and complete World contracts
+      - name: Run the launcher, governed-production, physical-session, and complete World contracts
         shell: pwsh
         run: |
           npm test -- tests/world/action-local-launcher.test.ts tests/world/action-unity-source-contract.test.ts *>&1 | Tee-Object "$env:RUNNER_TEMP\launcher-receipt\focused.log"
