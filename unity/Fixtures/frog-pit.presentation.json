@@ -1,0 +1,107 @@
+{
+  "$schema": "../Schemas/rodoh-action-presentation-manifest-v1.schema.json",
+  "format": "rodoh-action-presentation-manifest/1",
+  "manifestId": "frog-pit-neutral-v1",
+  "sourceActionSpecDigest": "actspec1_0000000000000000000000000000000000000000000000000000000000000000",
+  "themeId": "neutral-frog-pit",
+  "player": {
+    "actorId": "player",
+    "bodyPrefab": null,
+    "animatorController": null,
+    "motionSet": {
+      "idle": null,
+      "move": null,
+      "light": null,
+      "heavy": null,
+      "dodge": null,
+      "parry": null,
+      "stagger": null,
+      "defeat": null
+    },
+    "neutralFallback": true,
+    "scale": 1
+  },
+  "enemies": [
+    {
+      "actorId": "enemy-skirmisher",
+      "kit": "skirmisher",
+      "bodyPrefab": null,
+      "animatorController": null,
+      "motionSet": { "idle": null, "move": null, "light": null, "heavy": null, "dodge": null, "parry": null, "stagger": null, "defeat": null },
+      "neutralFallback": true,
+      "scale": 0.8
+    },
+    {
+      "actorId": "enemy-duelist",
+      "kit": "duelist",
+      "bodyPrefab": null,
+      "animatorController": null,
+      "motionSet": { "idle": null, "move": null, "light": null, "heavy": null, "dodge": null, "parry": null, "stagger": null, "defeat": null },
+      "neutralFallback": true,
+      "scale": 0.9
+    },
+    {
+      "actorId": "enemy-swarm",
+      "kit": "swarm",
+      "bodyPrefab": null,
+      "animatorController": null,
+      "motionSet": { "idle": null, "move": null, "light": null, "heavy": null, "dodge": null, "parry": null, "stagger": null, "defeat": null },
+      "neutralFallback": true,
+      "scale": 0.5
+    },
+    {
+      "actorId": "enemy-hexer",
+      "kit": "hexer",
+      "bodyPrefab": null,
+      "animatorController": null,
+      "motionSet": { "idle": null, "move": null, "light": null, "heavy": null, "dodge": null, "parry": null, "stagger": null, "defeat": null },
+      "neutralFallback": true,
+      "scale": 0.9
+    },
+    {
+      "actorId": "enemy-breaker",
+      "kit": "breaker",
+      "bodyPrefab": null,
+      "animatorController": null,
+      "motionSet": { "idle": null, "move": null, "light": null, "heavy": null, "dodge": null, "parry": null, "stagger": null, "defeat": null },
+      "neutralFallback": true,
+      "scale": 1.35
+    }
+  ],
+  "arena": {
+    "kit": "ring",
+    "recipe": null,
+    "neutralFallback": true,
+    "metersPerActionUnit": 0.0005
+  },
+  "feedback": [
+    { "event": "player_action", "vfxPrefab": null, "audioClip": null, "haptic": 0.15, "cameraImpulse": 0.05, "hitStopMilliseconds": 0, "neutralFallback": true },
+    { "event": "enemy_hit", "vfxPrefab": null, "audioClip": null, "haptic": 0.35, "cameraImpulse": 0.25, "hitStopMilliseconds": 35, "neutralFallback": true },
+    { "event": "player_hit", "vfxPrefab": null, "audioClip": null, "haptic": 0.55, "cameraImpulse": 0.4, "hitStopMilliseconds": 25, "neutralFallback": true },
+    { "event": "parry", "vfxPrefab": null, "audioClip": null, "haptic": 0.5, "cameraImpulse": 0.35, "hitStopMilliseconds": 45, "neutralFallback": true },
+    { "event": "dodge", "vfxPrefab": null, "audioClip": null, "haptic": 0.2, "cameraImpulse": 0.05, "hitStopMilliseconds": 0, "neutralFallback": true },
+    { "event": "objective_completed", "vfxPrefab": null, "audioClip": null, "haptic": 0.3, "cameraImpulse": 0.15, "hitStopMilliseconds": 0, "neutralFallback": true },
+    { "event": "encounter_completed", "vfxPrefab": null, "audioClip": null, "haptic": 0.4, "cameraImpulse": 0.2, "hitStopMilliseconds": 0, "neutralFallback": true }
+  ],
+  "qualityProfiles": [
+    { "id": "low", "renderScale": 0.7, "maximumSkinnedActors": 5, "maximumParticles": 96, "shadowMode": "none", "postProcessing": false, "targetFps": 30 },
+    { "id": "standard", "renderScale": 1, "maximumSkinnedActors": 9, "maximumParticles": 384, "shadowMode": "one-directional", "postProcessing": false, "targetFps": 60 },
+    { "id": "high", "renderScale": 1.15, "maximumSkinnedActors": 13, "maximumParticles": 1024, "shadowMode": "baked", "postProcessing": true, "targetFps": 72 }
+  ],
+  "accessibility": {
+    "telegraphScale": 1.5,
+    "reducedMotion": false,
+    "highContrast": false,
+    "hapticsOptional": true,
+    "audioOptional": true,
+    "oneHandedMappings": true
+  },
+  "provenance": {
+    "format": "rodoh-action-presentation-provenance/1",
+    "license": "MIT",
+    "assetRoots": [
+      "Assets/AXM/Generated/frog-pit-neutral-v1"
+    ],
+    "remoteRuntimeReferencesAllowed": false
+  }
+}
