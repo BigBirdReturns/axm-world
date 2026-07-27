@@ -63,6 +63,19 @@ jobs:
             axm-world/package-lock.json
             axm-arc/package-lock.json
 
+      - name: Verify the pristine three-checkout estate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/continuous-authority-estate"
+          node axm-world/scripts/continuous-authority/verify-estate.mjs \
+            --lock axm-world/estate/post-v1/continuous-authority.lock.json \
+            --world axm-world \
+            --arc axm-arc \
+            --embodied axm-embodied \
+            --output "$RUNNER_TEMP/continuous-authority-estate/estate-verification.json" \
+            2>&1 | tee "$RUNNER_TEMP/continuous-authority-estate/estate-verification.log"
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -76,19 +89,6 @@ jobs:
           npm --prefix axm-world ci --no-audit --no-fund
           npm --prefix axm-arc ci --no-audit --no-fund
           python -m pip install --disable-pip-version-check -e './axm-embodied[dev]'
-
-      - name: Verify the three-checkout estate
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/continuous-authority-estate"
-          node axm-world/scripts/continuous-authority/verify-estate.mjs \
-            --lock axm-world/estate/post-v1/continuous-authority.lock.json \
-            --world axm-world \
-            --arc axm-arc \
-            --embodied axm-embodied \
-            --output "$RUNNER_TEMP/continuous-authority-estate/estate-verification.json" \
-            | tee "$RUNNER_TEMP/continuous-authority-estate/estate-verification.log"
 
       - name: Qualify World orchestration and complete product
         shell: bash
@@ -120,7 +120,7 @@ jobs:
             tests/test_action_spool.py \
             tests/test_strict_action_json.py \
             tests/test_action_evidence_workflow.py \
-            | tee "$RUNNER_TEMP/continuous-authority-estate/embodied-focused.log"
+            2>&1 | tee "$RUNNER_TEMP/continuous-authority-estate/embodied-focused.log"
 
       - name: Require clean exact checkouts
         shell: bash
