@@ -213,7 +213,7 @@ if (worldPath && arcPath && embodiedPath) {
   const embodiedRepo = repositoryRoot(embodiedPath, "Embodied");
 
   const worldHead = git(worldRepo, ["rev-parse", "HEAD"]).stdout.trim();
-  requireCommit(worldHead, "World head");
+  requiredCommit(worldHead, "World head");
   requireAncestor(worldRepo, world.receiverCommit, worldHead, "World receiver ancestry");
   requireClean(worldRepo, "World");
   requireFiles(worldRepo, [
