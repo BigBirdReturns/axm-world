@@ -18,6 +18,7 @@
     "estate:validate": "node scripts/local-estate/estate-tools.mjs validate-lock --lock estate/estate.lock.json",
     "estate:contract": "vitest run tests/world/local-estate-contract.test.ts",
     "estate:status": "node scripts/estate/generate-current-status.mjs",
+    "estate:continuous": "node scripts/continuous-authority/verify-estate.mjs --lock estate/post-v1/continuous-authority.lock.json",
     "performance:audit": "node scripts/performance/audit-static-build.mjs --build docs/game --budgets docs/performance/RODOH_PERFORMANCE_BUDGETS.json"
   },
   "dependencies": {
