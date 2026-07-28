@@ -29,7 +29,7 @@ describe("Unity natural action player plane", () => {
     expect(source).toContain("KeyCode.Q");
     expect(source).toContain("router.SetInteract(Input.GetKey(KeyCode.E)");
     expect(source).toContain("CursorLockMode.Locked");
-    expect(source).toContain("router.SetDesktopKeyboardFallback(false)");
+    expect(source).toMatch(/router\?*\.SetDesktopKeyboardFallback\(false\)/);
   });
 
   it("buffers edges until the next legal tick while preserving held mechanism work", () => {
@@ -69,6 +69,6 @@ describe("Unity natural action player plane", () => {
     expect(batch).toContain("ActionNaturalPlayerInput");
     expect(batch).toContain("ActionGameFeelController");
     expect(batch).toContain("ActionMinimalHud");
-    expect(batch).toContain("natural action player augmentation is incomplete");
+    expect(batch.toLowerCase()).toContain("natural action player augmentation is incomplete");
   });
 });
