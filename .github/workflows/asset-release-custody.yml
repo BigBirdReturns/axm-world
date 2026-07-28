@@ -71,6 +71,8 @@ jobs:
           cp docs/release/RODOH_ASSET_INVENTORY.json asset-release-receipt/asset-inventory.json
           cp demos/underdrain-draft/presentation.json asset-release-receipt/underdrain-presentation.json
           cp demos/underdrain-draft/assets/provenance.json asset-release-receipt/underdrain-provenance.json
+          cp docs/design/UNDERDRAIN_ASSET_BIBLE.md asset-release-receipt/UNDERDRAIN_ASSET_BIBLE.md
+          cp docs/design/UNDERDRAIN_REPRESENTATION_FAILURE_ANALYSIS.md asset-release-receipt/UNDERDRAIN_REPRESENTATION_FAILURE_ANALYSIS.md
           printf '%s\n' '${{ github.event.pull_request.head.sha || github.sha }}' > asset-release-receipt/world-candidate-sha.txt
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
@@ -81,6 +83,18 @@ jobs:
           set -euo pipefail
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
           npx playwright test 2>&1 | tee asset-release-receipt/complete-browser.log
+      - name: Retain represented browser and geometry evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          if [[ -d test-results ]]; then
+            rm -rf asset-release-receipt/playwright-test-results
+            cp -a test-results asset-release-receipt/playwright-test-results
+          fi
+          if [[ -d playwright-report ]]; then
+            rm -rf asset-release-receipt/playwright-report
+            cp -a playwright-report asset-release-receipt/playwright-report
+          fi
       - name: Preserve clean source tree
         if: always()
         run: |
@@ -88,7 +102,7 @@ jobs:
           if git ls-files -- docs/game | grep -q .; then
             git restore --source=HEAD --staged --worktree -- docs/game
           fi
-          git clean -fdx -- docs/game test-results local/playwright-underdrain
+          git clean -fdx -- docs/game test-results playwright-report local/playwright-underdrain
           git diff --check
       - name: Upload asset release receipt
         if: always()
@@ -96,5 +110,6 @@ jobs:
         with:
           name: rodoh-asset-release-custody
           path: asset-release-receipt
+          include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30
