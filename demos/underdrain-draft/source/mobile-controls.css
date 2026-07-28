@@ -1,23 +1,156 @@
-@media(max-width:620px){
+/*
+ * Narrow-screen action law.
+ * Mission copy and controls occupy a separate command deck and never cover
+ * the rendered world. Landscape uses a right rail; portrait stacks below.
+ */
+@media(max-width:960px){
+  body[data-view="action"] .topline{
+    position:relative;
+    top:0;
+    padding:7px 10px;
+    border-radius:12px;
+  }
+  body[data-view="action"] .statusline{display:none}
+  body[data-view="action"] main{padding-top:6px}
+
+  .action-grid{grid-template-columns:1fr}
+  .stage{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) clamp(220px,31vw,280px);
+    grid-template-rows:auto 1fr;
+    min-height:0;
+    align-items:stretch;
+    overflow:hidden;
+    background:#050b08;
+  }
+  .stage>canvas{
+    grid-column:1;
+    grid-row:1 / span 2;
+    position:relative;
+    z-index:1;
+    width:100%;
+    height:auto;
+    align-self:center;
+  }
+  .hud{
+    grid-column:1;
+    grid-row:1;
+    z-index:5;
+  }
+  .objective-ribbon{
+    position:static;
+    grid-column:2;
+    grid-row:1;
+    transform:none;
+    width:auto;
+    margin:12px 12px 8px;
+    align-self:start;
+    z-index:2;
+    text-align:left;
+    background:#0b1510;
+    border-color:rgba(140,229,184,.28);
+  }
   .touch{
-    inset:auto 6px 76px;
-    gap:6px;
-    align-items:flex-end;
+    position:static;
+    inset:auto;
+    grid-column:2;
+    grid-row:2;
+    display:grid;
+    grid-template-rows:auto auto;
+    gap:12px;
+    padding:0 12px 12px;
+    align-self:end;
+    pointer-events:auto;
+    z-index:2;
+    background:linear-gradient(180deg,rgba(7,14,10,0),rgba(7,14,10,.88));
   }
   .touch-dpad{
-    grid-template-columns:repeat(3,clamp(44px,11.5vw,50px));
-    grid-template-rows:repeat(2,clamp(44px,11.5vw,50px));
-    gap:4px;
+    justify-self:center;
+    grid-template-columns:repeat(3,48px);
+    grid-template-rows:repeat(2,48px);
+    gap:5px;
   }
-  .touch-actions{gap:5px}
+  .touch-actions{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:6px;
+    align-items:stretch;
+  }
   .touch-actions button{
-    width:clamp(52px,14.2vw,58px);
-    height:clamp(52px,14.2vw,58px);
-    padding:0 2px;
+    width:auto;
+    height:54px;
+    min-width:0;
+    border-radius:13px;
+    padding:0 4px;
     overflow:hidden;
     white-space:nowrap;
-    font-size:clamp(8px,2.35vw,9px);
-    letter-spacing:-.025em;
+    font-size:10px;
+    letter-spacing:-.02em;
   }
-  .objective-ribbon{bottom:185px}
+  .side{display:grid;grid-template-columns:1fr 1fr}
+}
+
+@media(max-width:700px), (orientation:portrait) and (max-width:960px){
+  .stage{
+    grid-template-columns:1fr;
+    grid-template-rows:auto auto auto;
+  }
+  .stage>canvas{
+    grid-column:1;
+    grid-row:1;
+  }
+  .hud{
+    grid-column:1;
+    grid-row:1;
+  }
+  .objective-ribbon{
+    grid-column:1;
+    grid-row:2;
+    margin:0;
+    padding:10px 12px;
+    border-left:0;
+    border-right:0;
+    border-radius:0;
+    text-align:center;
+  }
+  .touch{
+    grid-column:1;
+    grid-row:3;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    padding:10px 8px 12px;
+    background:#07100b;
+  }
+  .touch-dpad{
+    grid-template-columns:repeat(3,46px);
+    grid-template-rows:repeat(2,46px);
+    gap:4px;
+  }
+  .touch-actions{display:flex;gap:5px}
+  .touch-actions button{
+    width:54px;
+    height:54px;
+    border-radius:50%;
+    font-size:9px;
+  }
+  .side{grid-template-columns:1fr}
+}
+
+@media(max-height:500px) and (orientation:landscape) and (max-width:960px){
+  .app{padding:4px 4px 18px}
+  body[data-view="action"] .topline{padding:4px 8px}
+  body[data-view="action"] .brandmark{width:34px;height:34px}
+  body[data-view="action"] .brand h1{font-size:18px}
+  body[data-view="action"] .eyebrow{font-size:8px}
+  .stage{grid-template-columns:minmax(0,1fr) 238px}
+  .objective-ribbon{margin:8px 8px 4px;padding:9px 10px}
+  .touch{padding:0 8px 8px;gap:7px}
+  .touch-dpad{
+    grid-template-columns:repeat(3,44px);
+    grid-template-rows:repeat(2,44px);
+    gap:4px;
+  }
+  .touch-actions button{height:48px;font-size:9px}
+  .side{display:none}
 }
