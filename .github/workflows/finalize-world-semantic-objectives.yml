@@ -1,7 +1,9 @@
 name: Finalize World semantic action objectives
 
-# Retry after the parity and contract files moved the branch head.
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/finalize-world-semantic-objectives.yml'
   push:
     branches:
       - feature/action-semantic-objectives-v1
@@ -26,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           show-progress: false
       - uses: actions/setup-node@v4
@@ -138,6 +140,25 @@ jobs:
             if (objectives == null || objectives.Length == 0) errors.Add("Action encounter has no objectives.");
 ''',
               'semantic objective counter',
+          )
+          contract = replace_once(
+              contract,
+              '''                    if (objective == null || !ActionContract.IsEnemyKit(objective.enemyKit) || !enemyIds.Contains(objective.enemyKit)) errors.Add("Action objective references an unavailable enemy law.");
+                    if (objective == null || objective.enemyCount < 1 || objective.enemyCount > 12 || objective.targetDefeats < 1 || objective.targetDefeats > objective.enemyCount) errors.Add("Action objective population is outside the v1 bound.");
+                    if (objective != null && (double.IsNaN(objective.severity) || double.IsInfinity(objective.severity) || objective.severity < 0 || objective.severity > 1)) errors.Add("Action objective severity is invalid.");
+''',
+              '''                    if (objective == null || !ActionContract.IsEnemyKit(objective.enemyKit) || !enemyIds.Contains(objective.enemyKit)) errors.Add("Action objective references an unavailable enemy law.");
+                    if (objective != null && objective.semanticCompletion == null)
+                    {
+                        if (objective.enemyCount < 1 || objective.enemyCount > 12 || objective.targetDefeats < 1 || objective.targetDefeats > objective.enemyCount) errors.Add("Legacy action objective population is outside the v1 bound.");
+                    }
+                    else if (objective != null && (objective.enemyCount < 0 || objective.enemyCount > 12 || objective.targetDefeats < 0 || objective.targetDefeats > objective.enemyCount))
+                    {
+                        errors.Add("Semantic action objective pressure population is outside the v1.1 bound.");
+                    }
+                    if (objective != null && (double.IsNaN(objective.severity) || double.IsInfinity(objective.severity) || objective.severity < 0 || objective.severity > 1)) errors.Add("Action objective severity is invalid.");
+''',
+              'population validation',
           )
           contract = replace_once(
               contract,
@@ -500,7 +521,7 @@ jobs:
 
       - run: npm ci --no-audit --no-fund
 
-      - name: Compile the exact dependency-free receiver
+      - name: Compile and qualify the exact receiver
         shell: bash
         run: |
           set -euo pipefail
@@ -508,7 +529,9 @@ jobs:
           dotnet build unity/Conformance/Axm.Rodoh.Action.ArcParity.csproj --configuration Release
           dotnet build unity/Conformance/Axm.Rodoh.Action.SemanticParity.csproj --configuration Release
           npm run typecheck
-          npm test -- tests/world/action-unity-source-contract.test.ts
+          npm test -- \
+            tests/world/action-semantic-objective-contract.test.ts \
+            tests/world/action-unity-source-contract.test.ts
           npm test
           npm run build
           if git ls-files -- docs/game | grep -q .; then
@@ -521,7 +544,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          source_head='${{ github.sha }}'
+          source_head='${{ github.event.pull_request.head.sha || github.sha }}'
           git fetch --no-tags origin feature/action-semantic-objectives-v1
           test "$(git rev-parse origin/feature/action-semantic-objectives-v1)" = "$source_head"
           git config user.name 'github-actions[bot]'
