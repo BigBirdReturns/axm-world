@@ -6,6 +6,11 @@ on:
       - main
     paths:
       - '.github/workflows/run-underdrain-authored-pilot-convergence.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/run-underdrain-authored-pilot-convergence.yml'
 
 permissions:
   contents: write
@@ -74,4 +79,4 @@ jobs:
           git -C carrier-main commit -m 'Remove completed Underdrain convergence carrier'
           git -C carrier-main push origin HEAD:main
 
-# One-shot trigger. This file removes itself only after the child qualification succeeds.
+# One-shot carrier. Same-repository review triggering is enabled because push-run discovery is intentionally not used as an acceptance oracle.
