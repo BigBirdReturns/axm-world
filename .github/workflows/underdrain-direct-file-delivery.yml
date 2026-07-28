@@ -8,6 +8,9 @@ on:
       - 'scripts/demos/build-underdrain-draft.mjs'
       - 'scripts/demos/verify-underdrain-draft.mjs'
       - 'scripts/demos/qualify-underdrain-direct-file.mjs'
+      - 'src/world/acceptance/representation-completeness.ts'
+      - 'tests/world/representation-completeness.test.ts'
+      - 'tests/world/underdrain-presentation-completeness.test.ts'
       - 'tests/world/underdrain-draft-standalone.test.ts'
   workflow_dispatch:
 
@@ -46,7 +49,7 @@ jobs:
         shell: pwsh
         run: npm --prefix axm-world ci --no-audit --no-fund
 
-      - name: Build and statically verify the exact single file
+      - name: Build and statically verify the exact represented single file
         shell: pwsh
         run: |
           $worldCommit = (git -C axm-world rev-parse HEAD).Trim()
@@ -54,6 +57,7 @@ jobs:
             throw "World checkout identity mismatch: $worldCommit"
           }
           $authoringSha = (Get-FileHash axm-world/demos/underdrain-draft/authoring.json -Algorithm SHA256).Hash.ToLowerInvariant()
+          $presentationSha = (Get-FileHash axm-world/demos/underdrain-draft/presentation.json -Algorithm SHA256).Hash.ToLowerInvariant()
           $root = Join-Path $env:RUNNER_TEMP 'underdrain-direct-file'
           New-Item -ItemType Directory -Force $root, axm-world/local/underdrain-draft | Out-Null
 
@@ -71,6 +75,7 @@ jobs:
             --world-commit $worldCommit `
             --arc-commit $env:ARC_UNDERDRAIN_SHA `
             --authoring-sha256 $authoringSha `
+            --presentation-sha256 $presentationSha `
             --output "$root/static-verification.json" `
             2>&1 | Tee-Object "$root/static-verification.log"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -78,15 +83,23 @@ jobs:
           Set-Content -Encoding ascii "$root/world-candidate.txt" $worldCommit
           Set-Content -Encoding ascii "$root/arc-authority.txt" $env:ARC_UNDERDRAIN_SHA
           Set-Content -Encoding ascii "$root/authoring-sha256.txt" $authoringSha
+          Set-Content -Encoding ascii "$root/presentation-sha256.txt" $presentationSha
           Copy-Item axm-world/local/underdrain-draft/index.html "$root/index.html"
+          Copy-Item axm-world/demos/underdrain-draft/presentation.json "$root/presentation.json"
+          Copy-Item axm-world/demos/underdrain-draft/assets/provenance.json "$root/representation-provenance.json"
+          Copy-Item axm-world/demos/underdrain-draft/assets/underdrain-art.js "$root/underdrain-art.js"
 
-      - name: Qualify focused source contracts
+      - name: Qualify focused source and representation contracts
         working-directory: axm-world
         shell: pwsh
         run: |
           npm run typecheck
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm test -- tests/world/underdrain-draft-standalone.test.ts
+          npm test -- `
+            tests/world/underdrain-draft-standalone.test.ts `
+            tests/world/representation-completeness.test.ts `
+            tests/world/playable-product-completeness.test.ts `
+            tests/world/underdrain-presentation-completeness.test.ts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Install Chromium
@@ -94,16 +107,18 @@ jobs:
         shell: pwsh
         run: npx playwright install chromium
 
-      - name: Qualify direct-file Chromium and Edge
+      - name: Qualify represented direct-file Chromium and Edge
         working-directory: axm-world
         shell: pwsh
         run: |
           $root = Join-Path $env:RUNNER_TEMP 'underdrain-direct-file'
           $worldCommit = (git rev-parse HEAD).Trim()
+          $presentationSha = (Get-FileHash demos/underdrain-draft/presentation.json -Algorithm SHA256).Hash.ToLowerInvariant()
           node scripts/demos/qualify-underdrain-direct-file.mjs `
             --html local/underdrain-draft/index.html `
             --world-commit $worldCommit `
             --arc-commit $env:ARC_UNDERDRAIN_SHA `
+            --presentation-sha256 $presentationSha `
             --output "$root/direct-file-delivery.json" `
             --screenshot-root $root `
             2>&1 | Tee-Object "$root/direct-file-delivery.log"
@@ -118,7 +133,7 @@ jobs:
             Where-Object { $_.Name -ne 'SHA256SUMS' } |
             Sort-Object FullName |
             ForEach-Object {
-              $relative = [IO.Path]::GetRelativePath((Resolve-Path $root), $_.FullName).Replace('\\','/')
+              $relative = [IO.Path]::GetRelativePath((Resolve-Path $root), $_.FullName).Replace('\','/')
               $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
               "$hash  $relative"
             } | Set-Content -Encoding ascii "$root/SHA256SUMS"
@@ -137,4 +152,4 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-# Exact-head rerun after removing the disposable diagnostic carrier.
+# Exact-head represented direct-file delivery boundary.
