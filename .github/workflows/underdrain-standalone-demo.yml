@@ -8,12 +8,15 @@ on:
       - 'demos/underdrain-draft/**'
       - 'docs/design/UNDERDRAIN_ASSET_BIBLE.md'
       - 'docs/design/UNDERDRAIN_REPRESENTATION_FAILURE_ANALYSIS.md'
+      - 'docs/schemas/rodoh-representation-plan-v1.schema.json'
+      - 'scripts/assets/scaffold-authored-pilot-representation.mjs'
       - 'scripts/demos/build-underdrain-arc-capsule.mjs'
       - 'scripts/demos/build-underdrain-draft.mjs'
       - 'scripts/demos/verify-underdrain-draft.mjs'
       - 'src/world/acceptance/representation-completeness.ts'
       - 'src/world/acceptance/playable-product.ts'
       - 'tests/world/authored-pilot-representation-discovery.test.ts'
+      - 'tests/world/authored-pilot-representation-scaffold.test.ts'
       - 'tests/world/representation-completeness.test.ts'
       - 'tests/world/playable-product-completeness.test.ts'
       - 'tests/world/underdrain-presentation-completeness.test.ts'
@@ -175,6 +178,21 @@ jobs:
           }
           JSON
 
+      - name: Derive and check exact representation obligations
+        shell: bash
+        run: |
+          set -euo pipefail
+          node axm-world/scripts/assets/scaffold-authored-pilot-representation.mjs \
+            --authoring axm-world/demos/underdrain-draft/authoring.json \
+            --presentation axm-world/demos/underdrain-draft/presentation.json \
+            --namespace underdrain \
+            --repository BigBirdReturns/axm-world \
+            --authored-identity underdrain-continuous-pilot-v2 \
+            --experience-id underdrain-continuous-pilot-v2 \
+            --people marta-sump,morrowcap,mrs-kett,dax-venn \
+            --state-ids town-water-pressure,kett-water,fungus-contact,crown-grievance,rhea-status,evidence-custody,root-gate-open \
+            | tee "$RUNNER_TEMP/underdrain-pilot/representation-scaffold-check.json"
+
       - name: Build and verify the exact represented standalone
         id: standalone
         shell: bash
@@ -217,6 +235,7 @@ jobs:
             tests/world/representation-completeness.test.ts \
             tests/world/playable-product-completeness.test.ts \
             tests/world/authored-pilot-representation-discovery.test.ts \
+            tests/world/authored-pilot-representation-scaffold.test.ts \
             tests/world/underdrain-presentation-completeness.test.ts
           npm test
           npm run build
@@ -270,6 +289,7 @@ jobs:
           cp axm-world/demos/underdrain-draft/README.md "$root/"
           cp axm-world/docs/design/UNDERDRAIN_ASSET_BIBLE.md "$root/"
           cp axm-world/docs/design/UNDERDRAIN_REPRESENTATION_FAILURE_ANALYSIS.md "$root/"
+          cp axm-world/scripts/assets/scaffold-authored-pilot-representation.mjs "$root/"
           printf '%s\n' '${{ steps.standalone.outputs.source_head }}' > "$root/world-candidate.txt"
           printf '%s\n' "$ARC_UNDERDRAIN_SHA" > "$root/arc-candidate.txt"
           printf '%s\n' '${{ steps.standalone.outputs.authoring_sha }}' > "$root/authoring-sha256.txt"
@@ -285,6 +305,7 @@ jobs:
               "format": "rodoh-representation-plan/1",
               "planId": "underdrain-white-label-v1",
               "sha256": "${{ steps.standalone.outputs.presentation_sha }}",
+              "derivedObligationsGate": "pass",
               "actionRenderer": "cartridge-assets",
               "neutralFallbackUsed": false,
               "automatedGate": "pass",
