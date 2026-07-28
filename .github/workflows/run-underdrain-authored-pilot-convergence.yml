@@ -1,0 +1,75 @@
+name: Run UNDERDRAIN authored-pilot convergence
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/run-underdrain-authored-pilot-convergence.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: run-underdrain-authored-pilot-convergence
+  cancel-in-progress: true
+
+env:
+  ARC_UNDERDRAIN_SHA: 395bc539165cc525678ba7eb83434c8cd674437b
+  SENTINEL_WORLD_SHA: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+jobs:
+  converge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out the temporary main carrier
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: carrier-main
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Check out the authored-pilot child
+        uses: actions/checkout@v4
+        with:
+          ref: qualify/underdrain-authored-pilot-v2
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Check out exact Arc authority
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_UNDERDRAIN_SHA }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            axm-world/package-lock.json
+            axm-arc/package-lock.json
+
+      - name: Install exact dependencies
+        run: |
+          npm --prefix axm-world ci --no-audit --no-fund
+          npm --prefix axm-arc ci --no-audit --no-fund
+
+      - name: Generate, qualify, and publish the carrier-free authored pilot
+        run: bash axm-world/scripts/demos/converge-underdrain-authored-pilot-v2.sh
+
+      - name: Remove this temporary carrier from main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C carrier-main config user.name 'github-actions[bot]'
+          git -C carrier-main config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C carrier-main rm .github/workflows/run-underdrain-authored-pilot-convergence.yml
+          git -C carrier-main commit -m 'Remove completed Underdrain convergence carrier'
+          git -C carrier-main push origin HEAD:main
