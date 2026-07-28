@@ -136,3 +136,5 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
+
+# Exact-head rerun after removing the disposable diagnostic carrier.
