@@ -21,6 +21,9 @@ internal static class Program
         public string firstStateFingerprint;
         public string replayStateFingerprint;
         public bool deterministicReplay;
+        public bool naturalInputBuffer;
+        public bool heldMechanismInput;
+        public bool defensiveInputPriority;
         public string outcome;
         public int completedObjectives;
         public string authority = "C# is a conformance mirror; Arc replay is acceptance authority";
@@ -42,6 +45,7 @@ internal static class Program
             receipt.sourceArcDigest = spec.sourceArcDigest;
             receipt.challengeId = spec.challengeId;
             receipt.tickRate = spec.tickRate;
+            VerifyNaturalInputBuffer(receipt);
 
             const uint seed = 0x51A7u;
             var recorder = new ActionTraceRecorder();
@@ -106,6 +110,35 @@ internal static class Program
             }
             return 1;
         }
+    }
+
+    private static void VerifyNaturalInputBuffer(Receipt receipt)
+    {
+        var buffer = new ActionBufferedInput(5);
+        var continuous = new ActionInputFrame { moveX = 1, aimY = 1 };
+        buffer.Buffer(ActionContract.Light);
+        for (var index = 0; index < 3; index += 1)
+        {
+            if (buffer.Sample(continuous, ActionPlayerMode.Heavy).buttons != 0) throw new InvalidOperationException("Buffered attack leaked into a locked player mode.");
+        }
+        if (buffer.Sample(continuous, ActionPlayerMode.Idle).buttons != ActionContract.Light) throw new InvalidOperationException("Buffered light attack was not consumed on the next legal tick.");
+
+        var held = buffer.Sample(new ActionInputFrame { moveY = 1, aimY = 1, buttons = ActionContract.Interact }, ActionPlayerMode.Heavy);
+        if (held.buttons != ActionContract.Interact) throw new InvalidOperationException("Held mechanism work did not pass through a non-idle state.");
+
+        buffer.Buffer(ActionContract.Light | ActionContract.Heavy | ActionContract.Dodge | ActionContract.Parry);
+        if (buffer.Sample(continuous, ActionPlayerMode.Idle).buttons != ActionContract.Dodge) throw new InvalidOperationException("Dodge did not receive defensive input priority.");
+        if (buffer.Sample(continuous, ActionPlayerMode.Idle).buttons != ActionContract.Parry) throw new InvalidOperationException("Parry did not receive defensive input priority.");
+        if (buffer.Sample(continuous, ActionPlayerMode.Idle).buttons != ActionContract.Heavy) throw new InvalidOperationException("Heavy attack was not retained after defensive intent.");
+        if (buffer.Sample(continuous, ActionPlayerMode.Idle).buttons != ActionContract.Light) throw new InvalidOperationException("Light attack was not retained after higher-priority intent.");
+
+        buffer.Buffer(ActionContract.Light);
+        for (var index = 0; index < 6; index += 1) buffer.Sample(continuous, ActionPlayerMode.Stagger);
+        if (buffer.Sample(continuous, ActionPlayerMode.Idle).buttons != 0) throw new InvalidOperationException("Expired input survived beyond its configured window.");
+
+        receipt.naturalInputBuffer = true;
+        receipt.heldMechanismInput = true;
+        receipt.defensiveInputPriority = true;
     }
 
     private static ActionInputFrame Policy(ActionSpecProjection spec, ActionSimulationState state)
