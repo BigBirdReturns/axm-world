@@ -131,7 +131,7 @@ function renderConsequence(record){
 }
 function renderCompact(receipt){
   if(!receipt)return;
-  document.querySelectorAll("[data-compact]").forEach(button=>button.disabled=true);
+  document.querySelectorAll("[data-compact]").forEach(button=>{button.disabled=true;button.hidden=true});
   const titles={"balanced-flow-compact":"THE BALANCED-FLOW COMPACT","town-first-flow":"THE TOWN-FIRST PROVISION","nursery-first-flow":"THE NURSERY-FIRST PROVISION"};
   document.getElementById("compact-title").textContent=titles[receipt.choiceId];
   document.getElementById("compact-digest").textContent=receipt.receiptDigest;
@@ -216,7 +216,16 @@ async function runAutomatedSuite(){
     noWorldInventedOutcome:true,
     blindPlayerReceiptIssuedByRuntime:false,
   };
-  const result={format:"rodoh-underdrain-automated-pilot-qualification/2",status:Object.values(checks).every(value=>value!==false)?"pass":"fail",cases,checks};
+  const passed=/^[0-9a-f]{40}$/.test(checks.exactArcCommit)
+    &&/^[0-9a-f]{64}$/.test(checks.authoringSha256)
+    &&checks.serviceHasNoEnemies
+    &&checks.serviceUsesMechanisms
+    &&checks.pumpUsesMechanisms
+    &&checks.pumpAccepted
+    &&checks.rootGateAccepted
+    &&checks.noWorldInventedOutcome
+    &&checks.blindPlayerReceiptIssuedByRuntime===false;
+  const result={format:"rodoh-underdrain-automated-pilot-qualification/2",status:passed?"pass":"fail",cases,checks};
   document.getElementById("autotest-results").textContent=JSON.stringify(result,null,2);document.body.dataset.testStatus=result.status;window.__UNDERDRAIN_TEST_RESULT__=result;
 }
 
