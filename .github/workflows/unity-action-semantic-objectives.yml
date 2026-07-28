@@ -112,8 +112,9 @@ jobs:
           rm -f \
             axm-arc/tests/action/unity-semantic-spec.test.ts \
             axm-arc/tests/action/unity-semantic-vector.test.ts
-          test -z "$(git status --porcelain)"
           test -z "$(git -C axm-arc status --porcelain)"
+          rm -rf axm-arc
+          test -z "$(git status --porcelain)"
 
       - uses: actions/upload-artifact@v4
         if: always()
