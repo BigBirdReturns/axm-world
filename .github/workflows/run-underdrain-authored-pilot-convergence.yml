@@ -73,3 +73,5 @@ jobs:
           git -C carrier-main rm .github/workflows/run-underdrain-authored-pilot-convergence.yml
           git -C carrier-main commit -m 'Remove completed Underdrain convergence carrier'
           git -C carrier-main push origin HEAD:main
+
+# One-shot trigger. This file removes itself only after the child qualification succeeds.
