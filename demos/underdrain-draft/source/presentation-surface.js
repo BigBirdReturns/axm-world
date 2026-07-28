@@ -107,6 +107,32 @@
   runtime.episodeRecord=episodeRecord;
   runtime.representation=Object.freeze({plan,presentationSha256});
 
+  const originalRunAutomatedSuite=runAutomatedSuite;
+  runAutomatedSuite=async function(){
+    await originalRunAutomatedSuite();
+    const result=globalThis.__UNDERDRAIN_TEST_RESULT__;
+    if(!result)return;
+    const representationChecks={
+      representationPlanId:plan.id,
+      presentationSha256,
+      cartridgeAssetCount:plan.assets.length,
+      actionRendererUsesCartridgeAssets:plan.renderer.action==="cartridge-assets",
+      neutralFallbackAbsent:plan.renderer.neutralFallbackUsed===false,
+      completeSurfacePlan:plan.surfaces.length===6&&plan.surfaces.every(surface=>surface.desktop&&surface.mobile&&surface.assetIds.length>0),
+      mountedCartridgeAssets:mountedAssetIds().length>=15,
+    };
+    Object.assign(result.checks,representationChecks);
+    const representationPassed=/^[0-9a-f]{64}$/.test(representationChecks.presentationSha256)
+      &&representationChecks.cartridgeAssetCount>=40
+      &&representationChecks.actionRendererUsesCartridgeAssets
+      &&representationChecks.neutralFallbackAbsent
+      &&representationChecks.completeSurfacePlan
+      &&representationChecks.mountedCartridgeAssets;
+    result.status=result.status==="pass"&&representationPassed?"pass":"fail";
+    document.getElementById("autotest-results").textContent=JSON.stringify(result,null,2);
+    document.body.dataset.testStatus=result.status;
+  };
+
   const status=document.createElement("span");
   status.className="status representation-status";
   status.id="representation-status";
