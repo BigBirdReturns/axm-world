@@ -6,6 +6,7 @@ on:
       - '.github/workflows/underdrain-standalone-demo.yml'
       - '.github/workflows/asset-release-custody.yml'
       - 'demos/underdrain-draft/**'
+      - 'docs/design/AUTHORED_PILOT_REPRESENTATION_RUNBOOK.md'
       - 'docs/design/UNDERDRAIN_ASSET_BIBLE.md'
       - 'docs/design/UNDERDRAIN_REPRESENTATION_FAILURE_ANALYSIS.md'
       - 'docs/schemas/rodoh-representation-plan-v1.schema.json'
@@ -287,6 +288,7 @@ jobs:
           cp axm-world/demos/underdrain-draft/assets/underdrain-art.js "$root/underdrain-art.js"
           cp axm-world/demos/underdrain-draft/source/arc-capsule.js "$root/"
           cp axm-world/demos/underdrain-draft/README.md "$root/"
+          cp axm-world/docs/design/AUTHORED_PILOT_REPRESENTATION_RUNBOOK.md "$root/"
           cp axm-world/docs/design/UNDERDRAIN_ASSET_BIBLE.md "$root/"
           cp axm-world/docs/design/UNDERDRAIN_REPRESENTATION_FAILURE_ANALYSIS.md "$root/"
           cp axm-world/scripts/assets/scaffold-authored-pilot-representation.mjs "$root/"
