@@ -36,12 +36,14 @@ jobs:
           test -z "$(git status --porcelain)"
           git diff --check
       - run: npm ci --no-audit --no-fund
-      - name: Qualify the refusal boundary
+      - name: Qualify structural fulfillment and blind-player refusal
         run: |
           set -euo pipefail
           npm run typecheck
-          npm test -- tests/world/one-am-player.test.ts
-      - name: Prove the gate does not fracture the receiver
+          npm test -- \
+            tests/world/one-am-structural-evidence.test.ts \
+            tests/world/one-am-player.test.ts
+      - name: Prove the gates do not fracture the receiver
         run: |
           set -euo pipefail
           npm test
@@ -51,14 +53,18 @@ jobs:
           fi
           git clean -fdx -- docs/game
           test -z "$(git status --porcelain)"
-      - name: Preserve the standard and exact test receipt
+      - name: Preserve both evidence authorities
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: one-am-authored-experience-standard
           path: |
             docs/design/ONE_AM_PLAYER_STANDARD.md
+            docs/design/UNDERDRAIN_ONE_AM_FAILURE_ANALYSIS.md
+            docs/acceptance/ONE_AM_STRUCTURAL_RUNTIME_GATE.md
+            docs/schemas/rodoh-one-am-structural-evidence-v1.schema.json
             docs/schemas/rodoh-one-am-player-receipt-v1.schema.json
+            tests/world/one-am-structural-evidence.test.ts
             tests/world/one-am-player.test.ts
           if-no-files-found: error
           retention-days: 30
