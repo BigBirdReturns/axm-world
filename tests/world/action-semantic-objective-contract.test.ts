@@ -32,8 +32,9 @@ describe("semantic action objective receiver", () => {
 
   it("keeps World provisional and binds the candidate to the projected runtime", () => {
     const trace = source("unity/Packages/com.axm.rodoh-action/Runtime/Core/ActionTrace.cs");
+    const contract = source("unity/Packages/com.axm.rodoh-action/Runtime/Core/ActionContract.cs");
     expect(trace).toContain("runtimeVersion = spec.runtimeVersion");
-    expect(trace).toContain("Arc replay required");
+    expect(contract).toContain('authority = "Arc replay required"');
   });
 
   it("provides keyboard/API ingress and an exact semantic parity referee", () => {
