@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SUBJECT_SHA: 5c27b508fc171db0a99d383c410fb9122fe2a6f2
+  SUBJECT_SHA: 5d2a7cb79e3f6d9dc1a12c2144ace098fcf906a3
 
 jobs:
   qualify:
