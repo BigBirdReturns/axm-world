@@ -79,4 +79,4 @@ jobs:
           git -C carrier-main commit -m 'Remove completed Underdrain convergence carrier'
           git -C carrier-main push origin HEAD:main
 
-# One-shot carrier. Same-repository review triggering is enabled because push-run discovery is intentionally not used as an acceptance oracle.
+# Review-trigger token: underdrain-authored-pilot-convergence-20260728.
