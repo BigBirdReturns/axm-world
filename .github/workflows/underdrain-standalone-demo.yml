@@ -4,10 +4,17 @@ on:
   pull_request:
     paths:
       - '.github/workflows/underdrain-standalone-demo.yml'
+      - '.github/workflows/asset-release-custody.yml'
       - 'demos/underdrain-draft/**'
       - 'scripts/demos/build-underdrain-arc-capsule.mjs'
       - 'scripts/demos/build-underdrain-draft.mjs'
       - 'scripts/demos/verify-underdrain-draft.mjs'
+      - 'src/world/acceptance/representation-completeness.ts'
+      - 'src/world/acceptance/playable-product.ts'
+      - 'tests/world/authored-pilot-representation-discovery.test.ts'
+      - 'tests/world/representation-completeness.test.ts'
+      - 'tests/world/playable-product-completeness.test.ts'
+      - 'tests/world/underdrain-presentation-completeness.test.ts'
       - 'tests/world/underdrain-draft-standalone.test.ts'
       - 'e2e/underdrain-draft.spec.ts'
   workflow_dispatch:
@@ -165,13 +172,14 @@ jobs:
           }
           JSON
 
-      - name: Build and verify the exact standalone
+      - name: Build and verify the exact represented standalone
         id: standalone
         shell: bash
         run: |
           set -euo pipefail
           source_head="$(git -C axm-world rev-parse HEAD)"
           authoring_sha="$(sha256sum axm-world/demos/underdrain-draft/authoring.json | awk '{print $1}')"
+          presentation_sha="$(sha256sum axm-world/demos/underdrain-draft/presentation.json | awk '{print $1}')"
           cmp \
             axm-arc/examples/underdrain-draft/authoring.json \
             axm-world/demos/underdrain-draft/authoring.json
@@ -188,18 +196,25 @@ jobs:
             --world-commit "$source_head" \
             --arc-commit "$ARC_UNDERDRAIN_SHA" \
             --authoring-sha256 "$authoring_sha" \
+            --presentation-sha256 "$presentation_sha" \
             --output "$RUNNER_TEMP/underdrain-pilot/static-verification.json" \
             | tee "$RUNNER_TEMP/underdrain-pilot/static-verification.log"
           echo "authoring_sha=$authoring_sha" >> "$GITHUB_OUTPUT"
+          echo "presentation_sha=$presentation_sha" >> "$GITHUB_OUTPUT"
           echo "source_head=$source_head" >> "$GITHUB_OUTPUT"
 
-      - name: Qualify World contracts and the complete product
+      - name: Qualify authored law, representation, and the complete product
         working-directory: axm-world
         shell: bash
         run: |
           set -euo pipefail
           npm run typecheck
-          npm test -- tests/world/underdrain-draft-standalone.test.ts
+          npm test -- \
+            tests/world/underdrain-draft-standalone.test.ts \
+            tests/world/representation-completeness.test.ts \
+            tests/world/playable-product-completeness.test.ts \
+            tests/world/authored-pilot-representation-discovery.test.ts \
+            tests/world/underdrain-presentation-completeness.test.ts
           npm test
           npm run build
           if git ls-files -- docs/game | grep -q .; then
@@ -211,7 +226,7 @@ jobs:
         working-directory: axm-world
         run: npx playwright install --with-deps chromium
 
-      - name: Cold-walk desktop and mobile
+      - name: Cold-walk desktop and mobile through the represented product
         working-directory: axm-world
         shell: bash
         run: |
@@ -236,25 +251,38 @@ jobs:
             cp -a axm-world/playwright-report "$root/playwright-report"
           fi
 
-      - name: Assemble retained authored-pilot receipt
+      - name: Assemble retained represented authored-pilot receipt
         shell: bash
         run: |
           set -euo pipefail
           root="$RUNNER_TEMP/underdrain-pilot"
           cp axm-world/local/underdrain-draft/index.html "$root/"
           cp axm-world/demos/underdrain-draft/authoring.json "$root/"
+          cp axm-world/demos/underdrain-draft/presentation.json "$root/"
+          cp axm-world/demos/underdrain-draft/assets/provenance.json "$root/representation-provenance.json"
+          cp axm-world/demos/underdrain-draft/assets/underdrain-art.js "$root/underdrain-art.js"
           cp axm-world/demos/underdrain-draft/source/arc-capsule.js "$root/"
           cp axm-world/demos/underdrain-draft/README.md "$root/"
           printf '%s\n' '${{ steps.standalone.outputs.source_head }}' > "$root/world-candidate.txt"
           printf '%s\n' "$ARC_UNDERDRAIN_SHA" > "$root/arc-candidate.txt"
           printf '%s\n' '${{ steps.standalone.outputs.authoring_sha }}' > "$root/authoring-sha256.txt"
+          printf '%s\n' '${{ steps.standalone.outputs.presentation_sha }}' > "$root/presentation-sha256.txt"
           cat > "$root/acceptance-boundary.json" <<JSON
           {
-            "format": "rodoh-underdrain-authored-pilot-acceptance/2",
-            "status": "machine-qualified",
+            "format": "rodoh-underdrain-authored-pilot-acceptance/3",
+            "status": "machine-qualified-authored-pilot",
             "worldCommit": "${{ steps.standalone.outputs.source_head }}",
             "arcCommit": "$ARC_UNDERDRAIN_SHA",
             "authoringSha256": "${{ steps.standalone.outputs.authoring_sha }}",
+            "presentation": {
+              "format": "rodoh-representation-plan/1",
+              "planId": "underdrain-white-label-v1",
+              "sha256": "${{ steps.standalone.outputs.presentation_sha }}",
+              "actionRenderer": "cartridge-assets",
+              "neutralFallbackUsed": false,
+              "automatedGate": "pass"
+            },
+            "authoredStructureGate": "pass",
             "automatedProductGate": "pass",
             "blindPlayerReceipt": {
               "status": "not-issued-by-runtime",
