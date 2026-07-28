@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ARC_UNDERDRAIN_SHA: 395bc539165cc525678ba7eb83434c8cd674437b
+  ARC_UNDERDRAIN_SHA: ea16757fe9df65405b322af13d95351896f43157
   SENTINEL_WORLD_SHA: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
 jobs:
@@ -66,6 +66,76 @@ jobs:
           npm --prefix axm-world ci --no-audit --no-fund
           npm --prefix axm-arc ci --no-audit --no-fund
 
+      - name: Repair the demonstrated mechanism-autoplay seam
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          app = Path('axm-world/demos/underdrain-draft/source/app-02.js')
+          source = app.read_text(encoding='utf-8')
+          start = source.index('function botInput(spec,state){')
+          end = source.index('\nfunction simulateAccepted', start)
+          replacement = '''function botInput(spec,state){
+            const objective=spec.objectives[state.activeObjectiveIndex];
+            const base={moveX:0,moveY:0,aimX:state.player.facingX||1,aimY:state.player.facingY||0,buttons:0};
+            const semantic=objective?.semanticCompletion;
+            const complete=new Set(state.completedInteractionTargetIds??[]);
+            const target=semantic
+              ?(semantic.kind==="interact_count"?semantic.targets.find(entry=>!complete.has(entry.id)):semantic.target)
+              :null;
+            const live=[...state.enemies].filter(enemy=>enemy.mode!=="defeated").sort((a,b)=>{
+              const ad=(a.x-state.player.x)**2+(a.y-state.player.y)**2,bd=(b.x-state.player.x)**2+(b.y-state.player.y)**2;
+              return ad-bd||a.id.localeCompare(b.id);
+            })[0];
+            if(target){
+              const dx=target.x-state.player.x,dy=target.y-state.player.y,ax=Math.sign(dx),ay=Math.sign(dy),distance=dx*dx+dy*dy;
+              if(live&&state.player.mode==="idle"){
+                const law=spec.enemyLaws[live.kit];
+                const danger=live.mode==="active"||(live.mode==="telegraph"&&live.modeTick>=Math.max(0,law.telegraphTicks-spec.player.parryActiveTicks));
+                if(danger)return{...base,aimX:Math.sign(live.x-state.player.x)||base.aimX,aimY:Math.sign(live.y-state.player.y),buttons:BUTTON.parry};
+              }
+              return distance<=Math.trunc(target.radius*.78)**2
+                ?{...base,aimX:ax||state.player.facingX,aimY:ay||state.player.facingY,buttons:BUTTON.interact}
+                :{...base,moveX:ax,moveY:ay,aimX:ax,aimY:ay};
+            }
+            if(!live)return base;
+            const dx=live.x-state.player.x,dy=live.y-state.player.y,ax=Math.sign(dx),ay=Math.sign(dy),distance=dx*dx+dy*dy;
+            const law=spec.enemyLaws[live.kit],light=spec.player.attacks[0];
+            const danger=live.mode==="active"||(live.mode==="telegraph"&&live.modeTick>=Math.max(0,law.telegraphTicks-spec.player.parryActiveTicks));
+            if(state.player.mode==="idle"&&danger)return{...base,aimX:ax,aimY:ay,buttons:BUTTON.parry};
+            if(state.player.mode==="idle"&&distance<=Math.trunc(light.range*.88)**2)return{...base,aimX:ax,aimY:ay,buttons:BUTTON.light};
+            return{...base,moveX:ax,moveY:ay,aimX:ax,aimY:ay};
+          }
+          '''
+          app.write_text(source[:start] + replacement + source[end:], encoding='utf-8', newline='\n')
+
+          for relative in (
+              'axm-world/e2e/underdrain-draft.spec.ts',
+              'axm-world/demos/underdrain-draft/README.md',
+              'axm-world/demos/underdrain-draft/PLAYTEST.md',
+              'axm-world/.github/workflows/underdrain-standalone-demo.yml',
+          ):
+              path = Path(relative)
+              text = path.read_text(encoding='utf-8')
+              text = text.replace('395bc539165cc525678ba7eb83434c8cd674437b', 'ea16757fe9df65405b322af13d95351896f43157')
+              path.write_text(text, encoding='utf-8', newline='\n')
+
+          runner = Path('axm-world/scripts/demos/converge-underdrain-authored-pilot-v2.sh')
+          text = runner.read_text(encoding='utf-8')
+          old = '''git -C axm-world add \\
+  demos/underdrain-draft/authoring.json \\
+  demos/underdrain-draft/source/arc-capsule.js \\
+  demos/underdrain-draft/expected-build.json \\
+  demos/underdrain-draft/playtest.json
+'''
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one selective publication block, found {text.count(old)}')
+          runner.write_text(text.replace(old, 'git -C axm-world add -A\n'), encoding='utf-8', newline='\n')
+          PY
+          git -C axm-world diff --check
+
       - name: Generate, qualify, and publish the carrier-free authored pilot
         shell: bash
         run: |
@@ -97,4 +167,4 @@ jobs:
           git -C carrier-main commit -m 'Remove completed Underdrain convergence carrier'
           git -C carrier-main push origin HEAD:main
 
-# One-shot carrier. Diagnostics are retained because failure receipts, not guesses, control repair.
+# One-shot carrier. The repair targets the demonstrated bot priority defect: enemies applied pressure, but the test bot treated them as the objective.
