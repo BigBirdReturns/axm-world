@@ -167,4 +167,4 @@ jobs:
           git -C carrier-main commit -m 'Remove completed Underdrain convergence carrier'
           git -C carrier-main push origin HEAD:main
 
-# One-shot carrier. The repair targets the demonstrated bot priority defect: enemies applied pressure, but the test bot treated them as the objective.
+# Trigger token: underdrain-mechanism-autoplay-repair-20260728.
