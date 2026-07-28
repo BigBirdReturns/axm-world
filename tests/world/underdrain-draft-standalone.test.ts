@@ -39,7 +39,7 @@ describe("UNDERDRAIN continuous authored pilot", () => {
     expect(html).toContain(WORLD_COMMIT);
     expect(html).toContain(ARC_COMMIT);
     const scripts = [...html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)];
-    const executable = scripts.find((entry) => !/application\/json/.test(entry[1]))?.[2];
+    const executable = scripts.find((entry) => !/application\/json/.test(entry[1] ?? ""))?.[2];
     expect(executable).toBeTruthy();
     expect(() => new Script(executable!, { filename: "underdrain-v2-inline.js" })).not.toThrow();
   });
