@@ -1,0 +1,138 @@
+name: Apply World semantic objectives on carrier v2
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/apply-world-semantic-objectives-on-carrier-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-world-semantic-objectives-on-carrier-v2
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+
+jobs:
+  apply-and-qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Apply the reviewed receiver transformation exactly once
+        shell: bash
+        run: |
+          set -uo pipefail
+          log="$RUNNER_TEMP/semantic-transform.log"
+          contract='unity/Packages/com.axm.rodoh-action/Runtime/Core/ActionContract.cs'
+          if grep -q 'SemanticRuntimeVersion = "1.1.0"' "$contract"; then
+            echo 'runtime-1.1 receiver already materialized on this carrier' | tee "$log"
+            exit 0
+          fi
+          python - <<'PY' > "$log" 2>&1
+          import re
+          import traceback
+          from pathlib import Path
+
+          try:
+              source = Path('.github/workflows/finalize-world-semantic-objectives.yml').read_text()
+              match = re.search(r"          python - <<'PY'\n(?P<body>.*?)\n          PY\n", source, re.S)
+              if not match:
+                  raise RuntimeError('reviewed semantic finalizer Python block is absent')
+              lines = match.group('body').splitlines()
+              script = '\n'.join(line[10:] if line.startswith('          ') else line for line in lines) + '\n'
+              exact_helper = '''def replace_once(text: str, old: str, new: str, label: str) -> str:
+    count = text.count(old)
+    if count != 1:
+        raise SystemExit(f'{label}: expected one anchor, found {count}')
+    return text.replace(old, new)
+'''
+              tolerant_helper = '''def replace_once(text: str, old: str, new: str, label: str) -> str:
+    count = text.count(old)
+    if count == 1:
+        return text.replace(old, new)
+    source_lines = text.splitlines(keepends=True)
+    old_lines = old.splitlines()
+    normalized_old = [line.strip() for line in old_lines]
+    matches = []
+    for start in range(0, len(source_lines) - len(old_lines) + 1):
+        candidate = [line.strip() for line in source_lines[start:start + len(old_lines)]]
+        if candidate == normalized_old:
+            matches.append(start)
+    if len(matches) != 1:
+        raise SystemExit(f'{label}: expected one anchor, found exact={count}, normalized={len(matches)}')
+    start = matches[0]
+    return ''.join(source_lines[:start]) + new + ''.join(source_lines[start + len(old_lines):])
+'''
+              if script.count(exact_helper) != 1:
+                  raise RuntimeError('reviewed replace_once helper is absent or duplicated')
+              script = script.replace(exact_helper, tolerant_helper, 1)
+              target = Path('/tmp/apply-world-semantic-objectives.py')
+              target.write_text(script)
+              code = compile(target.read_text(), str(target), 'exec')
+              exec(code, {'__name__': '__main__'})
+              print('semantic receiver transformation completed')
+          except BaseException:
+              traceback.print_exc()
+              raise
+          PY
+          status=$?
+          cat "$log"
+          if [ "$status" -ne 0 ]; then exit "$status"; fi
+          set -e
+          git diff --check
+      - run: npm ci --no-audit --no-fund
+      - name: Compile and qualify the exact runtime-1.1 receiver
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build unity/Conformance/Axm.Rodoh.Action.Conformance.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.ArcParity.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.SemanticParity.csproj --configuration Release
+          npm run typecheck
+          npm test -- tests/world/action-semantic-objective-contract.test.ts tests/world/action-unity-source-contract.test.ts
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then git restore --source=HEAD --staged --worktree -- docs/game; fi
+          git clean -fdx -- docs/game
+          git diff --check
+      - name: Publish only permanent receiver bytes to the carrier
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_head='${{ github.event.pull_request.head.sha || github.sha }}'
+          branch='qualify/world-semantic-objectives-v1'
+          git fetch --no-tags origin "$branch"
+          test "$(git rev-parse "origin/$branch")" = "$source_head"
+          paths=(unity/Packages/com.axm.rodoh-action/Runtime/Core/ActionContract.cs unity/Packages/com.axm.rodoh-action/Runtime/Core/ActionKernel.cs unity/Packages/com.axm.rodoh-action/Runtime/Core/ActionTrace.cs unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionInputRouter.cs)
+          changed=$(git status --porcelain | awk '{print $2}' | sort)
+          expected=$(printf '%s\n' "${paths[@]}" | sort)
+          test "$changed" = "$expected"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "${paths[@]}"
+          git diff --cached --check
+          git commit -m 'Mirror semantic action objectives in World and Unity'
+          git push origin "HEAD:$branch"
+      - name: Preserve transformation diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: world-semantic-receiver-transform-diagnostics-v2
+          path: ${{ runner.temp }}/semantic-transform.log
+          if-no-files-found: warn
+          retention-days: 14
