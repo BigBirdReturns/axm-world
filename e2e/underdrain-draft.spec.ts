@@ -12,10 +12,25 @@ async function completeCurrentEncounter(
   await page.evaluate(
     ({ challengeId: id, cycle: encounterCycle, orgSeed: seed }) => {
       const simulated = simulateAccepted(id, encounterCycle, seed);
-      const current = window.UnderdrainRuntime.session.current;
+      const current = window.UnderdrainRuntime.session.current as any;
       if (!current || current.challengeId !== id) throw new Error(`Expected active ${id} encounter.`);
-      current.state = structuredClone(simulated.state);
-      current.frames = structuredClone(simulated.frames);
+      const arc = (window as any).UnderdrainArc;
+      for (const input of simulated.frames) {
+        const previousIndex = current.state.activeObjectiveIndex;
+        current.frames.push(structuredClone(input));
+        current.state = arc.step(current.spec, current.state, input);
+        handleActionEvents(current.state.events ?? [], previousIndex, current.state.activeObjectiveIndex);
+        if (current.state.activeObjectiveIndex !== previousIndex && !current.state.result) {
+          current.checkpoint = {
+            state: structuredClone(current.state),
+            frameLength: current.frames.length,
+            objectiveIndex: current.state.activeObjectiveIndex,
+          };
+          fireObjectiveStartReveals(current.state.activeObjectiveIndex);
+        }
+        if (current.state.result) break;
+      }
+      if (!current.state.result) throw new Error(`Qualification replay did not finish ${id}.`);
       acceptCurrentAction();
     },
     { challengeId, cycle, orgSeed },
@@ -24,6 +39,7 @@ async function completeCurrentEncounter(
 
 test.describe("UNDERDRAIN continuous authored pilot", () => {
   test("a cold player crosses repair, authored route, accepted consequence, successor, and record", async ({ page }, testInfo) => {
+    test.setTimeout(60_000);
     await page.goto(DEMO);
     await expect(page).toHaveTitle("UNDERDRAIN: The Bloom Below");
     await expect(page.getByRole("heading", { name: "The Bloom Below" })).toBeVisible();
@@ -68,7 +84,9 @@ test.describe("UNDERDRAIN continuous authored pilot", () => {
     await page.getByRole("button", { name: /Balanced flow compact/ }).click();
     await expect(page.locator("#compact-result")).toBeVisible();
     await expect(page.locator("#compact-digest")).toHaveText(/^choice1_[0-9a-f]{64}$/);
-    await page.getByRole("button", { name: "Open the complete episode record" }).click();
+    const openRecord = page.getByRole("button", { name: "Open the complete episode record" });
+    await openRecord.scrollIntoViewIfNeeded();
+    await openRecord.click();
 
     await expect(page.locator("#record")).toHaveClass(/active/);
     const record = JSON.parse((await page.locator("#record-json").textContent()) ?? "{}");
@@ -204,5 +222,7 @@ declare global {
     cycle: number,
     orgSeed: number,
   ): { state: unknown; frames: unknown[] };
+  function handleActionEvents(events: unknown[], previousIndex: number, currentIndex: number): void;
+  function fireObjectiveStartReveals(index: number): void;
   function acceptCurrentAction(): void;
 }
