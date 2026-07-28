@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { dirname, relative, resolve, sep } from "node:path";
 import vm from "node:vm";
 
 const args = process.argv.slice(2);
@@ -13,6 +13,15 @@ function option(name, fallback = null) {
 function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
 }
+function duplicateValues(values) {
+  const seen = new Set();
+  const duplicates = new Set();
+  for (const value of values) {
+    if (seen.has(value)) duplicates.add(value);
+    seen.add(value);
+  }
+  return [...duplicates].sort();
+}
 
 const root = resolve(option("--root") ?? "demos/underdrain-draft");
 const htmlPath = resolve(option("--html") ?? "local/underdrain-draft/index.html");
@@ -20,6 +29,7 @@ const output = option("--output");
 const expectedWorldCommit = option("--world-commit");
 const expectedArcCommit = option("--arc-commit");
 const expectedAuthoringSha256 = option("--authoring-sha256");
+const expectedPresentationSha256 = option("--presentation-sha256");
 let currentCheck = "arguments";
 
 function writeReceipt(receipt) {
@@ -32,13 +42,14 @@ function writeReceipt(receipt) {
 }
 function fail(message) {
   const receipt = {
-    format: "rodoh-underdrain-static-verification/2",
+    format: "rodoh-underdrain-static-verification/3",
     status: "fail",
     check: currentCheck,
     error: message,
     worldCommit: expectedWorldCommit ?? null,
     arcCommit: expectedArcCommit ?? null,
     authoringSha256: expectedAuthoringSha256 ?? null,
+    presentationSha256: expectedPresentationSha256 ?? null,
     htmlPath,
     root,
   };
@@ -46,21 +57,99 @@ function fail(message) {
   console.error(message);
   process.exit(1);
 }
+function repositoryPath(path, label) {
+  const absolute = resolve(root, path);
+  const rel = relative(root, absolute);
+  if (rel === ".." || rel.startsWith(`..${sep}`)) fail(`${label} escapes Underdrain custody: ${path}.`);
+  if (!existsSync(absolute)) fail(`${label} is missing: ${path}.`);
+  return absolute;
+}
 
 if (!expectedWorldCommit || !/^[0-9a-f]{40}$/.test(expectedWorldCommit)) fail("Expected World commit is invalid.");
 if (!expectedArcCommit || !/^[0-9a-f]{40}$/.test(expectedArcCommit)) fail("Expected Arc commit is invalid.");
 if (!expectedAuthoringSha256 || !/^[0-9a-f]{64}$/.test(expectedAuthoringSha256)) fail("Expected authoring SHA-256 is invalid.");
+if (!expectedPresentationSha256 || !/^[0-9a-f]{64}$/.test(expectedPresentationSha256)) fail("Expected presentation SHA-256 is invalid.");
 
 currentCheck = "load-inputs";
 const manifestPath = resolve(root, "authoring.json");
+const presentationPath = resolve(root, "presentation.json");
 const html = readFileSync(htmlPath, "utf8");
 const manifestBytes = readFileSync(manifestPath);
 const manifest = JSON.parse(manifestBytes.toString("utf8"));
+const presentationBytes = readFileSync(presentationPath);
+const presentation = JSON.parse(presentationBytes.toString("utf8"));
 
 currentCheck = "embedded-authoring";
-const jsonMatch = html.match(/<script id="underdrain-authoring" type="application\/json">\s*([\s\S]*?)\s*<\/script>/);
-if (!jsonMatch) fail("Embedded authoring manifest is absent.");
-if (JSON.stringify(JSON.parse(jsonMatch[1] ?? "null")) !== JSON.stringify(manifest)) fail("Embedded and companion authoring differ.");
+const authoringMatch = html.match(/<script id="underdrain-authoring" type="application\/json">\s*([\s\S]*?)\s*<\/script>/);
+if (!authoringMatch) fail("Embedded authoring manifest is absent.");
+if (JSON.stringify(JSON.parse(authoringMatch[1] ?? "null")) !== JSON.stringify(manifest)) fail("Embedded and companion authoring differ.");
+
+currentCheck = "embedded-presentation";
+const presentationMatch = html.match(/<script id="underdrain-presentation" type="application\/json">\s*([\s\S]*?)\s*<\/script>/);
+if (!presentationMatch) fail("Embedded representation plan is absent.");
+if (JSON.stringify(JSON.parse(presentationMatch[1] ?? "null")) !== JSON.stringify(presentation)) fail("Embedded and companion representation plans differ.");
+
+currentCheck = "representation-plan";
+if (presentation.format !== "rodoh-representation-plan/1") fail("Representation plan format is unsupported.");
+if (presentation.classification !== "authored-pilot-candidate") fail("Representation plan is not bound to the authored-pilot classification.");
+if (presentation.namespace !== "underdrain") fail("Representation plan does not own an Underdrain namespace.");
+if (presentation.renderer?.action !== "cartridge-assets") fail("Action representation remains primitive-only.");
+if (presentation.renderer?.neutralFallbackUsed !== false) fail("Underdrain still uses the neutral white-label fallback.");
+if (presentation.provenance?.format !== "rodoh-original-asset-provenance/1") fail("Underdrain representation lacks original-asset provenance.");
+const provenancePath = repositoryPath(presentation.provenance.path, "Representation provenance");
+const provenance = JSON.parse(readFileSync(provenancePath, "utf8"));
+if (provenance.format !== presentation.provenance.format) fail("Representation provenance format disagrees with the plan.");
+
+const requiredSurfaces = ["cold-entry", "authored-commitment", "first-action", "accepted-consequence", "playable-successor", "durable-record"];
+const requiredPeople = ["rhea-venn", "tess-loam", "marta-sump", "morrowcap", "mrs-kett", "dax-venn"];
+const requiredObjectives = ["inspect-living-trap", "restore-kett-water", "diagnose-spore-valves", "operate-purge-wheel", "open-crown-sluice"];
+const requiredStates = ["town-water-pressure", "kett-water", "fungus-contact", "crown-grievance", "rhea-status", "evidence-custody", "root-gate-open"];
+if (!Array.isArray(presentation.assets) || presentation.assets.length < 40) fail("Underdrain representation pack is below the production asset floor.");
+const assetIds = presentation.assets.map((asset) => asset.id);
+const duplicateAssetIds = duplicateValues(assetIds);
+if (duplicateAssetIds.length > 0) fail(`Representation plan contains duplicate asset ids: ${duplicateAssetIds.join(", ")}.`);
+const assetById = new Map(presentation.assets.map((asset) => [asset.id, asset]));
+for (const asset of presentation.assets) {
+  if (typeof asset.id !== "string" || !asset.id.startsWith("underdrain:")) fail(`Asset ${String(asset.id)} escapes the Underdrain namespace.`);
+  if (/(?:placeholder|generic|debug|wireframe|prototype|bare-doll|neutral)/i.test(asset.id)) fail(`Asset ${asset.id} is a placeholder or neutral fallback.`);
+  if (typeof asset.accessibleEquivalent !== "string" || asset.accessibleEquivalent.trim() === "") fail(`Asset ${asset.id} has no nonvisual equivalent.`);
+  repositoryPath(asset.sourcePath, `Asset ${asset.id} source`);
+}
+function requireAsset(assetId, label) {
+  if (!assetById.has(assetId)) fail(`${label} references missing asset ${String(assetId)}.`);
+}
+requireAsset(presentation.bindings?.identityAssetId, "Cartridge identity");
+const peopleById = new Map((presentation.bindings?.people ?? []).map((binding) => [binding.personId, binding]));
+for (const personId of requiredPeople) {
+  const binding = peopleById.get(personId);
+  if (!binding) fail(`Required person ${personId} lacks portrait/body representation.`);
+  requireAsset(binding.portraitAssetId, `Person ${personId} portrait`);
+  requireAsset(binding.bodyAssetId, `Person ${personId} body`);
+}
+const objectiveById = new Map((presentation.bindings?.objectives ?? []).map((binding) => [binding.objectiveId, binding]));
+for (const objectiveId of requiredObjectives) {
+  const binding = objectiveById.get(objectiveId);
+  if (!binding) fail(`Required objective ${objectiveId} lacks mechanism-state representation.`);
+  requireAsset(binding.idleAssetId, `Objective ${objectiveId} idle state`);
+  requireAsset(binding.activeAssetId, `Objective ${objectiveId} active state`);
+  requireAsset(binding.completeAssetId, `Objective ${objectiveId} completed state`);
+}
+const stateById = new Map((presentation.bindings?.states ?? []).map((binding) => [binding.stateId, binding]));
+for (const stateId of requiredStates) {
+  const binding = stateById.get(stateId);
+  if (!binding) fail(`Required persistent state ${stateId} lacks a visible mark.`);
+  requireAsset(binding.assetId, `Persistent state ${stateId}`);
+}
+const surfaceById = new Map((presentation.surfaces ?? []).map((surface) => [surface.id, surface]));
+for (const surfaceId of requiredSurfaces) {
+  const surface = surfaceById.get(surfaceId);
+  if (!surface) fail(`Required player surface ${surfaceId} lacks representation.`);
+  if (!surface.desktop || !surface.mobile) fail(`Player surface ${surfaceId} lacks desktop/mobile parity.`);
+  if (!Array.isArray(surface.assetIds) || surface.assetIds.length === 0) fail(`Player surface ${surfaceId} has no cartridge assets.`);
+  for (const assetId of surface.assetIds) requireAsset(assetId, `Player surface ${surfaceId}`);
+  if (typeof surface.accessibleEquivalent !== "string" || surface.accessibleEquivalent.trim() === "") fail(`Player surface ${surfaceId} has no nonvisual equivalent.`);
+}
+if (!surfaceById.get("cold-entry")?.assetIds.includes(presentation.bindings.identityAssetId)) fail("Cold entry does not carry the Underdrain identity asset.");
 
 currentCheck = "executable-syntax";
 const scripts = [...html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)];
@@ -92,9 +181,17 @@ for (const marker of [
   "rodoh-underdrain-session/2",
   "rodoh-underdrain-episode-record/2",
   "rodoh-one-am-structural-evidence/1",
+  "rodoh-representation-runtime-evidence/1",
   "rodoh-underdrain-automated-pilot-qualification/2",
   "rodoh-underdrain-window-name-storage/1",
   "rodoh-underdrain-persistence/1",
+  "underdrain-white-label-art/1",
+  "underdrain-white-label-v1",
+  "underdrain:scene-kitchen",
+  "underdrain:scene-pump-seven",
+  "underdrain:scene-root-gate",
+  "actionRendererUsesCartridgeAssets",
+  "neutralFallbackAbsent",
   "closeTabRequiresExport",
   "Direct-file mode preserves reload and resume in this tab.",
   "axm-authored-experience/1",
@@ -105,10 +202,18 @@ for (const marker of [
   "mrs-kett-service-call",
   "breach-crown-pump",
   "prefers-reduced-motion",
+  "forced-colors",
 ]) {
   currentCheck = `required-marker:${marker}`;
   if (!html.includes(marker)) fail(`Standalone HTML is missing ${marker}.`);
 }
+
+currentCheck = "representation-before-boot";
+const representationInstall = html.indexOf("UNDERDRAIN fell back to schematic or neutral representation.");
+const boot = html.indexOf("const params=new URLSearchParams(location.search);");
+if (representationInstall < 0 || boot < 0 || representationInstall > boot) fail("Representation is not installed before the game boots.");
+if (html.includes('"action":"primitive-only"')) fail("Standalone declares primitive-only action representation.");
+if (html.includes('"neutralFallbackUsed":true')) fail("Standalone declares a neutral white-label fallback.");
 
 currentCheck = "authority-copy";
 if (html.includes("campaign effect remained provisional")) fail("Standalone retains stale provisional consequence copy after Arc acceptance.");
@@ -124,6 +229,7 @@ if (/placeholder\s*:\s*(?:true|!0)/.test(html)) fail("Standalone still contains 
 if (!html.includes(expectedWorldCommit)) fail("Standalone is not bound to the exact World candidate.");
 if (!html.includes(expectedArcCommit)) fail("Standalone is not bound to the exact Arc authority.");
 if (!html.includes(expectedAuthoringSha256)) fail("Standalone capsule is not bound to the exact authoring bytes.");
+if (!html.includes(expectedPresentationSha256)) fail("Standalone is not bound to the exact representation bytes.");
 if (manifest.format !== "rodoh-underdrain-standalone/2") fail("Manifest format is unsupported.");
 if (manifest.classification !== "authored-pilot-candidate") fail("Manifest does not use the qualified pilot classification.");
 if (manifest.oneAmBoundary?.independentPlayerReceiptRequired !== true) fail("Manifest does not preserve the independent player boundary.");
@@ -131,9 +237,11 @@ if (!manifest.experienceOrder?.includes("root-gate-parley")) fail("Root Gate is 
 
 const manifestSha256 = sha256(manifestBytes);
 if (manifestSha256 !== expectedAuthoringSha256) fail("World authoring bytes differ from exact Arc custody.");
+const presentationSha256 = sha256(presentationBytes);
+if (presentationSha256 !== expectedPresentationSha256) fail("World representation bytes differ from exact custody.");
 const htmlSha256 = sha256(html);
 const receipt = {
-  format: "rodoh-underdrain-static-verification/2",
+  format: "rodoh-underdrain-static-verification/3",
   status: "pass",
   worldCommit: expectedWorldCommit,
   arcCommit: expectedArcCommit,
@@ -152,14 +260,31 @@ const receipt = {
     authoredExperiences: manifest.authoredExperiences.format,
     narrativeAuthority: manifest.narrativeAuthority,
   },
+  representation: {
+    path: presentationPath,
+    sha256: presentationSha256,
+    planId: presentation.id,
+    namespace: presentation.namespace,
+    assets: presentation.assets.length,
+    people: presentation.bindings.people.length,
+    objectives: presentation.bindings.objectives.length,
+    states: presentation.bindings.states.length,
+    surfaces: presentation.surfaces.length,
+    actionRenderer: presentation.renderer.action,
+    neutralFallbackUsed: presentation.renderer.neutralFallbackUsed,
+    provenance: presentation.provenance,
+  },
   checks: {
     executableSyntax: "pass",
     networkRuntime: "absent",
     deterministicTickRate: 30,
     semanticMechanisms: "present",
+    cartridgeOwnedRepresentation: "present-before-boot",
+    representationDesktopMobile: "pass",
+    representationAccessibility: "pass",
     safeOpening: "zero-pressure",
     acceptedArcConsequence: "required-before-world-delta",
-    rootGate: "playable",
+    rootGate: "playable-and-represented",
     directFileReload: "window-name-current-tab",
     directFileCloseTab: "episode-record-export-required",
     blindPlayerReceipt: "external-and-unissued",
