@@ -1,4 +1,4 @@
-name: UNDERDRAIN standalone demo
+name: UNDERDRAIN continuous authored pilot
 
 on:
   pull_request:
@@ -8,6 +8,9 @@ on:
       - 'scripts/demos/build-underdrain-draft.mjs'
       - 'scripts/demos/verify-underdrain-draft.mjs'
       - 'tests/world/underdrain-draft-standalone.test.ts'
+      - 'tests/world/action-semantic-objective-contract.test.ts'
+      - 'tests/world/one-am-player.test.ts'
+      - 'tests/world/one-am-structural-evidence.test.ts'
       - 'e2e/underdrain-draft.spec.ts'
   workflow_dispatch:
 
@@ -21,7 +24,8 @@ concurrency:
 env:
   CI: 'true'
   SOURCE_DATE_EPOCH: '0'
-  ARC_UNDERDRAIN_SHA: fffdb5da5c09654670fe76e1ac92d43d80d19dc9
+  ARC_UNDERDRAIN_SHA: 395bc539165cc525678ba7eb83434c8cd674437b
+  SENTINEL_WORLD_SHA: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
 jobs:
   qualify:
@@ -36,7 +40,7 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
-      - name: Check out exact Arc authority candidate
+      - name: Check out exact Arc authority
         uses: actions/checkout@v4
         with:
           repository: BigBirdReturns/axm-arc
@@ -60,7 +64,7 @@ jobs:
           npm --prefix axm-world ci --no-audit --no-fund
           npm --prefix axm-arc ci --no-audit --no-fund
 
-      - name: Require exact Arc-to-World authoring custody
+      - name: Require exact Arc authoring and source qualification
         shell: bash
         run: |
           set -euo pipefail
@@ -70,30 +74,77 @@ jobs:
             sha256sum -c SHA256SUMS
           )
           npm --prefix axm-arc run typecheck
-          npm --prefix axm-arc test -- tests/demos/underdrain-draft.test.ts
+          npm --prefix axm-arc test -- \
+            tests/demos/underdrain-draft.test.ts \
+            tests/demos/underdrain-root-gate.test.ts \
+            tests/action/semantic-objectives.test.ts \
+            tests/experience/authored-experience.test.ts
 
-      - name: Build and verify the exact standalone file
+      - name: Build the exact candidate twice and verify custody
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/underdrain-demo"
+          root="$RUNNER_TEMP/underdrain-authored-pilot"
+          mkdir -p "$root" axm-world/local/underdrain-draft
+          world_sha='${{ github.event.pull_request.head.sha || github.sha }}'
+          authoring_sha="$(sha256sum axm-world/demos/underdrain-draft/authoring.json | cut -d' ' -f1)"
+
           node axm-world/scripts/demos/build-underdrain-draft.mjs \
             --root axm-world/demos/underdrain-draft \
             --output axm-world/local/underdrain-draft/index.html \
-            | tee "$RUNNER_TEMP/underdrain-demo/build.json"
+            --world-commit "$world_sha" \
+            --hash-output "$root/exact-build.sha256" \
+            | tee "$root/exact-build.json"
+          node axm-world/scripts/demos/build-underdrain-draft.mjs \
+            --root axm-world/demos/underdrain-draft \
+            --output "$root/exact-build-second.html" \
+            --world-commit "$world_sha" \
+            > "$root/exact-build-second.json"
+          cmp axm-world/local/underdrain-draft/index.html "$root/exact-build-second.html"
+
           node axm-world/scripts/demos/verify-underdrain-draft.mjs \
             --root axm-world/demos/underdrain-draft \
             --html axm-world/local/underdrain-draft/index.html \
-            --output "$RUNNER_TEMP/underdrain-demo/static-verification.json" \
-            | tee "$RUNNER_TEMP/underdrain-demo/static-verification.log"
+            --world-commit "$world_sha" \
+            --arc-commit "$ARC_UNDERDRAIN_SHA" \
+            --authoring-sha256 "$authoring_sha" \
+            --output "$root/static-verification.json" \
+            | tee "$root/static-verification.log"
 
-      - name: Qualify World contracts and product
+          node axm-world/scripts/demos/build-underdrain-draft.mjs \
+            --root axm-world/demos/underdrain-draft \
+            --output "$root/sentinel.html" \
+            --world-commit "$SENTINEL_WORLD_SHA" \
+            > "$root/sentinel-build.json"
+          EXPECTED_PATH=axm-world/demos/underdrain-draft/expected-build.json \
+          SENTINEL_HTML="$root/sentinel.html" \
+          ARC_SHA="$ARC_UNDERDRAIN_SHA" \
+          AUTHORING_SHA="$authoring_sha" \
+          SENTINEL_SHA="$SENTINEL_WORLD_SHA" \
+          node --input-type=module <<'NODE'
+          import { createHash } from 'node:crypto';
+          import { readFileSync } from 'node:fs';
+          const expected = JSON.parse(readFileSync(process.env.EXPECTED_PATH, 'utf8'));
+          const digest = createHash('sha256').update(readFileSync(process.env.SENTINEL_HTML)).digest('hex');
+          if (expected.format !== 'rodoh-underdrain-expected-build/2') throw new Error('expected-build format mismatch');
+          if (expected.worldCommit !== process.env.SENTINEL_SHA) throw new Error('sentinel World identity mismatch');
+          if (expected.arcCommit !== process.env.ARC_SHA) throw new Error('expected Arc identity mismatch');
+          if (expected.authoringSha256 !== process.env.AUTHORING_SHA) throw new Error('expected authoring identity mismatch');
+          if (expected.htmlSha256 !== digest) throw new Error(`sentinel build digest mismatch: ${digest}`);
+          console.log(`PASS: deterministic sentinel ${digest}`);
+          NODE
+
+      - name: Qualify World law and the complete product
         working-directory: axm-world
         shell: bash
         run: |
           set -euo pipefail
           npm run typecheck
-          npm test -- tests/world/underdrain-draft-standalone.test.ts
+          npm test -- \
+            tests/world/underdrain-draft-standalone.test.ts \
+            tests/world/action-semantic-objective-contract.test.ts \
+            tests/world/one-am-player.test.ts \
+            tests/world/one-am-structural-evidence.test.ts
           npm test
           npm run build
           if git ls-files -- docs/game | grep -q .; then
@@ -114,13 +165,14 @@ jobs:
             --project=desktop \
             --project=mobile
 
-      - name: Assemble retained demo receipt
+      - name: Assemble exact retained qualification
         shell: bash
         run: |
           set -euo pipefail
-          root="$RUNNER_TEMP/underdrain-demo"
+          root="$RUNNER_TEMP/underdrain-authored-pilot"
           cp axm-world/local/underdrain-draft/index.html "$root/"
           cp axm-world/demos/underdrain-draft/authoring.json "$root/"
+          cp axm-world/demos/underdrain-draft/expected-build.json "$root/"
           cp axm-world/demos/underdrain-draft/playtest.json "$root/"
           cp axm-world/demos/underdrain-draft/PLAYTEST.md "$root/"
           cp axm-world/demos/underdrain-draft/README.md "$root/"
@@ -133,7 +185,7 @@ jobs:
             cd "$root"
             find . -type f ! -name SHA256SUMS -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS
           )
-          rm -rf axm-world/local/underdrain-draft
+          rm -rf axm-world/local/underdrain-draft axm-world/test-results
           git -C axm-world diff --check
           test -z "$(git -C axm-world status --porcelain)"
           git -C axm-arc diff --check
@@ -141,8 +193,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: underdrain-standalone-demo
-          path: ${{ runner.temp }}/underdrain-demo
+          name: underdrain-continuous-authored-pilot
+          path: ${{ runner.temp }}/underdrain-authored-pilot
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
