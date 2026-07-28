@@ -1,6 +1,9 @@
 name: Trigger parent semantic receiver finalizer
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/trigger-parent-semantic-finalizer.yml'
   push:
     branches:
       - qualify/world-semantic-objectives-v1
