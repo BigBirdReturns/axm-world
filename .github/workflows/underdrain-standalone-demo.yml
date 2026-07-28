@@ -122,12 +122,7 @@ jobs:
             axm-world/demos/underdrain-draft/PLAYTEST.md \
             axm-world/demos/underdrain-draft/playtest.json
           git -C axm-world diff --check
-          git -C axm-world add -A -- \
-            demos/underdrain-draft/authoring.json \
-            demos/underdrain-draft/source/arc-capsule.js \
-            demos/underdrain-draft/source/authoring-block.html \
-            demos/underdrain-draft/PLAYTEST.md \
-            demos/underdrain-draft/playtest.json
+          git -C axm-world add -A -- demos/underdrain-draft
           git -C axm-world diff --cached --stat \
             | tee "$RUNNER_TEMP/underdrain-pilot/materialized-source.stat"
           if git -C axm-world diff --cached --quiet; then
