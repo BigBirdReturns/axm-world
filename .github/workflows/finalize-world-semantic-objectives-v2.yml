@@ -54,6 +54,36 @@ jobs:
               line[10:] if line.startswith('          ') else line
               for line in workflow[start:end]
           ) + '\n'
+
+          old_helper = '''def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected one anchor, found {count}')
+              return text.replace(old, new)
+          '''
+          new_helper = '''def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count == 1:
+                  return text.replace(old, new)
+              if count > 1:
+                  raise SystemExit(f'{label}: expected one anchor, found {count}')
+              parts = []
+              for line in old.splitlines():
+                  if line.strip():
+                      parts.append(r'[ \\t]*' + re.escape(line.lstrip()))
+                  else:
+                      parts.append(r'[ \\t]*')
+              pattern = r'\\r?\\n'.join(parts)
+              if old.endswith('\\n'):
+                  pattern += r'\\r?\\n'
+              updated, fallback_count = re.subn(pattern, lambda _match: new, text, count=1, flags=re.MULTILINE)
+              if fallback_count != 1:
+                  raise SystemExit(f'{label}: exact and whitespace-tolerant anchors were absent')
+              return updated
+          '''
+          if script.count(old_helper) != 1:
+              raise SystemExit(f'replace_once helper: expected one definition, found {script.count(old_helper)}')
+          script = script.replace(old_helper, new_helper)
           exec(compile(script, '<world-semantic-objective-transform>', 'exec'), {'__name__': '__main__'})
           PY
           git diff --check
