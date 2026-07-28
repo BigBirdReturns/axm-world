@@ -11,6 +11,7 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="../Packages/com.axm.rodoh-action/Runtime/Core/ActionContract.cs" Link="Core/ActionContract.cs" />
+    <Compile Include="../Packages/com.axm.rodoh-action/Runtime/Core/ActionBufferedInput.cs" Link="Core/ActionBufferedInput.cs" />
     <Compile Include="../Packages/com.axm.rodoh-action/Runtime/Core/ActionKernel.cs" Link="Core/ActionKernel.cs" />
     <Compile Include="../Packages/com.axm.rodoh-action/Runtime/Core/ActionTrace.cs" Link="Core/ActionTrace.cs" />
   </ItemGroup>
