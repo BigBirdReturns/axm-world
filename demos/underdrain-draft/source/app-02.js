@@ -157,27 +157,34 @@ function renderAll(){
 
 function botInput(spec,state){
   const objective=spec.objectives[state.activeObjectiveIndex];
+  const base={moveX:0,moveY:0,aimX:state.player.facingX||1,aimY:state.player.facingY||0,buttons:0};
+  const semantic=objective?.semanticCompletion;
+  const complete=new Set(state.completedInteractionTargetIds??[]);
+  const target=semantic
+    ?(semantic.kind==="interact_count"?semantic.targets.find(entry=>!complete.has(entry.id)):semantic.target)
+    :null;
   const live=[...state.enemies].filter(enemy=>enemy.mode!=="defeated").sort((a,b)=>{
     const ad=(a.x-state.player.x)**2+(a.y-state.player.y)**2,bd=(b.x-state.player.x)**2+(b.y-state.player.y)**2;
     return ad-bd||a.id.localeCompare(b.id);
   })[0];
-  const base={moveX:0,moveY:0,aimX:state.player.facingX||1,aimY:state.player.facingY||0,buttons:0};
-  if(live){
-    const dx=live.x-state.player.x,dy=live.y-state.player.y,ax=Math.sign(dx),ay=Math.sign(dy),distance=dx*dx+dy*dy;
-    const law=spec.enemyLaws[live.kit],light=spec.player.attacks[0];
-    const danger=live.mode==="active"||(live.mode==="telegraph"&&live.modeTick>=Math.max(0,law.telegraphTicks-spec.player.parryActiveTicks));
-    if(state.player.mode==="idle"&&danger)return{...base,aimX:ax,aimY:ay,buttons:BUTTON.parry};
-    if(state.player.mode==="idle"&&distance<=Math.trunc(light.range*.88)**2)return{...base,aimX:ax,aimY:ay,buttons:BUTTON.light};
-    return{...base,moveX:ax,moveY:ay,aimX:ax,aimY:ay};
+  if(target){
+    const dx=target.x-state.player.x,dy=target.y-state.player.y,ax=Math.sign(dx),ay=Math.sign(dy),distance=dx*dx+dy*dy;
+    if(live&&state.player.mode==="idle"){
+      const law=spec.enemyLaws[live.kit];
+      const danger=live.mode==="active"||(live.mode==="telegraph"&&live.modeTick>=Math.max(0,law.telegraphTicks-spec.player.parryActiveTicks));
+      if(danger)return{...base,aimX:Math.sign(live.x-state.player.x)||base.aimX,aimY:Math.sign(live.y-state.player.y),buttons:BUTTON.parry};
+    }
+    return distance<=Math.trunc(target.radius*.78)**2
+      ?{...base,aimX:ax||state.player.facingX,aimY:ay||state.player.facingY,buttons:BUTTON.interact}
+      :{...base,moveX:ax,moveY:ay,aimX:ax,aimY:ay};
   }
-  const semantic=objective?.semanticCompletion;if(!semantic)return base;
-  const complete=new Set(state.completedInteractionTargetIds??[]);
-  const target=semantic.kind==="interact_count"?semantic.targets.find(entry=>!complete.has(entry.id)):semantic.target;
-  if(!target)return base;
-  const dx=target.x-state.player.x,dy=target.y-state.player.y,ax=Math.sign(dx),ay=Math.sign(dy),distance=dx*dx+dy*dy;
-  return distance<=Math.trunc(target.radius*.78)**2
-    ?{...base,aimX:ax||state.player.facingX,aimY:ay||state.player.facingY,buttons:BUTTON.interact}
-    :{...base,moveX:ax,moveY:ay,aimX:ax,aimY:ay};
+  if(!live)return base;
+  const dx=live.x-state.player.x,dy=live.y-state.player.y,ax=Math.sign(dx),ay=Math.sign(dy),distance=dx*dx+dy*dy;
+  const law=spec.enemyLaws[live.kit],light=spec.player.attacks[0];
+  const danger=live.mode==="active"||(live.mode==="telegraph"&&live.modeTick>=Math.max(0,law.telegraphTicks-spec.player.parryActiveTicks));
+  if(state.player.mode==="idle"&&danger)return{...base,aimX:ax,aimY:ay,buttons:BUTTON.parry};
+  if(state.player.mode==="idle"&&distance<=Math.trunc(light.range*.88)**2)return{...base,aimX:ax,aimY:ay,buttons:BUTTON.light};
+  return{...base,moveX:ax,moveY:ay,aimX:ax,aimY:ay};
 }
 function simulateAccepted(challengeId,cycle,orgSeed){
   const spec=ARC.getSpec(challengeId,null),seed=ARC.seedFor(orgSeed,cycle,challengeId,null);
