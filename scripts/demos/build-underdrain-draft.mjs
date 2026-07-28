@@ -38,8 +38,10 @@ const html = [
   "<script>",
   `globalThis.__UNDERDRAIN_WORLD_COMMIT__=${JSON.stringify(worldCommit)};`,
   capsule,
+  readFileSync(resolve(source, "storage-adapter.js"), "utf8"),
   readFileSync(resolve(source, "app-01.js"), "utf8"),
   readFileSync(resolve(source, "app-02.js"), "utf8"),
+  readFileSync(resolve(source, "persistence-surface.js"), "utf8"),
   "</script>",
   readFileSync(resolve(source, "tail.html"), "utf8"),
 ].join("");
@@ -60,6 +62,7 @@ process.stdout.write(`${JSON.stringify({
   bytes: Buffer.byteLength(html),
   sha256: digest,
   arcCapsule: "embedded",
+  persistenceAdapter: "embedded",
   singleFile: true,
   externalRuntime: false,
 }, null, 2)}\n`);
