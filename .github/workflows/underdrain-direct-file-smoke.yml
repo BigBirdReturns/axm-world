@@ -52,7 +52,7 @@ jobs:
             --output subject/local/underdrain-draft/index.html `
             --world-commit $env:WORLD_CANDIDATE `
             --hash-output direct-file-receipt/INDEX_SHA256SUMS `
-            | Tee-Object direct-file-receipt/build.json
+            2>&1 | Tee-Object direct-file-receipt/build.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           node subject/scripts/demos/verify-underdrain-draft.mjs `
@@ -62,13 +62,12 @@ jobs:
             --arc-commit $env:ARC_AUTHORITY `
             --authoring-sha256 $env:AUTHORING_SHA256 `
             --output direct-file-receipt/static-verification.json `
-            | Tee-Object direct-file-receipt/static-verification.log
+            2>&1 | Tee-Object direct-file-receipt/static-verification.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           $actual = (Get-FileHash subject/local/underdrain-draft/index.html -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($actual -ne $env:EXPECTED_HTML_SHA256) {
-            throw "Exact standalone digest mismatch: $actual"
-          }
+          if ($actual -ne $env:EXPECTED_HTML_SHA256) { throw "Exact standalone digest mismatch: $actual" }
+          Copy-Item subject/local/underdrain-draft/index.html direct-file-receipt/index.html
 
       - name: Install Chromium
         working-directory: subject
@@ -90,13 +89,31 @@ jobs:
           const arcCommit = process.env.ARC_AUTHORITY;
           const expectedHtmlSha256 = process.env.EXPECTED_HTML_SHA256;
           const htmlPath = resolve("local/underdrain-draft/index.html");
-          const htmlSha256 = createHash("sha256").update(readFileSync(htmlPath)).digest("hex");
-          if (htmlSha256 !== expectedHtmlSha256) throw new Error(`HTML digest mismatch: ${htmlSha256}`);
-          const baseUrl = pathToFileURL(htmlPath).href;
+          const htmlBytes = readFileSync(htmlPath);
+          const htmlSha256 = createHash("sha256").update(htmlBytes).digest("hex");
           const receiptRoot = resolve("../direct-file-receipt");
           mkdirSync(receiptRoot, { recursive: true });
+          const receipt = {
+            format: "rodoh-underdrain-direct-file-smoke/1",
+            status: "running",
+            worldCommit,
+            arcCommit,
+            html: { path: htmlPath, bytes: htmlBytes.length, sha256: htmlSha256 },
+            operatingSystem: process.platform,
+            browsers: [],
+          };
+          const writeReceipt = () => writeFileSync(
+            resolve(receiptRoot, "direct-file-smoke.json"),
+            `${JSON.stringify(receipt, null, 2)}\n`,
+          );
+          writeReceipt();
+          if (htmlSha256 !== expectedHtmlSha256) throw new Error(`HTML digest mismatch: ${htmlSha256}`);
+          const baseUrl = pathToFileURL(htmlPath).href;
 
           async function qualify(label, launchOptions) {
+            const result = { browser: label, status: "running" };
+            receipt.browsers.push(result);
+            writeReceipt();
             const browser = await chromium.launch({ headless: true, ...launchOptions });
             try {
               const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -106,9 +123,7 @@ jobs:
               page.on("pageerror", (error) => errors.push(error.message));
               page.on("request", (request) => {
                 const protocol = new URL(request.url()).protocol;
-                if (protocol !== "file:" && protocol !== "data:" && protocol !== "blob:") {
-                  externalRequests.push(request.url());
-                }
+                if (!["file:", "data:", "blob:"].includes(protocol)) externalRequests.push(request.url());
               });
 
               await page.goto(baseUrl, { waitUntil: "load" });
@@ -147,13 +162,16 @@ jobs:
                 authoringSha256: window.UnderdrainRuntime.session.authoringSha256,
                 challengeId: window.UnderdrainRuntime.session.current.challengeId,
               }));
-              if (JSON.stringify(afterReload) !== JSON.stringify({
+              const expectedAfterReload = {
                 arcCommit: beforeReload.arcCommit,
                 worldCommit: beforeReload.worldCommit,
                 cartridgeDigest: beforeReload.cartridgeDigest,
                 authoringSha256: beforeReload.authoringSha256,
                 challengeId: beforeReload.challengeId,
-              })) throw new Error(`${label}: direct-file reload identity mismatch`);
+              };
+              if (JSON.stringify(afterReload) !== JSON.stringify(expectedAfterReload)) {
+                throw new Error(`${label}: direct-file reload identity mismatch`);
+              }
               await context.close();
 
               const matrixContext = await browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -163,26 +181,19 @@ jobs:
               matrixPage.on("pageerror", (error) => matrixErrors.push(error.message));
               matrixPage.on("request", (request) => {
                 const protocol = new URL(request.url()).protocol;
-                if (protocol !== "file:" && protocol !== "data:" && protocol !== "blob:") {
-                  matrixExternal.push(request.url());
-                }
+                if (!["file:", "data:", "blob:"].includes(protocol)) matrixExternal.push(request.url());
               });
               await matrixPage.goto(`${baseUrl}?autotest=1`, { waitUntil: "load" });
               await matrixPage.waitForFunction(() => document.body.dataset.testStatus === "pass", null, { timeout: 60_000 });
               const matrix = await matrixPage.evaluate(() => window.__UNDERDRAIN_TEST_RESULT__);
-              if (matrix?.format !== "rodoh-underdrain-automated-pilot-qualification/2") {
-                throw new Error(`${label}: automated matrix format mismatch`);
-              }
-              if (matrix?.status !== "pass" || matrix?.cases?.length !== 9) {
-                throw new Error(`${label}: automated matrix failed`);
-              }
+              if (matrix?.format !== "rodoh-underdrain-automated-pilot-qualification/2") throw new Error(`${label}: automated matrix format mismatch`);
+              if (matrix?.status !== "pass" || matrix?.cases?.length !== 9) throw new Error(`${label}: automated matrix failed`);
               if (errors.length || matrixErrors.length) throw new Error(`${label}: page errors ${JSON.stringify([...errors, ...matrixErrors])}`);
               if (externalRequests.length || matrixExternal.length) {
                 throw new Error(`${label}: direct file made external requests ${JSON.stringify([...externalRequests, ...matrixExternal])}`);
               }
               await matrixContext.close();
-              return {
-                browser: label,
+              Object.assign(result, {
                 status: "pass",
                 directFileProtocol: "file:",
                 coldEntry: "pass",
@@ -191,34 +202,39 @@ jobs:
                 automatedCases: matrix.cases.length,
                 runtimeRequestsOutsideFileDataBlob: 0,
                 pageErrors: 0,
-              };
+              });
+              writeReceipt();
+            } catch (error) {
+              Object.assign(result, { status: "fail", error: error instanceof Error ? error.stack : String(error) });
+              receipt.status = "fail";
+              writeReceipt();
+              throw error;
             } finally {
               await browser.close();
             }
           }
 
-          const browsers = [];
-          browsers.push(await qualify("chromium", {}));
-          browsers.push(await qualify("edge", { channel: "msedge" }));
-          const receipt = {
-            format: "rodoh-underdrain-direct-file-smoke/1",
-            status: "pass",
-            worldCommit,
-            arcCommit,
-            html: { path: htmlPath, bytes: readFileSync(htmlPath).length, sha256: htmlSha256 },
-            operatingSystem: process.platform,
-            browsers,
-          };
-          writeFileSync(resolve(receiptRoot, "direct-file-smoke.json"), `${JSON.stringify(receipt, null, 2)}\n`);
-          console.log(JSON.stringify(receipt, null, 2));
+          try {
+            await qualify("chromium", {});
+            await qualify("edge", { channel: "msedge" });
+            receipt.status = "pass";
+            writeReceipt();
+            console.log(JSON.stringify(receipt, null, 2));
+          } catch (error) {
+            receipt.status = "fail";
+            receipt.error = error instanceof Error ? error.stack : String(error);
+            writeReceipt();
+            console.error(receipt.error);
+            process.exitCode = 1;
+          }
           '@ | Set-Content -Encoding utf8 direct-file-smoke.mjs
-          node direct-file-smoke.mjs | Tee-Object ../direct-file-receipt/direct-file-smoke.log
+          node direct-file-smoke.mjs 2>&1 | Tee-Object ../direct-file-receipt/direct-file-smoke.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Bind the receipt to exact candidate bytes
+      - name: Bind successful receipt to exact candidate bytes
+        if: success()
         shell: pwsh
         run: |
-          Copy-Item subject/local/underdrain-draft/index.html direct-file-receipt/index.html
           Set-Content -Encoding ascii direct-file-receipt/world-candidate.txt $env:WORLD_CANDIDATE
           Set-Content -Encoding ascii direct-file-receipt/arc-authority.txt $env:ARC_AUTHORITY
           Get-ChildItem direct-file-receipt -File -Recurse |
@@ -230,9 +246,13 @@ jobs:
               "$hash  $relative"
             } | Set-Content -Encoding ascii direct-file-receipt/SHA256SUMS
 
-      - uses: actions/upload-artifact@v4
+      - name: Retain direct-file evidence and failure diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: underdrain-direct-file-smoke-f823685
-          path: direct-file-receipt
+          path: |
+            direct-file-receipt
+            subject/direct-file-smoke.mjs
           if-no-files-found: error
           retention-days: 30
