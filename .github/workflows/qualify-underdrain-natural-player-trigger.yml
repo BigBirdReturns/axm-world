@@ -6,6 +6,11 @@ on:
       - main
     paths:
       - '.github/natural-player-qualification-trigger'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/natural-player-qualification-trigger'
 
 permissions:
   contents: write
