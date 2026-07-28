@@ -9,7 +9,7 @@ const ROOT = resolve(import.meta.dirname, "../..");
 const DEMO = resolve(ROOT, "demos/underdrain-draft");
 const SOURCE = resolve(DEMO, "source");
 const WORLD_COMMIT = "a".repeat(40);
-const ARC_COMMIT = "395bc539165cc525678ba7eb83434c8cd674437b";
+const ARC_COMMIT = "ea16757fe9df65405b322af13d95351896f43157";
 
 function buildStandalone(): string {
   const directory = mkdtempSync(join(tmpdir(), "underdrain-v2-"));
@@ -52,6 +52,7 @@ describe("UNDERDRAIN continuous authored pilot", () => {
       version: "2.0.0",
       classification: "authored-pilot-candidate",
       arcAuthority: "axm-action-receipt/1",
+      rootGateAuthority: "axm-authored-choice-receipt/1",
       authoredExperienceAuthority: "axm-authored-experience/1",
       actionObjectiveAuthority: "axm-action-objectives/1",
       challengeOrder: ["mrs-kett-service-call", "breach-crown-pump", "root-gate-parley"],
