@@ -1,0 +1,112 @@
+name: Apply World semantic objectives on carrier
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/apply-world-semantic-objectives-on-carrier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-world-semantic-objectives-on-carrier
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+
+jobs:
+  apply-and-qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Apply the reviewed receiver transformation exactly once
+        shell: bash
+        run: |
+          set -euo pipefail
+          contract='unity/Packages/com.axm.rodoh-action/Runtime/Core/ActionContract.cs'
+          if grep -q 'SemanticRuntimeVersion = "1.1.0"' "$contract"; then
+            echo 'runtime-1.1 receiver already materialized on this carrier'
+            exit 0
+          fi
+          python - <<'PY'
+          import re
+          import textwrap
+          from pathlib import Path
+
+          source = Path('.github/workflows/finalize-world-semantic-objectives.yml').read_text()
+          match = re.search(r"          python - <<'PY'\n(?P<body>.*?)\n          PY\n", source, re.S)
+          if not match:
+              raise SystemExit('reviewed semantic finalizer Python block is absent')
+          script = textwrap.dedent(match.group('body'))
+          target = Path('/tmp/apply-world-semantic-objectives.py')
+          target.write_text(script)
+          compile(target.read_text(), str(target), 'exec')
+          exec(compile(target.read_text(), str(target), 'exec'), {'__name__': '__main__'})
+          PY
+          git diff --check
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Compile and qualify the exact runtime-1.1 receiver
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build unity/Conformance/Axm.Rodoh.Action.Conformance.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.ArcParity.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.SemanticParity.csproj --configuration Release
+          npm run typecheck
+          npm test -- \
+            tests/world/action-semantic-objective-contract.test.ts \
+            tests/world/action-unity-source-contract.test.ts
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          git diff --check
+
+      - name: Publish only permanent receiver bytes to the carrier
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_head='${{ github.event.pull_request.head.sha || github.sha }}'
+          branch='qualify/world-semantic-objectives-v1'
+          git fetch --no-tags origin "$branch"
+          test "$(git rev-parse "origin/$branch")" = "$source_head"
+          paths=(
+            unity/Packages/com.axm.rodoh-action/Runtime/Core/ActionContract.cs
+            unity/Packages/com.axm.rodoh-action/Runtime/Core/ActionKernel.cs
+            unity/Packages/com.axm.rodoh-action/Runtime/Core/ActionTrace.cs
+            unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionInputRouter.cs
+          )
+          if git diff --quiet -- "${paths[@]}"; then
+            echo 'carrier already contains the qualified permanent receiver bytes'
+            exit 0
+          fi
+          changed=$(git status --porcelain | awk '{print $2}' | sort)
+          expected=$(printf '%s\n' "${paths[@]}" | sort)
+          test "$changed" = "$expected"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "${paths[@]}"
+          git diff --cached --check
+          git commit -m 'Mirror semantic action objectives in World and Unity'
+          git push origin "HEAD:$branch"
