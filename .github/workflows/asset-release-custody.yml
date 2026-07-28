@@ -51,6 +51,9 @@ jobs:
           npm test -- \
             tests/world/asset-release-custody.test.ts \
             tests/world/asset-release-workflow.test.ts \
+            tests/world/authored-pilot-representation-discovery.test.ts \
+            tests/world/representation-completeness.test.ts \
+            tests/world/underdrain-presentation-completeness.test.ts \
             tests/world/asset-standard.test.ts \
             tests/world/production-asset-wave-one.test.ts \
             tests/world/lamp-district-assets.test.ts \
@@ -66,6 +69,8 @@ jobs:
             --budgets docs/performance/RODOH_PERFORMANCE_BUDGETS.json \
             --output asset-release-receipt/static-performance.json
           cp docs/release/RODOH_ASSET_INVENTORY.json asset-release-receipt/asset-inventory.json
+          cp demos/underdrain-draft/presentation.json asset-release-receipt/underdrain-presentation.json
+          cp demos/underdrain-draft/assets/provenance.json asset-release-receipt/underdrain-provenance.json
           printf '%s\n' '${{ github.event.pull_request.head.sha || github.sha }}' > asset-release-receipt/world-candidate-sha.txt
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
@@ -83,7 +88,7 @@ jobs:
           if git ls-files -- docs/game | grep -q .; then
             git restore --source=HEAD --staged --worktree -- docs/game
           fi
-          git clean -fdx -- docs/game test-results
+          git clean -fdx -- docs/game test-results local/playwright-underdrain
           git diff --check
       - name: Upload asset release receipt
         if: always()
