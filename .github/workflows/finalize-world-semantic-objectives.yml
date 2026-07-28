@@ -1,5 +1,6 @@
 name: Finalize World semantic action objectives
 
+# Retry after the parity and contract files moved the branch head.
 on:
   push:
     branches:
