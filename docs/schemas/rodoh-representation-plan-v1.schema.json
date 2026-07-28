@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axm.tools/schemas/rodoh-representation-plan-v1.schema.json",
+  "title": "RODOH candidate-bound representation plan v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "id",
+    "namespace",
+    "classification",
+    "candidate",
+    "provenance",
+    "renderer",
+    "requirements",
+    "assets",
+    "bindings",
+    "surfaces"
+  ],
+  "properties": {
+    "format": { "const": "rodoh-representation-plan/1" },
+    "id": { "$ref": "#/$defs/nonEmpty" },
+    "namespace": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "classification": {
+      "enum": ["authored-pilot-candidate", "playable-authored-episode"]
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "authoredIdentity", "experienceId"],
+      "properties": {
+        "repository": { "$ref": "#/$defs/nonEmpty" },
+        "authoredIdentity": { "$ref": "#/$defs/nonEmpty" },
+        "experienceId": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "path"],
+      "properties": {
+        "format": { "$ref": "#/$defs/nonEmpty" },
+        "path": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "renderer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "neutralFallbackUsed"],
+      "properties": {
+        "action": { "enum": ["cartridge-assets", "primitive-only"] },
+        "neutralFallbackUsed": { "type": "boolean" }
+      }
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surfaceIds", "personIds", "objectiveIds", "stateIds"],
+      "properties": {
+        "surfaceIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/surfaceId" }
+        },
+        "personIds": { "$ref": "#/$defs/idArray" },
+        "objectiveIds": { "$ref": "#/$defs/idArray" },
+        "stateIds": { "$ref": "#/$defs/idArray" }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/asset" }
+    },
+    "bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identityAssetId", "people", "objectives", "states"],
+      "properties": {
+        "identityAssetId": { "$ref": "#/$defs/nonEmpty" },
+        "people": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["personId", "portraitAssetId", "bodyAssetId"],
+            "properties": {
+              "personId": { "$ref": "#/$defs/nonEmpty" },
+              "portraitAssetId": { "$ref": "#/$defs/nonEmpty" },
+              "bodyAssetId": { "$ref": "#/$defs/nonEmpty" }
+            }
+          }
+        },
+        "objectives": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["objectiveId", "idleAssetId", "activeAssetId", "completeAssetId"],
+            "properties": {
+              "objectiveId": { "$ref": "#/$defs/nonEmpty" },
+              "idleAssetId": { "$ref": "#/$defs/nonEmpty" },
+              "activeAssetId": { "$ref": "#/$defs/nonEmpty" },
+              "completeAssetId": { "$ref": "#/$defs/nonEmpty" }
+            }
+          }
+        },
+        "states": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["stateId", "assetId"],
+            "properties": {
+              "stateId": { "$ref": "#/$defs/nonEmpty" },
+              "assetId": { "$ref": "#/$defs/nonEmpty" }
+            }
+          }
+        }
+      }
+    },
+    "surfaces": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "assetIds", "desktop", "mobile", "accessibleEquivalent"],
+        "properties": {
+          "id": { "$ref": "#/$defs/surfaceId" },
+          "assetIds": { "$ref": "#/$defs/idArray" },
+          "desktop": { "type": "boolean" },
+          "mobile": { "type": "boolean" },
+          "accessibleEquivalent": { "$ref": "#/$defs/nonEmpty" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "nonEmpty": { "type": "string", "minLength": 1 },
+    "idArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/nonEmpty" }
+    },
+    "surfaceId": {
+      "enum": [
+        "cold-entry",
+        "authored-commitment",
+        "first-action",
+        "accepted-consequence",
+        "playable-successor",
+        "durable-record"
+      ]
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "sourcePath", "kind", "accessibleEquivalent"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" },
+        "sourcePath": { "$ref": "#/$defs/nonEmpty" },
+        "kind": {
+          "enum": [
+            "emblem",
+            "portrait",
+            "body",
+            "environment",
+            "mechanism",
+            "pressure-actor",
+            "route-mark",
+            "state-mark",
+            "record-mark"
+          ]
+        },
+        "accessibleEquivalent": { "$ref": "#/$defs/nonEmpty" }
+      }
+    }
+  }
+}
