@@ -1,0 +1,147 @@
+name: Unity semantic action objectives
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/unity-action-semantic-objectives.yml'
+      - 'unity/Conformance/**'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Core/**'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionInputRouter.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Tests/Editor/ActionSemanticObjectiveTests.cs'
+      - 'tests/world/action-semantic-objective-contract.test.ts'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARC_SEMANTIC_ACTION_SHA: 7b19e8c0f7022af1ed1d3274f5ac902137f0a427
+  CI: 'true'
+
+jobs:
+  parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_SEMANTIC_ACTION_SHA }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            axm-arc/package-lock.json
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install exact dependencies
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm --prefix axm-arc ci --no-audit --no-fund
+
+      - name: Generate exact Arc runtime-1.1 source law
+        run: |
+          set -euo pipefail
+          cp unity/Conformance/arc-semantic-spec.test.ts axm-arc/tests/action/unity-semantic-spec.test.ts
+          AXM_UNITY_NATIVE_SPEC="$RUNNER_TEMP/semantic.native.json" \
+            npm --prefix axm-arc test -- tests/action/unity-semantic-spec.test.ts
+          test "$(git -C axm-arc rev-parse HEAD)" = "$ARC_SEMANTIC_ACTION_SHA"
+          node unity/Conformance/project-action-spec.mjs \
+            "$RUNNER_TEMP/semantic.native.json" \
+            "$RUNNER_TEMP/semantic.projection.json"
+
+      - name: Produce the exact Arc terminal vector
+        run: |
+          set -euo pipefail
+          cp unity/Conformance/arc-vector.test.ts axm-arc/tests/action/unity-semantic-vector.test.ts
+          ARC_ACTION_AUTHORITY_SHA="$ARC_SEMANTIC_ACTION_SHA" \
+          AXM_UNITY_NATIVE_SPEC="$RUNNER_TEMP/semantic.native.json" \
+          AXM_UNITY_PROJECTION="$RUNNER_TEMP/semantic.projection.json" \
+          AXM_UNITY_VECTOR_OUT="$RUNNER_TEMP/semantic.vector.json" \
+            npm --prefix axm-arc test -- tests/action/unity-semantic-vector.test.ts
+
+      - name: Require exact Arc-to-C# semantic terminal parity
+        run: |
+          set -euo pipefail
+          dotnet run \
+            --project unity/Conformance/Axm.Rodoh.Action.SemanticParity.csproj \
+            --configuration Release -- \
+            "$RUNNER_TEMP/semantic.vector.json" \
+            "$RUNNER_TEMP/semantic.parity.json"
+          node - <<'NODE'
+          const fs = require('fs');
+          const receipt = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/semantic.parity.json', 'utf8'));
+          if (receipt.format !== 'rodoh-unity-arc-semantic-state-parity/1') throw new Error('wrong semantic parity receipt');
+          if (receipt.status !== 'pass' || receipt.parity !== true) throw new Error('semantic Arc/C# parity failed');
+          if (receipt.arcActionAuthorityCommit !== process.env.ARC_SEMANTIC_ACTION_SHA) throw new Error('semantic parity used the wrong Arc authority');
+          if (receipt.runtimeVersion !== '1.1.0') throw new Error('semantic parity did not execute runtime 1.1.0');
+          NODE
+
+      - name: Qualify legacy receiver identity and the complete World product
+        run: |
+          set -euo pipefail
+          dotnet build unity/Conformance/Axm.Rodoh.Action.Conformance.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.ArcParity.csproj --configuration Release
+          npm run typecheck
+          npm test -- \
+            tests/world/action-semantic-objective-contract.test.ts \
+            tests/world/action-unity-source-contract.test.ts
+          npm test
+          npm run build
+
+      - name: Remove generated product and C# build surfaces
+        run: |
+          set -euo pipefail
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game unity/Conformance
+
+      - name: Prove the exact Arc checkout remained clean
+        run: |
+          set -euo pipefail
+          rm -f \
+            axm-arc/tests/action/unity-semantic-spec.test.ts \
+            axm-arc/tests/action/unity-semantic-vector.test.ts
+          git -C axm-arc diff --check
+          arc_status="$(git -C axm-arc status --porcelain --untracked-files=all)"
+          printf '%s' "$arc_status"
+          test -z "$arc_status"
+
+      - name: Prove the exact World candidate remained clean
+        run: |
+          set -euo pipefail
+          rm -rf axm-arc
+          git diff --check
+          world_status="$(git status --porcelain --untracked-files=all)"
+          printf '%s' "$world_status"
+          test -z "$world_status"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unity-semantic-action-objective-parity
+          path: |
+            ${{ runner.temp }}/semantic.native.json
+            ${{ runner.temp }}/semantic.projection.json
+            ${{ runner.temp }}/semantic.vector.json
+            ${{ runner.temp }}/semantic.parity.json
+          if-no-files-found: warn
+          retention-days: 30

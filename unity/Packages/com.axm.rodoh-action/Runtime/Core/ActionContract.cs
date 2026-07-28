@@ -10,13 +10,20 @@ namespace Axm.Rodoh.Action
         public const string SourceReceiptFormat = "axm-action-receipt/1";
         public const string CandidateFormat = "rodoh-action-execution-candidate/1";
         public const string RuntimeVersion = "1.0.0";
+        public const string SemanticRuntimeVersion = "1.1.0";
         public const int TickRate = 30;
-        public const int ButtonMask = 15;
+        public const int ButtonMask = 31;
 
         public const int Light = 1;
         public const int Heavy = 2;
         public const int Dodge = 4;
         public const int Parry = 8;
+        public const int Interact = 16;
+
+        public static bool IsRuntimeVersion(string value)
+        {
+  return value == RuntimeVersion || value == SemanticRuntimeVersion;
+        }
 
         public static bool IsArenaKit(string value)
         {
@@ -81,6 +88,25 @@ namespace Axm.Rodoh.Action
     }
 
     [Serializable]
+    public sealed class ActionObjectiveTarget
+    {
+        public string id = string.Empty;
+        public int x;
+        public int y;
+        public int radius;
+    }
+
+    [Serializable]
+    public sealed class ActionObjectiveSemanticCompletion
+    {
+        public string kind = string.Empty;
+        public int targetCount;
+        public int targetTicks;
+        public ActionObjectiveTarget[] targets = Array.Empty<ActionObjectiveTarget>();
+        public ActionObjectiveTarget target;
+    }
+
+    [Serializable]
     public sealed class ActionObjectiveSpec
     {
         public string id = string.Empty;
@@ -91,6 +117,7 @@ namespace Axm.Rodoh.Action
         public int targetDefeats;
         public string failureKind = string.Empty;
         public double severity;
+        public ActionObjectiveSemanticCompletion semanticCompletion;
     }
 
     [Serializable]
@@ -134,7 +161,7 @@ namespace Axm.Rodoh.Action
             if (sourceFormat != ActionContract.SourceSpecFormat) errors.Add("Projection does not name axm-action-spec/1 as its source.");
             if (string.IsNullOrWhiteSpace(sourceSpecDigest) || !sourceSpecDigest.StartsWith("actspec1_", StringComparison.Ordinal)) errors.Add("Source action-spec digest is absent or malformed.");
             if (string.IsNullOrWhiteSpace(sourceArcDigest) || !sourceArcDigest.StartsWith("cart1_", StringComparison.Ordinal)) errors.Add("Source cartridge digest is absent or malformed.");
-            if (runtimeVersion != ActionContract.RuntimeVersion) errors.Add("Unsupported action runtime version.");
+            if (!ActionContract.IsRuntimeVersion(runtimeVersion)) errors.Add("Unsupported action runtime version.");
             if (tickRate != ActionContract.TickRate) errors.Add("Action projection must run at exactly 30 Hz.");
             if (maxTicks <= 0 || maxTicks > 600 * ActionContract.TickRate) errors.Add("maxTicks is outside the v1 bound.");
             if (arena == null || !ActionContract.IsArenaKit(arena.kit) || arena.radius < 1000 || arena.radius > 20000) errors.Add("Arena law is missing or outside the v1 bound.");
@@ -168,7 +195,8 @@ namespace Axm.Rodoh.Action
             }
 
             var objectiveIds = new HashSet<string>(StringComparer.Ordinal);
-            if (objectives == null || objectives.Length == 0) errors.Add("Action encounter has no objectives.");
+  var semanticObjectives = 0;
+  if (objectives == null || objectives.Length == 0) errors.Add("Action encounter has no objectives.");
             if (objectives != null)
             {
                 foreach (var objective in objectives)
@@ -176,12 +204,48 @@ namespace Axm.Rodoh.Action
                     if (objective == null || string.IsNullOrWhiteSpace(objective.id)) errors.Add("Action objective id is absent.");
                     else if (!objectiveIds.Add(objective.id)) errors.Add("Duplicate action objective id.");
                     if (objective == null || !ActionContract.IsEnemyKit(objective.enemyKit) || !enemyIds.Contains(objective.enemyKit)) errors.Add("Action objective references an unavailable enemy law.");
-                    if (objective == null || objective.enemyCount < 1 || objective.enemyCount > 12 || objective.targetDefeats < 1 || objective.targetDefeats > objective.enemyCount) errors.Add("Action objective population is outside the v1 bound.");
+          if (objective != null && objective.semanticCompletion == null)
+          {
+              if (objective.enemyCount < 1 || objective.enemyCount > 12 || objective.targetDefeats < 1 || objective.targetDefeats > objective.enemyCount) errors.Add("Legacy action objective population is outside the v1 bound.");
+          }
+          else if (objective != null && (objective.enemyCount < 0 || objective.enemyCount > 12 || objective.targetDefeats < 0 || objective.targetDefeats > objective.enemyCount))
+          {
+              errors.Add("Semantic action objective pressure population is outside the v1.1 bound.");
+          }
                     if (objective != null && (double.IsNaN(objective.severity) || double.IsInfinity(objective.severity) || objective.severity < 0 || objective.severity > 1)) errors.Add("Action objective severity is invalid.");
+          if (objective != null && objective.semanticCompletion != null)
+          {
+              semanticObjectives += 1;
+              if (runtimeVersion == ActionContract.RuntimeVersion) errors.Add("Action runtime 1.0 cannot carry semantic objective law.");
+              var semantic = objective.semanticCompletion;
+              var arenaRadius = arena == null ? 0 : arena.radius;
+              if (semantic.kind == "interact_count")
+              {
+                  if (semantic.targetCount < 1 || semantic.targetCount > 16) errors.Add("Interact objective target count is outside the v1.1 bound.");
+                  if (semantic.targets == null || semantic.targets.Length != semantic.targetCount) errors.Add("Interact objective target set does not match targetCount.");
+                  var targetIds = new HashSet<string>(StringComparer.Ordinal);
+                  foreach (var target in semantic.targets ?? Array.Empty<ActionObjectiveTarget>())
+                  {
+                      if (target == null || string.IsNullOrWhiteSpace(target.id)) errors.Add("Interact objective target identity is absent.");
+                      else if (!targetIds.Add(target.id)) errors.Add("Interact objective target identity is duplicated.");
+                      if (target == null || target.radius < 300 || target.radius > 3000) errors.Add("Interact objective target radius is outside the v1.1 bound.");
+                      if (target != null && (Math.Abs(target.x) > arenaRadius || Math.Abs(target.y) > arenaRadius)) errors.Add("Interact objective target lies outside the arena.");
+                  }
+              }
+              else if (semantic.kind == "hold_ticks")
+              {
+                  if (semantic.targetTicks < 1 || semantic.targetTicks > 18000) errors.Add("Hold objective duration is outside the v1.1 bound.");
+                  if (semantic.target == null || string.IsNullOrWhiteSpace(semantic.target.id)) errors.Add("Hold objective target identity is absent.");
+                  if (semantic.target == null || semantic.target.radius < 300 || semantic.target.radius > 3000) errors.Add("Hold objective target radius is outside the v1.1 bound.");
+                  if (semantic.target != null && (Math.Abs(semantic.target.x) > arenaRadius || Math.Abs(semantic.target.y) > arenaRadius)) errors.Add("Hold objective target lies outside the arena.");
+              }
+              else errors.Add("Unknown semantic objective completion law.");
+          }
                 }
-            }
+  }
+  if (runtimeVersion == ActionContract.SemanticRuntimeVersion && semanticObjectives == 0) errors.Add("Action runtime 1.1 requires at least one semantic objective.");
 
-            if (completion == null || (completion.kind != "clear" && completion.kind != "survive")) errors.Add("Unknown action completion law.");
+  if (completion == null || (completion.kind != "clear" && completion.kind != "survive")) errors.Add("Unknown action completion law.");
             else
             {
                 var count = objectives == null ? 0 : objectives.Length;
@@ -317,6 +381,8 @@ namespace Axm.Rodoh.Action
         public int defeated;
         public int target;
         public bool completed;
+        public string kind;
+        public int progress;
     }
 
     [Serializable]
@@ -328,6 +394,8 @@ namespace Axm.Rodoh.Action
         public int parries;
         public int dodgedAttacks;
         public int enemiesDefeated;
+        public int objectiveInteractions;
+        public int objectiveHoldTicks;
 
         public ActionStats Clone()
         {
@@ -344,6 +412,9 @@ namespace Axm.Rodoh.Action
         public string action;
         public string attack;
         public string outcome;
+        public string targetId;
+        public int progress;
+        public int target;
         public int damage;
         public int health;
         public bool defeated;
@@ -371,6 +442,8 @@ namespace Axm.Rodoh.Action
         public ActionPlayerState player = new ActionPlayerState();
         public readonly List<ActionEnemyState> enemies = new List<ActionEnemyState>();
         public readonly List<string> completedObjectiveIds = new List<string>();
+        public readonly Dictionary<string, int> objectiveProgress = new Dictionary<string, int>(StringComparer.Ordinal);
+        public readonly HashSet<string> completedInteractionTargetIds = new HashSet<string>(StringComparer.Ordinal);
         public ActionStats stats = new ActionStats();
         public int previousButtons;
         public readonly List<ActionEvent> events = new List<ActionEvent>();

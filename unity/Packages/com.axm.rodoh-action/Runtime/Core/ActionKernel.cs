@@ -54,9 +54,10 @@ namespace Axm.Rodoh.Action
             state.events.Clear();
             StepPlayer(spec, state, input);
             StepEnemies(spec, state);
-            state.tick += 1;
-            state.previousButtons = input.buttons;
-            AdvanceWave(spec, state);
+  state.tick += 1;
+  StepSemanticObjective(spec, state, input);
+  state.previousButtons = input.buttons;
+  AdvanceWave(spec, state);
             ClassifyTerminal(spec, state);
             return state;
         }
@@ -441,15 +442,82 @@ namespace Axm.Rodoh.Action
             }
         }
 
+        private static bool WithinTarget(ActionSimulationState state, ActionObjectiveTarget target)
+        {
+  return target != null && DistanceSquared(state.player.x, state.player.y, target.x, target.y) <= (long)target.radius * target.radius;
+        }
+
+        private static void StepSemanticObjective(ActionSpecProjection spec, ActionSimulationState state, ActionInputFrame input)
+        {
+  if (state.activeObjectiveIndex < 0 || state.activeObjectiveIndex >= spec.objectives.Length) return;
+  var objective = spec.objectives[state.activeObjectiveIndex];
+  var semantic = objective.semanticCompletion;
+  if (semantic == null) return;
+  state.objectiveProgress.TryGetValue(objective.id, out var amount);
+  string targetId = null;
+  if (semantic.kind == "interact_count")
+  {
+      var rising = (input.buttons & ActionContract.Interact) != 0 && (state.previousButtons & ActionContract.Interact) == 0;
+      if (!rising) return;
+      ActionObjectiveTarget selected = null;
+      foreach (var target in semantic.targets ?? Array.Empty<ActionObjectiveTarget>())
+      {
+          if (target == null || state.completedInteractionTargetIds.Contains(target.id) || !WithinTarget(state, target)) continue;
+          selected = target;
+          break;
+      }
+      if (selected == null) return;
+      state.completedInteractionTargetIds.Add(selected.id);
+      amount = 0;
+      foreach (var target in semantic.targets ?? Array.Empty<ActionObjectiveTarget>())
+      {
+          if (target != null && state.completedInteractionTargetIds.Contains(target.id)) amount += 1;
+      }
+      targetId = selected.id;
+      state.stats.objectiveInteractions += 1;
+  }
+  else if (semantic.kind == "hold_ticks")
+  {
+      if ((input.buttons & ActionContract.Interact) == 0 || !WithinTarget(state, semantic.target)) return;
+      amount = Math.Min(semantic.targetTicks, amount + 1);
+      targetId = semantic.target.id;
+      state.stats.objectiveHoldTicks += 1;
+  }
+  else return;
+  state.objectiveProgress[objective.id] = amount;
+  state.events.Add(new ActionEvent
+  {
+      type = "objective_progress",
+      objectiveId = objective.id,
+      targetId = targetId,
+      progress = amount,
+      target = semantic.kind == "interact_count" ? semantic.targetCount : semantic.targetTicks
+  });
+        }
+
+        private static bool ObjectiveComplete(ActionSimulationState state, ActionObjectiveSpec objective)
+        {
+  var semantic = objective.semanticCompletion;
+  if (semantic == null)
+  {
+      foreach (var enemy in state.enemies)
+      {
+          if (enemy.objectiveId == objective.id && enemy.mode != ActionEnemyMode.Defeated) return false;
+      }
+      return true;
+  }
+  state.objectiveProgress.TryGetValue(objective.id, out var amount);
+  return semantic.kind == "interact_count"
+      ? amount >= semantic.targetCount
+      : amount >= semantic.targetTicks;
+        }
+
         private static void AdvanceWave(ActionSpecProjection spec, ActionSimulationState state)
         {
-            foreach (var enemy in state.enemies)
-            {
-                if (enemy.mode != ActionEnemyMode.Defeated) return;
-            }
-            if (state.activeObjectiveIndex < 0 || state.activeObjectiveIndex >= spec.objectives.Length) return;
+  if (state.activeObjectiveIndex < 0 || state.activeObjectiveIndex >= spec.objectives.Length) return;
 
-            var objective = spec.objectives[state.activeObjectiveIndex];
+  var objective = spec.objectives[state.activeObjectiveIndex];
+  if (!ObjectiveComplete(state, objective)) return;
             if (!state.completedObjectiveIds.Contains(objective.id)) state.completedObjectiveIds.Add(objective.id);
             state.completedObjectiveIds.Sort(StringComparer.Ordinal);
             var nextIndex = state.activeObjectiveIndex + 1;
@@ -466,46 +534,64 @@ namespace Axm.Rodoh.Action
 
         private static ActionObjectiveProgress[] ObjectiveProgress(ActionSpecProjection spec, ActionSimulationState state)
         {
-            var progress = new ActionObjectiveProgress[spec.objectives.Length];
-            for (var index = 0; index < spec.objectives.Length; index += 1)
-            {
-                var objective = spec.objectives[index];
-                if (state.completedObjectiveIds.Contains(objective.id))
-                {
-                    progress[index] = new ActionObjectiveProgress
-                    {
-                        id = objective.id,
-                        defeated = objective.targetDefeats,
-                        target = objective.targetDefeats,
-                        completed = true
-                    };
-                    continue;
-                }
-                if (index != state.activeObjectiveIndex)
-                {
-                    progress[index] = new ActionObjectiveProgress
-                    {
-                        id = objective.id,
-                        defeated = 0,
-                        target = objective.targetDefeats,
-                        completed = false
-                    };
-                    continue;
-                }
-                var living = 0;
-                foreach (var enemy in state.enemies)
-                {
-                    if (enemy.objectiveId == objective.id && enemy.mode != ActionEnemyMode.Defeated) living += 1;
-                }
-                progress[index] = new ActionObjectiveProgress
-                {
-                    id = objective.id,
-                    defeated = Math.Max(0, objective.enemyCount - living),
-                    target = objective.targetDefeats,
-                    completed = false
-                };
-            }
-            return progress;
+  var progress = new ActionObjectiveProgress[spec.objectives.Length];
+  for (var index = 0; index < spec.objectives.Length; index += 1)
+  {
+      var objective = spec.objectives[index];
+      var completed = state.completedObjectiveIds.Contains(objective.id);
+      if (objective.semanticCompletion != null)
+      {
+          state.objectiveProgress.TryGetValue(objective.id, out var amount);
+          var target = objective.semanticCompletion.kind == "interact_count"
+              ? objective.semanticCompletion.targetCount
+              : objective.semanticCompletion.targetTicks;
+          progress[index] = new ActionObjectiveProgress
+          {
+              id = objective.id,
+              defeated = completed ? target : amount,
+              target = target,
+              completed = completed,
+              kind = objective.semanticCompletion.kind,
+              progress = completed ? target : amount
+          };
+          continue;
+      }
+      if (completed)
+      {
+          progress[index] = new ActionObjectiveProgress
+          {
+              id = objective.id,
+              defeated = objective.targetDefeats,
+              target = objective.targetDefeats,
+              completed = true
+          };
+          continue;
+      }
+      if (index != state.activeObjectiveIndex)
+      {
+          progress[index] = new ActionObjectiveProgress
+          {
+              id = objective.id,
+              defeated = 0,
+              target = objective.targetDefeats,
+              completed = false
+          };
+          continue;
+      }
+      var living = 0;
+      foreach (var enemy in state.enemies)
+      {
+          if (enemy.objectiveId == objective.id && enemy.mode != ActionEnemyMode.Defeated) living += 1;
+      }
+      progress[index] = new ActionObjectiveProgress
+      {
+          id = objective.id,
+          defeated = Math.Max(0, objective.enemyCount - living),
+          target = objective.targetDefeats,
+          completed = false
+      };
+  }
+  return progress;
         }
 
         private static void ClassifyTerminal(ActionSpecProjection spec, ActionSimulationState state)

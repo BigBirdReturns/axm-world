@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { initialActionState, stepActionSimulation } from "../../src/engine/action/simulation.js";
-import type { ActionInput, ActionSimulationState } from "../../src/engine/action/types.js";
+import {
+  ACTION_BUTTON,
+  type ActionEncounterSpec,
+  type ActionInput,
+  type ActionSimulationState,
+  type ActionStats,
+} from "../../src/engine/action/types.js";
 
 const nativeSpecPath = process.env.AXM_UNITY_NATIVE_SPEC;
 const projectionPath = process.env.AXM_UNITY_PROJECTION;
@@ -15,6 +21,23 @@ function required(value: string | undefined, name: string): string {
 
 function normalizeMode(value: unknown): string {
   return String(value ?? "").replace(/_/g, "-").toLowerCase();
+}
+
+function statsSnapshot(stats: ActionStats) {
+  return {
+    hitsLanded: Number(stats.hitsLanded),
+    heavyHits: Number(stats.heavyHits),
+    damageTaken: Number(stats.damageTaken),
+    parries: Number(stats.parries),
+    dodgedAttacks: Number(stats.dodgedAttacks),
+    enemiesDefeated: Number(stats.enemiesDefeated),
+    ...(stats.objectiveInteractions === undefined
+      ? {}
+      : { objectiveInteractions: Number(stats.objectiveInteractions) }),
+    ...(stats.objectiveHoldTicks === undefined
+      ? {}
+      : { objectiveHoldTicks: Number(stats.objectiveHoldTicks) }),
+  };
 }
 
 function snapshot(state: ActionSimulationState) {
@@ -41,18 +64,13 @@ function snapshot(state: ActionSimulationState) {
           defeated: Number(objective.defeated),
           target: Number(objective.target),
           completed: Boolean(objective.completed),
+          ...(objective.kind === undefined ? {} : { kind: String(objective.kind) }),
+          ...(objective.progress === undefined ? {} : { progress: Number(objective.progress) }),
         })),
         playerHealth: Number(state.result.playerHealth),
         playerDefeated: Boolean(state.result.playerDefeated),
         totalTicks: Number(state.result.totalTicks),
-        stats: {
-          hitsLanded: Number(state.result.stats.hitsLanded),
-          heavyHits: Number(state.result.stats.heavyHits),
-          damageTaken: Number(state.result.stats.damageTaken),
-          parries: Number(state.result.stats.parries),
-          dodgedAttacks: Number(state.result.stats.dodgedAttacks),
-          enemiesDefeated: Number(state.result.stats.enemiesDefeated),
-        },
+        stats: statsSnapshot(state.result.stats),
       }
     : null;
   return {
@@ -70,19 +88,24 @@ function snapshot(state: ActionSimulationState) {
     },
     enemies,
     completedObjectiveIds,
-    stats: {
-      hitsLanded: Number(state.stats.hitsLanded),
-      heavyHits: Number(state.stats.heavyHits),
-      damageTaken: Number(state.stats.damageTaken),
-      parries: Number(state.stats.parries),
-      dodgedAttacks: Number(state.stats.dodgedAttacks),
-      enemiesDefeated: Number(state.stats.enemiesDefeated),
-    },
+    ...(state.objectiveProgress === undefined
+      ? {}
+      : {
+          objectiveProgress: Object.fromEntries(
+            Object.entries(state.objectiveProgress)
+              .map(([id, value]) => [id, Number(value)] as const)
+              .sort(([left], [right]) => left.localeCompare(right)),
+          ),
+        }),
+    ...(state.completedInteractionTargetIds === undefined
+      ? {}
+      : { completedInteractionTargetIds: [...state.completedInteractionTargetIds].map(String).sort() }),
+    stats: statsSnapshot(state.stats),
     result,
   };
 }
 
-function scheduledInput(tick: number): ActionInput {
+function legacyScheduledInput(tick: number): ActionInput {
   let moveX: ActionInput["moveX"] = 0;
   let moveY: ActionInput["moveY"] = 0;
   let aimX: ActionInput["aimX"] = -1;
@@ -102,11 +125,37 @@ function scheduledInput(tick: number): ActionInput {
     aimY = -1;
   }
   let buttons = 0;
-  if (tick % 72 === 18) buttons = 2;
-  else if (tick % 18 === 6) buttons = 1;
-  else if (tick % 96 === 40) buttons = 8;
-  else if (tick % 120 === 75) buttons = 4;
+  if (tick % 72 === 18) buttons = ACTION_BUTTON.heavy;
+  else if (tick % 18 === 6) buttons = ACTION_BUTTON.light;
+  else if (tick % 96 === 40) buttons = ACTION_BUTTON.parry;
+  else if (tick % 120 === 75) buttons = ACTION_BUTTON.dodge;
   return { moveX, moveY, aimX, aimY, buttons };
+}
+
+function semanticInput(spec: ActionEncounterSpec, state: ActionSimulationState): ActionInput | null {
+  const objective = spec.objectives[state.activeObjectiveIndex];
+  const completion = objective?.semanticCompletion;
+  if (!completion) return null;
+  const completedTargets = new Set(state.completedInteractionTargetIds ?? []);
+  const target = completion.kind === "interact_count"
+    ? completion.targets.find((candidate) => !completedTargets.has(candidate.id))
+    : completion.target;
+  if (!target) return { moveX: 0, moveY: 0, aimX: 0, aimY: 0, buttons: 0 };
+  const dx = target.x - state.player.x;
+  const dy = target.y - state.player.y;
+  const within = dx * dx + dy * dy <= target.radius * target.radius;
+  const moveX = within ? 0 : Math.sign(dx) as ActionInput["moveX"];
+  const moveY = within ? 0 : Math.sign(dy) as ActionInput["moveY"];
+  if (!within) return { moveX, moveY, aimX: moveX, aimY: moveY, buttons: 0 };
+  if (completion.kind === "hold_ticks") {
+    return { moveX: 0, moveY: 0, aimX: 0, aimY: 0, buttons: ACTION_BUTTON.interact };
+  }
+  const pressed = (state.previousButtons & ACTION_BUTTON.interact) !== 0;
+  return { moveX: 0, moveY: 0, aimX: 0, aimY: 0, buttons: pressed ? 0 : ACTION_BUTTON.interact };
+}
+
+function scheduledInput(spec: ActionEncounterSpec, state: ActionSimulationState): ActionInput {
+  return semanticInput(spec, state) ?? legacyScheduledInput(state.tick);
 }
 
 function compress(frames: ActionInput[]) {
@@ -131,13 +180,13 @@ describe("Unity cross-language action vector", () => {
     const nativePath = required(nativeSpecPath, "AXM_UNITY_NATIVE_SPEC");
     const projectedPath = required(projectionPath, "AXM_UNITY_PROJECTION");
     const vectorPath = required(outputPath, "AXM_UNITY_VECTOR_OUT");
-    const spec = JSON.parse(readFileSync(nativePath, "utf8"));
+    const spec = JSON.parse(readFileSync(nativePath, "utf8")) as ActionEncounterSpec;
     const projection = JSON.parse(readFileSync(projectedPath, "utf8"));
     const seed = 0x51a7;
     let state = initialActionState(spec, seed);
     const frames: ActionInput[] = [];
     while (!state.result && state.tick < spec.maxTicks) {
-      const input = scheduledInput(state.tick);
+      const input = scheduledInput(spec, state);
       frames.push(input);
       state = stepActionSimulation(spec, state, input);
     }
