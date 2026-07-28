@@ -87,9 +87,10 @@ describe("UNDERDRAIN continuous authored pilot", () => {
       "successor-playable",
       "root-gate-parley",
       "not-issued-by-runtime",
-      "Arc replay required",
+      "Arc replay accepted this trace.",
       "prefers-reduced-motion",
     ]) expect(html).toContain(marker);
+    expect(html).not.toContain("campaign effect remained provisional");
     expect(html).toContain("The opening repair has no enemies.");
     expect(html).toContain("Only WORK on the green mechanism advances the plumbing objective.");
     expect(html).toContain("Enter the Root Gate parley");
