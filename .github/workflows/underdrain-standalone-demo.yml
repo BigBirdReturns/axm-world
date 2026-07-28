@@ -6,6 +6,8 @@ on:
       - '.github/workflows/underdrain-standalone-demo.yml'
       - '.github/workflows/asset-release-custody.yml'
       - 'demos/underdrain-draft/**'
+      - 'docs/design/UNDERDRAIN_ASSET_BIBLE.md'
+      - 'docs/design/UNDERDRAIN_REPRESENTATION_FAILURE_ANALYSIS.md'
       - 'scripts/demos/build-underdrain-arc-capsule.mjs'
       - 'scripts/demos/build-underdrain-draft.mjs'
       - 'scripts/demos/verify-underdrain-draft.mjs'
@@ -17,6 +19,7 @@ on:
       - 'tests/world/underdrain-presentation-completeness.test.ts'
       - 'tests/world/underdrain-draft-standalone.test.ts'
       - 'e2e/underdrain-draft.spec.ts'
+      - 'e2e/underdrain-mobile-layout.spec.ts'
   workflow_dispatch:
 
 permissions:
@@ -231,7 +234,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npx playwright test e2e/underdrain-draft.spec.ts \
+          npx playwright test \
+            e2e/underdrain-draft.spec.ts \
+            e2e/underdrain-mobile-layout.spec.ts \
             --project=desktop \
             --project=mobile \
             2>&1 | tee "$RUNNER_TEMP/underdrain-pilot/playwright.log"
@@ -263,6 +268,8 @@ jobs:
           cp axm-world/demos/underdrain-draft/assets/underdrain-art.js "$root/underdrain-art.js"
           cp axm-world/demos/underdrain-draft/source/arc-capsule.js "$root/"
           cp axm-world/demos/underdrain-draft/README.md "$root/"
+          cp axm-world/docs/design/UNDERDRAIN_ASSET_BIBLE.md "$root/"
+          cp axm-world/docs/design/UNDERDRAIN_REPRESENTATION_FAILURE_ANALYSIS.md "$root/"
           printf '%s\n' '${{ steps.standalone.outputs.source_head }}' > "$root/world-candidate.txt"
           printf '%s\n' "$ARC_UNDERDRAIN_SHA" > "$root/arc-candidate.txt"
           printf '%s\n' '${{ steps.standalone.outputs.authoring_sha }}' > "$root/authoring-sha256.txt"
@@ -280,7 +287,8 @@ jobs:
               "sha256": "${{ steps.standalone.outputs.presentation_sha }}",
               "actionRenderer": "cartridge-assets",
               "neutralFallbackUsed": false,
-              "automatedGate": "pass"
+              "automatedGate": "pass",
+              "mobileControlGeometry": "pass"
             },
             "authoredStructureGate": "pass",
             "automatedProductGate": "pass",
