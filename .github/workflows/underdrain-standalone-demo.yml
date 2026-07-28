@@ -166,17 +166,16 @@ jobs:
             "publishedWorldCommit": "$published_head",
             "arcCommit": "$ARC_UNDERDRAIN_SHA",
             "branch": "$PILOT_BRANCH",
-            "qualification": "rerun-required-on-published-head"
+            "qualification": "qualified-in-current-run"
           }
           JSON
 
       - name: Build and verify the exact standalone
-        if: steps.materialize.outputs.changed != 'true'
         id: standalone
         shell: bash
         run: |
           set -euo pipefail
-          source_head='${{ github.event.pull_request.head.sha || github.sha }}'
+          source_head="$(git -C axm-world rev-parse HEAD)"
           authoring_sha="$(sha256sum axm-world/demos/underdrain-draft/authoring.json | awk '{print $1}')"
           cmp \
             axm-arc/examples/underdrain-draft/authoring.json \
@@ -200,7 +199,6 @@ jobs:
           echo "source_head=$source_head" >> "$GITHUB_OUTPUT"
 
       - name: Qualify World contracts and the complete product
-        if: steps.materialize.outputs.changed != 'true'
         working-directory: axm-world
         shell: bash
         run: |
@@ -215,12 +213,10 @@ jobs:
           git clean -fdx -- docs/game
 
       - name: Install Chromium
-        if: steps.materialize.outputs.changed != 'true'
         working-directory: axm-world
         run: npx playwright install --with-deps chromium
 
       - name: Cold-walk desktop and mobile
-        if: steps.materialize.outputs.changed != 'true'
         working-directory: axm-world
         shell: bash
         run: |
@@ -230,7 +226,6 @@ jobs:
             --project=mobile
 
       - name: Assemble retained authored-pilot receipt
-        if: steps.materialize.outputs.changed != 'true'
         shell: bash
         run: |
           set -euo pipefail
