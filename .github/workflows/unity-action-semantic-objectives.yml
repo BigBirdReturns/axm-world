@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ARC_SEMANTIC_ACTION_SHA: 12b84fb212c2f8ee81987794e3deb5dbc505cb35
+  ARC_SEMANTIC_ACTION_SHA: 7b19e8c0f7022af1ed1d3274f5ac902137f0a427
   CI: 'true'
 
 jobs:
