@@ -1,0 +1,238 @@
+name: UNDERDRAIN direct-file smoke
+
+on:
+  pull_request:
+    branches:
+      - demo/underdrain-authored-pilot-v2
+    paths:
+      - '.github/workflows/underdrain-direct-file-smoke.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: underdrain-direct-file-smoke-f823
+  cancel-in-progress: true
+
+env:
+  WORLD_CANDIDATE: f823685471f63f466d7d8f83e9ff6f1c9ac9de89
+  ARC_AUTHORITY: ea16757fe9df65405b322af13d95351896f43157
+  AUTHORING_SHA256: f544af93e9c2f07a128a7c5f0f7b1e72c6bb771a29dd0af2db539358678bd2a9
+  EXPECTED_HTML_SHA256: c86245231e174f9e71a15c99fd25253150f9e6eee53fdcabad926d8d39b9fb36
+
+jobs:
+  direct-file:
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - name: Check out the exact machine-qualified candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.WORLD_CANDIDATE }}
+          path: subject
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: subject/package-lock.json
+
+      - name: Install exact dependencies
+        shell: pwsh
+        run: npm --prefix subject ci --no-audit --no-fund
+
+      - name: Rebuild and statically verify the exact single file
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force direct-file-receipt, subject/local/underdrain-draft | Out-Null
+          node subject/scripts/demos/build-underdrain-draft.mjs `
+            --root subject/demos/underdrain-draft `
+            --output subject/local/underdrain-draft/index.html `
+            --world-commit $env:WORLD_CANDIDATE `
+            --hash-output direct-file-receipt/INDEX_SHA256SUMS `
+            | Tee-Object direct-file-receipt/build.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          node subject/scripts/demos/verify-underdrain-draft.mjs `
+            --root subject/demos/underdrain-draft `
+            --html subject/local/underdrain-draft/index.html `
+            --world-commit $env:WORLD_CANDIDATE `
+            --arc-commit $env:ARC_AUTHORITY `
+            --authoring-sha256 $env:AUTHORING_SHA256 `
+            --output direct-file-receipt/static-verification.json `
+            | Tee-Object direct-file-receipt/static-verification.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $actual = (Get-FileHash subject/local/underdrain-draft/index.html -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $env:EXPECTED_HTML_SHA256) {
+            throw "Exact standalone digest mismatch: $actual"
+          }
+
+      - name: Install Chromium
+        working-directory: subject
+        shell: pwsh
+        run: npx playwright install chromium
+
+      - name: Open the exact HTML directly in Chromium and Edge
+        working-directory: subject
+        shell: pwsh
+        run: |
+          @'
+          import { chromium } from "@playwright/test";
+          import { createHash } from "node:crypto";
+          import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+          import { resolve } from "node:path";
+          import { pathToFileURL } from "node:url";
+
+          const worldCommit = process.env.WORLD_CANDIDATE;
+          const arcCommit = process.env.ARC_AUTHORITY;
+          const expectedHtmlSha256 = process.env.EXPECTED_HTML_SHA256;
+          const htmlPath = resolve("local/underdrain-draft/index.html");
+          const htmlSha256 = createHash("sha256").update(readFileSync(htmlPath)).digest("hex");
+          if (htmlSha256 !== expectedHtmlSha256) throw new Error(`HTML digest mismatch: ${htmlSha256}`);
+          const baseUrl = pathToFileURL(htmlPath).href;
+          const receiptRoot = resolve("../direct-file-receipt");
+          mkdirSync(receiptRoot, { recursive: true });
+
+          async function qualify(label, launchOptions) {
+            const browser = await chromium.launch({ headless: true, ...launchOptions });
+            try {
+              const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+              const page = await context.newPage();
+              const errors = [];
+              const externalRequests = [];
+              page.on("pageerror", (error) => errors.push(error.message));
+              page.on("request", (request) => {
+                const protocol = new URL(request.url()).protocol;
+                if (protocol !== "file:" && protocol !== "data:" && protocol !== "blob:") {
+                  externalRequests.push(request.url());
+                }
+              });
+
+              await page.goto(baseUrl, { waitUntil: "load" });
+              await page.evaluate(() => localStorage.clear());
+              await page.reload({ waitUntil: "load" });
+              if ((await page.title()) !== "UNDERDRAIN: The Bloom Below") throw new Error(`${label}: title mismatch`);
+              const start = page.getByRole("button", { name: "Answer the service call" });
+              await start.waitFor({ state: "visible" });
+              await page.screenshot({ path: resolve(receiptRoot, `${label}-cold.png`), fullPage: true });
+              await start.click();
+              await page.locator("#action.active").waitFor({ state: "visible" });
+              const beforeReload = await page.evaluate(() => ({
+                arcCommit: window.UnderdrainRuntime.session.arcCommit,
+                worldCommit: window.UnderdrainRuntime.session.worldSourceCommit,
+                cartridgeDigest: window.UnderdrainRuntime.session.cartridgeDigest,
+                authoringSha256: window.UnderdrainRuntime.session.authoringSha256,
+                challengeId: window.UnderdrainRuntime.session.current.challengeId,
+                enemyCount: window.UnderdrainRuntime.session.current.state.enemies.length,
+                runtimeVersion: window.UnderdrainRuntime.session.current.spec.runtimeVersion,
+              }));
+              if (beforeReload.arcCommit !== arcCommit) throw new Error(`${label}: Arc identity mismatch`);
+              if (beforeReload.worldCommit !== worldCommit) throw new Error(`${label}: World identity mismatch`);
+              if (beforeReload.challengeId !== "mrs-kett-service-call") throw new Error(`${label}: opening challenge mismatch`);
+              if (beforeReload.enemyCount !== 0) throw new Error(`${label}: opening is not zero-pressure`);
+              if (beforeReload.runtimeVersion !== "1.1.0") throw new Error(`${label}: semantic runtime mismatch`);
+
+              await page.reload({ waitUntil: "load" });
+              const resume = page.getByRole("button", { name: "Resume where I stopped" });
+              await resume.waitFor({ state: "visible" });
+              await resume.click();
+              await page.locator("#action.active").waitFor({ state: "visible" });
+              const afterReload = await page.evaluate(() => ({
+                arcCommit: window.UnderdrainRuntime.session.arcCommit,
+                worldCommit: window.UnderdrainRuntime.session.worldSourceCommit,
+                cartridgeDigest: window.UnderdrainRuntime.session.cartridgeDigest,
+                authoringSha256: window.UnderdrainRuntime.session.authoringSha256,
+                challengeId: window.UnderdrainRuntime.session.current.challengeId,
+              }));
+              if (JSON.stringify(afterReload) !== JSON.stringify({
+                arcCommit: beforeReload.arcCommit,
+                worldCommit: beforeReload.worldCommit,
+                cartridgeDigest: beforeReload.cartridgeDigest,
+                authoringSha256: beforeReload.authoringSha256,
+                challengeId: beforeReload.challengeId,
+              })) throw new Error(`${label}: direct-file reload identity mismatch`);
+              await context.close();
+
+              const matrixContext = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+              const matrixPage = await matrixContext.newPage();
+              const matrixErrors = [];
+              const matrixExternal = [];
+              matrixPage.on("pageerror", (error) => matrixErrors.push(error.message));
+              matrixPage.on("request", (request) => {
+                const protocol = new URL(request.url()).protocol;
+                if (protocol !== "file:" && protocol !== "data:" && protocol !== "blob:") {
+                  matrixExternal.push(request.url());
+                }
+              });
+              await matrixPage.goto(`${baseUrl}?autotest=1`, { waitUntil: "load" });
+              await matrixPage.waitForFunction(() => document.body.dataset.testStatus === "pass", null, { timeout: 60_000 });
+              const matrix = await matrixPage.evaluate(() => window.__UNDERDRAIN_TEST_RESULT__);
+              if (matrix?.format !== "rodoh-underdrain-automated-pilot-qualification/2") {
+                throw new Error(`${label}: automated matrix format mismatch`);
+              }
+              if (matrix?.status !== "pass" || matrix?.cases?.length !== 9) {
+                throw new Error(`${label}: automated matrix failed`);
+              }
+              if (errors.length || matrixErrors.length) throw new Error(`${label}: page errors ${JSON.stringify([...errors, ...matrixErrors])}`);
+              if (externalRequests.length || matrixExternal.length) {
+                throw new Error(`${label}: direct file made external requests ${JSON.stringify([...externalRequests, ...matrixExternal])}`);
+              }
+              await matrixContext.close();
+              return {
+                browser: label,
+                status: "pass",
+                directFileProtocol: "file:",
+                coldEntry: "pass",
+                zeroPressureOpening: "pass",
+                exactResume: "pass",
+                automatedCases: matrix.cases.length,
+                runtimeRequestsOutsideFileDataBlob: 0,
+                pageErrors: 0,
+              };
+            } finally {
+              await browser.close();
+            }
+          }
+
+          const browsers = [];
+          browsers.push(await qualify("chromium", {}));
+          browsers.push(await qualify("edge", { channel: "msedge" }));
+          const receipt = {
+            format: "rodoh-underdrain-direct-file-smoke/1",
+            status: "pass",
+            worldCommit,
+            arcCommit,
+            html: { path: htmlPath, bytes: readFileSync(htmlPath).length, sha256: htmlSha256 },
+            operatingSystem: process.platform,
+            browsers,
+          };
+          writeFileSync(resolve(receiptRoot, "direct-file-smoke.json"), `${JSON.stringify(receipt, null, 2)}\n`);
+          console.log(JSON.stringify(receipt, null, 2));
+          '@ | Set-Content -Encoding utf8 direct-file-smoke.mjs
+          node direct-file-smoke.mjs | Tee-Object ../direct-file-receipt/direct-file-smoke.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Bind the receipt to exact candidate bytes
+        shell: pwsh
+        run: |
+          Copy-Item subject/local/underdrain-draft/index.html direct-file-receipt/index.html
+          Set-Content -Encoding ascii direct-file-receipt/world-candidate.txt $env:WORLD_CANDIDATE
+          Set-Content -Encoding ascii direct-file-receipt/arc-authority.txt $env:ARC_AUTHORITY
+          Get-ChildItem direct-file-receipt -File -Recurse |
+            Where-Object { $_.Name -ne 'SHA256SUMS' } |
+            Sort-Object FullName |
+            ForEach-Object {
+              $relative = [IO.Path]::GetRelativePath((Resolve-Path direct-file-receipt), $_.FullName).Replace('\\','/')
+              $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              "$hash  $relative"
+            } | Set-Content -Encoding ascii direct-file-receipt/SHA256SUMS
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-direct-file-smoke-f823685
+          path: direct-file-receipt
+          if-no-files-found: error
+          retention-days: 30
