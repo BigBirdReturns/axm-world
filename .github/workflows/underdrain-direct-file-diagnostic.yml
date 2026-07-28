@@ -1,0 +1,170 @@
+name: UNDERDRAIN direct-file diagnostic
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/underdrain-direct-file-diagnostic.yml'
+      - 'demos/underdrain-draft/**'
+      - 'scripts/demos/build-underdrain-draft.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: underdrain-direct-file-diagnostic-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARC_UNDERDRAIN_SHA: ea16757fe9df65405b322af13d95351896f43157
+
+jobs:
+  diagnose:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: axm-world/package-lock.json
+
+      - name: Install and build exact candidate
+        shell: pwsh
+        run: |
+          npm --prefix axm-world ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $head = (git -C axm-world rev-parse HEAD).Trim()
+          New-Item -ItemType Directory -Force axm-world/local/underdrain-draft, "$env:RUNNER_TEMP/underdrain-direct-diagnostic" | Out-Null
+          node axm-world/scripts/demos/build-underdrain-draft.mjs `
+            --root axm-world/demos/underdrain-draft `
+            --output axm-world/local/underdrain-draft/index.html `
+            --world-commit $head `
+            2>&1 | Tee-Object "$env:RUNNER_TEMP/underdrain-direct-diagnostic/build.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Copy-Item axm-world/local/underdrain-draft/index.html "$env:RUNNER_TEMP/underdrain-direct-diagnostic/index.html"
+
+      - name: Install Chromium
+        working-directory: axm-world
+        run: npx playwright install chromium
+
+      - name: Diagnose file-origin persistence step by step
+        working-directory: axm-world
+        shell: pwsh
+        run: |
+          @'
+          import { chromium } from "@playwright/test";
+          import { readFileSync, writeFileSync } from "node:fs";
+          import { resolve } from "node:path";
+          import { pathToFileURL } from "node:url";
+
+          const output = resolve(process.env.RUNNER_TEMP, "underdrain-direct-diagnostic", "diagnostic.json");
+          const log = {
+            format: "rodoh-underdrain-direct-file-diagnostic/1",
+            status: "running",
+            stage: "launch",
+            observations: [],
+            pageErrors: [],
+            console: [],
+          };
+          const write = () => writeFileSync(output, `${JSON.stringify(log, null, 2)}\n`);
+          const observe = (stage, data = {}) => {
+            log.stage = stage;
+            log.observations.push({ stage, ...data });
+            write();
+          };
+          write();
+
+          const browser = await chromium.launch({ headless: true });
+          try {
+            const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+            const page = await context.newPage();
+            page.on("pageerror", error => { log.pageErrors.push(error.stack || error.message); write(); });
+            page.on("console", message => { log.console.push({ type: message.type(), text: message.text() }); write(); });
+            const url = pathToFileURL(resolve("local/underdrain-draft/index.html")).href;
+
+            await page.goto(url, { waitUntil: "load" });
+            observe("first-load", await page.evaluate(() => ({
+              title: document.title,
+              protocol: location.protocol,
+              windowNameLength: window.name.length,
+              persistence: window.UnderdrainPersistence ?? null,
+              runtimePresent: Boolean(window.UnderdrainRuntime),
+              stage: window.UnderdrainRuntime?.session?.stage ?? null,
+            })));
+
+            await page.evaluate(() => { window.name = ""; });
+            observe("cleared-window-name", await page.evaluate(() => ({ windowNameLength: window.name.length })));
+            await page.reload({ waitUntil: "load" });
+            observe("fresh-reload", await page.evaluate(() => ({
+              windowNameLength: window.name.length,
+              windowNamePrefix: window.name.slice(0, 96),
+              persistence: window.UnderdrainPersistence ?? null,
+              stage: window.UnderdrainRuntime?.session?.stage ?? null,
+              startVisible: Boolean(document.querySelector("#start-service")),
+              persistenceStatus: document.querySelector("#persistence-status")?.textContent ?? null,
+            })));
+
+            await page.getByRole("button", { name: "Answer the service call" }).click();
+            await page.locator("#action.active").waitFor({ state: "visible" });
+            observe("service-started", await page.evaluate(() => ({
+              windowNameLength: window.name.length,
+              windowNamePrefix: window.name.slice(0, 96),
+              stage: window.UnderdrainRuntime.session.stage,
+              view: window.UnderdrainRuntime.session.view,
+              currentChallenge: window.UnderdrainRuntime.session.current?.challengeId ?? null,
+              persistence: window.UnderdrainRuntime.persistence ?? null,
+              recordPersistence: window.UnderdrainRuntime.episodeRecord().persistence ?? null,
+            })));
+
+            await page.reload({ waitUntil: "load" });
+            observe("post-service-reload", await page.evaluate(() => ({
+              windowNameLength: window.name.length,
+              windowNamePrefix: window.name.slice(0, 96),
+              stage: window.UnderdrainRuntime?.session?.stage ?? null,
+              view: window.UnderdrainRuntime?.session?.view ?? null,
+              currentChallenge: window.UnderdrainRuntime?.session?.current?.challengeId ?? null,
+              resumeHidden: document.querySelector("#resume-run")?.hidden ?? null,
+              resumeVisible: Boolean(document.querySelector("#resume-run") && !document.querySelector("#resume-run").hidden),
+              persistence: window.UnderdrainPersistence ?? null,
+            })));
+
+            await page.getByRole("button", { name: "Resume where I stopped" }).waitFor({ state: "visible", timeout: 10_000 });
+            await page.getByRole("button", { name: "Resume where I stopped" }).click();
+            await page.locator("#action.active").waitFor({ state: "visible" });
+            observe("resume-complete", await page.evaluate(() => ({
+              stage: window.UnderdrainRuntime.session.stage,
+              view: window.UnderdrainRuntime.session.view,
+              currentChallenge: window.UnderdrainRuntime.session.current?.challengeId ?? null,
+            })));
+            log.status = "pass";
+            log.stage = "complete";
+            write();
+          } catch (error) {
+            log.status = "fail";
+            log.error = error instanceof Error ? error.stack : String(error);
+            write();
+            throw error;
+          } finally {
+            await browser.close();
+          }
+          '@ | Set-Content -Encoding utf8 direct-file-diagnostic.mjs
+          node direct-file-diagnostic.mjs 2>&1 | Tee-Object "$env:RUNNER_TEMP/underdrain-direct-diagnostic/diagnostic.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Retain exact diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-direct-file-diagnostic
+          path: |
+            ${{ runner.temp }}/underdrain-direct-diagnostic
+            axm-world/direct-file-diagnostic.mjs
+          if-no-files-found: error
+          retention-days: 30
