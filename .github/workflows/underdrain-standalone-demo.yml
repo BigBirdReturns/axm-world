@@ -218,7 +218,23 @@ jobs:
           set -euo pipefail
           npx playwright test e2e/underdrain-draft.spec.ts \
             --project=desktop \
-            --project=mobile
+            --project=mobile \
+            2>&1 | tee "$RUNNER_TEMP/underdrain-pilot/playwright.log"
+
+      - name: Retain browser evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/underdrain-pilot"
+          if [[ -d axm-world/test-results ]]; then
+            rm -rf "$root/playwright-test-results"
+            cp -a axm-world/test-results "$root/playwright-test-results"
+          fi
+          if [[ -d axm-world/playwright-report ]]; then
+            rm -rf "$root/playwright-report"
+            cp -a axm-world/playwright-report "$root/playwright-report"
+          fi
 
       - name: Assemble retained authored-pilot receipt
         shell: bash
@@ -229,9 +245,6 @@ jobs:
           cp axm-world/demos/underdrain-draft/authoring.json "$root/"
           cp axm-world/demos/underdrain-draft/source/arc-capsule.js "$root/"
           cp axm-world/demos/underdrain-draft/README.md "$root/"
-          if [[ -d axm-world/test-results ]]; then
-            cp -a axm-world/test-results "$root/playwright-test-results"
-          fi
           printf '%s\n' '${{ steps.standalone.outputs.source_head }}' > "$root/world-candidate.txt"
           printf '%s\n' "$ARC_UNDERDRAIN_SHA" > "$root/arc-candidate.txt"
           printf '%s\n' '${{ steps.standalone.outputs.authoring_sha }}' > "$root/authoring-sha256.txt"
