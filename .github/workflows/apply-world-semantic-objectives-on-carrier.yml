@@ -61,6 +61,32 @@ jobs:
                   line[10:] if line.startswith('          ') else line
                   for line in lines
               ) + '\n'
+              exact_helper = '''def replace_once(text: str, old: str, new: str, label: str) -> str:
+    count = text.count(old)
+    if count != 1:
+        raise SystemExit(f'{label}: expected one anchor, found {count}')
+    return text.replace(old, new)
+'''
+              tolerant_helper = '''def replace_once(text: str, old: str, new: str, label: str) -> str:
+    count = text.count(old)
+    if count == 1:
+        return text.replace(old, new)
+    source_lines = text.splitlines(keepends=True)
+    old_lines = old.splitlines()
+    normalized_old = [line.strip() for line in old_lines]
+    matches = []
+    for start in range(0, len(source_lines) - len(old_lines) + 1):
+        candidate = [line.strip() for line in source_lines[start:start + len(old_lines)]]
+        if candidate == normalized_old:
+            matches.append(start)
+    if len(matches) != 1:
+        raise SystemExit(f'{label}: expected one anchor, found exact={count}, normalized={len(matches)}')
+    start = matches[0]
+    return ''.join(source_lines[:start]) + new + ''.join(source_lines[start + len(old_lines):])
+'''
+              if script.count(exact_helper) != 1:
+                  raise RuntimeError('reviewed replace_once helper is absent or duplicated')
+              script = script.replace(exact_helper, tolerant_helper, 1)
               target = Path('/tmp/apply-world-semantic-objectives.py')
               target.write_text(script)
               code = compile(target.read_text(), str(target), 'exec')
