@@ -37,6 +37,7 @@ namespace Axm.Rodoh.Action
         public void PressHeavy() => Latch(ActionContract.Heavy);
         public void PressDodge() => Latch(ActionContract.Dodge);
         public void PressParry() => Latch(ActionContract.Parry);
+        public void PressInteract() => Latch(ActionContract.Interact);
 
         public void Latch(int buttons)
         {
@@ -67,7 +68,8 @@ namespace Axm.Rodoh.Action
                 if (Input.GetKeyDown(KeyCode.J)) Latch(ActionContract.Light);
                 if (Input.GetKeyDown(KeyCode.K)) Latch(ActionContract.Heavy);
                 if (Input.GetKeyDown(KeyCode.Space)) Latch(ActionContract.Dodge);
-                if (Input.GetKeyDown(KeyCode.L)) Latch(ActionContract.Parry);
+      if (Input.GetKeyDown(KeyCode.L)) Latch(ActionContract.Parry);
+      if (Input.GetKeyDown(KeyCode.E)) Latch(ActionContract.Interact);
             }
 #endif
             _moveX = Quantize(move.x, _moveX);

@@ -143,9 +143,21 @@ namespace Axm.Rodoh.Action
             var completed = new List<string>(state.completedObjectiveIds);
             completed.Sort(StringComparer.Ordinal);
             text.Append("completed:").Append(string.Join(",", completed)).Append('\n');
-            text.Append("stats:").Append(state.stats.hitsLanded).Append(',').Append(state.stats.heavyHits).Append(',')
-                .Append(state.stats.damageTaken).Append(',').Append(state.stats.parries).Append(',')
-                .Append(state.stats.dodgedAttacks).Append(',').Append(state.stats.enemiesDefeated).Append('\n');
+  if (spec.runtimeVersion == ActionContract.SemanticRuntimeVersion)
+  {
+      var progressIds = new List<string>(state.objectiveProgress.Keys);
+      progressIds.Sort(StringComparer.Ordinal);
+      foreach (var id in progressIds) text.Append("progress:").Append(id).Append('=').Append(state.objectiveProgress[id]).Append('\n');
+      var targetIds = new List<string>(state.completedInteractionTargetIds);
+      targetIds.Sort(StringComparer.Ordinal);
+      text.Append("interaction-targets:").Append(string.Join(",", targetIds)).Append('\n');
+  }
+  text.Append("stats:").Append(state.stats.hitsLanded).Append(',').Append(state.stats.heavyHits).Append(',')
+      .Append(state.stats.damageTaken).Append(',').Append(state.stats.parries).Append(',')
+      .Append(state.stats.dodgedAttacks).Append(',').Append(state.stats.enemiesDefeated);
+  if (spec.runtimeVersion == ActionContract.SemanticRuntimeVersion)
+      text.Append(',').Append(state.stats.objectiveInteractions).Append(',').Append(state.stats.objectiveHoldTicks);
+  text.Append('\n');
             text.Append("result:").Append(state.result == null ? "open" : state.result.outcome).Append('\n');
             return "unitystate1_" + Sha256Hex(Encoding.UTF8.GetBytes(text.ToString()));
         }
@@ -194,8 +206,9 @@ namespace Axm.Rodoh.Action
             if (recorder == null) throw new ArgumentNullException(nameof(recorder));
             if (state == null) throw new ArgumentNullException(nameof(state));
             return new ActionExecutionCandidate
-            {
-                arcDigest = spec.sourceArcDigest,
+  {
+      runtimeVersion = spec.runtimeVersion,
+      arcDigest = spec.sourceArcDigest,
                 challengeId = spec.challengeId,
                 difficultyModeId = spec.difficultyModeId,
                 actionSpecDigest = spec.sourceSpecDigest,
