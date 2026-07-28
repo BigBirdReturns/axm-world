@@ -340,20 +340,61 @@ function buildStructuralEvidence(){
     recoveries:clone(session.structural.recoveries),
   };
 }
-
 function episodeRecord(){
   return {
-    format:"rodoh-underdrain-episode-record/2",status:session.compactReceipt?"complete":"in-progress",
-    worldSourceCommit:ARC.worldSourceCommit,arcAuthority:{commit:ARC.authorityCommit,cartridgeDigest:ARC.cartridgeDigest,authoringSha256:ARC.authoringSha256},
-    route:session.route,campaign:clone(session.campaign),acceptedActions:clone(session.acceptedActions),compactReceipt:clone(session.compactReceipt),
+    format:"rodoh-underdrain-episode-record/2",
+    status:session.compactReceipt?"complete":"in-progress",
+    arcAuthority:{commit:session.arcCommit,cartridgeDigest:session.cartridgeDigest},
+    worldSourceCommit:session.worldSourceCommit,
+    route:session.route,campaign:clone(session.campaign),
+    acceptedActions:clone(session.acceptedActions),compactReceipt:clone(session.compactReceipt),
     structuralEvidence:buildStructuralEvidence(),
     blindPlayerReceipt:{status:"not-issued-by-runtime",required:true},
   };
 }
 
 function restoreView(){
-  const valid=new Set(["cold","action","draft","consequence","root","record"]);
-  const target=valid.has(session.view)?session.view:"cold";
-  if(target==="action"&&session.current){renderAction();showView("action");startLoop();return}
-  showView(target);
+  document.getElementById("resume-run").hidden=session.stage==="cold";
+  if(session.current){renderAction();showView("action");startLoop();return}
+  if(session.compactReceipt){renderCompact(session.compactReceipt);renderRecord("episode");showView("record");return}
+  if(session.stage==="root"){showView("root");return}
+  if(session.stage==="consequence"){
+    const pump=session.acceptedActions.find(entry=>entry.receipt.challengeId===PUMP_ID);renderConsequence(pump);showView("consequence");return
+  }
+  if(session.stage==="draft"){renderDraft();showView("draft");return}
+  showView("cold");
 }
+
+// Bound controls.
+document.getElementById("start-service").addEventListener("click",()=>beginEncounter(SERVICE_ID,"mrs-kett-service-call","Mrs. Kett's kitchen",1,0x1a0001));
+document.getElementById("resume-run").addEventListener("click",restoreView);
+document.getElementById("leave-action").addEventListener("click",()=>{stopLoop();saveSession();showView("cold")});
+document.getElementById("retry-objective").addEventListener("click",retryCurrentObjective);
+document.getElementById("accept-failure").addEventListener("click",acceptCurrentAction);
+document.querySelectorAll("[data-route]").forEach(button=>button.addEventListener("click",()=>chooseRoute(button.dataset.route)));
+document.getElementById("start-pump").addEventListener("click",()=>{
+  if(!session.route)return;
+  story(session.route==="truce-offer"?"MORROWCAP":session.route==="emergency-plan"?"MARTA":"RHEA",
+    session.route==="truce-offer"?"The Crown hears the promise. The promise does not stop its defenders.":session.route==="emergency-plan"?"Override marks are live. Do not recognize sovereignty while operating city equipment.":"The service tunnel follows household pressure directly to the valves.","route");
+  beginEncounter(PUMP_ID,"pump-seven-operation","Pump Seven",2,0x5eed2026);
+});
+document.getElementById("enter-root-gate").addEventListener("click",()=>{session.stage="root";saveSession();showView("root")});
+document.querySelectorAll("[data-compact]").forEach(button=>button.addEventListener("click",()=>acceptRootGate(button.dataset.compact)));
+document.getElementById("open-record").addEventListener("click",()=>{renderRecord("episode");showView("record")});
+document.querySelectorAll("[data-record-tab]").forEach(button=>button.addEventListener("click",()=>renderRecord(button.dataset.recordTab)));
+document.getElementById("download-record").addEventListener("click",()=>downloadJson("underdrain-episode-record.json",episodeRecord()));
+document.getElementById("new-run").addEventListener("click",resetSession);
+
+function downloadJson(filename,value){
+  const blob=new Blob([JSON.stringify(value,null,2)+"\n"],{type:"application/json"});
+  const link=document.createElement("a");link.href=URL.createObjectURL(blob);link.download=filename;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);
+}
+
+window.UnderdrainRuntime={
+  get session(){return session},
+  reset:resetSession,
+  beginEncounter,
+  acceptRootGate,
+  buildStructuralEvidence,
+  episodeRecord,
+};
