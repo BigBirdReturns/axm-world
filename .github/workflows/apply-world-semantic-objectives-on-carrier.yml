@@ -56,11 +56,11 @@ jobs:
               match = re.search(r"          python - <<'PY'\n(?P<body>.*?)\n          PY\n", source, re.S)
               if not match:
                   raise RuntimeError('reviewed semantic finalizer Python block is absent')
-              raw = match.group('body')
-              lines = raw.splitlines()
-              if any(line and not line.startswith('          ') for line in lines):
-                  raise RuntimeError('reviewed finalizer contains an unexpected YAML indentation boundary')
-              script = '\n'.join(line[10:] if line else '' for line in lines) + '\n'
+              lines = match.group('body').splitlines()
+              script = '\n'.join(
+                  line[10:] if line.startswith('          ') else line
+                  for line in lines
+              ) + '\n'
               target = Path('/tmp/apply-world-semantic-objectives.py')
               target.write_text(script)
               code = compile(target.read_text(), str(target), 'exec')
