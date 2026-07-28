@@ -69,6 +69,24 @@
     const canvasIds=(canvas.dataset.representationAssets??"").split(/\s+/).filter(Boolean);
     return [...new Set([...ids,...canvasIds])].sort();
   }
+  function representativeAssetsMounted(){
+    const mounted=new Set(mountedAssetIds());
+    return [
+      "underdrain:emblem",
+      "underdrain:scene-kitchen",
+      "underdrain:portrait-rhea-venn",
+      "underdrain:portrait-tess-loam",
+      "underdrain:portrait-marta-sump",
+      "underdrain:portrait-morrowcap",
+      "underdrain:portrait-dax-venn",
+      "underdrain:route-emergency-plan",
+      "underdrain:route-service-tunnel",
+      "underdrain:route-truce-offer",
+      "underdrain:scene-consequence",
+      "underdrain:scene-root-gate",
+      "underdrain:record-seal",
+    ].every(assetId=>mounted.has(assetId));
+  }
   function buildRepresentationEvidence(){
     return {
       format:"rodoh-representation-runtime-evidence/1",
@@ -119,7 +137,7 @@
       actionRendererUsesCartridgeAssets:plan.renderer.action==="cartridge-assets",
       neutralFallbackAbsent:plan.renderer.neutralFallbackUsed===false,
       completeSurfacePlan:plan.surfaces.length===6&&plan.surfaces.every(surface=>surface.desktop&&surface.mobile&&surface.assetIds.length>0),
-      mountedCartridgeAssets:mountedAssetIds().length>=15,
+      mountedCartridgeAssets:representativeAssetsMounted(),
     };
     Object.assign(result.checks,representationChecks);
     const representationPassed=/^[0-9a-f]{64}$/.test(representationChecks.presentationSha256)
