@@ -35,6 +35,10 @@ function confined(root: string, path: string): boolean {
   return rel !== ".." && !rel.startsWith(`..${sep}`);
 }
 
+function repositoryPath(path: string): string {
+  return relative(ROOT, path).split(sep).join("/");
+}
+
 const authoringFiles = walk(DEMOS).filter((path) => path.endsWith(`${sep}authoring.json`));
 const firstPartyPilots = authoringFiles.flatMap((path) => {
   const authoring = readJson(path);
@@ -45,11 +49,12 @@ const firstPartyPilots = authoringFiles.flatMap((path) => {
 
 describe("first-party authored-pilot representation discovery", () => {
   it("discovers at least one governed first-party pilot instead of auditing only the frozen v1 rollup", () => {
-    expect(firstPartyPilots.map((entry) => relative(ROOT, entry.path))).toContain("demos/underdrain-draft/authoring.json");
+    expect(firstPartyPilots.map((entry) => repositoryPath(entry.path)))
+      .toContain("demos/underdrain-draft/authoring.json");
   });
 
   for (const candidate of firstPartyPilots) {
-    const label = relative(ROOT, candidate.directory);
+    const label = repositoryPath(candidate.directory);
     it(`${label} carries a complete cartridge-owned representation plan`, () => {
       const presentationPath = join(candidate.directory, "presentation.json");
       expect(existsSync(presentationPath), `${label} is outside representation custody`).toBe(true);
@@ -61,13 +66,13 @@ describe("first-party authored-pilot representation discovery", () => {
 
       const provenancePath = resolve(candidate.directory, plan.provenance.path);
       expect(confined(candidate.directory, provenancePath)).toBe(true);
-      expect(existsSync(provenancePath), `missing ${relative(ROOT, provenancePath)}`).toBe(true);
+      expect(existsSync(provenancePath), `missing ${repositoryPath(provenancePath)}`).toBe(true);
       expect(readJson(provenancePath).format).toBe(plan.provenance.format);
 
       for (const asset of plan.assets) {
         const sourcePath = resolve(candidate.directory, asset.sourcePath);
         expect(confined(candidate.directory, sourcePath), `${asset.id} escapes candidate custody`).toBe(true);
-        expect(existsSync(sourcePath), `missing ${relative(ROOT, sourcePath)} for ${asset.id}`).toBe(true);
+        expect(existsSync(sourcePath), `missing ${repositoryPath(sourcePath)} for ${asset.id}`).toBe(true);
       }
     });
   }
