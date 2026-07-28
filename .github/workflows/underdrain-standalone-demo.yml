@@ -1,10 +1,11 @@
-name: UNDERDRAIN standalone demo
+name: UNDERDRAIN authored pilot
 
 on:
   pull_request:
     paths:
       - '.github/workflows/underdrain-standalone-demo.yml'
       - 'demos/underdrain-draft/**'
+      - 'scripts/demos/build-underdrain-arc-capsule.mjs'
       - 'scripts/demos/build-underdrain-draft.mjs'
       - 'scripts/demos/verify-underdrain-draft.mjs'
       - 'tests/world/underdrain-draft-standalone.test.ts'
@@ -12,7 +13,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -21,7 +22,8 @@ concurrency:
 env:
   CI: 'true'
   SOURCE_DATE_EPOCH: '0'
-  ARC_UNDERDRAIN_SHA: fffdb5da5c09654670fe76e1ac92d43d80d19dc9
+  ARC_UNDERDRAIN_SHA: 395bc539165cc525678ba7eb83434c8cd674437b
+  PILOT_BRANCH: demo/underdrain-authored-pilot-v2
 
 jobs:
   qualify:
@@ -36,7 +38,7 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
-      - name: Check out exact Arc authority candidate
+      - name: Check out exact Arc authority
         uses: actions/checkout@v4
         with:
           repository: BigBirdReturns/axm-arc
@@ -60,11 +62,15 @@ jobs:
           npm --prefix axm-world ci --no-audit --no-fund
           npm --prefix axm-arc ci --no-audit --no-fund
 
-      - name: Require exact Arc-to-World authoring custody
+      - name: Prove Arc authority and materialize permanent source custody
+        id: materialize
         shell: bash
         run: |
           set -euo pipefail
-          cmp axm-arc/examples/underdrain-draft/authoring.json axm-world/demos/underdrain-draft/authoring.json
+          source_head='${{ github.event.pull_request.head.sha || github.sha }}'
+          test "$(git -C axm-world rev-parse HEAD)" = "$source_head"
+          test "$(git -C axm-arc rev-parse HEAD)" = "$ARC_UNDERDRAIN_SHA"
+
           (
             cd axm-arc/examples/underdrain-draft
             sha256sum -c SHA256SUMS
@@ -72,22 +78,86 @@ jobs:
           npm --prefix axm-arc run typecheck
           npm --prefix axm-arc test -- tests/demos/underdrain-draft.test.ts
 
-      - name: Build and verify the exact standalone file
+          cp \
+            axm-arc/examples/underdrain-draft/authoring.json \
+            axm-world/demos/underdrain-draft/authoring.json
+          mkdir -p "$RUNNER_TEMP/underdrain-pilot"
+          node axm-world/scripts/demos/build-underdrain-arc-capsule.mjs \
+            --arc-root axm-arc \
+            --arc-commit "$ARC_UNDERDRAIN_SHA" \
+            --authoring axm-world/demos/underdrain-draft/authoring.json \
+            --output axm-world/demos/underdrain-draft/source/arc-capsule.js \
+            | tee "$RUNNER_TEMP/underdrain-pilot/arc-capsule-build.json"
+
+          git -C axm-world diff --check
+          git -C axm-world add \
+            demos/underdrain-draft/authoring.json \
+            demos/underdrain-draft/source/arc-capsule.js
+          if git -C axm-world diff --cached --quiet; then
+            echo 'published=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ '${{ github.event_name }}' != 'pull_request' \
+            || '${{ github.event.pull_request.head.repo.full_name }}' != '${{ github.repository }}' \
+            || '${{ github.event.pull_request.head.ref }}' != "$PILOT_BRANCH" ]]; then
+            echo 'Exact Arc sources differ, but this event is not authorized to publish the pilot branch.' >&2
+            git -C axm-world diff --cached --stat >&2
+            exit 1
+          fi
+
+          git -C axm-world config user.name 'github-actions[bot]'
+          git -C axm-world config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C axm-world commit -m 'Materialize exact Arc Underdrain v2 authority'
+          git -C axm-world push origin "HEAD:$PILOT_BRANCH"
+          echo 'published=true' >> "$GITHUB_OUTPUT"
+
+      - name: Record source-publication handoff
+        if: steps.materialize.outputs.published == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/underdrain-demo"
+          cat > "$RUNNER_TEMP/underdrain-pilot/publication-handoff.json" <<JSON
+          {
+            "format": "rodoh-underdrain-source-publication/1",
+            "status": "published",
+            "arcCommit": "$ARC_UNDERDRAIN_SHA",
+            "branch": "$PILOT_BRANCH",
+            "qualification": "rerun-required-on-published-head"
+          }
+          JSON
+
+      - name: Build and verify the exact standalone
+        if: steps.materialize.outputs.published != 'true'
+        id: standalone
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_head='${{ github.event.pull_request.head.sha || github.sha }}'
+          authoring_sha="$(sha256sum axm-world/demos/underdrain-draft/authoring.json | awk '{print $1}')"
+          cmp \
+            axm-arc/examples/underdrain-draft/authoring.json \
+            axm-world/demos/underdrain-draft/authoring.json
+          mkdir -p axm-world/local/underdrain-draft
           node axm-world/scripts/demos/build-underdrain-draft.mjs \
             --root axm-world/demos/underdrain-draft \
             --output axm-world/local/underdrain-draft/index.html \
-            | tee "$RUNNER_TEMP/underdrain-demo/build.json"
+            --hash-output "$RUNNER_TEMP/underdrain-pilot/INDEX_SHA256SUMS" \
+            --world-commit "$source_head" \
+            | tee "$RUNNER_TEMP/underdrain-pilot/build.json"
           node axm-world/scripts/demos/verify-underdrain-draft.mjs \
             --root axm-world/demos/underdrain-draft \
             --html axm-world/local/underdrain-draft/index.html \
-            --output "$RUNNER_TEMP/underdrain-demo/static-verification.json" \
-            | tee "$RUNNER_TEMP/underdrain-demo/static-verification.log"
+            --world-commit "$source_head" \
+            --arc-commit "$ARC_UNDERDRAIN_SHA" \
+            --authoring-sha256 "$authoring_sha" \
+            --output "$RUNNER_TEMP/underdrain-pilot/static-verification.json" \
+            | tee "$RUNNER_TEMP/underdrain-pilot/static-verification.log"
+          echo "authoring_sha=$authoring_sha" >> "$GITHUB_OUTPUT"
+          echo "source_head=$source_head" >> "$GITHUB_OUTPUT"
 
-      - name: Qualify World contracts and product
+      - name: Qualify World contracts and the complete product
+        if: steps.materialize.outputs.published != 'true'
         working-directory: axm-world
         shell: bash
         run: |
@@ -102,10 +172,12 @@ jobs:
           git clean -fdx -- docs/game
 
       - name: Install Chromium
+        if: steps.materialize.outputs.published != 'true'
         working-directory: axm-world
         run: npx playwright install --with-deps chromium
 
       - name: Cold-walk desktop and mobile
+        if: steps.materialize.outputs.published != 'true'
         working-directory: axm-world
         shell: bash
         run: |
@@ -114,35 +186,52 @@ jobs:
             --project=desktop \
             --project=mobile
 
-      - name: Assemble retained demo receipt
+      - name: Assemble retained authored-pilot receipt
+        if: steps.materialize.outputs.published != 'true'
         shell: bash
         run: |
           set -euo pipefail
-          root="$RUNNER_TEMP/underdrain-demo"
+          root="$RUNNER_TEMP/underdrain-pilot"
           cp axm-world/local/underdrain-draft/index.html "$root/"
           cp axm-world/demos/underdrain-draft/authoring.json "$root/"
-          cp axm-world/demos/underdrain-draft/playtest.json "$root/"
-          cp axm-world/demos/underdrain-draft/PLAYTEST.md "$root/"
+          cp axm-world/demos/underdrain-draft/source/arc-capsule.js "$root/"
           cp axm-world/demos/underdrain-draft/README.md "$root/"
           if [[ -d axm-world/test-results ]]; then
             cp -a axm-world/test-results "$root/playwright-test-results"
           fi
-          printf '%s\n' '${{ github.event.pull_request.head.sha || github.sha }}' > "$root/world-candidate.txt"
+          printf '%s\n' '${{ steps.standalone.outputs.source_head }}' > "$root/world-candidate.txt"
           printf '%s\n' "$ARC_UNDERDRAIN_SHA" > "$root/arc-candidate.txt"
+          printf '%s\n' '${{ steps.standalone.outputs.authoring_sha }}' > "$root/authoring-sha256.txt"
+          cat > "$root/acceptance-boundary.json" <<JSON
+          {
+            "format": "rodoh-underdrain-authored-pilot-acceptance/2",
+            "status": "machine-qualified",
+            "worldCommit": "${{ steps.standalone.outputs.source_head }}",
+            "arcCommit": "$ARC_UNDERDRAIN_SHA",
+            "authoringSha256": "${{ steps.standalone.outputs.authoring_sha }}",
+            "automatedProductGate": "pass",
+            "blindPlayerReceipt": {
+              "status": "not-issued-by-runtime",
+              "requiredForFinalAuthoredEpisodeClaim": true
+            }
+          }
+          JSON
           (
             cd "$root"
             find . -type f ! -name SHA256SUMS -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS
           )
+
           rm -rf axm-world/local/underdrain-draft
           git -C axm-world diff --check
-          test -z "$(git -C axm-world status --porcelain)"
+          test -z "$(git -C axm-world status --porcelain --untracked-files=all)"
           git -C axm-arc diff --check
-          test -z "$(git -C axm-arc status --porcelain)"
+          test -z "$(git -C axm-arc status --porcelain --untracked-files=all)"
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: underdrain-standalone-demo
-          path: ${{ runner.temp }}/underdrain-demo
+          name: underdrain-authored-pilot
+          path: ${{ runner.temp }}/underdrain-pilot
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
