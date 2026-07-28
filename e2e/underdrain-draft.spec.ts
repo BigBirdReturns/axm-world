@@ -1,10 +1,10 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const DEMO = "/local/underdrain-draft/index.html";
-const ARC_COMMIT = "395bc539165cc525678ba7eb83434c8cd674437b";
+const ARC_COMMIT = "ea16757fe9df65405b322af13d95351896f43157";
 
 async function completeCurrentEncounter(
-  page: Parameters<typeof test>[0] extends never ? never : import("@playwright/test").Page,
+  page: Page,
   challengeId: "mrs-kett-service-call" | "breach-crown-pump",
   cycle: number,
   orgSeed: number,
@@ -36,7 +36,7 @@ test.describe("UNDERDRAIN continuous authored pilot", () => {
 
     await page.getByRole("button", { name: "Answer the service call" }).click();
     await expect(page.locator("#action")).toHaveClass(/active/);
-    await expect(page.getByText("Inspect the living trap joint")).toBeVisible();
+    await expect(page.locator("#action-title")).toHaveText("Inspect the living trap joint");
     await expect(page.getByText(/This is a safe repair/)).toBeVisible();
     await completeCurrentEncounter(page, "mrs-kett-service-call", 1, 0x1a0001);
 
@@ -48,12 +48,12 @@ test.describe("UNDERDRAIN continuous authored pilot", () => {
     await page.getByRole("button", { name: "Enter Pump Seven" }).click();
 
     await expect(page.locator("#action")).toHaveClass(/active/);
-    await expect(page.getByText("Inspect and reroute the three living spore valves")).toBeVisible();
+    await expect(page.locator("#action-title")).toHaveText("Inspect and reroute the three living spore valves");
     await expect(page.getByText(/Only WORK on the green mechanism advances the plumbing objective/)).toBeVisible();
     await completeCurrentEncounter(page, "breach-crown-pump", 2, 0x5eed2026);
 
     await expect(page.locator("#consequence")).toHaveClass(/active/);
-    await expect(page.getByText(/Arc replay accepted this trace/)).toBeVisible();
+    await expect(page.locator("#accepted-label")).toHaveText(/Arc replay accepted this trace/);
     await expect(page.locator("#accepted-digest")).toHaveText(/^[a-z0-9]+_[0-9a-f]{64}$/);
     await expect(page.getByText("The defenders were pressure around a water operation, not the operation's objective.")).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath("accepted-consequence.png"), fullPage: true });
