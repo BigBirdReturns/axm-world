@@ -67,7 +67,25 @@ jobs:
           npm --prefix axm-arc ci --no-audit --no-fund
 
       - name: Generate, qualify, and publish the carrier-free authored pilot
-        run: bash axm-world/scripts/demos/converge-underdrain-authored-pilot-v2.sh
+        shell: bash
+        run: |
+          set -o pipefail
+          bash axm-world/scripts/demos/converge-underdrain-authored-pilot-v2.sh \
+            2>&1 | tee "$RUNNER_TEMP/underdrain-convergence.log"
+
+      - name: Retain exact convergence diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-convergence-diagnostics
+          path: |
+            ${{ runner.temp }}/underdrain-convergence.log
+            ${{ runner.temp }}/underdrain-sentinel-build.json
+            ${{ runner.temp }}/underdrain-browser-install.log
+            ${{ runner.temp }}/underdrain-server.log
+            ${{ runner.temp }}/underdrain-static-verification.json
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Remove this temporary carrier from main
         shell: bash
@@ -79,4 +97,4 @@ jobs:
           git -C carrier-main commit -m 'Remove completed Underdrain convergence carrier'
           git -C carrier-main push origin HEAD:main
 
-# Review-trigger token: underdrain-authored-pilot-convergence-20260728.
+# Review-trigger token: underdrain-authored-pilot-convergence-diagnostics-20260728.
