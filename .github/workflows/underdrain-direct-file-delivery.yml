@@ -1,0 +1,262 @@
+name: UNDERDRAIN direct-file delivery
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/underdrain-direct-file-delivery.yml'
+      - 'demos/underdrain-draft/**'
+      - 'scripts/demos/build-underdrain-draft.mjs'
+      - 'scripts/demos/verify-underdrain-draft.mjs'
+      - 'tests/world/underdrain-draft-standalone.test.ts'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+  SOURCE_DATE_EPOCH: '0'
+  ARC_UNDERDRAIN_SHA: ea16757fe9df65405b322af13d95351896f43157
+
+jobs:
+  direct-file:
+    runs-on: windows-2025
+    timeout-minutes: 120
+    steps:
+      - name: Check out exact World candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: axm-world/package-lock.json
+
+      - name: Install exact dependencies
+        shell: pwsh
+        run: npm --prefix axm-world ci --no-audit --no-fund
+
+      - name: Build and statically verify the exact single file
+        shell: pwsh
+        run: |
+          $worldCommit = (git -C axm-world rev-parse HEAD).Trim()
+          if ($worldCommit -ne '${{ github.event.pull_request.head.sha || github.sha }}') {
+            throw "World checkout identity mismatch: $worldCommit"
+          }
+          $authoringSha = (Get-FileHash axm-world/demos/underdrain-draft/authoring.json -Algorithm SHA256).Hash.ToLowerInvariant()
+          $root = Join-Path $env:RUNNER_TEMP 'underdrain-direct-file'
+          New-Item -ItemType Directory -Force $root, axm-world/local/underdrain-draft | Out-Null
+
+          node axm-world/scripts/demos/build-underdrain-draft.mjs `
+            --root axm-world/demos/underdrain-draft `
+            --output axm-world/local/underdrain-draft/index.html `
+            --world-commit $worldCommit `
+            --hash-output "$root/INDEX_SHA256SUMS" `
+            2>&1 | Tee-Object "$root/build.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          node axm-world/scripts/demos/verify-underdrain-draft.mjs `
+            --root axm-world/demos/underdrain-draft `
+            --html axm-world/local/underdrain-draft/index.html `
+            --world-commit $worldCommit `
+            --arc-commit $env:ARC_UNDERDRAIN_SHA `
+            --authoring-sha256 $authoringSha `
+            --output "$root/static-verification.json" `
+            2>&1 | Tee-Object "$root/static-verification.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          Set-Content -Encoding ascii "$root/world-candidate.txt" $worldCommit
+          Set-Content -Encoding ascii "$root/arc-authority.txt" $env:ARC_UNDERDRAIN_SHA
+          Set-Content -Encoding ascii "$root/authoring-sha256.txt" $authoringSha
+          Copy-Item axm-world/local/underdrain-draft/index.html "$root/index.html"
+
+      - name: Qualify focused source contracts
+        working-directory: axm-world
+        shell: pwsh
+        run: |
+          npm run typecheck
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm test -- tests/world/underdrain-draft-standalone.test.ts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Install Chromium
+        working-directory: axm-world
+        shell: pwsh
+        run: npx playwright install chromium
+
+      - name: Open the exact file in Chromium and Edge
+        working-directory: axm-world
+        shell: pwsh
+        run: |
+          @'
+          import { chromium } from "@playwright/test";
+          import { createHash } from "node:crypto";
+          import { readFileSync, writeFileSync } from "node:fs";
+          import { resolve } from "node:path";
+          import { pathToFileURL } from "node:url";
+
+          const worldCommit = process.env.GITHUB_HEAD_SHA || process.env.GITHUB_SHA;
+          const arcCommit = process.env.ARC_UNDERDRAIN_SHA;
+          const htmlPath = resolve("local/underdrain-draft/index.html");
+          const htmlBytes = readFileSync(htmlPath);
+          const baseUrl = pathToFileURL(htmlPath).href;
+          const receiptPath = resolve(process.env.RUNNER_TEMP, "underdrain-direct-file", "direct-file-delivery.json");
+          const browsers = [];
+
+          async function qualify(label, launchOptions) {
+            const browser = await chromium.launch({ headless: true, ...launchOptions });
+            try {
+              const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+              const page = await context.newPage();
+              const errors = [];
+              const externalRequests = [];
+              page.on("pageerror", error => errors.push(error.message));
+              page.on("request", request => {
+                const protocol = new URL(request.url()).protocol;
+                if (!["file:", "data:", "blob:"].includes(protocol)) externalRequests.push(request.url());
+              });
+
+              await page.goto(baseUrl, { waitUntil: "load" });
+              await page.evaluate(() => { window.name = ""; });
+              await page.reload({ waitUntil: "load" });
+              if ((await page.title()) !== "UNDERDRAIN: The Bloom Below") throw new Error(`${label}: title mismatch`);
+              const persistence = await page.evaluate(() => window.UnderdrainPersistence);
+              if (persistence?.mode !== "window-name" || persistence?.durability !== "current-tab") {
+                throw new Error(`${label}: direct-file persistence mode mismatch ${JSON.stringify(persistence)}`);
+              }
+              await page.getByText("Direct-file save · current tab").waitFor({ state: "visible" });
+              await page.getByText(/Download the episode record before closing the tab/).waitFor({ state: "visible" });
+
+              await page.getByRole("button", { name: "Answer the service call" }).click();
+              await page.locator("#action.active").waitFor({ state: "visible" });
+              const beforeReload = await page.evaluate(() => ({
+                arcCommit: window.UnderdrainRuntime.session.arcCommit,
+                worldCommit: window.UnderdrainRuntime.session.worldSourceCommit,
+                cartridgeDigest: window.UnderdrainRuntime.session.cartridgeDigest,
+                authoringSha256: window.UnderdrainRuntime.session.authoringSha256,
+                challengeId: window.UnderdrainRuntime.session.current.challengeId,
+                enemyCount: window.UnderdrainRuntime.session.current.state.enemies.length,
+                runtimeVersion: window.UnderdrainRuntime.session.current.spec.runtimeVersion,
+                recordPersistence: window.UnderdrainRuntime.episodeRecord().persistence,
+              }));
+              if (beforeReload.arcCommit !== arcCommit) throw new Error(`${label}: Arc identity mismatch`);
+              if (beforeReload.challengeId !== "mrs-kett-service-call" || beforeReload.enemyCount !== 0) {
+                throw new Error(`${label}: opening service law mismatch`);
+              }
+              if (beforeReload.runtimeVersion !== "1.1.0") throw new Error(`${label}: runtime version mismatch`);
+              if (beforeReload.recordPersistence?.closeTabRequiresExport !== true) {
+                throw new Error(`${label}: episode record omitted direct-file custody`);
+              }
+
+              await page.reload({ waitUntil: "load" });
+              await page.getByRole("button", { name: "Resume where I stopped" }).waitFor({ state: "visible" });
+              await page.getByRole("button", { name: "Resume where I stopped" }).click();
+              await page.locator("#action.active").waitFor({ state: "visible" });
+              const afterReload = await page.evaluate(() => ({
+                arcCommit: window.UnderdrainRuntime.session.arcCommit,
+                worldCommit: window.UnderdrainRuntime.session.worldSourceCommit,
+                cartridgeDigest: window.UnderdrainRuntime.session.cartridgeDigest,
+                authoringSha256: window.UnderdrainRuntime.session.authoringSha256,
+                challengeId: window.UnderdrainRuntime.session.current.challengeId,
+              }));
+              const expected = {
+                arcCommit: beforeReload.arcCommit,
+                worldCommit: beforeReload.worldCommit,
+                cartridgeDigest: beforeReload.cartridgeDigest,
+                authoringSha256: beforeReload.authoringSha256,
+                challengeId: beforeReload.challengeId,
+              };
+              if (JSON.stringify(afterReload) !== JSON.stringify(expected)) throw new Error(`${label}: exact reload mismatch`);
+              await page.screenshot({
+                path: resolve(process.env.RUNNER_TEMP, "underdrain-direct-file", `${label}-resumed.png`),
+                fullPage: true,
+              });
+              await context.close();
+
+              const matrixContext = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+              const matrixPage = await matrixContext.newPage();
+              matrixPage.on("pageerror", error => errors.push(error.message));
+              matrixPage.on("request", request => {
+                const protocol = new URL(request.url()).protocol;
+                if (!["file:", "data:", "blob:"].includes(protocol)) externalRequests.push(request.url());
+              });
+              await matrixPage.goto(`${baseUrl}?autotest=1`, { waitUntil: "load" });
+              await matrixPage.waitForFunction(() => document.body.dataset.testStatus === "pass", null, { timeout: 60_000 });
+              const matrix = await matrixPage.evaluate(() => window.__UNDERDRAIN_TEST_RESULT__);
+              if (matrix?.status !== "pass" || matrix?.cases?.length !== 9) throw new Error(`${label}: route-by-compact matrix failed`);
+              await matrixContext.close();
+
+              if (errors.length) throw new Error(`${label}: page errors ${JSON.stringify(errors)}`);
+              if (externalRequests.length) throw new Error(`${label}: external requests ${JSON.stringify(externalRequests)}`);
+              browsers.push({
+                browser: label,
+                status: "pass",
+                protocol: "file:",
+                persistenceMode: persistence.mode,
+                persistenceDurability: persistence.durability,
+                exactReload: true,
+                zeroPressureOpening: true,
+                automatedCases: matrix.cases.length,
+                pageErrors: 0,
+                externalRequests: 0,
+              });
+            } finally {
+              await browser.close();
+            }
+          }
+
+          await qualify("chromium", {});
+          await qualify("edge", { channel: "msedge" });
+          const receipt = {
+            format: "rodoh-underdrain-direct-file-delivery/1",
+            status: "pass",
+            worldCommit,
+            arcCommit,
+            html: {
+              bytes: htmlBytes.length,
+              sha256: createHash("sha256").update(htmlBytes).digest("hex"),
+            },
+            operatingSystem: process.platform,
+            browsers,
+            closeTabRequiresExport: true,
+          };
+          writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`);
+          console.log(JSON.stringify(receipt, null, 2));
+          '@ | Set-Content -Encoding utf8 direct-file-delivery.mjs
+          $env:GITHUB_HEAD_SHA = '${{ github.event.pull_request.head.sha || github.sha }}'
+          node direct-file-delivery.mjs 2>&1 | Tee-Object "$env:RUNNER_TEMP/underdrain-direct-file/direct-file-delivery.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Finalize exact evidence and clean checkout
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 'underdrain-direct-file'
+          Get-ChildItem $root -File -Recurse |
+            Where-Object { $_.Name -ne 'SHA256SUMS' } |
+            Sort-Object FullName |
+            ForEach-Object {
+              $relative = [IO.Path]::GetRelativePath((Resolve-Path $root), $_.FullName).Replace('\\','/')
+              $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              "$hash  $relative"
+            } | Set-Content -Encoding ascii "$root/SHA256SUMS"
+          Remove-Item -Recurse -Force axm-world/local/underdrain-draft, axm-world/test-results -ErrorAction SilentlyContinue
+          git -C axm-world diff --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (git -C axm-world status --porcelain) { throw 'World checkout is dirty after direct-file qualification.' }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-direct-file-delivery
+          path: ${{ runner.temp }}/underdrain-direct-file
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
