@@ -1,53 +1,51 @@
-# UNDERDRAIN standalone demo playtest receipt
+# UNDERDRAIN authored-pilot qualification boundary
 
-**Format:** `rodoh-underdrain-playtest-report/1`  
-**Demo:** `underdrain-draft@1`  
-**Authority boundary:** browser result remains provisional; exact Arc replay is required.
+**Candidate format:** `rodoh-underdrain-standalone/2`  
+**Machine sweep:** `rodoh-underdrain-automated-pilot-qualification/2`  
+**Arc authority:** `395bc539165cc525678ba7eb83434c8cd674437b`  
+**Classification:** authored-pilot candidate
 
-## Cold-walk result
+## Machine-qualified path
 
-The demo opens directly into the premise, the playable character, the hidden cause, the A-plot/B-plot collision, and three character-method choices. A new player can inspect the seven-beat authoring rail before starting. Starting the action requires one strategy selection and one button.
+The committed browser sweep covers three Pump Seven entry methods and three Root Gate compacts, producing nine deterministic end-to-end cases. Every case runs:
 
-## Deterministic action sweep
+```text
+safe Mrs. Kett service mechanism
+→ exact Arc action receipt
+→ route-specific Pump Seven presentation
+→ mechanism-driven Pump Seven action law
+→ exact Arc action receipt
+→ campaign state effects
+→ playable Root Gate parley
+→ exact Arc authored-choice receipt
+```
 
-- Runs: **9**
-- Successes: **8**
-- Partial outcomes: **1**
-- Failures: **0**
-- Median completion: **696 ticks / 23.2 seconds**
-- Mean completion: **734.7 ticks / 24.5 seconds**
-- Mean damage taken: **108.2**
-- Strategies covered: emergency plan, old service tunnel, truce offer
-- Seeds covered: 1337, 2026, 4242
+The opening service encounter has zero pressure enemies. Its completion predicates are `interact_count` and `hold_ticks`. Pump Seven keeps two pressure actors around each objective, but the objectives advance only through their authored mechanism predicates. The runtime verifies that every Pump Seven trace is accepted by exact Arc replay before any campaign delta is applied.
 
-## Iteration performed
+The real browser product generates `playtest.json`. The permanent workflow reruns the same product and requires exact equality with the committed receipt. It also verifies the companion authoring bytes, generated capsule, deterministic sentinel build, complete World regression, desktop behavior, mobile containment, local resume, zero runtime network dependencies, and zero browser errors.
 
-The first sweep produced five successes and four partials. The old-service-tunnel method was materially over-punished and one emergency-plan seed dropped the bot at the boss. The balance pass changed only presentation-side demo tuning:
+## Structural evidence
 
-- emergency-plan health: 120 → 140;
-- service-tunnel health: 100 → 125;
-- service-tunnel spawn multiplier: 1.18 → 1.10;
-- service-tunnel boss bonus health: 95 → 60.
+The episode record retains:
 
-The second sweep produced eight successes, one partial, and zero failures. The risky service-tunnel method still retains a bounded partial outcome, so the choices are not cosmetic.
+- exact Arc and World source identities;
+- cartridge and authoring identities;
+- accepted action receipts;
+- selected method and visible route deltas;
+- mechanism interactions and critical in-play reveals;
+- campaign state before and after each accepted action;
+- recovery events without exposition reset;
+- the implemented Root Gate successor and accepted compact receipt.
 
-## Adversarial and accessibility checks
+The structural evidence cannot issue its own comprehension verdict. The runtime explicitly records:
 
-- no external scripts, styles, fonts, images, API calls, or service worker;
-- no `Math.random`, dynamic evaluation, or network runtime;
-- one fixed 30 Hz state transition for human and automated input;
-- keyboard, pointer, and touch controls;
-- reduced-motion treatment;
-- responsive briefing, rail, action, and receipt surfaces;
-- provisional receipt states `authority: Arc replay required`;
-- provisional receipt states `campaignEffect: null`;
-- action trace, terminal state, and receipt identities are generated at completion;
-- receipt export is disabled until a terminal state exists.
+```text
+blindPlayerReceipt.status = not-issued-by-runtime
+blindPlayerReceipt.required = true
+```
 
-## Narrative rail acceptance
+## Human and physical boundary
 
-The episode keeps stable character methods, makes the B-plot causally alter the boss fight, reveals a legible cause for the fungus mobilization, and writes an inherited civic obligation rather than resetting the town after victory.
+No independent cold-player receipt is committed here. A scripted browser assertion establishes that required information and actions are present and executable. It does not establish what an unaided person understood, remembered, preferred, or inferred.
 
-## Boundary
-
-This receipt proves a deterministic offline browser demo and a bounded automated playability sweep. It does not claim that every player will prefer the combat timing, comedy, or visual style.
+This browser qualification also does not establish production art quality, Unity package import, Windows standalone behavior, Quest APK behavior, headset tracking, guardian safety, embodied spool custody, or physical-session acceptance. Those observations require their own venues and receipts.
