@@ -29,10 +29,44 @@ function exactKeys(value, allowed, label) {
   }
   for (const key of Object.keys(value)) if (!allowed.includes(key)) errors.push(`${label} contains unknown field ${key}.`);
 }
+function target(value, label) {
+  exactKeys(value, ["id", "x", "y", "radius"], label);
+  text(value?.id, `${label}.id`);
+  integer(value?.x, `${label}.x`, -20_000, 20_000);
+  integer(value?.y, `${label}.y`, -20_000, 20_000);
+  integer(value?.radius, `${label}.radius`, 300, 3000);
+}
+function semanticCompletion(value, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  if (value.kind === "interact_count") {
+    exactKeys(value, ["kind", "targetCount", "targets"], label);
+    integer(value.targetCount, `${label}.targetCount`, 1, 16);
+    if (!Array.isArray(value.targets) || value.targets.length !== value.targetCount) {
+      errors.push(`${label}.targets must contain exactly targetCount entries.`);
+    }
+    const ids = new Set();
+    for (const [index, entry] of (value.targets ?? []).entries()) {
+      target(entry, `${label}.targets.${index}`);
+      if (ids.has(entry?.id)) errors.push(`${label}.targets contains duplicate id ${entry?.id}.`);
+      ids.add(entry?.id);
+    }
+    return;
+  }
+  if (value.kind === "hold_ticks") {
+    exactKeys(value, ["kind", "targetTicks", "target"], label);
+    integer(value.targetTicks, `${label}.targetTicks`, 1, 18_000);
+    target(value.target, `${label}.target`);
+    return;
+  }
+  errors.push(`${label}.kind is unsupported.`);
+}
 
 exactKeys(source, ["format", "runtimeVersion", "arcDigest", "challengeId", "title", "difficultyModeId", "tickRate", "maxTicks", "arena", "player", "enemyLaws", "objectives", "completion", "specDigest"], "action spec");
 if (source.format !== "axm-action-spec/1") errors.push("Source is not axm-action-spec/1.");
-if (source.runtimeVersion !== "1.0.0") errors.push("Source action runtime version is not 1.0.0.");
+if (!["1.0.0", "1.1.0"].includes(source.runtimeVersion)) errors.push("Source action runtime version is unsupported.");
 if (source.tickRate !== 30) errors.push("Source action tick rate is not 30 Hz.");
 text(source.arcDigest, "arcDigest");
 text(source.specDigest, "specDigest");
@@ -67,8 +101,9 @@ const enemyLaws = enemyOrder.map((kit) => {
 
 if (!Array.isArray(source.objectives) || source.objectives.length === 0) errors.push("Action spec has no objectives.");
 const objectiveIds = new Set();
+let semanticObjectiveCount = 0;
 for (const objective of source.objectives ?? []) {
-  exactKeys(objective, ["id", "label", "brief", "enemyKit", "enemyCount", "targetDefeats", "failureKind", "severity"], `objective ${objective?.id ?? "unknown"}`);
+  exactKeys(objective, ["id", "label", "brief", "enemyKit", "enemyCount", "targetDefeats", "failureKind", "severity", "semanticCompletion"], `objective ${objective?.id ?? "unknown"}`);
   text(objective.id, "objective.id");
   if (objectiveIds.has(objective.id)) errors.push(`Duplicate objective id ${objective.id}.`);
   objectiveIds.add(objective.id);
@@ -76,7 +111,13 @@ for (const objective of source.objectives ?? []) {
   integer(objective.enemyCount, `${objective.id}.enemyCount`, 1, 12);
   integer(objective.targetDefeats, `${objective.id}.targetDefeats`, 1, objective.enemyCount);
   if (typeof objective.severity !== "number" || !Number.isFinite(objective.severity) || objective.severity < 0 || objective.severity > 1) errors.push(`Objective ${objective.id} severity is invalid.`);
+  if (objective.semanticCompletion !== undefined) {
+    semanticObjectiveCount += 1;
+    semanticCompletion(objective.semanticCompletion, `${objective.id}.semanticCompletion`);
+  }
 }
+if (source.runtimeVersion === "1.0.0" && semanticObjectiveCount > 0) errors.push("Runtime 1.0 cannot carry semantic objective completion law.");
+if (source.runtimeVersion === "1.1.0" && semanticObjectiveCount === 0) errors.push("Runtime 1.1 requires at least one semantic objective.");
 
 exactKeys(source.completion, source.completion?.kind === "survive" ? ["kind", "partialObjectiveCount"] : ["kind", "successObjectiveCount", "partialObjectiveCount"], "completion");
 if (!source.completion || !["clear", "survive"].includes(source.completion.kind)) errors.push("Unknown completion law.");
@@ -114,6 +155,8 @@ console.log(JSON.stringify({
   output: outputPath,
   sourceSpecDigest: source.specDigest,
   challengeId: source.challengeId,
+  runtimeVersion: source.runtimeVersion,
   objectives: source.objectives.length,
+  semanticObjectives: semanticObjectiveCount,
   maximumActiveEnemies: Math.max(...source.objectives.map((objective) => objective.enemyCount)),
 }, null, 2));
