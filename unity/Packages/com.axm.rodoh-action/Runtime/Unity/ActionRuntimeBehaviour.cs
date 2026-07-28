@@ -23,6 +23,7 @@ namespace Axm.Rodoh.Action
         [SerializeField] private ActionPrimitivePresentation presentation;
         [SerializeField] private bool autoStart = true;
         [SerializeField, Range(1, 30)] private int maximumTicksPerFrame = 8;
+        [SerializeField, Range(0f, 0.2f)] private float maximumPresentationHoldSeconds = 0.12f;
         [SerializeField] private bool exportCandidateOnCompletion = true;
         [SerializeField] private string candidateFileName = "latest-action-candidate.json";
 
@@ -30,6 +31,7 @@ namespace Axm.Rodoh.Action
         private ActionSpecProjection _spec;
         private ActionSimulationState _state;
         private double _accumulator;
+        private float _presentationHoldRemaining;
         private bool _running;
         private bool _candidateWritten;
 
@@ -37,6 +39,7 @@ namespace Axm.Rodoh.Action
         public ActionSimulationState State => _state;
         public ActionTraceRecorder Trace => _trace;
         public bool Running => _running;
+        public float PresentationHoldRemaining => _presentationHoldRemaining;
         public event Action<ActionSimulationState> TickAdvanced;
         public event Action<ActionSimulationResult> EncounterCompleted;
 
@@ -67,6 +70,7 @@ namespace Axm.Rodoh.Action
             _state = ActionKernel.InitialState(_spec, seed);
             _trace.Reset();
             _accumulator = 0d;
+            _presentationHoldRemaining = 0f;
             _candidateWritten = false;
             _running = true;
             if (presentation != null) presentation.Initialize(_spec, _state);
@@ -77,15 +81,34 @@ namespace Axm.Rodoh.Action
             _running = false;
         }
 
+        /// <summary>
+        /// Pauses real-time tick admission for a short presentation beat. No hidden
+        /// state advances and no trace row is emitted while the hold is active.
+        /// </summary>
+        public void RequestPresentationHold(float seconds)
+        {
+            if (seconds <= 0f) return;
+            _presentationHoldRemaining = Mathf.Max(
+                _presentationHoldRemaining,
+                Mathf.Min(seconds, maximumPresentationHoldSeconds));
+        }
+
         private void Update()
         {
             if (!_running || _spec == null || _state == null) return;
+            if (_presentationHoldRemaining > 0f)
+            {
+                _presentationHoldRemaining = Mathf.Max(0f, _presentationHoldRemaining - Time.unscaledDeltaTime);
+                if (presentation != null) presentation.Render(_state, 0f);
+                return;
+            }
+
             var tickDuration = 1d / _spec.tickRate;
             _accumulator += Time.unscaledDeltaTime;
             var advanced = 0;
             while (_accumulator >= tickDuration && advanced < maximumTicksPerFrame && _state.result == null)
             {
-                var input = inputRouter != null ? inputRouter.SampleTick() : default;
+                var input = inputRouter != null ? inputRouter.SampleTick(_state.player.mode) : default;
                 _trace.Append(input);
                 ActionKernel.Step(_spec, _state, input);
                 _accumulator -= tickDuration;
