@@ -96,6 +96,20 @@ describe("UNDERDRAIN continuous authored pilot", () => {
     expect(html).toContain("Enter the Root Gate parley");
   });
 
+  it("installs file-origin persistence before session boot and states its exact durability", () => {
+    const html = buildStandalone();
+    expect(existsSync(resolve(SOURCE, "storage-adapter.js"))).toBe(true);
+    expect(existsSync(resolve(SOURCE, "persistence-surface.js"))).toBe(true);
+    expect(html).toContain("rodoh-underdrain-window-name-storage/1");
+    expect(html).toContain("rodoh-underdrain-persistence/1");
+    expect(html).toContain('mode:"window-name"');
+    expect(html).toContain('durability:"current-tab"');
+    expect(html).toContain("Download the episode record before closing the tab");
+    expect(html.indexOf("rodoh-underdrain-window-name-storage/1")).toBeLessThan(html.indexOf("function loadSession()"));
+    expect(html.indexOf("function episodeRecord()"))
+      .toBeLessThan(html.indexOf("const decoratedEpisodeRecord"));
+  });
+
   it("keeps the runtime from minting its own blind-player comprehension receipt", () => {
     const app = readFileSync(resolve(SOURCE, "app-01.js"), "utf8");
     expect(app).toContain('blindPlayerReceipt:{status:"not-issued-by-runtime",required:true}');

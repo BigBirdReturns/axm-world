@@ -1,0 +1,140 @@
+name: UNDERDRAIN direct-file delivery
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/underdrain-direct-file-delivery.yml'
+      - 'demos/underdrain-draft/**'
+      - 'scripts/demos/build-underdrain-draft.mjs'
+      - 'scripts/demos/verify-underdrain-draft.mjs'
+      - 'scripts/demos/qualify-underdrain-direct-file.mjs'
+      - 'tests/world/underdrain-draft-standalone.test.ts'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+  SOURCE_DATE_EPOCH: '0'
+  ARC_UNDERDRAIN_SHA: ea16757fe9df65405b322af13d95351896f43157
+
+jobs:
+  direct-file:
+    runs-on: windows-2025
+    timeout-minutes: 120
+    steps:
+      - name: Check out exact World candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: axm-world/package-lock.json
+
+      - name: Install exact dependencies
+        shell: pwsh
+        run: npm --prefix axm-world ci --no-audit --no-fund
+
+      - name: Build and statically verify the exact single file
+        shell: pwsh
+        run: |
+          $worldCommit = (git -C axm-world rev-parse HEAD).Trim()
+          if ($worldCommit -ne '${{ github.event.pull_request.head.sha || github.sha }}') {
+            throw "World checkout identity mismatch: $worldCommit"
+          }
+          $authoringSha = (Get-FileHash axm-world/demos/underdrain-draft/authoring.json -Algorithm SHA256).Hash.ToLowerInvariant()
+          $root = Join-Path $env:RUNNER_TEMP 'underdrain-direct-file'
+          New-Item -ItemType Directory -Force $root, axm-world/local/underdrain-draft | Out-Null
+
+          node axm-world/scripts/demos/build-underdrain-draft.mjs `
+            --root axm-world/demos/underdrain-draft `
+            --output axm-world/local/underdrain-draft/index.html `
+            --world-commit $worldCommit `
+            --hash-output "$root/INDEX_SHA256SUMS" `
+            2>&1 | Tee-Object "$root/build.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          node axm-world/scripts/demos/verify-underdrain-draft.mjs `
+            --root axm-world/demos/underdrain-draft `
+            --html axm-world/local/underdrain-draft/index.html `
+            --world-commit $worldCommit `
+            --arc-commit $env:ARC_UNDERDRAIN_SHA `
+            --authoring-sha256 $authoringSha `
+            --output "$root/static-verification.json" `
+            2>&1 | Tee-Object "$root/static-verification.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          Set-Content -Encoding ascii "$root/world-candidate.txt" $worldCommit
+          Set-Content -Encoding ascii "$root/arc-authority.txt" $env:ARC_UNDERDRAIN_SHA
+          Set-Content -Encoding ascii "$root/authoring-sha256.txt" $authoringSha
+          Copy-Item axm-world/local/underdrain-draft/index.html "$root/index.html"
+
+      - name: Qualify focused source contracts
+        working-directory: axm-world
+        shell: pwsh
+        run: |
+          npm run typecheck
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm test -- tests/world/underdrain-draft-standalone.test.ts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Install Chromium
+        working-directory: axm-world
+        shell: pwsh
+        run: npx playwright install chromium
+
+      - name: Qualify direct-file Chromium and Edge
+        working-directory: axm-world
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 'underdrain-direct-file'
+          $worldCommit = (git rev-parse HEAD).Trim()
+          node scripts/demos/qualify-underdrain-direct-file.mjs `
+            --html local/underdrain-draft/index.html `
+            --world-commit $worldCommit `
+            --arc-commit $env:ARC_UNDERDRAIN_SHA `
+            --output "$root/direct-file-delivery.json" `
+            --screenshot-root $root `
+            2>&1 | Tee-Object "$root/direct-file-delivery.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Finalize exact evidence and clean checkout
+        if: success()
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 'underdrain-direct-file'
+          Get-ChildItem $root -File -Recurse |
+            Where-Object { $_.Name -ne 'SHA256SUMS' } |
+            Sort-Object FullName |
+            ForEach-Object {
+              $relative = [IO.Path]::GetRelativePath((Resolve-Path $root), $_.FullName).Replace('\\','/')
+              $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              "$hash  $relative"
+            } | Set-Content -Encoding ascii "$root/SHA256SUMS"
+          Remove-Item -Recurse -Force axm-world/local/underdrain-draft, axm-world/test-results -ErrorAction SilentlyContinue
+          git -C axm-world diff --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (git -C axm-world status --porcelain) { throw 'World checkout is dirty after direct-file qualification.' }
+
+      - name: Retain direct-file evidence and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-direct-file-delivery
+          path: ${{ runner.temp }}/underdrain-direct-file
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+
+# Exact-head rerun after removing the disposable diagnostic carrier.

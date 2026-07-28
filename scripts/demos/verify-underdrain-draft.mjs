@@ -93,6 +93,10 @@ for (const marker of [
   "rodoh-underdrain-episode-record/2",
   "rodoh-one-am-structural-evidence/1",
   "rodoh-underdrain-automated-pilot-qualification/2",
+  "rodoh-underdrain-window-name-storage/1",
+  "rodoh-underdrain-persistence/1",
+  "closeTabRequiresExport",
+  "Direct-file mode preserves reload and resume in this tab.",
   "axm-authored-experience/1",
   "axm-action-objectives/1",
   "Arc replay accepted this trace.",
@@ -108,6 +112,12 @@ for (const marker of [
 
 currentCheck = "authority-copy";
 if (html.includes("campaign effect remained provisional")) fail("Standalone retains stale provisional consequence copy after Arc acceptance.");
+
+currentCheck = "direct-file-persistence-law";
+if (!html.includes('mode:"window-name"')) fail("Standalone does not declare the direct-file window-name persistence mode.");
+if (!html.includes('durability:"current-tab"')) fail("Standalone does not declare the current-tab durability boundary.");
+if (!html.includes('Object.defineProperty(globalThis,"localStorage"')) fail("Standalone does not install the direct-file storage adapter before the session runtime.");
+if (!html.includes("Download the episode record before closing the tab")) fail("Standalone does not disclose the direct-file export requirement.");
 
 currentCheck = "exact-custody";
 if (/placeholder\s*:\s*(?:true|!0)/.test(html)) fail("Standalone still contains the Arc capsule placeholder.");
@@ -150,6 +160,8 @@ const receipt = {
     safeOpening: "zero-pressure",
     acceptedArcConsequence: "required-before-world-delta",
     rootGate: "playable",
+    directFileReload: "window-name-current-tab",
+    directFileCloseTab: "episode-record-export-required",
     blindPlayerReceipt: "external-and-unissued",
   },
 };
