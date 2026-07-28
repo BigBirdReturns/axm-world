@@ -39,27 +39,38 @@ jobs:
       - name: Apply the reviewed receiver transformation exactly once
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          log="$RUNNER_TEMP/semantic-transform.log"
           contract='unity/Packages/com.axm.rodoh-action/Runtime/Core/ActionContract.cs'
           if grep -q 'SemanticRuntimeVersion = "1.1.0"' "$contract"; then
-            echo 'runtime-1.1 receiver already materialized on this carrier'
+            echo 'runtime-1.1 receiver already materialized on this carrier' | tee "$log"
             exit 0
           fi
-          python - <<'PY'
+          python - <<'PY' > "$log" 2>&1
           import re
           import textwrap
+          import traceback
           from pathlib import Path
 
-          source = Path('.github/workflows/finalize-world-semantic-objectives.yml').read_text()
-          match = re.search(r"          python - <<'PY'\n(?P<body>.*?)\n          PY\n", source, re.S)
-          if not match:
-              raise SystemExit('reviewed semantic finalizer Python block is absent')
-          script = textwrap.dedent(match.group('body'))
-          target = Path('/tmp/apply-world-semantic-objectives.py')
-          target.write_text(script)
-          compile(target.read_text(), str(target), 'exec')
-          exec(compile(target.read_text(), str(target), 'exec'), {'__name__': '__main__'})
+          try:
+              source = Path('.github/workflows/finalize-world-semantic-objectives.yml').read_text()
+              match = re.search(r"          python - <<'PY'\n(?P<body>.*?)\n          PY\n", source, re.S)
+              if not match:
+                  raise RuntimeError('reviewed semantic finalizer Python block is absent')
+              script = textwrap.dedent(match.group('body'))
+              target = Path('/tmp/apply-world-semantic-objectives.py')
+              target.write_text(script)
+              code = compile(target.read_text(), str(target), 'exec')
+              exec(code, {'__name__': '__main__'})
+              print('semantic receiver transformation completed')
+          except BaseException:
+              traceback.print_exc()
+              raise
           PY
+          status=$?
+          cat "$log"
+          if [ "$status" -ne 0 ]; then exit "$status"; fi
+          set -e
           git diff --check
 
       - run: npm ci --no-audit --no-fund
@@ -110,3 +121,12 @@ jobs:
           git diff --cached --check
           git commit -m 'Mirror semantic action objectives in World and Unity'
           git push origin "HEAD:$branch"
+
+      - name: Preserve transformation diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: world-semantic-receiver-transform-diagnostics
+          path: ${{ runner.temp }}/semantic-transform.log
+          if-no-files-found: warn
+          retention-days: 14
