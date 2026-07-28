@@ -54,6 +54,10 @@ jobs:
               line[10:] if line.startswith('          ') else line
               for line in workflow[start:end]
           ) + '\n'
+          # The original carrier embedded C# char literals in Python triple
+          # strings without escaping the backslash. Preserve the literal C#
+          # `\n` before compiling the extracted transformation.
+          script = script.replace("Append('\\n')", "Append('\\\\n')")
 
           old_helper = '''def replace_once(text: str, old: str, new: str, label: str) -> str:
               count = text.count(old)
