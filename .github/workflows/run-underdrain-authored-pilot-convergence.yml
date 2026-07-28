@@ -97,4 +97,4 @@ jobs:
           git -C carrier-main commit -m 'Remove completed Underdrain convergence carrier'
           git -C carrier-main push origin HEAD:main
 
-# One-shot carrier. Diagnostics are retained because failure receipts, not guesses, control repair.
+# Diagnostic trigger token: underdrain-authored-pilot-convergence-20260728-b.
