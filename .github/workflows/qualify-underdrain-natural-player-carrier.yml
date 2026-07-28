@@ -1,0 +1,114 @@
+name: Qualify UNDERDRAIN natural player plane
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/qualify-underdrain-natural-player-carrier.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: qualify-underdrain-natural-player-v1
+  cancel-in-progress: true
+
+env:
+  SUBJECT_SHA: 5c27b508fc171db0a99d383c410fb9122fe2a6f2
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out the temporary main carrier
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: carrier-main
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Check out the exact natural player candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SUBJECT_SHA }}
+          path: subject
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: subject/package-lock.json
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install exact dependencies
+        run: npm --prefix subject ci --no-audit --no-fund
+
+      - name: Qualify natural player source and complete World regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/natural-player"
+          npm --prefix subject run typecheck 2>&1 | tee "$RUNNER_TEMP/natural-player/typecheck.log"
+          npm --prefix subject test -- \
+            tests/world/action-natural-player.test.ts \
+            tests/world/action-unity-source-contract.test.ts \
+            2>&1 | tee "$RUNNER_TEMP/natural-player/focused-tests.log"
+          npm --prefix subject test 2>&1 | tee "$RUNNER_TEMP/natural-player/complete-tests.log"
+
+      - name: Prove buffered ingress in the dependency-free C# mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet run \
+            --project subject/unity/Conformance/Axm.Rodoh.Action.Conformance.csproj \
+            --configuration Release \
+            -- \
+            "$PWD/subject/unity/Fixtures/frog-pit.unity-action-spec.json" \
+            "$RUNNER_TEMP/natural-player/conformance.json" \
+            2>&1 | tee "$RUNNER_TEMP/natural-player/conformance.log"
+          grep -F '"naturalInputBuffer": true' "$RUNNER_TEMP/natural-player/conformance.json"
+          grep -F '"heldMechanismInput": true' "$RUNNER_TEMP/natural-player/conformance.json"
+          grep -F '"defensiveInputPriority": true' "$RUNNER_TEMP/natural-player/conformance.json"
+
+      - name: Retain exact source identity and require clean custody
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C subject rev-parse HEAD)" = "$SUBJECT_SHA"
+          git -C subject diff --check
+          test -z "$(git -C subject status --porcelain)"
+          printf '%s\n' "$SUBJECT_SHA" > "$RUNNER_TEMP/natural-player/world-head.txt"
+          sha256sum \
+            subject/unity/Packages/com.axm.rodoh-action/Runtime/Core/ActionBufferedInput.cs \
+            subject/unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionCombatCamera.cs \
+            subject/unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionNaturalPlayerInput.cs \
+            subject/unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionInputRouter.cs \
+            subject/unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionGameFeelController.cs \
+            subject/unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionMinimalHud.cs \
+            subject/unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionRuntimeBehaviour.cs \
+            > "$RUNNER_TEMP/natural-player/SHA256SUMS"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-natural-player-source-qualification
+          path: ${{ runner.temp }}/natural-player
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Remove the completed carrier from main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C carrier-main config user.name 'github-actions[bot]'
+          git -C carrier-main config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C carrier-main rm .github/workflows/qualify-underdrain-natural-player-carrier.yml
+          git -C carrier-main commit -m 'Remove completed natural player qualification carrier'
+          git -C carrier-main push origin HEAD:main
