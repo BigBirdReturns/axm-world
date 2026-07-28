@@ -1,0 +1,24 @@
+{
+  "format": "rodoh-underdrain-playtest/1",
+  "status": "pass",
+  "cases": [
+    { "strategy": "emergency-plan", "seed": 1337, "outcome": "success", "ticks": 914, "valves": 3, "kills": 16, "damage": 135, "receiptDigest": "provrun1_adbb882cadbb882cadbb882cadbb882cadbb882cadbb882cadbb882cadbb882c" },
+    { "strategy": "emergency-plan", "seed": 2026, "outcome": "success", "ticks": 696, "valves": 3, "kills": 13, "damage": 113, "receiptDigest": "provrun1_40b65a8a40b65a8a40b65a8a40b65a8a40b65a8a40b65a8a40b65a8a40b65a8a" },
+    { "strategy": "emergency-plan", "seed": 4242, "outcome": "success", "ticks": 771, "valves": 3, "kills": 13, "damage": 113, "receiptDigest": "provrun1_7be4f3787be4f3787be4f3787be4f3787be4f3787be4f3787be4f3787be4f378" },
+    { "strategy": "service-tunnel", "seed": 1337, "outcome": "partial", "ticks": 846, "valves": 3, "kills": 16, "damage": 136, "receiptDigest": "provrun1_1f57efc31f57efc31f57efc31f57efc31f57efc31f57efc31f57efc31f57efc3" },
+    { "strategy": "service-tunnel", "seed": 2026, "outcome": "success", "ticks": 678, "valves": 3, "kills": 15, "damage": 119, "receiptDigest": "provrun1_c2a6e5afc2a6e5afc2a6e5afc2a6e5afc2a6e5afc2a6e5afc2a6e5afc2a6e5af" },
+    { "strategy": "service-tunnel", "seed": 4242, "outcome": "success", "ticks": 681, "valves": 3, "kills": 14, "damage": 113, "receiptDigest": "provrun1_c9c820dfc9c820dfc9c820dfc9c820dfc9c820dfc9c820dfc9c820dfc9c820df" },
+    { "strategy": "truce-offer", "seed": 1337, "outcome": "success", "ticks": 715, "valves": 3, "kills": 11, "damage": 83, "receiptDigest": "provrun1_a486d320a486d320a486d320a486d320a486d320a486d320a486d320a486d320" },
+    { "strategy": "truce-offer", "seed": 2026, "outcome": "success", "ticks": 651, "valves": 3, "kills": 13, "damage": 89, "receiptDigest": "provrun1_7336d7c57336d7c57336d7c57336d7c57336d7c57336d7c57336d7c57336d7c5" },
+    { "strategy": "truce-offer", "seed": 4242, "outcome": "success", "ticks": 660, "valves": 3, "kills": 12, "damage": 73, "receiptDigest": "provrun1_c4ef6c66c4ef6c66c4ef6c66c4ef6c66c4ef6c66c4ef6c66c4ef6c66c4ef6c66" }
+  ],
+  "summary": { "runs": 9, "success": 8, "partials": 1, "failures": 0, "medianTicks": 696 },
+  "checks": {
+    "deterministicFixedStep": true,
+    "noExternalRuntime": true,
+    "touchControlsPresent": true,
+    "reducedMotionPresent": true,
+    "receiptAuthority": "Arc replay required",
+    "campaignEffect": null
+  }
+}

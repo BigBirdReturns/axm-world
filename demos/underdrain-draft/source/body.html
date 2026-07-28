@@ -1,0 +1,219 @@
+<div class="app">
+  <header class="topline">
+    <div class="brand">
+      <div class="brandmark" aria-hidden="true">UV</div>
+      <div>
+        <div class="eyebrow">UNDERDRAIN · Mandatory Pipe Service</div>
+        <h1>The Bloom Below</h1>
+      </div>
+    </div>
+    <div class="statusline" aria-label="Runtime custody">
+      <span class="status live">Offline standalone</span>
+      <span class="status">30 Hz Arc law</span>
+      <span class="status accepted" id="authority-status">No accepted consequence yet</span>
+    </div>
+  </header>
+
+  <main>
+    <section id="cold" class="view active" aria-labelledby="cold-title">
+      <div class="cold-grid">
+        <article class="card">
+          <div class="eyebrow">1:07 A.M. · Mrs. Kett's kitchen · East Bellwether</div>
+          <h2 class="cold-title" id="cold-title">The sink grew a second trap.</h2>
+          <p class="lead"><strong>You are Rhea Venn, a licensed plumber.</strong> Mrs. Kett has no water. The glowing blockage under her sink is alive, and Bellwether's emergency office is already calling it an invasion.</p>
+          <div class="plain-goal" aria-label="First-session model">
+            <div><b>YOUR JOB</b><span>Restore Mrs. Kett's water.</span></div>
+            <div><b>THE RISK</b><span>The city may turn a repair into a war.</span></div>
+            <div><b>START HERE</b><span>Inspect the living trap joint.</span></div>
+          </div>
+          <div class="buttonrow">
+            <button id="start-service" class="primary big-primary">Answer the service call</button>
+            <button id="resume-run" class="secondary" hidden>Resume where I stopped</button>
+          </div>
+          <p class="hint">Move with WASD or arrows. The game will show one current task. WORK uses E or F. WRENCH uses J or Space. The opening repair has no enemies.</p>
+        </article>
+        <aside class="card">
+          <div class="eyebrow">People already making this harder</div>
+          <div class="call-sheet">
+            <article class="person">
+              <div class="person-head"><b>Rhea Venn</b><span class="method">diagnose · patch · bargain</span></div>
+              <p>Fixes the ordinary problem in front of her, even when institutions insist it is now strategic.</p>
+            </article>
+            <article class="person">
+              <div class="person-head"><b>Tess Loam</b><span class="method">document · organize · escalate</span></div>
+              <p>Rhea's apprentice. She wants the living tissue preserved long enough to prove what it is doing.</p>
+            </article>
+            <article class="person">
+              <div class="person-head"><b>Marta Sump</b><span class="method">classify · requisition · deny</span></div>
+              <p>Director of Public Works. She has drafted Rhea through a sanitation staffing form.</p>
+            </article>
+            <article class="person">
+              <div class="person-head"><b>Morrowcap</b><span class="method">signal · remember · negotiate</span></div>
+              <p>A voice in the pipe wall. It offers a truce without yet explaining what the Crown is protecting.</p>
+            </article>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="action" class="view" aria-labelledby="action-title">
+      <div class="action-grid">
+        <div class="stage">
+          <canvas id="game" width="960" height="540" aria-label="Deterministic Underdrain action encounter"></canvas>
+          <div class="hud">
+            <div class="hudbox"><strong>RHEA</strong><div class="meter" aria-label="Rhea health"><i id="health-fill"></i></div></div>
+            <div class="hudbox mono"><strong id="place-label">SERVICE CALL</strong><span id="timer">00:35</span></div>
+          </div>
+          <div class="objective-ribbon" aria-live="polite">
+            <b id="action-title">Inspect the living trap joint</b>
+            <span id="action-hint">Walk to the green mechanism and press WORK.</span>
+          </div>
+          <div id="recovery-panel" class="recovery-panel" hidden>
+            <div class="card">
+              <div class="eyebrow">The current trace ended in failure</div>
+              <h2>Rhea is down, but the episode is not over.</h2>
+              <p id="recovery-copy">Retry from the current mechanism. Completed work and the authored situation remain intact.</p>
+              <div class="buttonrow">
+                <button id="retry-objective" class="primary">Retry this mechanism</button>
+                <button id="accept-failure" class="secondary">Accept the failed operation and continue</button>
+              </div>
+            </div>
+          </div>
+          <div class="touch" aria-label="Touch controls">
+            <div class="touch-dpad">
+              <button class="up" data-hold="up" aria-label="Move up">▲</button>
+              <button class="left" data-hold="left" aria-label="Move left">◀</button>
+              <button class="down" data-hold="down" aria-label="Move down">▼</button>
+              <button class="right" data-hold="right" aria-label="Move right">▶</button>
+            </div>
+            <div class="touch-actions">
+              <button data-hold="dodge" aria-label="Dodge">DODGE</button>
+              <button data-hold="wrench" aria-label="Wrench">WRENCH</button>
+              <button class="work" data-hold="work" aria-label="Work on mechanism">WORK</button>
+            </div>
+          </div>
+        </div>
+        <aside class="side">
+          <article class="card">
+            <div class="eyebrow">Current job</div>
+            <ol class="objective-list" id="objective-list"></ol>
+            <p class="hint" id="control-hint">Move to the green mechanism. WORK advances the repair. No enemy is hidden in this opening.</p>
+          </article>
+          <article class="card story-thread" id="story-thread" aria-live="polite"></article>
+          <button id="leave-action" class="secondary">Pause and return later</button>
+        </aside>
+      </div>
+    </section>
+
+    <section id="draft" class="view" aria-labelledby="draft-title">
+      <div class="draft-grid">
+        <article class="card dialogue">
+          <div class="eyebrow">The tap runs. The town calls.</div>
+          <h2 id="draft-title">Bellwether drafts its plumber.</h2>
+          <div class="line"><b>MARTA SUMP</b><p>Form 8-B recognizes your repair license as dormant strategic capacity. Congratulations on your activation.</p></div>
+          <div class="line"><b>TESS LOAM</b><p>The tissue under the sink was regulating pressure. Cutting all of it would have burst the east line.</p></div>
+          <div class="line"><b>DAX VENN</b><p>I may have sold the town compostable drain caps. Before anyone assigns blame, the packaging was extremely clear about composting.</p></div>
+          <div class="line"><b>MORROWCAP, THROUGH THE WALL</b><p>Come to Pump Seven. Bring a tool, a witness, or a promise. Do not bring all three unless you intend to be remembered.</p></div>
+        </article>
+        <article class="card">
+          <div class="eyebrow">Choose Rhea's method</div>
+          <h2>How do you enter Pump Seven?</h2>
+          <p class="hint">This does not secretly change the deterministic difficulty. It changes what Rhea knows, who speaks to her, and which route or controls the scene exposes.</p>
+          <div class="choice-grid" role="radiogroup" aria-label="Pump Seven entry method">
+            <button class="choice" data-route="emergency-plan" role="radio" aria-checked="false" aria-pressed="false">
+              <span class="eyebrow">Marta's method</span><b>Follow the emergency plan</b>
+              <span>Use municipal override controls while Marta treats every living pipe as hostile infrastructure.</span>
+              <span class="route-delta">Changes play: Marta command channel + override markings.</span>
+            </button>
+            <button class="choice" data-route="service-tunnel" role="radio" aria-checked="false" aria-pressed="false">
+              <span class="eyebrow">Rhea's method</span><b>Take the service tunnel</b>
+              <span>Follow the household pressure line that the military map does not show.</span>
+              <span class="route-delta">Changes play: route map + mechanism positions visible early.</span>
+            </button>
+            <button class="choice" data-route="truce-offer" role="radio" aria-checked="false" aria-pressed="false">
+              <span class="eyebrow">Morrowcap's method</span><b>Carry the truce</b>
+              <span>Enter under a literal promise and hear the Crown's signals before Marta translates them as threats.</span>
+              <span class="route-delta">Changes play: Morrowcap channel + fungal signal translation.</span>
+            </button>
+          </div>
+          <div class="buttonrow" style="margin-top:16px">
+            <button id="start-pump" class="primary big-primary" disabled>Enter Pump Seven</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="consequence" class="view" aria-labelledby="consequence-title">
+      <div class="consequence-grid">
+        <article class="card">
+          <div class="eyebrow">Accepted Arc consequence</div>
+          <h2 id="consequence-title" class="outcome">Pump Seven changed hands.</h2>
+          <p class="lead" id="consequence-copy"></p>
+          <div class="accepted-box">
+            <b id="accepted-label">Arc replay accepted this trace.</b>
+            <div class="mono" id="accepted-digest"></div>
+          </div>
+          <button id="enter-root-gate" class="primary big-primary">Enter the Root Gate parley</button>
+          <p class="hint">This is an implemented next scene. Reloading preserves the accepted result, changed town, and this exact obligation.</p>
+        </article>
+        <article class="card">
+          <div class="eyebrow">Bellwether after the operation</div>
+          <div class="world-grid" id="world-grid"></div>
+          <div class="eyebrow" style="margin-top:18px">What the fight meant</div>
+          <p class="lead" id="meaning-copy"></p>
+        </article>
+      </div>
+    </section>
+
+    <section id="root" class="view" aria-labelledby="root-title">
+      <div class="root-grid">
+        <article class="card">
+          <div class="eyebrow">Playable successor · Root Gate</div>
+          <h2 id="root-title" class="outcome">Water is access. Access is not sovereignty.</h2>
+          <p class="lead">The Crown predates Bellwether's water grid. Marta wants emergency access to become permanent municipal authority. Morrowcap wants recognition without allowing the town to go dry. Rhea must write the compact both sides inherit.</p>
+          <div class="line"><b>MARTA</b><p>We need guaranteed household pressure before we discuss whether the pipe wall has standing.</p></div>
+          <div class="line"><b>MORROWCAP</b><p>You built meters through our nursery and call the numbers neutral.</p></div>
+          <div class="line"><b>RHEA</b><p>Then we separate the water from the flag. Pick the flow. I will write who owes what.</p></div>
+        </article>
+        <article class="card">
+          <div class="eyebrow">Choose the compact Arc must accept</div>
+          <button class="secondary compact-choice" data-compact="town-first-flow"><b>Town water first</b><span>Guarantee household pressure now and carry a higher Crown grievance debt.</span></button>
+          <button class="secondary compact-choice" data-compact="nursery-first-flow"><b>Nursery protection first</b><span>Protect the nursery route and keep temporary town rationing until clean infrastructure exists.</span></button>
+          <button class="primary compact-choice" data-compact="balanced-flow-compact"><b>Balanced flow compact</b><span>Use shared meters, evidence custody, and a jointly operated sluice.</span></button>
+          <div id="compact-result" hidden>
+            <div class="accepted-box"><b id="compact-title"></b><div class="mono" id="compact-digest"></div></div>
+            <p id="compact-copy" class="lead"></p>
+            <button id="open-record" class="primary">Open the complete episode record</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="record" class="view" aria-labelledby="record-title">
+      <div class="record-grid">
+        <article class="card">
+          <div class="eyebrow">What survives the episode</div>
+          <h2 id="record-title">Bellwether remembers.</h2>
+          <p class="lead">The household repair, chosen method, action trace, accepted Pump Seven result, world-state changes, and Root Gate compact share one cartridge identity.</p>
+          <div class="world-grid" id="final-world-grid"></div>
+          <div class="buttonrow" style="margin-top:16px">
+            <button id="download-record" class="primary">Download episode record</button>
+            <button id="new-run" class="secondary">Begin a new profile</button>
+          </div>
+          <nav class="nav-drawer" aria-label="Inspectable product surfaces">
+            <button class="navbutton" data-record-tab="episode">Episode</button>
+            <button class="navbutton" data-record-tab="action">Action receipt</button>
+            <button class="navbutton" data-record-tab="compact">Compact receipt</button>
+            <button class="navbutton" data-record-tab="evidence">1 AM structural evidence</button>
+            <button class="navbutton" data-record-tab="authoring">Authoring manifest</button>
+          </nav>
+        </article>
+        <article class="card"><pre id="record-json">{"status":"absent"}</pre></article>
+      </div>
+    </section>
+
+    <section id="autotest" class="view autotest">
+      <pre id="autotest-results">not run</pre>
+    </section>
+  </main>
+</div>
