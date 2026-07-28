@@ -108,10 +108,11 @@ for (const objective of source.objectives ?? []) {
   if (objectiveIds.has(objective.id)) errors.push(`Duplicate objective id ${objective.id}.`);
   objectiveIds.add(objective.id);
   if (!enemyOrder.includes(objective.enemyKit)) errors.push(`Objective ${objective.id} uses unknown enemy kit.`);
-  integer(objective.enemyCount, `${objective.id}.enemyCount`, 1, 12);
-  integer(objective.targetDefeats, `${objective.id}.targetDefeats`, 1, objective.enemyCount);
+  const semantic = objective.semanticCompletion !== undefined;
+  integer(objective.enemyCount, `${objective.id}.enemyCount`, semantic ? 0 : 1, 12);
+  integer(objective.targetDefeats, `${objective.id}.targetDefeats`, semantic ? 0 : 1, objective.enemyCount);
   if (typeof objective.severity !== "number" || !Number.isFinite(objective.severity) || objective.severity < 0 || objective.severity > 1) errors.push(`Objective ${objective.id} severity is invalid.`);
-  if (objective.semanticCompletion !== undefined) {
+  if (semantic) {
     semanticObjectiveCount += 1;
     semanticCompletion(objective.semanticCompletion, `${objective.id}.semanticCompletion`);
   }
