@@ -38,6 +38,20 @@ jobs:
           test -z "$(git status --porcelain)"
           git diff --check
       - run: npm ci --no-audit --no-fund
+      - name: Derive and check authored-pilot representation obligations
+        run: |
+          set -euo pipefail
+          mkdir -p asset-release-receipt
+          node scripts/assets/scaffold-authored-pilot-representation.mjs \
+            --authoring demos/underdrain-draft/authoring.json \
+            --presentation demos/underdrain-draft/presentation.json \
+            --namespace underdrain \
+            --repository BigBirdReturns/axm-world \
+            --authored-identity underdrain-continuous-pilot-v2 \
+            --experience-id underdrain-continuous-pilot-v2 \
+            --people marta-sump,morrowcap,mrs-kett,dax-venn \
+            --state-ids town-water-pressure,kett-water,fungus-contact,crown-grievance,rhea-status,evidence-custody,root-gate-open \
+            | tee asset-release-receipt/representation-scaffold-check.json
       - name: Deterministic inventory and focused contracts
         run: |
           set -euo pipefail
@@ -52,6 +66,7 @@ jobs:
             tests/world/asset-release-custody.test.ts \
             tests/world/asset-release-workflow.test.ts \
             tests/world/authored-pilot-representation-discovery.test.ts \
+            tests/world/authored-pilot-representation-scaffold.test.ts \
             tests/world/representation-completeness.test.ts \
             tests/world/underdrain-presentation-completeness.test.ts \
             tests/world/asset-standard.test.ts \
@@ -73,6 +88,7 @@ jobs:
           cp demos/underdrain-draft/assets/provenance.json asset-release-receipt/underdrain-provenance.json
           cp docs/design/UNDERDRAIN_ASSET_BIBLE.md asset-release-receipt/UNDERDRAIN_ASSET_BIBLE.md
           cp docs/design/UNDERDRAIN_REPRESENTATION_FAILURE_ANALYSIS.md asset-release-receipt/UNDERDRAIN_REPRESENTATION_FAILURE_ANALYSIS.md
+          cp scripts/assets/scaffold-authored-pilot-representation.mjs asset-release-receipt/scaffold-authored-pilot-representation.mjs
           printf '%s\n' '${{ github.event.pull_request.head.sha || github.sha }}' > asset-release-receipt/world-candidate-sha.txt
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
