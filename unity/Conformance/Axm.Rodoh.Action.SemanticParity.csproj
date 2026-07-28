@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Deterministic>true</Deterministic>
+    <AssemblyName>Axm.Rodoh.Action.SemanticParity</AssemblyName>
+    <BaseIntermediateOutputPath>obj/SemanticParity/</BaseIntermediateOutputPath>
+    <BaseOutputPath>bin/SemanticParity/</BaseOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="SemanticParityProgram.cs" />
+    <Compile Include="../Packages/com.axm.rodoh-action/Runtime/Core/ActionContract.cs" Link="Core/ActionContract.cs" />
+    <Compile Include="../Packages/com.axm.rodoh-action/Runtime/Core/ActionKernel.cs" Link="Core/ActionKernel.cs" />
+    <Compile Include="../Packages/com.axm.rodoh-action/Runtime/Core/ActionTrace.cs" Link="Core/ActionTrace.cs" />
+  </ItemGroup>
+</Project>
