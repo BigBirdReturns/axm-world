@@ -43,6 +43,10 @@ const presentationSha256 = sha256(presentationBytes);
 const capsule = readFileSync(resolve(source, "arc-capsule.js"), "utf8");
 if (/placeholder\s*:\s*(?:true|!0)/.test(capsule)) fail("The exact Arc capsule has not been generated.");
 const art = readFileSync(resolve(assets, "underdrain-art.js"), "utf8");
+const mobileControlsCss = readFileSync(resolve(source, "mobile-controls.css"), "utf8");
+const head = readFileSync(resolve(source, "head.html"), "utf8");
+if (!head.includes("</style>")) fail("Underdrain head has no inline style boundary.");
+const representedHead = head.replace("</style>", `${mobileControlsCss}\n</style>`);
 const app02 = readFileSync(resolve(source, "app-02.js"), "utf8");
 const bootMarker = "const params=new URLSearchParams(location.search);";
 const bootIndex = app02.indexOf(bootMarker);
@@ -51,7 +55,7 @@ const app02Definitions = app02.slice(0, bootIndex);
 const app02Boot = app02.slice(bootIndex);
 
 const html = [
-  readFileSync(resolve(source, "head.html"), "utf8"),
+  representedHead,
   readFileSync(resolve(source, "body.html"), "utf8"),
   `<script id="underdrain-authoring" type="application/json">\n${safeAuthoring}\n</script>`,
   `<script id="underdrain-presentation" type="application/json">\n${safePresentation}\n</script>`,
@@ -91,6 +95,7 @@ process.stdout.write(`${JSON.stringify({
   arcCapsule: "embedded",
   persistenceAdapter: "embedded",
   whiteLabelRepresentation: "embedded-before-boot",
+  narrowScreenControls: "embedded-and-qualified",
   singleFile: true,
   externalRuntime: false,
 }, null, 2)}\n`);
