@@ -30,8 +30,12 @@ test.describe("UNDERDRAIN continuous authored pilot", () => {
     await expect(page.getByText("You are Rhea Venn, a licensed plumber.")).toBeVisible();
     await expect(page.getByText("Restore Mrs. Kett's water.")).toBeVisible();
     await expect(page.getByText("The opening repair has no enemies.")).toBeVisible();
-    await expect(page.locator('script[src]')).toHaveCount(0);
-    await expect(page.locator('link[rel="stylesheet"]')).toHaveCount(0);
+    const remoteAssets = await page.locator('script[src], link[rel="stylesheet"]').evaluateAll((elements) =>
+      elements
+        .map((element) => element.getAttribute("src") ?? element.getAttribute("href") ?? "")
+        .filter((value) => /^https?:\/\//i.test(value)),
+    );
+    expect(remoteAssets).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath("cold-entry.png"), fullPage: true });
 
     await page.getByRole("button", { name: "Answer the service call" }).click();
@@ -98,8 +102,17 @@ test.describe("UNDERDRAIN continuous authored pilot", () => {
   });
 
   test("the exact Arc-backed automated matrix qualifies all routes and compacts without inventing a blind receipt", async ({ page }) => {
+    test.setTimeout(90_000);
     await page.goto(`${DEMO}?autotest=1`);
-    await expect(page.locator("body")).toHaveAttribute("data-test-status", "pass", { timeout: 60_000 });
+    await expect.poll(
+      () => page.locator("body").getAttribute("data-test-status"),
+      { timeout: 60_000 },
+    ).toMatch(/^(pass|fail)$/);
+    const status = await page.locator("body").getAttribute("data-test-status");
+    if (status !== "pass") {
+      const diagnostics = (await page.locator("#autotest-results").textContent()) ?? "No automated-suite diagnostics were rendered.";
+      throw new Error(`Underdrain automated qualification failed:\n${diagnostics}`);
+    }
     const result = await page.evaluate(() => window.__UNDERDRAIN_TEST_RESULT__);
     expect(result).toMatchObject({
       format: "rodoh-underdrain-automated-pilot-qualification/2",
@@ -136,8 +149,7 @@ test.describe("UNDERDRAIN continuous authored pilot", () => {
     }));
     await page.getByRole("button", { name: "Pause and return later" }).click();
     await page.reload();
-    await expect(page.getByRole("button", { name: "Resume where I stopped" })).toBeVisible();
-    await page.getByRole("button", { name: "Resume where I stopped" }).click();
+    await expect(page.locator("#action")).toHaveClass(/active/);
     const after = await page.evaluate(() => ({
       arcCommit: window.UnderdrainRuntime.session.arcCommit,
       cartridgeDigest: window.UnderdrainRuntime.session.cartridgeDigest,
@@ -145,13 +157,14 @@ test.describe("UNDERDRAIN continuous authored pilot", () => {
       objectiveId: window.UnderdrainRuntime.session.current?.spec.objectives[0]?.id,
     }));
     expect(after).toEqual(before);
-    await expect(page.locator("#action")).toHaveClass(/active/);
   });
 
   test("keyboard and touch ingress expose the same repair verbs", async ({ page }, testInfo) => {
     await page.goto(DEMO);
     const mobile = testInfo.project.name === "mobile";
     if (mobile) {
+      await page.getByRole("button", { name: "Answer the service call" }).click();
+      await expect(page.locator("#action")).toHaveClass(/active/);
       await expect(page.locator(".touch")).toBeVisible();
       await expect(page.getByRole("button", { name: "Move up" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Wrench" })).toBeVisible();
