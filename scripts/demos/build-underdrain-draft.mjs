@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 const args = process.argv.slice(2);
@@ -28,6 +28,7 @@ if (!worldCommit || !/^[0-9a-f]{40}$/.test(worldCommit)) {
 }
 const source = resolve(root, "source");
 const assets = resolve(root, "assets");
+const production = resolve(assets, "production");
 const authoringBytes = readFileSync(resolve(root, "authoring.json"));
 const authoring = JSON.parse(authoringBytes.toString("utf8"));
 if (authoring.format !== "rodoh-underdrain-standalone/2") fail("Underdrain authoring is not the continuous v2 authority.");
@@ -42,6 +43,40 @@ const safePresentation = safeEmbeddedJson(presentation);
 const presentationSha256 = sha256(presentationBytes);
 const capsule = readFileSync(resolve(source, "arc-capsule.js"), "utf8");
 if (/placeholder\s*:\s*(?:true|!0)/.test(capsule)) fail("The exact Arc capsule has not been generated.");
+
+const pumpPartNames = readdirSync(production)
+  .filter((name) => /^pump-seven\.webp\.b64\.part-\d{2}$/.test(name))
+  .sort();
+if (pumpPartNames.length !== 5) fail(`Expected five Pump Seven production-art chunks, found ${pumpPartNames.length}.`);
+const pumpBase64 = pumpPartNames
+  .map((name) => readFileSync(resolve(production, name), "utf8").trim())
+  .join("");
+if (!/^[A-Za-z0-9+/]+={0,2}$/.test(pumpBase64)) fail("Pump Seven production art is not valid base64 custody.");
+const pumpBytes = Buffer.from(pumpBase64, "base64");
+const pumpSha256 = sha256(pumpBytes);
+const expectedPumpSha256 = "c5810b7362b511a8789e26300517ab0156b2593f99c9b45227765f465ef871ca";
+if (pumpSha256 !== expectedPumpSha256) fail(`Pump Seven production-art digest mismatch: ${pumpSha256}.`);
+const productionAssets = [
+  '"use strict";',
+  "(()=>{",
+  `  const bytes=${JSON.stringify(pumpBase64)};`,
+  "  globalThis.UnderdrainProductionAssets=Object.freeze({",
+  '    format:"underdrain-production-assets/1",',
+  '    generatedAt:"2026-07-28",',
+  "    assets:Object.freeze({",
+  '      "underdrain:scene-pump-seven":Object.freeze({',
+  '        mediaType:"image/webp",',
+  "        width:960,",
+  "        height:540,",
+  `        sha256:${JSON.stringify(pumpSha256)},`,
+  '        provenance:"OpenAI image generation with project-directed crop and service-gantry cleanup",',
+  '        dataUrl:`data:image/webp;base64,${bytes}`',
+  "      })",
+  "    })",
+  "  });",
+  "})();",
+].join("\n");
+
 const art = readFileSync(resolve(assets, "underdrain-art.js"), "utf8");
 const mobileControlsCss = readFileSync(resolve(source, "mobile-controls.css"), "utf8");
 const head = readFileSync(resolve(source, "head.html"), "utf8");
@@ -64,6 +99,7 @@ const html = [
   `globalThis.__UNDERDRAIN_PRESENTATION_SHA256__=${JSON.stringify(presentationSha256)};`,
   capsule,
   readFileSync(resolve(source, "storage-adapter.js"), "utf8"),
+  productionAssets,
   art,
   readFileSync(resolve(source, "app-01.js"), "utf8"),
   app02Definitions,
@@ -82,19 +118,26 @@ if (hashOutput) {
   writeFileSync(resolve(hashOutput), `${digest}  index.html\n`, "utf8");
 }
 process.stdout.write(`${JSON.stringify({
-  format: "rodoh-underdrain-build/3",
+  format: "rodoh-underdrain-build/4",
   status: "pass",
   output,
   worldCommit,
   authoringSha256: sha256(authoringBytes),
   presentationSha256,
+  productionArt: {
+    format: "underdrain-production-assets/1",
+    pumpSevenSha256: pumpSha256,
+    mediaType: "image/webp",
+    width: 960,
+    height: 540,
+  },
   representationPlanId: presentation.id,
-  representationAssets: presentation.assets.length,
+  declaredRepresentationRoles: presentation.assets.length,
   bytes: Buffer.byteLength(html),
   sha256: digest,
   arcCapsule: "embedded",
   persistenceAdapter: "embedded",
-  whiteLabelRepresentation: "embedded-before-boot",
+  whiteLabelRepresentation: "mixed-production-and-prototype",
   narrowScreenControls: "embedded-and-qualified",
   singleFile: true,
   externalRuntime: false,
