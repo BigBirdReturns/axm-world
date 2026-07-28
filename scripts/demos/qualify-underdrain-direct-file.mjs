@@ -22,6 +22,7 @@ function required(name, pattern = null) {
 const htmlPath = resolve(required("--html"));
 const worldCommit = required("--world-commit", /^[0-9a-f]{40}$/);
 const arcCommit = required("--arc-commit", /^[0-9a-f]{40}$/);
+const presentationSha256 = required("--presentation-sha256", /^[0-9a-f]{64}$/);
 const outputPath = resolve(required("--output"));
 const screenshotRoot = resolve(option("--screenshot-root", dirname(outputPath)));
 const htmlBytes = readFileSync(htmlPath);
@@ -31,10 +32,16 @@ mkdirSync(dirname(outputPath), { recursive: true });
 mkdirSync(screenshotRoot, { recursive: true });
 
 const receipt = {
-  format: "rodoh-underdrain-direct-file-delivery/1",
+  format: "rodoh-underdrain-direct-file-delivery/2",
   status: "running",
   worldCommit,
   arcCommit,
+  presentation: {
+    planId: "underdrain-white-label-v1",
+    sha256: presentationSha256,
+    actionRenderer: "cartridge-assets",
+    neutralFallbackUsed: false,
+  },
   html: { path: htmlPath, bytes: htmlBytes.length, sha256: htmlSha256 },
   operatingSystem: process.platform,
   browsers: [],
@@ -65,6 +72,14 @@ async function qualifyBrowser(label, launchOptions) {
     await page.evaluate(() => { window.name = ""; });
     await page.reload({ waitUntil: "load" });
     if ((await page.title()) !== "UNDERDRAIN: The Bloom Below") throw new Error(`${label}: title mismatch.`);
+    if ((await page.locator("body").getAttribute("data-representation-status")) !== "pass") {
+      throw new Error(`${label}: candidate-bound representation did not mount.`);
+    }
+    if ((await page.locator("body").getAttribute("data-representation-plan")) !== "underdrain-white-label-v1") {
+      throw new Error(`${label}: representation plan identity mismatch.`);
+    }
+    await page.locator('[data-presentation-asset="underdrain:scene-kitchen"]').first().waitFor({ state: "visible" });
+    await page.locator('[data-presentation-asset="underdrain:portrait-rhea-venn"]').first().waitFor({ state: "visible" });
 
     const persistence = await page.evaluate(() => window.UnderdrainPersistence ?? null);
     if (persistence?.mode !== "window-name" || persistence?.durability !== "current-tab") {
@@ -72,22 +87,41 @@ async function qualifyBrowser(label, launchOptions) {
     }
     await page.getByText("Direct-file save · current tab").waitFor({ state: "visible" });
     await page.getByText(/Download the episode record before closing the tab/).waitFor({ state: "visible" });
+    await page.screenshot({ path: resolve(screenshotRoot, `${label}-represented-cold-entry.png`), fullPage: true });
 
     await page.getByRole("button", { name: "Answer the service call" }).click();
     await page.locator("#action.active").waitFor({ state: "visible" });
+    if ((await page.locator("#game").getAttribute("data-presentation-asset")) !== "underdrain:scene-kitchen") {
+      throw new Error(`${label}: service action lost the kitchen representation.`);
+    }
+    const actionAssets = await page.locator("#game").getAttribute("data-representation-assets");
+    if (!actionAssets?.includes("underdrain:mechanism-inspect-living-trap-active")) {
+      throw new Error(`${label}: service mechanism representation is absent.`);
+    }
     const beforeReload = await page.evaluate(() => ({
       arcCommit: window.UnderdrainRuntime.session.arcCommit,
       worldCommit: window.UnderdrainRuntime.session.worldSourceCommit,
       cartridgeDigest: window.UnderdrainRuntime.session.cartridgeDigest,
       authoringSha256: window.UnderdrainRuntime.session.authoringSha256,
+      representation: window.UnderdrainRuntime.session.representation,
       challengeId: window.UnderdrainRuntime.session.current.challengeId,
       enemyCount: window.UnderdrainRuntime.session.current.state.enemies.length,
       runtimeVersion: window.UnderdrainRuntime.session.current.spec.runtimeVersion,
       recordPersistence: window.UnderdrainRuntime.episodeRecord().persistence,
+      recordRepresentation: window.UnderdrainRuntime.episodeRecord().representation,
       windowNameLength: window.name.length,
     }));
     if (beforeReload.arcCommit !== arcCommit) throw new Error(`${label}: Arc identity mismatch.`);
     if (beforeReload.worldCommit !== worldCommit) throw new Error(`${label}: World identity mismatch.`);
+    if (beforeReload.representation?.planId !== "underdrain-white-label-v1"
+      || beforeReload.representation?.presentationSha256 !== presentationSha256
+      || beforeReload.representation?.actionRenderer !== "cartridge-assets"
+      || beforeReload.representation?.neutralFallbackUsed !== false) {
+      throw new Error(`${label}: session representation custody mismatch ${JSON.stringify(beforeReload.representation)}.`);
+    }
+    if (beforeReload.recordRepresentation?.presentationSha256 !== presentationSha256) {
+      throw new Error(`${label}: episode record omitted representation custody.`);
+    }
     if (beforeReload.challengeId !== "mrs-kett-service-call" || beforeReload.enemyCount !== 0) {
       throw new Error(`${label}: opening service law mismatch.`);
     }
@@ -105,11 +139,19 @@ async function qualifyBrowser(label, launchOptions) {
       await page.getByRole("button", { name: "Resume where I stopped" }).click();
     }
     await page.locator("#action.active").waitFor({ state: "visible" });
+    if ((await page.locator("body").getAttribute("data-representation-status")) !== "pass") {
+      throw new Error(`${label}: reload lost representation status.`);
+    }
+    const resumedAssets = await page.locator("#game").getAttribute("data-representation-assets");
+    if (!resumedAssets?.includes("underdrain:mechanism-inspect-living-trap-active")) {
+      throw new Error(`${label}: reload fell back from represented mechanism.`);
+    }
     const afterReload = await page.evaluate(() => ({
       arcCommit: window.UnderdrainRuntime.session.arcCommit,
       worldCommit: window.UnderdrainRuntime.session.worldSourceCommit,
       cartridgeDigest: window.UnderdrainRuntime.session.cartridgeDigest,
       authoringSha256: window.UnderdrainRuntime.session.authoringSha256,
+      representation: window.UnderdrainRuntime.session.representation,
       challengeId: window.UnderdrainRuntime.session.current.challengeId,
       persistence: window.UnderdrainRuntime.persistence,
     }));
@@ -118,6 +160,7 @@ async function qualifyBrowser(label, launchOptions) {
       worldCommit: beforeReload.worldCommit,
       cartridgeDigest: beforeReload.cartridgeDigest,
       authoringSha256: beforeReload.authoringSha256,
+      representation: beforeReload.representation,
       challengeId: beforeReload.challengeId,
     };
     const actualIdentity = {
@@ -125,13 +168,14 @@ async function qualifyBrowser(label, launchOptions) {
       worldCommit: afterReload.worldCommit,
       cartridgeDigest: afterReload.cartridgeDigest,
       authoringSha256: afterReload.authoringSha256,
+      representation: afterReload.representation,
       challengeId: afterReload.challengeId,
     };
     if (JSON.stringify(actualIdentity) !== JSON.stringify(expectedAfterReload)) {
-      throw new Error(`${label}: exact reload identity mismatch.`);
+      throw new Error(`${label}: exact represented reload identity mismatch.`);
     }
     if (afterReload.persistence?.exactReload !== true) throw new Error(`${label}: persistence surface lost exact-reload law.`);
-    await page.screenshot({ path: resolve(screenshotRoot, `${label}-resumed.png`), fullPage: true });
+    await page.screenshot({ path: resolve(screenshotRoot, `${label}-represented-resumed.png`), fullPage: true });
     await context.close();
 
     const matrixContext = await browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -150,6 +194,15 @@ async function qualifyBrowser(label, launchOptions) {
     if (matrix?.status !== "pass" || matrix?.cases?.length !== 9) {
       throw new Error(`${label}: route-by-compact matrix failed.`);
     }
+    if (matrix.checks?.presentationSha256 !== presentationSha256
+      || matrix.checks?.representationPlanId !== "underdrain-white-label-v1"
+      || matrix.checks?.cartridgeAssetCount !== 48
+      || matrix.checks?.actionRendererUsesCartridgeAssets !== true
+      || matrix.checks?.neutralFallbackAbsent !== true
+      || matrix.checks?.completeSurfacePlan !== true
+      || matrix.checks?.mountedCartridgeAssets !== true) {
+      throw new Error(`${label}: represented matrix checks failed ${JSON.stringify(matrix.checks)}.`);
+    }
     await matrixContext.close();
 
     if (errors.length) throw new Error(`${label}: page errors ${JSON.stringify(errors)}.`);
@@ -161,6 +214,10 @@ async function qualifyBrowser(label, launchOptions) {
       persistenceDurability: persistence.durability,
       resumeMode,
       exactReload: true,
+      representationPlanId: "underdrain-white-label-v1",
+      presentationSha256,
+      cartridgeAssets: 48,
+      representedResume: true,
       zeroPressureOpening: true,
       automatedCases: matrix.cases.length,
       pageErrors: 0,
