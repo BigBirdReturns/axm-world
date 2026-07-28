@@ -53,14 +53,13 @@ describe("UNDERDRAIN cartridge-owned representation", () => {
     expect(plan.renderer).toEqual({ action: "cartridge-assets", neutralFallbackUsed: false });
   });
 
-  it("installs the governed representation before boot, resume, and automated qualification", () => {
+  it("installs the governed representation between runtime definitions and every boot path", () => {
     expect(builder).toContain('const bootMarker = "const params=new URLSearchParams(location.search);"');
-    const definitions = builder.indexOf("app02Definitions");
-    const representation = builder.indexOf('readFileSync(resolve(source, "presentation-surface.js")');
-    const boot = builder.indexOf("app02Boot");
-    expect(definitions).toBeGreaterThan(-1);
-    expect(representation).toBeGreaterThan(definitions);
-    expect(boot).toBeGreaterThan(representation);
+    expect(builder).toContain("const app02Definitions = app02.slice(0, bootIndex);");
+    expect(builder).toContain("const app02Boot = app02.slice(bootIndex);");
+    expect(builder).toMatch(
+      /app02Definitions,\s*readFileSync\(resolve\(source, "presentation-surface\.js"\), "utf8"\),\s*app02Boot,/,
+    );
     expect(surface).toContain("actionRendererUsesCartridgeAssets");
     expect(surface).toContain("neutralFallbackAbsent");
     expect(surface).toContain("buildRepresentationEvidence");
