@@ -1,0 +1,35 @@
+name: Trigger parent semantic receiver finalizer
+
+on:
+  push:
+    branches:
+      - qualify/world-semantic-objectives-v1
+    paths:
+      - '.github/workflows/trigger-parent-semantic-finalizer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  trigger:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/action-semantic-objectives-v1
+          fetch-depth: 0
+          show-progress: false
+      - name: Trigger the fail-closed parent finalizer
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin feature/action-semantic-objectives-v1
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/feature/action-semantic-objectives-v1)"
+          printf '\n# Child carrier trigger: %s\n' "$GITHUB_RUN_ID" >> .github/workflows/finalize-world-semantic-objectives.yml
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/finalize-world-semantic-objectives.yml
+          git commit -m 'Trigger the World semantic receiver finalizer'
+          git push origin HEAD:feature/action-semantic-objectives-v1
