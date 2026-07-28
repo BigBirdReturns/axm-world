@@ -94,7 +94,7 @@ jobs:
           if (receipt.runtimeVersion !== '1.1.0') throw new Error('semantic parity did not execute runtime 1.1.0');
           NODE
 
-      - name: Preserve legacy receiver identity and the complete World product
+      - name: Qualify legacy receiver identity and the complete World product
         run: |
           set -euo pipefail
           dotnet build unity/Conformance/Axm.Rodoh.Action.Conformance.csproj --configuration Release
@@ -105,15 +105,34 @@ jobs:
             tests/world/action-unity-source-contract.test.ts
           npm test
           npm run build
+
+      - name: Remove generated product and C# build surfaces
+        run: |
+          set -euo pipefail
           if git ls-files -- docs/game | grep -q .; then
             git restore --source=HEAD --staged --worktree -- docs/game
           fi
-          git clean -fdx -- docs/game
+          git clean -fdx -- docs/game unity/Conformance
+
+      - name: Prove the exact Arc checkout remained clean
+        run: |
+          set -euo pipefail
           rm -f \
             axm-arc/tests/action/unity-semantic-spec.test.ts \
             axm-arc/tests/action/unity-semantic-vector.test.ts
-          test -z "$(git status --porcelain)"
-          test -z "$(git -C axm-arc status --porcelain)"
+          git -C axm-arc diff --check
+          arc_status="$(git -C axm-arc status --porcelain --untracked-files=all)"
+          printf '%s' "$arc_status"
+          test -z "$arc_status"
+
+      - name: Prove the exact World candidate remained clean
+        run: |
+          set -euo pipefail
+          rm -rf axm-arc
+          git diff --check
+          world_status="$(git status --porcelain --untracked-files=all)"
+          printf '%s' "$world_status"
+          test -z "$world_status"
 
       - uses: actions/upload-artifact@v4
         if: always()
