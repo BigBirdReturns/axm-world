@@ -43,6 +43,12 @@ const presentationSha256 = sha256(presentationBytes);
 const capsule = readFileSync(resolve(source, "arc-capsule.js"), "utf8");
 if (/placeholder\s*:\s*(?:true|!0)/.test(capsule)) fail("The exact Arc capsule has not been generated.");
 const art = readFileSync(resolve(assets, "underdrain-art.js"), "utf8");
+const app02 = readFileSync(resolve(source, "app-02.js"), "utf8");
+const bootMarker = "const params=new URLSearchParams(location.search);";
+const bootIndex = app02.indexOf(bootMarker);
+if (bootIndex < 0) fail("Underdrain app boot marker is absent.");
+const app02Definitions = app02.slice(0, bootIndex);
+const app02Boot = app02.slice(bootIndex);
 
 const html = [
   readFileSync(resolve(source, "head.html"), "utf8"),
@@ -56,8 +62,9 @@ const html = [
   readFileSync(resolve(source, "storage-adapter.js"), "utf8"),
   art,
   readFileSync(resolve(source, "app-01.js"), "utf8"),
-  readFileSync(resolve(source, "app-02.js"), "utf8"),
+  app02Definitions,
   readFileSync(resolve(source, "presentation-surface.js"), "utf8"),
+  app02Boot,
   readFileSync(resolve(source, "persistence-surface.js"), "utf8"),
   "</script>",
   readFileSync(resolve(source, "tail.html"), "utf8"),
@@ -83,7 +90,7 @@ process.stdout.write(`${JSON.stringify({
   sha256: digest,
   arcCapsule: "embedded",
   persistenceAdapter: "embedded",
-  whiteLabelRepresentation: "embedded",
+  whiteLabelRepresentation: "embedded-before-boot",
   singleFile: true,
   externalRuntime: false,
 }, null, 2)}\n`);
