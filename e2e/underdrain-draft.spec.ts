@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const DEMO = "/local/underdrain-draft/index.html";
+const DEMO = "/axm-world/game/local/underdrain-draft/index.html";
 const ARC_COMMIT = "ea16757fe9df65405b322af13d95351896f43157";
 
 async function completeCurrentEncounter(
