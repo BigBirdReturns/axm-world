@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axm.tools/schemas/rodoh-one-am-player-evidence-v1.schema.json",
+  "title": "RODOH 1 AM Player Evidence v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "contractId", "experienceId", "startedAt", "completedAt", "events", "objectives", "route", "comprehension", "continuation"],
+  "properties": {
+    "format": { "const": "rodoh-one-am-player-evidence/1" },
+    "contractId": { "type": "string", "minLength": 1 },
+    "experienceId": { "type": "string", "minLength": 1 },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "completedAt": { "type": "string", "format": "date-time" },
+    "events": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/event" } },
+    "objectives": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "authoredVerb", "mechanicPerformed", "observableStateChange"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "authoredVerb": { "type": "string", "minLength": 1 },
+          "mechanicPerformed": { "type": "string", "minLength": 1 },
+          "observableStateChange": { "type": "string" }
+        }
+      }
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["choiceId", "runtimeDeltas"],
+      "properties": {
+        "choiceId": { "type": ["string", "null"] },
+        "runtimeDeltas": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "comprehension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["whoAmI", "whatAmIDoing", "whyDoesItMatter", "whatChanged", "whatCanIDoNext"],
+      "properties": {
+        "whoAmI": { "type": "string" },
+        "whatAmIDoing": { "type": "string" },
+        "whyDoesItMatter": { "type": "string" },
+        "whatChanged": { "type": "string" },
+        "whatCanIDoNext": { "type": "string" }
+      }
+    },
+    "continuation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["persistentStateChanged", "playableSuccessorId"],
+      "properties": {
+        "persistentStateChanged": { "type": "boolean" },
+        "playableSuccessorId": { "type": ["string", "null"] }
+      }
+    }
+  },
+  "$defs": {
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["atMs", "kind", "description"],
+      "properties": {
+        "atMs": { "type": "number", "minimum": 0 },
+        "kind": {
+          "enum": ["identity-visible", "goal-visible", "stakes-visible", "action-prompt", "meaningful-success", "objective-interaction", "critical-reveal", "choice-delta", "world-change", "relationship-change", "successor-playable", "failure", "control-restored", "result"]
+        },
+        "objectiveId": { "type": "string" },
+        "choiceId": { "type": "string" },
+        "revealId": { "type": "string" },
+        "interactionKinds": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "description": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
