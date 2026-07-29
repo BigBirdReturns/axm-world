@@ -4,6 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 const FORMAT = "rodoh-representation-plan/1";
+const PRODUCTION_FORMAT = "rodoh-representation-production/1";
 const RECEIPT_FORMAT = "rodoh-representation-scaffold-receipt/1";
 const SURFACES = [
   "cold-entry",
@@ -198,6 +199,35 @@ function checkPlan(plan, expected) {
   return { blockers, missing };
 }
 
+function checkProduction(production, plan) {
+  const blockers = [];
+  if (!production) return {
+    blockers: ["Production coverage receipt is absent."],
+    summary: null,
+  };
+  if (production.format !== PRODUCTION_FORMAT) blockers.push(`Expected ${PRODUCTION_FORMAT}, received ${String(production.format)}.`);
+  if (production.planId !== plan.id) blockers.push(`Production coverage belongs to ${String(production.planId)}, not ${plan.id}.`);
+  if (!["prototype", "mixed", "complete"].includes(production.status)) blockers.push(`Production status ${String(production.status)} is unsupported.`);
+  const roleIds = new Set((plan.assets ?? []).map((entry) => entry.id));
+  const productionIds = new Set(production.productionAssetIds ?? []);
+  for (const roleId of productionIds) if (!roleIds.has(roleId)) blockers.push(`Production coverage contains unknown role ${roleId}.`);
+  for (const source of production.sources ?? []) {
+    if (!/^[0-9a-f]{64}$/.test(source.sha256 ?? "")) blockers.push(`Production source ${String(source.id)} has no exact SHA-256.`);
+    if (!Array.isArray(source.sourcePaths) || source.sourcePaths.length === 0) blockers.push(`Production source ${String(source.id)} has no exact source paths.`);
+    for (const roleId of source.assetIds ?? []) if (!productionIds.has(roleId)) blockers.push(`Production source ${String(source.id)} binds undeclared role ${roleId}.`);
+  }
+  return {
+    blockers,
+    summary: {
+      status: production.status,
+      declaredRoles: roleIds.size,
+      productionRoles: productionIds.size,
+      prototypeRoles: Math.max(0, roleIds.size - productionIds.size),
+      productionSources: production.sources?.length ?? 0,
+    },
+  };
+}
+
 try {
   const authoringPath = required("--authoring");
   const namespace = required("--namespace", /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
@@ -217,24 +247,30 @@ try {
     derived,
   };
   const presentationPath = option("--presentation");
+  const productionPath = option("--production");
   const outputPath = option("--output");
 
   if (presentationPath) {
     const plan = readJson(presentationPath);
     const checked = checkPlan(plan, expected);
+    const production = productionPath ? readJson(productionPath) : null;
+    const productionCheck = checkProduction(production, plan);
+    const blockers = [...checked.blockers, ...productionCheck.blockers];
     const receipt = {
       format: RECEIPT_FORMAT,
-      status: checked.blockers.length === 0 ? "pass" : "fail",
+      status: blockers.length === 0 ? "pass" : "fail",
       mode: "check",
       authoring: resolve(authoringPath),
       presentation: resolve(presentationPath),
+      production: productionPath ? resolve(productionPath) : null,
       namespace,
       derived,
       missing: checked.missing,
-      blockers: checked.blockers,
+      productionCoverage: productionCheck.summary,
+      blockers,
     };
     process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
-    if (checked.blockers.length > 0) process.exitCode = 1;
+    if (blockers.length > 0) process.exitCode = 1;
   } else if (outputPath) {
     const plan = createSkeleton({ authoring, namespace, repository, authoredIdentity, experienceId, derived });
     writeJson(outputPath, plan);
@@ -246,8 +282,8 @@ try {
       output: resolve(outputPath),
       namespace,
       derived,
-      generatedAssetObligations: plan.assets.length,
-      note: "Generated TODO sources and accessible equivalents are intentionally incomplete until the cartridge-owned pack is authored.",
+      generatedRoleObligations: plan.assets.length,
+      note: "Generated TODO role sources, nonvisual equivalents, and a separate production-coverage receipt remain required before release acceptance.",
     }, null, 2)}\n`);
   } else {
     fail("Supply either --presentation for check mode or --output for generation mode.", { authoring: resolve(authoringPath), namespace, derived });
