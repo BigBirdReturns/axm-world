@@ -42,35 +42,30 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          product = Path('unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs')
-          text = product.read_text(encoding='utf-8')
-          replacements = [
-              (
-                  '        private sealed class AssetRequirement\n',
-                  '        private class AssetRequirement\n',
-                  1,
-              ),
-              (
-                  '                    if (!bindingByKit.TryAdd(binding.kit, binding)) throw new InvalidOperationException("Serialized production presentation contains duplicate enemy kit " + binding.kit + ".");\n',
-                  '                    if (bindingByKit.ContainsKey(binding.kit)) throw new InvalidOperationException("Serialized production presentation contains duplicate enemy kit " + binding.kit + ".");\n'
-                  '                    bindingByKit.Add(binding.kit, binding);\n',
-                  1,
-              ),
-          ]
-          for before, after, expected in replacements:
+          def replace_once(path_value, before, after):
+              path = Path(path_value)
+              text = path.read_text(encoding='utf-8')
               count = text.count(before)
-              if count != expected:
-                  raise SystemExit(f'{product}: expected {expected} occurrence(s), found {count}: {before!r}')
-              text = text.replace(before, after)
-          product.write_text(text, encoding='utf-8', newline='\n')
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one occurrence, found {count}: {before!r}')
+              path.write_text(text.replace(before, after), encoding='utf-8', newline='\n')
 
-          hud = Path('unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionMinimalHud.cs')
-          text = hud.read_text(encoding='utf-8')
-          before = '                ? "WASD move   MOUSE look   LMB sweep   RMB crush   SPACE dodge   Q parry   E work"\n'
-          after = '                ? "WASD move   MOUSE look   LMB sweep   RMB crush   SPACE dodge   Q parry   E work   F10 rebind"\n'
-          if text.count(before) != 1:
-              raise SystemExit(f'{hud}: expected one fallback control string, found {text.count(before)}')
-          hud.write_text(text.replace(before, after), encoding='utf-8', newline='\n')
+          replace_once(
+              'unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs',
+              '        private sealed class AssetRequirement\n',
+              '        private class AssetRequirement\n',
+          )
+          replace_once(
+              'unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs',
+              '                    if (!bindingByKit.TryAdd(binding.kit, binding)) throw new InvalidOperationException("Serialized production presentation contains duplicate enemy kit " + binding.kit + ".");\n',
+              '                    if (bindingByKit.ContainsKey(binding.kit)) throw new InvalidOperationException("Serialized production presentation contains duplicate enemy kit " + binding.kit + ".");\n'
+              '                    bindingByKit.Add(binding.kit, binding);\n',
+          )
+          replace_once(
+              'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionInputBindings.cs',
+              '                + Short(interactPrimary) + " work   F10 rebind";\n',
+              '                + Short(interactPrimary) + " work";\n',
+          )
           PY
           git diff --check
 
