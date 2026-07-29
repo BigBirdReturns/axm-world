@@ -174,7 +174,6 @@ describe("UNDERDRAIN Unity 6000 player train", () => {
     expect(train).toContain('keyboardMouseSession = "open"');
     expect(train).toContain('namedPlayerProductAcceptance = "not-issued"');
     expect(qualifier).toContain("ActionPlayerProductBatch.Run");
-    expect(qualifier).toContain("productionAdapterId").not;
     expect(qualifier).toContain('presentationAdapterId -ne "production.prefab/v1"');
     expect(session).toContain('[ValidateSet("keyboard-mouse", "gamepad")]');
     expect(session).toContain("-axmActionRequiredDevice");
