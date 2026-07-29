@@ -2,15 +2,20 @@
 
 Status: reusable post-v1 production path for first-party authored pilots.
 
-This runbook prevents the Underdrain false-positive pattern:
+This runbook prevents both Underdrain representation false positives:
 
 ```text
 authored causal chain passes
-historical asset inventory passes
-candidate-specific representation is never asked for
+candidate representation is never asked for
+
+or
+
+role plan declares many identities
+one prototype renderer backs most identities
+role count is reported as production asset count
 ```
 
-The fast path begins before browser work. Arc authoring is converted into explicit representation obligations, the candidate-owned pack is completed against those obligations, and only then may the standalone, browser, Windows, Unity, or device trains run.
+The fast path starts before browser work. Arc authoring becomes explicit representation obligations. A separate production receipt reports which obligations have exact authored sources. Only complete production coverage may proceed to product classification.
 
 ## Contract stack
 
@@ -18,25 +23,27 @@ The fast path begins before browser work. Arc authoring is converted into explic
 Arc authored experience and action objectives
   -> scaffold-authored-pilot-representation.mjs
   -> rodoh-representation-plan/1
-  -> evaluateRepresentationPlan
-  -> candidate discovery and asset custody
-  -> exact standalone/native representation binding
-  -> desktop/mobile surface walks
+  -> rodoh-representation-production/1
+  -> evaluateRepresentationPlan(plan, production)
+  -> candidate discovery and source custody
+  -> exact standalone/native binding
+  -> desktop / portrait / short-landscape walks
+  -> reviewed screenshots
   -> machine-qualified-authored-pilot
   -> independent blind-player receipt
   -> accepted-playable-authored-episode
 ```
 
-The scaffold tool is not an art generator. It generates and checks the **obligation ledger** that art, layout, accessibility, and runtime integration must satisfy.
+The scaffold is not an art generator. It derives and checks the obligation ledger and reports actual production coverage.
 
-## What is derived automatically
+## Automatically derived obligations
 
-From the authored manifest, the tool derives:
+From Arc authoring, the tool derives:
 
-- the player role from each authored experience entry;
-- actors who deliver authored in-play reveals;
-- every semantic action objective under `actionObjectives.encounters`;
-- the six mandatory product surfaces:
+- player role from each authored-experience entry;
+- actors who deliver in-play reveals;
+- every semantic action objective;
+- six mandatory product surfaces:
   - cold entry;
   - authored commitment;
   - first action;
@@ -44,25 +51,25 @@ From the authored manifest, the tool derives:
   - playable successor;
   - durable record.
 
-The derived values are sorted and deduplicated, so generation is deterministic across hosts.
+Values are sorted and deduplicated for deterministic cross-host output.
 
 ## Bounded World supplements
 
-Some representation obligations are intentionally not guessed from Arc data:
+Some obligations are not guessed from Arc data:
 
-- supporting people who appear in World staging but do not own an Arc reveal;
-- persistent state identifiers rendered by the consequence and record surfaces.
+- supporting people staged by World who do not own a reveal;
+- persistent-state identifiers shown by consequence and record surfaces.
 
-Supply these explicitly through:
+Supply them explicitly:
 
 ```text
 --people
 --state-ids
 ```
 
-This is a bounded supplement, not an invitation to invent canon. The identifiers must already be owned by the authored experience, accepted campaign state, or validated World staging.
+They must already belong to validated authoring, accepted campaign state, or governed World staging.
 
-## Generate a new pilot skeleton
+## Generate a role-plan skeleton
 
 ```bash
 node scripts/assets/scaffold-authored-pilot-representation.mjs \
@@ -72,64 +79,104 @@ node scripts/assets/scaffold-authored-pilot-representation.mjs \
   --repository BigBirdReturns/axm-world \
   --authored-identity <authored-identity> \
   --experience-id <experience-id> \
-  --people <comma-separated-world-supporting-people> \
+  --people <comma-separated-supporting-people> \
   --state-ids <comma-separated-persistent-state-ids>
 ```
 
-The generated plan contains:
+The generated role plan contains:
 
 - candidate identity and provenance location;
-- cartridge renderer with neutral fallback disabled;
+- candidate renderer with neutral fallback disabled;
 - derived people, objectives, states, and six surfaces;
-- portrait/body obligations for every person;
-- idle/active/complete obligations for every mechanism;
-- state-mark obligations for every persistent state;
-- one initial environment or record asset per required surface;
-- TODO source paths and TODO accessible equivalents.
+- portrait/body obligations;
+- mechanism idle/active/complete obligations;
+- persistent-state marks;
+- initial environment or record role for each surface;
+- TODO source paths and TODO descriptions.
 
-A generated skeleton is deliberately incomplete. It cannot pass production representation because its TODO assets are placeholders. Its purpose is to expose the whole production bill before anyone starts browser polishing.
+A generated skeleton is deliberately incomplete. It is a production bill, not an asset pack.
 
-## Check a completed plan
+## Create production coverage
+
+Create sibling `production.json`:
+
+```json
+{
+  "format": "rodoh-representation-production/1",
+  "planId": "<plan-id>",
+  "status": "prototype",
+  "productionAssetIds": [],
+  "sources": []
+}
+```
+
+As art is authored, add only roles with exact production custody:
+
+```json
+{
+  "id": "<source-id>",
+  "assetIds": ["<covered-role-id>"],
+  "sourcePaths": ["assets/production/<file>"],
+  "mediaType": "image/webp",
+  "sha256": "<64 lowercase hex>",
+  "width": 960,
+  "height": 540
+}
+```
+
+Coverage status:
+
+- `prototype`: no release-ready roles;
+- `mixed`: some roles production-ready, some prototype;
+- `complete`: every declared role has exact production custody.
+
+Do not infer complete status from role count, runtime IDs, accessible descriptions, or screenshots.
+
+## Check obligations and coverage
 
 ```bash
 node scripts/assets/scaffold-authored-pilot-representation.mjs \
   --authoring demos/<pilot>/authoring.json \
   --presentation demos/<pilot>/presentation.json \
+  --production demos/<pilot>/production.json \
   --namespace <cartridge-namespace> \
   --repository BigBirdReturns/axm-world \
   --authored-identity <authored-identity> \
   --experience-id <experience-id> \
-  --people <comma-separated-world-supporting-people> \
+  --people <comma-separated-supporting-people> \
   --state-ids <comma-separated-persistent-state-ids>
 ```
 
-A passing check emits:
+A successful obligation check may still report mixed production:
 
 ```json
 {
-  "format": "rodoh-representation-scaffold-receipt/1",
   "status": "pass",
-  "mode": "check",
   "missing": {
     "surfaces": [],
     "people": [],
     "objectives": [],
     "states": []
   },
-  "blockers": []
+  "productionCoverage": {
+    "status": "mixed",
+    "declaredRoles": 48,
+    "productionRoles": 1,
+    "prototypeRoles": 47,
+    "productionSources": 1
+  }
 }
 ```
 
-The command exits nonzero before typecheck or browser installation when the plan omits a derived person, objective, state, surface, or binding.
+That means the bill is complete and the art is not. Release classification remains blocked.
 
 ## Exact Underdrain check
-
-The controlling Underdrain and asset-custody workflows execute:
 
 ```bash
 node scripts/assets/scaffold-authored-pilot-representation.mjs \
   --authoring demos/underdrain-draft/authoring.json \
   --presentation demos/underdrain-draft/presentation.json \
+  --production demos/underdrain-draft/production.json \
   --namespace underdrain \
   --repository BigBirdReturns/axm-world \
   --authored-identity underdrain-continuous-pilot-v2 \
@@ -138,70 +185,77 @@ node scripts/assets/scaffold-authored-pilot-representation.mjs \
   --state-ids town-water-pressure,kett-water,fungus-contact,crown-grievance,rhea-status,evidence-custody,root-gate-open
 ```
 
-The authoring supplies Rhea, Tess, Morrowcap, and all five semantic objectives. The explicit World supplement adds the staged supporting cast and the seven accepted persistent states. Sorting and deduplication produce the exact six-person, five-mechanism, seven-state obligation set.
+Current expected report:
+
+```text
+people              6
+mechanisms          5
+persistent states   7
+surfaces             6
+declared roles      48
+production roles     1
+prototype roles     47
+release status       blocked
+```
 
 ## Production sequence
 
 ### 1. Freeze authored authority
 
-Before art production, require:
+Require exact:
 
-- exact Arc authoring manifest;
-- truthful semantic objective identifiers;
-- accepted persistent-state identifiers;
+- Arc authoring manifest;
+- truthful semantic objective IDs;
+- accepted persistent-state IDs;
 - implemented successor identity.
 
 Do not use presentation work to conceal missing law.
 
-### 2. Generate obligations
+### 2. Generate the obligation bill
 
-Run scaffold generation immediately after authoring materialization. Review the generated bill for:
+Run the scaffold immediately after authoring materialization. Repair authoring first when required cast, mechanism, state, or successor obligations are absent.
 
-- missing player-facing people;
-- missing mechanism states;
-- missing persistent states;
-- missing journey surfaces.
+### 3. Author cartridge-owned sources
 
-If an obligation is absent because authoring itself is incomplete, repair authoring first.
+Replace prototype roles with original local art and nonvisual equivalents. Do not borrow another cartridge's identity or the neutral fallback.
 
-### 3. Author the cartridge-owned pack
+A role advances to production only when `production.json` binds it to exact source custody.
 
-Replace every TODO with original, local assets and accessible equivalents. A first-party pilot must not borrow another cartridge’s identity or rely on the neutral Rodoh fallback.
+### 4. Pass shared evaluation
 
-### 4. Pass the shared evaluator
-
-`evaluateRepresentationPlan` checks:
+`evaluateRepresentationPlan(plan, production)` verifies:
 
 - namespace and provenance;
+- people, mechanisms, states, and six surfaces;
 - no placeholders or neutral fallback;
-- production-sized asset vocabulary;
-- people portrait/body bindings;
-- objective idle/active/complete bindings;
-- state marks;
-- six surfaces;
-- desktop/mobile coverage;
-- nonvisual equivalents.
+- exact production roles, source paths, media, digests, and dimensions;
+- no unknown or unsourced roles;
+- zero prototype roles for `complete` status.
+
+Mixed coverage is an expected rework state and a release failure.
 
 ### 5. Pass candidate discovery
 
-The global discovery test walks `demos/**/authoring.json`. A first-party pilot cannot remain outside asset custody merely because no one added it to a historical release rollup.
+Global discovery walks first-party authored candidates and requires role plan, production receipt, provenance, confined sources, and shared evaluation. New pilots cannot sit outside asset custody simply because a historical rollup omitted them.
 
 ### 6. Bind exact runtime bytes
 
-The product assembler must bind:
+The product assembler binds:
 
 ```text
 World commit
 Arc commit
 authoring SHA-256
-representation SHA-256
+role-plan SHA-256
+production-coverage SHA-256
+production-source SHA-256 values
 ```
 
-Representation must install before cold boot, resume, and automated qualification.
+Representation installs before cold boot, resume, and automated qualification.
 
 ### 7. Exercise every surface
 
-Browser or native tests must identify mounted asset IDs on:
+Browser or native tests identify mounted roles on:
 
 - cold entry;
 - commitment;
@@ -210,34 +264,64 @@ Browser or native tests must identify mounted asset IDs on:
 - successor;
 - record.
 
-Screenshot existence alone is insufficient.
+Mounted role IDs prove routing, not production quality. Production evidence comes from the separate source receipt.
 
-### 8. Check narrow-screen geometry
+### 8. Protect the rendered world
 
-At the reference mobile viewport, require:
+The objective and touch controls must be layout siblings of the stage or satisfy an equivalent native protected-region law.
 
-- controls inside the stage;
-- targets at least 44 x 44 CSS pixels;
-- no control overlap;
-- objective ribbon separation;
-- rendered label ink inside its own target.
+Reference browser viewports:
 
-### 9. Retain evidence
+```text
+390 x 844 portrait
+844 x 390 short landscape
+```
 
-The checksum-led artifact should contain:
+Measure actual rectangles and require:
 
-- exact standalone or native build;
-- authoring and representation plans;
+- zero canvas/command-deck intersection;
+- zero canvas/objective intersection;
+- zero canvas/touch-cluster intersection;
+- zero canvas/individual-button intersection;
+- zero stage/command-deck intersection;
+- 44 x 44 targets;
+- contained label ink;
+- no button overlap;
+- sufficient unobstructed canvas dimensions.
+
+“Controls inside the stage” is explicitly forbidden as an acceptance criterion.
+
+### 9. Review screenshots
+
+Screenshot creation is not acceptance. Review the retained cold, action, consequence, successor, record, portrait, and short-landscape frames for:
+
+- obstruction;
+- accidental cropping;
+- prototype residue;
+- actor and mechanism legibility;
+- consequence clarity;
+- correspondence to production source receipts.
+
+Record review disposition before classification.
+
+### 10. Retain evidence
+
+The checksum-led artifact contains:
+
+- exact executable;
+- authoring, role plan, and production coverage;
+- production source files;
 - provenance;
-- scaffold check receipt;
+- scaffold receipt;
 - static verifier receipt;
-- desktop/mobile screenshots;
-- direct-file or native receipts where applicable;
-- SHA-256 ledger.
+- browser geometry and screenshots;
+- direct-file or native receipts;
+- SHA-256 ledger;
+- explicit classification boundary.
 
-### 10. Seek blind-player evidence last
+### 11. Seek blind-player evidence last
 
-Only after structural and representation gates pass should the candidate be handed to an independent zero-assistance player. The runtime remains forbidden to issue that receipt itself.
+Only after structural and complete production representation gates pass should an independent zero-assistance player receive the candidate. The runtime cannot issue that receipt.
 
 ## Failure classifications
 
@@ -245,31 +329,30 @@ Only after structural and representation gates pass should the candidate be hand
 structural law incomplete
   -> rejected
 
-structural law complete, representation incomplete
-  -> authored-logic prototype
+structural law complete
+production representation incomplete
+  -> authored-logic prototype / representation rework
 
-structural and representation gates pass
+structural and complete representation pass
   -> machine-qualified-authored-pilot
 
-structural, representation, and independent receipt pass
+same exact candidate plus independent receipt
   -> accepted-playable-authored-episode
 ```
 
-## Why this makes later pilots faster
+## Why later pilots get faster
 
-The first Underdrain reset had to discover and implement the missing acceptance plane. Later pilots inherit:
+Later pilots inherit:
 
-- the schema;
-- the evaluator;
-- candidate discovery;
-- the scaffold/check command;
-- deterministic fixture tests;
-- static exact-byte verification;
+- deterministic obligation derivation;
+- separate production coverage;
+- early source/digest refusal;
+- global candidate discovery;
+- exact-byte binding;
+- protected-world geometry;
 - six-surface browser assertions;
-- mobile geometry law;
-- provenance and artifact packaging;
-- classification language.
+- screenshot review requirements;
+- evidence packaging;
+- fail-closed classification language.
 
-A missing actor or mechanism now fails in a small Node check before dependency-heavy browser, Windows, Unity, or Quest qualification. A visual collision becomes a reusable geometry assertion rather than a one-off screenshot comment.
-
-The only cartridge-specific work left is the work that should be cartridge-specific: its authored identity, original asset production, staging, and final independent observation.
+Missing cast, mechanisms, states, sources, or layout dignity now fail before long Windows, Unity, Quest, or physical-device trains. The cartridge-specific work that remains is the work that should remain cartridge-specific: authored identity, original art, staging, and final independent observation.
