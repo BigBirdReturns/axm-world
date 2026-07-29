@@ -11,13 +11,14 @@ const DEMO = resolve(ROOT, "demos/underdrain-draft");
 const SOURCE = resolve(DEMO, "source");
 const WORLD_COMMIT = "a".repeat(40);
 const ARC_COMMIT = "ea16757fe9df65405b322af13d95351896f43157";
+const PUMP_SHA256 = "c5810b7362b511a8789e26300517ab0156b2593f99c9b45227765f465ef871ca";
 
 function sha256(path: string): string {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
 
-function buildStandalone(): { html: string; output: string } {
-  const directory = mkdtempSync(join(tmpdir(), "underdrain-v3-"));
+function buildStandalone(): { html: string; output: string; receipt: any } {
+  const directory = mkdtempSync(join(tmpdir(), "underdrain-v5-"));
   const output = join(directory, "index.html");
   const result = spawnSync(process.execPath, [
     resolve(ROOT, "scripts/demos/build-underdrain-draft.mjs"),
@@ -26,26 +27,41 @@ function buildStandalone(): { html: string; output: string } {
     "--world-commit", WORLD_COMMIT,
   ], { cwd: ROOT, encoding: "utf8" });
   expect(result.status, result.stderr || result.stdout).toBe(0);
-  expect(JSON.parse(result.stdout)).toMatchObject({
-    format: "rodoh-underdrain-build/3",
+  const receipt = JSON.parse(result.stdout);
+  expect(receipt).toMatchObject({
+    format: "rodoh-underdrain-build/5",
     status: "pass",
     worldCommit: WORLD_COMMIT,
     representationPlanId: "underdrain-white-label-v1",
-    representationAssets: 48,
-    whiteLabelRepresentation: "embedded-before-boot",
+    declaredRepresentationRoles: 48,
+    productionArt: {
+      coverageStatus: "mixed",
+      productionRoles: 1,
+      prototypeRoles: 47,
+      sources: 1,
+      pumpSevenSha256: PUMP_SHA256,
+      mediaType: "image/webp",
+      width: 960,
+      height: 540,
+    },
+    whiteLabelRepresentation: "mixed-production-and-prototype",
+    actionCommandDeck: "outside-rendered-world",
     singleFile: true,
     externalRuntime: false,
   });
-  return { html: readFileSync(output, "utf8"), output };
+  expect(receipt.productionSha256).toBe(sha256(resolve(DEMO, "production.json")));
+  return { html: readFileSync(output, "utf8"), output, receipt };
 }
 
 const AUTHORING_BYTES = readFileSync(resolve(DEMO, "authoring.json"));
 const AUTHORING = JSON.parse(AUTHORING_BYTES.toString("utf8"));
 const PRESENTATION_BYTES = readFileSync(resolve(DEMO, "presentation.json"));
 const PRESENTATION = JSON.parse(PRESENTATION_BYTES.toString("utf8"));
+const PRODUCTION_BYTES = readFileSync(resolve(DEMO, "production.json"));
+const PRODUCTION = JSON.parse(PRODUCTION_BYTES.toString("utf8"));
 
-describe("UNDERDRAIN continuous authored pilot", () => {
-  it("builds one executable offline file from exact authority and representation", () => {
+describe("UNDERDRAIN continuous authored pilot rework", () => {
+  it("builds one executable offline file from exact authority, role, and production custody", () => {
     const { html } = buildStandalone();
     expect(html).not.toMatch(/<script[^>]+src=/i);
     expect(html).not.toMatch(/<link[^>]+stylesheet/i);
@@ -56,10 +72,11 @@ describe("UNDERDRAIN continuous authored pilot", () => {
     expect(html).toContain(WORLD_COMMIT);
     expect(html).toContain(ARC_COMMIT);
     expect(html).toContain(sha256(resolve(DEMO, "presentation.json")));
+    expect(html).toContain(sha256(resolve(DEMO, "production.json")));
     const scripts = [...html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)];
     const executable = scripts.find((entry) => !/application\/json/.test(entry[1] ?? ""))?.[2];
     expect(executable).toBeTruthy();
-    expect(() => new Script(executable!, { filename: "underdrain-v3-inline.js" })).not.toThrow();
+    expect(() => new Script(executable!, { filename: "underdrain-v5-inline.js" })).not.toThrow();
   });
 
   it("has one Arc-owned authoring source with a safe opening and implemented successor", () => {
@@ -89,7 +106,7 @@ describe("UNDERDRAIN continuous authored pilot", () => {
     expect(AUTHORING.authoredExperiences.experiences["pump-seven-operation"].outcomes.success.nextExperienceIds).toEqual(["root-gate-parley"]);
   });
 
-  it("binds the first-party pilot to a complete Underdrain-owned white-label pack", () => {
+  it("distinguishes 48 declared representation roles from one completed production scene", () => {
     expect(PRESENTATION).toMatchObject({
       format: "rodoh-representation-plan/1",
       id: "underdrain-white-label-v1",
@@ -101,30 +118,29 @@ describe("UNDERDRAIN continuous authored pilot", () => {
     expect(PRESENTATION.bindings.people).toHaveLength(6);
     expect(PRESENTATION.bindings.objectives).toHaveLength(5);
     expect(PRESENTATION.bindings.states).toHaveLength(7);
-    expect(PRESENTATION.surfaces.map((surface: { id: string }) => surface.id)).toEqual([
-      "cold-entry", "authored-commitment", "first-action", "accepted-consequence", "playable-successor", "durable-record",
-    ]);
-    expect(PRESENTATION.surfaces.every((surface: { desktop: boolean; mobile: boolean }) => surface.desktop && surface.mobile)).toBe(true);
-    expect(existsSync(resolve(DEMO, "assets/underdrain-art.js"))).toBe(true);
-    expect(existsSync(resolve(DEMO, "assets/provenance.json"))).toBe(true);
+    expect(PRODUCTION).toMatchObject({
+      format: "rodoh-representation-production/1",
+      planId: "underdrain-white-label-v1",
+      status: "mixed",
+      productionAssetIds: ["underdrain:scene-pump-seven"],
+    });
+    expect(PRODUCTION.sources).toHaveLength(1);
+    expect(PRODUCTION.sources[0]).toMatchObject({ sha256: PUMP_SHA256, mediaType: "image/webp", width: 960, height: 540 });
   });
 
-  it("binds played mechanisms, in-play revelation, accepted consequence, persistence, Root Gate, and visual continuity", () => {
+  it("binds authored mechanisms, accepted consequence, persistence, Root Gate, honest art coverage, and a clear command deck", () => {
     const { html } = buildStandalone();
     for (const marker of [
       "const TICK_RATE=30",
       "rodoh-underdrain-session/2",
       "rodoh-underdrain-episode-record/2",
       "rodoh-one-am-structural-evidence/1",
-      "rodoh-representation-runtime-evidence/1",
+      "rodoh-representation-runtime-evidence/3",
+      "rodoh-representation-production/1",
       "rodoh-underdrain-automated-pilot-qualification/2",
       "underdrain-white-label-art/1",
       "underdrain-white-label-v1",
-      "underdrain:scene-kitchen",
       "underdrain:scene-pump-seven",
-      "underdrain:scene-consequence",
-      "underdrain:scene-root-gate",
-      "underdrain:record-seal",
       "objective_progress",
       "critical-reveal",
       "accepted-consequence",
@@ -134,22 +150,24 @@ describe("UNDERDRAIN continuous authored pilot", () => {
       "root-gate-parley",
       "not-issued-by-runtime",
       "Arc replay accepted this trace.",
-      "actionRendererUsesCartridgeAssets",
-      "neutralFallbackAbsent",
+      "declaredRoleCountMeaning",
+      "prototypeRoleCount",
+      "productionRoleCount",
+      "commandDeckOutsideRenderedWorld",
       "prefers-reduced-motion",
       "forced-colors",
     ]) expect(html).toContain(marker);
     expect(html).not.toContain("campaign effect remained provisional");
-    expect(html).not.toContain('"action":"primitive-only"');
     expect(html).not.toContain('"neutralFallbackUsed":true');
+    expect(html).not.toContain("48 cartridge assets");
+    expect(html).toContain('<div class="stage-shell">');
+    expect(html).toContain('<section class="command-deck"');
     expect(html).toContain("The opening repair has no enemies.");
     expect(html).toContain("Only WORK on the green mechanism advances the plumbing objective.");
     expect(html).toContain("Enter the Root Gate parley");
-    expect(html.indexOf("UNDERDRAIN fell back to schematic or neutral representation."))
-      .toBeLessThan(html.indexOf("const params=new URLSearchParams(location.search);"));
   });
 
-  it("passes the exact static verifier only with authoring and presentation custody", () => {
+  it("passes the exact static verifier only with authoring, role, production, and no-overlay custody", () => {
     const { output } = buildStandalone();
     const result = spawnSync(process.execPath, [
       resolve(ROOT, "scripts/demos/verify-underdrain-draft.mjs"),
@@ -159,14 +177,18 @@ describe("UNDERDRAIN continuous authored pilot", () => {
       "--arc-commit", ARC_COMMIT,
       "--authoring-sha256", sha256(resolve(DEMO, "authoring.json")),
       "--presentation-sha256", sha256(resolve(DEMO, "presentation.json")),
+      "--production-sha256", sha256(resolve(DEMO, "production.json")),
     ], { cwd: ROOT, encoding: "utf8" });
     expect(result.status, result.stderr || result.stdout).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({
-      format: "rodoh-underdrain-static-verification/3",
+      format: "rodoh-underdrain-static-verification/4",
       status: "pass",
       representation: {
         planId: "underdrain-white-label-v1",
-        assets: 48,
+        declaredRoles: 48,
+        productionRoles: 1,
+        prototypeRoles: 47,
+        productionSources: 1,
         people: 6,
         objectives: 5,
         states: 7,
@@ -174,8 +196,18 @@ describe("UNDERDRAIN continuous authored pilot", () => {
         actionRenderer: "cartridge-assets",
         neutralFallbackUsed: false,
       },
+      production: {
+        status: "mixed",
+        sourceSha256: PUMP_SHA256,
+        mediaType: "image/webp",
+        width: 960,
+        height: 540,
+      },
       checks: {
-        cartridgeOwnedRepresentation: "present-before-boot",
+        representationRolePlan: "present-before-boot",
+        productionCoverageComplete: false,
+        releaseClassification: "representation-rework",
+        actionCommandDeck: "outside-rendered-world",
         representationDesktopMobile: "pass",
         representationAccessibility: "pass",
       },
