@@ -9,9 +9,9 @@ namespace Axm.Rodoh.Action
 {
     /// <summary>
     /// Records one real built-player mechanic session. The receipt proves device
-    /// ingress, semantic-cue observation, camera behavior, terminal state, and the
-    /// exact provisional candidate. It deliberately cannot issue a comprehension or
-    /// final product-acceptance receipt.
+    /// ingress, semantic-cue observation, camera behavior, terminal state, serialized
+    /// player-product identity, and the exact provisional candidate. It deliberately
+    /// cannot issue a comprehension or final product-acceptance receipt.
     /// </summary>
     [DefaultExecutionOrder(-400)]
     [DisallowMultipleComponent]
@@ -20,15 +20,21 @@ namespace Axm.Rodoh.Action
         [Serializable]
         private sealed class Receipt
         {
-            public string format = "rodoh-action-player-session-evidence/1";
+            public string format = "rodoh-action-player-session-evidence/2";
             public string status = "fail";
             public string generatedAt = DateTime.UtcNow.ToString("O");
+            public string playerProductId = string.Empty;
+            public string playerProductProfileSha256 = string.Empty;
+            public string playerProductQualification = string.Empty;
+            public bool playerProductIdentityValid;
             public string worldCommit = string.Empty;
             public string arcCommit = string.Empty;
             public string actionSpecDigest = string.Empty;
             public string arcDigest = string.Empty;
             public string challengeId = string.Empty;
             public string timingProfileId = string.Empty;
+            public string presentationManifestId = string.Empty;
+            public string sceneJobDigest = string.Empty;
             public string presentationAdapterId = string.Empty;
             public bool diagnosticPresentation;
             public string requiredDevice = string.Empty;
@@ -58,6 +64,7 @@ namespace Axm.Rodoh.Action
         }
 
         [SerializeField] private ActionRuntimeBehaviour runtime;
+        [SerializeField] private ActionPlayerProductIdentity productIdentity;
         [SerializeField] private ActionNaturalPlayerInput naturalInput;
         [SerializeField] private ActionInputBindings bindings;
         [SerializeField] private ActionCameraCollision cameraCollision;
@@ -81,6 +88,7 @@ namespace Axm.Rodoh.Action
         private void Awake()
         {
             if (runtime == null) runtime = GetComponentInParent<ActionRuntimeBehaviour>();
+            if (productIdentity == null) productIdentity = GetComponent<ActionPlayerProductIdentity>();
             if (naturalInput == null) naturalInput = GetComponent<ActionNaturalPlayerInput>();
             if (bindings == null) bindings = GetComponent<ActionInputBindings>();
             if (cameraCollision == null) cameraCollision = GetComponent<ActionCameraCollision>();
@@ -139,6 +147,11 @@ namespace Axm.Rodoh.Action
         {
             if (_written) return LastEvidencePath;
             _written = true;
+            if (productIdentity == null) productIdentity = GetComponent<ActionPlayerProductIdentity>();
+            var identityError = ValidateProductIdentity();
+            var identityValid = string.IsNullOrWhiteSpace(identityError);
+            if (!identityValid) failure = JoinFailure(failure, identityError);
+
             var candidateJson = string.Empty;
             var candidateAuthority = string.Empty;
             var candidateSha256 = string.Empty;
@@ -159,7 +172,7 @@ namespace Axm.Rodoh.Action
             }
             catch (Exception exception)
             {
-                failure = string.IsNullOrWhiteSpace(failure) ? exception.ToString() : failure + " " + exception;
+                failure = JoinFailure(failure, exception.ToString());
             }
 
             var missing = new List<string>();
@@ -173,6 +186,7 @@ namespace Axm.Rodoh.Action
             var terminal = result != null || runtime?.State?.result != null;
             var effectiveResult = result ?? runtime?.State?.result;
             var pass = string.IsNullOrWhiteSpace(failure)
+                && identityValid
                 && terminal
                 && runtime != null
                 && runtime.PresentationAdapterId == "production.prefab/v1"
@@ -183,12 +197,18 @@ namespace Axm.Rodoh.Action
             var receipt = new Receipt
             {
                 status = pass ? "pass" : "fail",
+                playerProductId = productIdentity?.ProductId ?? string.Empty,
+                playerProductProfileSha256 = productIdentity?.ProductProfileSha256 ?? string.Empty,
+                playerProductQualification = productIdentity?.Qualification ?? string.Empty,
+                playerProductIdentityValid = identityValid,
                 worldCommit = _worldCommit,
                 arcCommit = _arcCommit,
                 actionSpecDigest = runtime?.Spec?.sourceSpecDigest ?? string.Empty,
                 arcDigest = runtime?.Spec?.sourceArcDigest ?? string.Empty,
                 challengeId = runtime?.Spec?.challengeId ?? string.Empty,
                 timingProfileId = runtime?.Spec?.timingProfileId ?? string.Empty,
+                presentationManifestId = productIdentity?.PresentationManifestId ?? string.Empty,
+                sceneJobDigest = productIdentity?.SceneJobDigest ?? string.Empty,
                 presentationAdapterId = runtime?.PresentationAdapterId ?? string.Empty,
                 diagnosticPresentation = runtime?.UsesDiagnosticPresentation ?? false,
                 requiredDevice = _requiredDevice,
@@ -232,6 +252,22 @@ namespace Axm.Rodoh.Action
             return LastEvidencePath;
         }
 
+        private string ValidateProductIdentity()
+        {
+            if (productIdentity == null) return "Serialized player-product identity is absent.";
+            var errors = productIdentity.Validate();
+            if (errors != null && errors.Count > 0) return "Serialized player-product identity is invalid: " + string.Join(" ", errors);
+            if (runtime == null || runtime.Spec == null) return "Started action runtime is absent while validating player-product identity.";
+            if (productIdentity.WorldCommit != _worldCommit) return "Session World commit differs from the serialized player-product identity.";
+            if (productIdentity.ArcCommit != _arcCommit) return "Session Arc commit differs from the serialized player-product identity.";
+            if (productIdentity.ActionSpecDigest != runtime.Spec.sourceSpecDigest) return "Session action-spec digest differs from the serialized player-product identity.";
+            if (productIdentity.ArcDigest != runtime.Spec.sourceArcDigest) return "Session Arc digest differs from the serialized player-product identity.";
+            if (productIdentity.ChallengeId != runtime.Spec.challengeId) return "Session challenge differs from the serialized player-product identity.";
+            if (productIdentity.TimingProfileId != runtime.Spec.timingProfileId) return "Session timing profile differs from the serialized player-product identity.";
+            if (productIdentity.PresentationAdapterId != runtime.PresentationAdapterId) return "Session presentation adapter differs from the serialized player-product identity.";
+            return string.Empty;
+        }
+
         private void OnCues(IReadOnlyList<ActionSemanticCue> cues)
         {
             if (cues == null) return;
@@ -257,6 +293,13 @@ namespace Axm.Rodoh.Action
         {
             if (!string.IsNullOrWhiteSpace(_explicitOutput)) return Path.GetFullPath(_explicitOutput);
             return Path.Combine(ResolveOutputDirectory(), "player-session-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff") + ".json");
+        }
+
+        private static string JoinFailure(string left, string right)
+        {
+            if (string.IsNullOrWhiteSpace(left)) return right ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(right)) return left;
+            return left + " " + right;
         }
 
         private static string Sha256(string value)
