@@ -10,10 +10,11 @@ using UnityEngine;
 namespace Axm.Rodoh.Action.Editor
 {
     /// <summary>
-    /// Recomputes the imported-source digest of every admitted production prefab after
-    /// scene serialization. Unlike intake, this batch is read-only: it refuses stale
-    /// markers, moved source custody, built-in primitives, generated roots, active
-    /// combat physics, or an arena without a static camera-collision surface.
+    /// Recomputes the imported-source digest of every named-approved production
+    /// prefab after scene serialization. The batch is read-only: it refuses stale
+    /// markers, changed approval custody, moved sources, built-in primitives,
+    /// generated roots, active combat physics, or an arena without a static
+    /// camera-collision surface.
     /// </summary>
     public static class ActionProductionAssetAuditBatch
     {
@@ -56,6 +57,10 @@ namespace Axm.Rodoh.Action.Editor
             public string computedSourceSha256;
             public string[] visualSourcePaths = Array.Empty<string>();
             public string provenance;
+            public string approvalId;
+            public string approvalAuthorityId;
+            public string approvalName;
+            public string approvedAt;
             public bool productionApproved;
             public bool generatedPrimitive;
             public bool exactSourceCustody;
@@ -74,14 +79,20 @@ namespace Axm.Rodoh.Action.Editor
             public string presentationManifestId;
             public string presentationManifest;
             public string productProfile;
+            public string approvalId;
+            public string approvalAuthorityId;
+            public string approvalName;
+            public string approvedAt;
             public AssetAudit[] assets = Array.Empty<AssetAudit>();
             public int assetCount;
             public bool exactSourceCustody;
             public bool productionApproved;
             public bool generatedPrimitive;
             public bool activePhysicsAuthority;
-            public string semanticAuthority = "read-only presentation asset provenance audit";
+            public string semanticAuthority = "read-only presentation asset provenance and approval-custody audit";
+            public string approvalAuthorityAuthentication = "not-performed";
             public string actionAuthority = "Arc replay and axm-action-receipt/1";
+            public string playerProductAcceptance = "not-issued";
             public string error;
         }
 
@@ -122,10 +133,23 @@ namespace Axm.Rodoh.Action.Editor
                 assets.Add(Audit(presentation.arena.recipe, profile.arena, profile.forbiddenAssetRoots, true));
 
                 if (assets.Select(value => value.assetId).Distinct(StringComparer.Ordinal).Count() != assets.Count) throw new InvalidOperationException("Production asset audit contains duplicate asset identities.");
+                var approvalIds = assets.Select(value => value.approvalId).Distinct(StringComparer.Ordinal).ToArray();
+                var authorityIds = assets.Select(value => value.approvalAuthorityId).Distinct(StringComparer.Ordinal).ToArray();
+                var approvalNames = assets.Select(value => value.approvalName).Distinct(StringComparer.Ordinal).ToArray();
+                var approvedTimes = assets.Select(value => value.approvedAt).Distinct(StringComparer.Ordinal).ToArray();
+                if (approvalIds.Length != 1 || authorityIds.Length != 1 || approvalNames.Length != 1 || approvedTimes.Length != 1)
+                {
+                    throw new InvalidOperationException("Production asset audit found mixed named approval custody across the seven-asset floor.");
+                }
+
                 receipt.productId = profile.productId;
                 receipt.presentationManifestId = presentation.manifestId;
                 receipt.presentationManifest = presentationPath;
                 receipt.productProfile = profilePath;
+                receipt.approvalId = approvalIds[0];
+                receipt.approvalAuthorityId = authorityIds[0];
+                receipt.approvalName = approvalNames[0];
+                receipt.approvedAt = approvedTimes[0];
                 receipt.assets = assets.ToArray();
                 receipt.assetCount = assets.Count;
                 receipt.exactSourceCustody = assets.All(value => value.exactSourceCustody);
@@ -134,7 +158,7 @@ namespace Axm.Rodoh.Action.Editor
                 receipt.activePhysicsAuthority = assets.Any(value => value.activePhysicsAuthority);
                 if (receipt.assetCount != 7 || !receipt.exactSourceCustody || !receipt.productionApproved || receipt.generatedPrimitive || receipt.activePhysicsAuthority)
                 {
-                    throw new InvalidOperationException("Production asset audit did not retain the complete seven-asset authored floor.");
+                    throw new InvalidOperationException("Production asset audit did not retain the complete named-approved seven-asset floor.");
                 }
 
                 receipt.status = "pass";
@@ -192,6 +216,10 @@ namespace Axm.Rodoh.Action.Editor
                 computedSourceSha256 = computed,
                 visualSourcePaths = sources.ToArray(),
                 provenance = marker.Provenance,
+                approvalId = marker.ApprovalId,
+                approvalAuthorityId = marker.ApprovalAuthorityId,
+                approvalName = marker.ApprovalName,
+                approvedAt = marker.ApprovedAt,
                 productionApproved = marker.ProductionApproved,
                 generatedPrimitive = marker.GeneratedPrimitive,
                 exactSourceCustody = exactSourceCustody,
