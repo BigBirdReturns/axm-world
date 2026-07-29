@@ -45,7 +45,7 @@ describe("Unity natural action player plane", () => {
     expect(host).toContain("inputRouter.SampleTick(_state.player.mode)");
   });
 
-  it("routes exact Arc state through one selected presentation adapter", () => {
+  it("routes exact Arc state and semantic cues through one selected presentation adapter", () => {
     const contract = runtime("Unity/IActionPresentationAdapter.cs");
     const host = runtime("Unity/ActionRuntimeBehaviour.cs");
     const diagnostic = runtime("Unity/ActionPrimitivePresentation.cs");
@@ -55,16 +55,26 @@ describe("Unity natural action player plane", () => {
     expect(contract).toContain("public interface IActionPresentationAdapter");
     expect(contract).toContain("void Initialize(ActionSpecProjection spec, ActionSimulationState state)");
     expect(contract).toContain("void Render(ActionSimulationState state, float interpolation)");
-    expect(contract).toContain("void ApplyEvents(IReadOnlyList<ActionEvent> events)");
+    expect(contract).toContain("bool SupportsCue(string cueId)");
+    expect(contract).toContain("IReadOnlyList<string> ValidatePlayerProfile()");
+    expect(contract).toContain("void ApplyCues(IReadOnlyList<ActionSemanticCue> cues)");
+    expect(contract).not.toContain("ApplyEvents");
     expect(host).toContain("private IActionPresentationAdapter _presentation");
-    expect(host).toContain("_presentation?.ApplyEvents(_state.events)");
+    expect(host).toContain("ValidatePresentationContract()");
+    expect(host).toContain("ActionStateSnapshot.Clone(_state)");
+    expect(host).toContain("ActionCueProjector.Project(_spec, prior, _state)");
+    expect(host).toContain("_presentation.ApplyCues(cues)");
+    expect(host).not.toContain("_presentation?.ApplyEvents(_state.events)");
     expect(host).not.toContain("private ActionPrimitivePresentation presentation;");
     expect(diagnostic).toContain("IActionPresentationAdapter");
     expect(diagnostic).toContain('AdapterId => "diagnostic.primitive/v1"');
     expect(diagnostic).toContain("DiagnosticOnly => true");
+    expect(diagnostic).toContain("ValidatePlayerProfile()");
     expect(production).toContain("IActionPresentationAdapter");
     expect(production).toContain('AdapterId => "production.prefab/v1"');
     expect(production).toContain("DiagnosticOnly => false");
+    expect(production).toContain("ApplyCues(IReadOnlyList<ActionSemanticCue> cues)");
+    expect(production).toContain("Authored player prefab is absent.");
     expect(production).not.toContain("runtime.TickAdvanced += ApplyState");
     expect(batch).toContain("runtime.ConfigurePresentation(production, false)");
     expect(batch).toContain("primitive.enabled = false");
