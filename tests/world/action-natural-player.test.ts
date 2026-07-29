@@ -50,6 +50,19 @@ describe("Unity natural action player plane", () => {
     expect(overlay).toContain("Arc timing and action law do not change");
   });
 
+  it("pauses unscaled deterministic tick admission while the rebind menu is open", () => {
+    const host = runtime("Unity/ActionRuntimeBehaviour.cs");
+    const overlay = runtime("Unity/ActionRebindOverlay.cs");
+    expect(host).toContain("private bool _playerMenuPaused");
+    expect(host).toContain("public void SetPlayerMenuPaused(bool paused)");
+    expect(host).toContain("if (_playerMenuPaused)");
+    expect(host).toContain("inputRouter?.ClearContinuousInput()");
+    expect(host).toContain("_accumulator = 0d");
+    expect(overlay).toContain("runtime?.SetPlayerMenuPaused(true)");
+    expect(overlay).toContain("runtime?.SetPlayerMenuPaused(false)");
+    expect(overlay).toContain("no action ticks advance while this menu is open");
+  });
+
   it("buffers edges until the next legal tick while preserving held mechanism work", () => {
     const buffer = runtime("Core/ActionBufferedInput.cs");
     const router = runtime("Unity/ActionInputRouter.cs");
@@ -108,7 +121,7 @@ describe("Unity natural action player plane", () => {
     expect(host).toContain("if (_presentationHoldRemaining > 0f)");
     expect(host).toContain("return;");
     expect(feel).toContain("runtime.RequestPresentationHold(seconds)");
-    expect(feel).toContain("eventName == \"parry\"");
+    expect(feel).toContain('eventName == "parry"');
     expect(feel).toContain("animator.speed = 0f");
   });
 
@@ -126,7 +139,7 @@ describe("Unity natural action player plane", () => {
     expect(evidence).toContain('format = "rodoh-action-player-session-evidence/1"');
     expect(evidence).toContain('comprehensionReceipt = "not-issued-by-runtime"');
     expect(evidence).toContain('acceptance = "diagnostic-mechanic-session-only"');
-    expect(evidence).toContain("candidateAuthority == \"Arc replay required\"");
+    expect(evidence).toContain('candidateAuthority == "Arc replay required"');
     expect(performance).toContain('format = "rodoh-action-performance-receipt/2"');
     expect(performance).toContain("p95WithinBudget");
     expect(performance).toContain("p99WithinBudget");
