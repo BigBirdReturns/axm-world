@@ -6,15 +6,19 @@ namespace Axm.Rodoh.Action
     /// <summary>
     /// Small local rebind surface. F10 opens the menu; a player chooses an action and
     /// then presses a keyboard, mouse, or gamepad button. The result is a preference
-    /// only and feeds the same deterministic ActionInputFrame ingress.
+    /// only and feeds the same deterministic ActionInputFrame ingress. Opening the
+    /// menu explicitly pauses deterministic tick admission, rather than relying on
+    /// Time.timeScale while the action host advances from unscaled time.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class ActionRebindOverlay : MonoBehaviour
     {
+        [SerializeField] private ActionRuntimeBehaviour runtime;
         [SerializeField] private ActionInputBindings bindings;
         [SerializeField] private bool enabledByPreference = true;
         [SerializeField] private KeyCode toggleKey = KeyCode.F10;
         [SerializeField] private bool pauseWhileOpen = true;
+        [SerializeField] private bool restoreCursorLockOnClose = true;
 
         private bool _open;
         private string _captureAction;
@@ -29,6 +33,7 @@ namespace Axm.Rodoh.Action
 
         private void Awake()
         {
+            if (runtime == null) runtime = GetComponentInParent<ActionRuntimeBehaviour>();
             if (bindings == null) bindings = GetComponent<ActionInputBindings>();
         }
 
@@ -71,6 +76,7 @@ namespace Axm.Rodoh.Action
         {
             if (_open) return;
             _open = true;
+            runtime?.SetPlayerMenuPaused(true);
             _previousTimeScale = Time.timeScale;
             if (pauseWhileOpen) Time.timeScale = 0f;
             Cursor.lockState = CursorLockMode.None;
@@ -79,10 +85,18 @@ namespace Axm.Rodoh.Action
 
         public void Close()
         {
-            if (!_open) return;
-            _open = false;
-            CancelCapture();
-            if (pauseWhileOpen) Time.timeScale = _previousTimeScale;
+            if (_open)
+            {
+                _open = false;
+                CancelCapture();
+                if (pauseWhileOpen) Time.timeScale = _previousTimeScale;
+            }
+            runtime?.SetPlayerMenuPaused(false);
+            if (restoreCursorLockOnClose && !Application.isBatchMode)
+            {
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+            }
         }
 
         public void BeginCapture(string action, string device)
@@ -109,7 +123,7 @@ namespace Axm.Rodoh.Action
             GUI.Box(area, GUIContent.none);
             GUILayout.BeginArea(new Rect(area.x + 20f, area.y + 18f, area.width - 40f, area.height - 36f));
             GUILayout.Label("ACTION CONTROLS", _title);
-            GUILayout.Label("Choose a binding, then press the replacement button. F10 closes this menu. Arc timing and action law do not change.", _body);
+            GUILayout.Label("Choose a binding, then press the replacement button. F10 closes this menu. Arc timing and action law do not change, and no action ticks advance while this menu is open.", _body);
             GUILayout.Space(12f);
 
             if (bindings == null || bindings.Profile == null)
