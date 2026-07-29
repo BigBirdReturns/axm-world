@@ -130,7 +130,7 @@ describe("UNDERDRAIN Unity 6000 player train", () => {
     expect(identity).toContain('Format = "rodoh-action-player-product-identity/1"');
     expect(identity).toContain('qualification = "source-and-scene-qualified"');
     expect(identity).toContain("runtimeMayIssueComprehensionReceipt = false");
-    expect(batch).toContain("private class AssetRequirement");
+    expect(batch).toMatch(/private\s+(?:sealed\s+)?class\s+AssetRequirement/);
     expect(batch).toContain("EnemyRequirement : AssetRequirement");
     expect(batch).toContain("built-in or untracked primitive visual");
     expect(batch).toContain("forbidden generated primitive custody");
