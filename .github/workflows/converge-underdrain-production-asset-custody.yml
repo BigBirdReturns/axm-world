@@ -127,3 +127,5 @@ if ($estateRun.status -ne "pass" -or $productRun.status -ne "pass" -or $productR
           git diff --cached --check
           git commit -m 'Bind UNDERDRAIN production prefabs to imported-source custody'
           git push origin HEAD:feature/underdrain-unity6000-player-train-v1
+
+# Explicitly retriggered after the initial workflow-file commit did not publish a run.
