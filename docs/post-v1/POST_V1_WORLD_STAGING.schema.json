@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axm.tools/schemas/rodoh-post-v1-world-staging-1.json",
+  "title": "RODOH post-v1 World staging",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "releaseBoundary", "presentationManifest", "updates", "connectedOperationReceiver", "activation"],
+  "properties": {
+    "format": { "const": "rodoh-post-v1-world-staging/1" },
+    "releaseBoundary": {
+      "type": "object",
+      "required": ["requiresRodohV1", "runtimeChanges"],
+      "properties": {
+        "requiresRodohV1": { "const": true },
+        "runtimeChanges": { "const": false }
+      }
+    },
+    "presentationManifest": {
+      "type": "object",
+      "required": ["format", "ownership", "opaqueKeys", "fallback", "acceptance"],
+      "properties": {
+        "format": { "const": "rodoh-presentation-manifest/v1-candidate" },
+        "ownership": { "type": "string", "minLength": 1 },
+        "opaqueKeys": { "type": "array", "minItems": 3, "uniqueItems": true, "items": { "type": "string" } },
+        "fallback": { "type": "array", "minItems": 4, "uniqueItems": true, "items": { "type": "string" } },
+        "acceptance": { "type": "array", "minItems": 5, "uniqueItems": true, "items": { "type": "string" } }
+      }
+    },
+    "updates": {
+      "type": "object",
+      "required": ["automaticUpdaterInV1", "candidateModel", "roles", "invariants"],
+      "properties": {
+        "automaticUpdaterInV1": { "const": false },
+        "candidateModel": { "const": "tuf-style-delegated-metadata" },
+        "roles": { "type": "array", "items": { "enum": ["root", "targets", "snapshot", "timestamp"] }, "uniqueItems": true },
+        "invariants": { "type": "array", "minItems": 7, "uniqueItems": true, "items": { "type": "string" } }
+      }
+    },
+    "connectedOperationReceiver": {
+      "type": "object",
+      "required": ["format", "authority", "acceptance"],
+      "properties": {
+        "format": { "const": "axm-connected-operation/v2-candidate" },
+        "authority": { "type": "string", "minLength": 1 },
+        "acceptance": { "type": "array", "minItems": 6, "uniqueItems": true, "items": { "type": "string" } }
+      }
+    },
+    "activation": {
+      "type": "object",
+      "required": ["preconditions", "order"],
+      "properties": {
+        "preconditions": { "type": "array", "minItems": 4, "uniqueItems": true, "items": { "type": "string" } },
+        "order": { "type": "array", "minItems": 4, "uniqueItems": true, "items": { "type": "string" } }
+      }
+    }
+  }
+}
