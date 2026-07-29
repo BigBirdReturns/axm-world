@@ -136,7 +136,10 @@ describe("Unity natural action player plane", () => {
     expect(hud).toContain("bindings?.Profile?.Primary(ActionPlayerAction.Interact)");
     expect(hud).not.toContain("candidateFileName");
     expect(hud).not.toContain("receiptDigest");
-    expect(evidence).toContain('format = "rodoh-action-player-session-evidence/1"');
+    expect(evidence).toContain('format = "rodoh-action-player-session-evidence/2"');
+    expect(evidence).toContain("ActionPlayerProductIdentity");
+    expect(evidence).toContain("playerProductIdentityValid");
+    expect(evidence).toContain("ValidateProductIdentity()");
     expect(evidence).toContain('comprehensionReceipt = "not-issued-by-runtime"');
     expect(evidence).toContain('acceptance = "diagnostic-mechanic-session-only"');
     expect(evidence).toContain('candidateAuthority == "Arc replay required"');
