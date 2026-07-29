@@ -1,0 +1,110 @@
+{
+  "format": "rodoh-representation-plan/1",
+  "id": "underdrain-white-label-v1",
+  "namespace": "underdrain",
+  "classification": "authored-pilot-candidate",
+  "candidate": {
+    "repository": "BigBirdReturns/axm-world",
+    "authoredIdentity": "underdrain-continuous-pilot-v2",
+    "experienceId": "underdrain-continuous-pilot-v2"
+  },
+  "provenance": {
+    "format": "rodoh-original-asset-provenance/1",
+    "path": "assets/provenance.json"
+  },
+  "renderer": {
+    "action": "cartridge-assets",
+    "neutralFallbackUsed": false
+  },
+  "requirements": {
+    "surfaceIds": ["cold-entry", "authored-commitment", "first-action", "accepted-consequence", "playable-successor", "durable-record"],
+    "personIds": ["rhea-venn", "tess-loam", "marta-sump", "morrowcap", "mrs-kett", "dax-venn"],
+    "objectiveIds": ["inspect-living-trap", "restore-kett-water", "diagnose-spore-valves", "operate-purge-wheel", "open-crown-sluice"],
+    "stateIds": ["town-water-pressure", "kett-water", "fungus-contact", "crown-grievance", "rhea-status", "evidence-custody", "root-gate-open"]
+  },
+  "assets": [
+    {"id":"underdrain:emblem","sourcePath":"assets/underdrain-art.js","kind":"emblem","accessibleEquivalent":"A brass plumber's wrench crossing a pale fungal crown over a municipal water-ring."},
+    {"id":"underdrain:scene-kitchen","sourcePath":"assets/underdrain-art.js","kind":"environment","accessibleEquivalent":"Mrs. Kett's cramped tiled kitchen, dry tap, exposed copper trap, and a luminous living valve beneath the sink."},
+    {"id":"underdrain:scene-pump-seven","sourcePath":"assets/underdrain-art.js","kind":"environment","accessibleEquivalent":"Bellwether Pump Seven, with municipal pipes, three living spore valves, a purge wheel, and the Crown Sluice around a protected nursery branch."},
+    {"id":"underdrain:scene-consequence","sourcePath":"assets/underdrain-art.js","kind":"environment","accessibleEquivalent":"Pump Seven after the accepted operation, showing restored town flow and the nursery route still intact."},
+    {"id":"underdrain:scene-root-gate","sourcePath":"assets/underdrain-art.js","kind":"environment","accessibleEquivalent":"The Root Gate chamber where municipal brasswork meets a vaulted fungal crown around a shared sluice."},
+    {"id":"underdrain:record-seal","sourcePath":"assets/underdrain-art.js","kind":"record-mark","accessibleEquivalent":"A stamped episode seal combining the Bellwether meter, Rhea's wrench, and the Crown's living valve."},
+    {"id":"underdrain:portrait-rhea-venn","sourcePath":"assets/underdrain-art.js","kind":"portrait","accessibleEquivalent":"Portrait of Rhea Venn, a practical civilian plumber with a brass wrench and green work jacket."},
+    {"id":"underdrain:body-rhea-venn","sourcePath":"assets/underdrain-art.js","kind":"body","accessibleEquivalent":"Standing figure of Rhea Venn, a practical civilian plumber with a brass wrench and green work jacket."},
+    {"id":"underdrain:portrait-tess-loam","sourcePath":"assets/underdrain-art.js","kind":"portrait","accessibleEquivalent":"Portrait of Tess Loam, Rhea's apprentice carrying a sample jar and field notebook."},
+    {"id":"underdrain:body-tess-loam","sourcePath":"assets/underdrain-art.js","kind":"body","accessibleEquivalent":"Standing figure of Tess Loam, Rhea's apprentice carrying a sample jar and field notebook."},
+    {"id":"underdrain:portrait-marta-sump","sourcePath":"assets/underdrain-art.js","kind":"portrait","accessibleEquivalent":"Portrait of Marta Sump, public works director in a formal municipal coat with requisition tabs."},
+    {"id":"underdrain:body-marta-sump","sourcePath":"assets/underdrain-art.js","kind":"body","accessibleEquivalent":"Standing figure of Marta Sump, public works director in a formal municipal coat with requisition tabs."},
+    {"id":"underdrain:portrait-morrowcap","sourcePath":"assets/underdrain-art.js","kind":"portrait","accessibleEquivalent":"Portrait of Morrowcap, a fungal envoy formed from layered cap, root filaments, and signal spores."},
+    {"id":"underdrain:body-morrowcap","sourcePath":"assets/underdrain-art.js","kind":"body","accessibleEquivalent":"Standing figure of Morrowcap, a fungal envoy formed from layered cap, root filaments, and signal spores."},
+    {"id":"underdrain:portrait-mrs-kett","sourcePath":"assets/underdrain-art.js","kind":"portrait","accessibleEquivalent":"Portrait of Mrs. Kett, the sleepless customer in a kitchen robe holding a dry teacup."},
+    {"id":"underdrain:body-mrs-kett","sourcePath":"assets/underdrain-art.js","kind":"body","accessibleEquivalent":"Standing figure of Mrs. Kett, the sleepless customer in a kitchen robe holding a dry teacup."},
+    {"id":"underdrain:portrait-dax-venn","sourcePath":"assets/underdrain-art.js","kind":"portrait","accessibleEquivalent":"Portrait of Dax Venn, Rhea's opportunistic relative with compostable drain-cap samples."},
+    {"id":"underdrain:body-dax-venn","sourcePath":"assets/underdrain-art.js","kind":"body","accessibleEquivalent":"Standing figure of Dax Venn, Rhea's opportunistic relative with compostable drain-cap samples."},
+    {"id":"underdrain:mechanism-inspect-living-trap-idle","sourcePath":"assets/underdrain-art.js","kind":"mechanism","accessibleEquivalent":"The living trap joint under Mrs. Kett's sink, unworked."},
+    {"id":"underdrain:mechanism-inspect-living-trap-active","sourcePath":"assets/underdrain-art.js","kind":"mechanism","accessibleEquivalent":"The living trap joint under Mrs. Kett's sink, being operated."},
+    {"id":"underdrain:mechanism-inspect-living-trap-complete","sourcePath":"assets/underdrain-art.js","kind":"mechanism","accessibleEquivalent":"The living trap joint under Mrs. Kett's sink, completed and visibly stable."},
+    {"id":"underdrain:mechanism-restore-kett-water-idle","sourcePath":"assets/underdrain-art.js","kind":"mechanism","accessibleEquivalent":"The clean household bypass feeding Mrs. Kett's tap, unworked."},
+    {"id":"underdrain:mechanism-restore-kett-water-active","sourcePath":"assets/underdrain-art.js","kind":"mechanism","accessibleEquivalent":"The clean household bypass feeding Mrs. Kett's tap, being operated."},
+    {"id":"underdrain:mechanism-restore-kett-water-complete","sourcePath":"assets/underdrain-art.js","kind":"mechanism","accessibleEquivalent":"The clean household bypass feeding Mrs. Kett's tap, completed and visibly stable."},
+    {"id":"underdrain:mechanism-diagnose-spore-valves-idle","sourcePath":"assets/underdrain-art.js","kind":"mechanism","accessibleEquivalent":"One of three living spore valves at Pump Seven, unworked."},
+    {"id":"underdrain:mechanism-diagnose-spore-valves-active","sourcePath":"assets/underdrain-art.js","kind":"mechanism","accessibleEquivalent":"One of three living spore valves at Pump Seven, being operated."},
+    {"id":"underdrain:mechanism-diagnose-spore-valves-complete","sourcePath":"assets/underdrain-art.js","kind":"mechanism","accessibleEquivalent":"One of three living spore valves at Pump Seven, completed and visibly stable."},
+    {"id":"underdrain:mechanism-operate-purge-wheel-idle","sourcePath":"assets/underdrain-art.js","kind":"mechanism","accessibleEquivalent":"The municipal purge wheel held at shared-flow pressure, unworked."},
+    {"id":"underdrain:mechanism-operate-purge-wheel-active","sourcePath":"assets/underdrain-art.js","kind":"mechanism","accessibleEquivalent":"The municipal purge wheel held at shared-flow pressure, being operated."},
+    {"id":"underdrain:mechanism-operate-purge-wheel-complete","sourcePath":"assets/underdrain-art.js","kind":"mechanism","accessibleEquivalent":"The municipal purge wheel held at shared-flow pressure, completed and visibly stable."},
+    {"id":"underdrain:mechanism-open-crown-sluice-idle","sourcePath":"assets/underdrain-art.js","kind":"mechanism","accessibleEquivalent":"The Crown Sluice balancing town and nursery water, unworked."},
+    {"id":"underdrain:mechanism-open-crown-sluice-active","sourcePath":"assets/underdrain-art.js","kind":"mechanism","accessibleEquivalent":"The Crown Sluice balancing town and nursery water, being operated."},
+    {"id":"underdrain:mechanism-open-crown-sluice-complete","sourcePath":"assets/underdrain-art.js","kind":"mechanism","accessibleEquivalent":"The Crown Sluice balancing town and nursery water, completed and visibly stable."},
+    {"id":"underdrain:pressure-capling","sourcePath":"assets/underdrain-art.js","kind":"pressure-actor","accessibleEquivalent":"A squat capling defender with a root-footed cap and orange attack telegraph."},
+    {"id":"underdrain:pressure-spore-swarm","sourcePath":"assets/underdrain-art.js","kind":"pressure-actor","accessibleEquivalent":"A cloud of linked signal spores pressing around the work zone."},
+    {"id":"underdrain:pressure-root-breaker","sourcePath":"assets/underdrain-art.js","kind":"pressure-actor","accessibleEquivalent":"A heavy root-and-cap breaker that slams the municipal floor."},
+    {"id":"underdrain:route-emergency-plan","sourcePath":"assets/underdrain-art.js","kind":"route-mark","accessibleEquivalent":"Municipal override route mark with a numbered brass valve and command chevrons."},
+    {"id":"underdrain:route-service-tunnel","sourcePath":"assets/underdrain-art.js","kind":"route-mark","accessibleEquivalent":"Household pressure-route mark tracing a narrow copper service line."},
+    {"id":"underdrain:route-truce-offer","sourcePath":"assets/underdrain-art.js","kind":"route-mark","accessibleEquivalent":"Crown signal mark combining a promise knot and translated spore pulse."},
+    {"id":"underdrain:state-town-water-pressure","sourcePath":"assets/underdrain-art.js","kind":"state-mark","accessibleEquivalent":"Bellwether town-water pressure meter."},
+    {"id":"underdrain:state-kett-water","sourcePath":"assets/underdrain-art.js","kind":"state-mark","accessibleEquivalent":"Mrs. Kett's household tap and clean-flow mark."},
+    {"id":"underdrain:state-fungus-contact","sourcePath":"assets/underdrain-art.js","kind":"state-mark","accessibleEquivalent":"Established communication with the Crown."},
+    {"id":"underdrain:state-crown-grievance","sourcePath":"assets/underdrain-art.js","kind":"state-mark","accessibleEquivalent":"The Crown's recorded grievance against municipal discharge."},
+    {"id":"underdrain:state-rhea-status","sourcePath":"assets/underdrain-art.js","kind":"state-mark","accessibleEquivalent":"Rhea's standing as civilian plumber, drafted operator, or compact author."},
+    {"id":"underdrain:state-evidence-custody","sourcePath":"assets/underdrain-art.js","kind":"state-mark","accessibleEquivalent":"Custody of the living-tissue and discharge evidence."},
+    {"id":"underdrain:state-root-gate-open","sourcePath":"assets/underdrain-art.js","kind":"state-mark","accessibleEquivalent":"The Root Gate is open for a playable parley."},
+    {"id":"underdrain:evidence-living-sample","sourcePath":"assets/underdrain-art.js","kind":"state-mark","accessibleEquivalent":"A sealed jar containing living pressure-regulating tissue."},
+    {"id":"underdrain:evidence-municipal-discharge","sourcePath":"assets/underdrain-art.js","kind":"state-mark","accessibleEquivalent":"A traced municipal antifungal discharge stream entering the nursery branch."}
+  ],
+  "bindings": {
+    "identityAssetId": "underdrain:emblem",
+    "people": [
+      {"personId":"rhea-venn","portraitAssetId":"underdrain:portrait-rhea-venn","bodyAssetId":"underdrain:body-rhea-venn"},
+      {"personId":"tess-loam","portraitAssetId":"underdrain:portrait-tess-loam","bodyAssetId":"underdrain:body-tess-loam"},
+      {"personId":"marta-sump","portraitAssetId":"underdrain:portrait-marta-sump","bodyAssetId":"underdrain:body-marta-sump"},
+      {"personId":"morrowcap","portraitAssetId":"underdrain:portrait-morrowcap","bodyAssetId":"underdrain:body-morrowcap"},
+      {"personId":"mrs-kett","portraitAssetId":"underdrain:portrait-mrs-kett","bodyAssetId":"underdrain:body-mrs-kett"},
+      {"personId":"dax-venn","portraitAssetId":"underdrain:portrait-dax-venn","bodyAssetId":"underdrain:body-dax-venn"}
+    ],
+    "objectives": [
+      {"objectiveId":"inspect-living-trap","idleAssetId":"underdrain:mechanism-inspect-living-trap-idle","activeAssetId":"underdrain:mechanism-inspect-living-trap-active","completeAssetId":"underdrain:mechanism-inspect-living-trap-complete"},
+      {"objectiveId":"restore-kett-water","idleAssetId":"underdrain:mechanism-restore-kett-water-idle","activeAssetId":"underdrain:mechanism-restore-kett-water-active","completeAssetId":"underdrain:mechanism-restore-kett-water-complete"},
+      {"objectiveId":"diagnose-spore-valves","idleAssetId":"underdrain:mechanism-diagnose-spore-valves-idle","activeAssetId":"underdrain:mechanism-diagnose-spore-valves-active","completeAssetId":"underdrain:mechanism-diagnose-spore-valves-complete"},
+      {"objectiveId":"operate-purge-wheel","idleAssetId":"underdrain:mechanism-operate-purge-wheel-idle","activeAssetId":"underdrain:mechanism-operate-purge-wheel-active","completeAssetId":"underdrain:mechanism-operate-purge-wheel-complete"},
+      {"objectiveId":"open-crown-sluice","idleAssetId":"underdrain:mechanism-open-crown-sluice-idle","activeAssetId":"underdrain:mechanism-open-crown-sluice-active","completeAssetId":"underdrain:mechanism-open-crown-sluice-complete"}
+    ],
+    "states": [
+      {"stateId":"town-water-pressure","assetId":"underdrain:state-town-water-pressure"},
+      {"stateId":"kett-water","assetId":"underdrain:state-kett-water"},
+      {"stateId":"fungus-contact","assetId":"underdrain:state-fungus-contact"},
+      {"stateId":"crown-grievance","assetId":"underdrain:state-crown-grievance"},
+      {"stateId":"rhea-status","assetId":"underdrain:state-rhea-status"},
+      {"stateId":"evidence-custody","assetId":"underdrain:state-evidence-custody"},
+      {"stateId":"root-gate-open","assetId":"underdrain:state-root-gate-open"}
+    ]
+  },
+  "surfaces": [
+    {"id":"cold-entry","assetIds":["underdrain:emblem","underdrain:scene-kitchen","underdrain:portrait-rhea-venn","underdrain:portrait-mrs-kett"],"desktop":true,"mobile":true,"accessibleEquivalent":"The opening visibly establishes Rhea, Mrs. Kett, the dry tap, and the living trap joint inside one inhabited kitchen."},
+    {"id":"authored-commitment","assetIds":["underdrain:portrait-marta-sump","underdrain:portrait-tess-loam","underdrain:portrait-dax-venn","underdrain:portrait-morrowcap","underdrain:route-emergency-plan","underdrain:route-service-tunnel","underdrain:route-truce-offer"],"desktop":true,"mobile":true,"accessibleEquivalent":"The municipal draft and three entry methods are visually owned by the characters and institutions proposing them."},
+    {"id":"first-action","assetIds":["underdrain:scene-kitchen","underdrain:scene-pump-seven","underdrain:body-rhea-venn","underdrain:mechanism-inspect-living-trap-active","underdrain:mechanism-restore-kett-water-active","underdrain:mechanism-diagnose-spore-valves-active","underdrain:mechanism-operate-purge-wheel-active","underdrain:mechanism-open-crown-sluice-active","underdrain:pressure-capling","underdrain:pressure-spore-swarm","underdrain:pressure-root-breaker"],"desktop":true,"mobile":true,"accessibleEquivalent":"Rhea works visually distinct plumbing mechanisms while fungal defenders create pressure around, rather than substitute for, the job."},
+    {"id":"accepted-consequence","assetIds":["underdrain:scene-consequence","underdrain:state-town-water-pressure","underdrain:state-kett-water","underdrain:state-fungus-contact","underdrain:state-crown-grievance","underdrain:state-evidence-custody","underdrain:state-root-gate-open"],"desktop":true,"mobile":true,"accessibleEquivalent":"The accepted outcome visibly changes water, evidence, Crown relations, and Root Gate access."},
+    {"id":"playable-successor","assetIds":["underdrain:scene-root-gate","underdrain:portrait-rhea-venn","underdrain:portrait-marta-sump","underdrain:portrait-morrowcap","underdrain:mechanism-open-crown-sluice-complete"],"desktop":true,"mobile":true,"accessibleEquivalent":"The Root Gate is an inhabited parley chamber with Rhea between municipal and Crown claims over the shared sluice."},
+    {"id":"durable-record","assetIds":["underdrain:record-seal","underdrain:state-town-water-pressure","underdrain:state-kett-water","underdrain:state-fungus-contact","underdrain:state-crown-grievance","underdrain:state-rhea-status","underdrain:state-evidence-custody","underdrain:state-root-gate-open"],"desktop":true,"mobile":true,"accessibleEquivalent":"The final record carries the same Underdrain identity and marks every persistent state that survives reload."}
+  ]
+}

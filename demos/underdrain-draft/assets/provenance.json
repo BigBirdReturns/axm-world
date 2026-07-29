@@ -1,0 +1,20 @@
+{
+  "format": "rodoh-original-asset-provenance/1",
+  "assetProgram": "underdrain-white-label-v1",
+  "title": "UNDERDRAIN: The Bloom Below production representation pack",
+  "author": "BigBirdReturns",
+  "createdFor": "BigBirdReturns/axm-world",
+  "originality": "Project-authored vector and pixel presentation. No copied franchise characters, settings, dialogue, trademarks, or third-party image assets.",
+  "license": "repository-license",
+  "sourceFiles": [
+    "demos/underdrain-draft/assets/underdrain-art.js",
+    "demos/underdrain-draft/presentation.json"
+  ],
+  "runtime": {
+    "localOnly": true,
+    "remoteReferences": [],
+    "embeddedRaster": false,
+    "executableSvg": false
+  },
+  "authorityBoundary": "The pack represents identities, mechanisms, places, and accepted state already named by Arc and World. It creates no rules, outcomes, relationships, or canon."
+}

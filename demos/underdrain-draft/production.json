@@ -1,0 +1,27 @@
+{
+  "format": "rodoh-representation-production/1",
+  "planId": "underdrain-white-label-v1",
+  "status": "mixed",
+  "productionAssetIds": [
+    "underdrain:scene-pump-seven"
+  ],
+  "sources": [
+    {
+      "id": "underdrain-production:pump-seven-webp",
+      "assetIds": [
+        "underdrain:scene-pump-seven"
+      ],
+      "sourcePaths": [
+        "assets/production/pump-seven.webp.b64.part-01",
+        "assets/production/pump-seven.webp.b64.part-02",
+        "assets/production/pump-seven.webp.b64.part-03",
+        "assets/production/pump-seven.webp.b64.part-04",
+        "assets/production/pump-seven.webp.b64.part-05"
+      ],
+      "mediaType": "image/webp",
+      "sha256": "c5810b7362b511a8789e26300517ab0156b2593f99c9b45227765f465ef871ca",
+      "width": 960,
+      "height": 540
+    }
+  ]
+}

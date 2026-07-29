@@ -1,0 +1,172 @@
+/*
+ * Action-space law.
+ * The objective and touch controls are siblings of the rendered stage, never
+ * descendants of it. Desktop stacks the objective below the world. Narrow
+ * landscape uses a right command rail. Portrait stacks the command deck below.
+ */
+.stage-shell{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:10px;
+  min-width:0;
+}
+.stage-shell>.stage{
+  min-width:0;
+}
+.command-deck{
+  display:grid;
+  gap:8px;
+  min-width:0;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:linear-gradient(180deg,rgba(18,28,22,.98),rgba(8,15,11,.98));
+  box-shadow:var(--shadow);
+  padding:10px;
+}
+.command-deck>.objective-ribbon{
+  position:static;
+  inset:auto;
+  transform:none;
+  width:auto;
+  margin:0;
+  padding:10px 14px;
+  text-align:left;
+  pointer-events:none;
+  background:rgba(7,14,10,.82);
+}
+.command-deck>.touch{
+  position:static;
+  inset:auto;
+  display:none;
+  pointer-events:auto;
+}
+
+@media(max-width:960px){
+  body[data-view="action"] .topline{
+    position:relative;
+    top:0;
+    padding:7px 10px;
+    border-radius:12px;
+  }
+  body[data-view="action"] .statusline{display:none}
+  body[data-view="action"] main{padding-top:6px}
+
+  .action-grid{grid-template-columns:1fr}
+  .stage-shell{
+    grid-template-columns:minmax(0,1fr) clamp(220px,31vw,280px);
+    align-items:stretch;
+  }
+  .stage-shell>.stage{
+    min-height:0;
+    align-self:center;
+    overflow:hidden;
+    background:#050b08;
+  }
+  .stage-shell>.stage>canvas{
+    position:relative;
+    z-index:1;
+    width:100%;
+    height:auto;
+  }
+  .stage-shell>.stage>.hud{z-index:5}
+  .command-deck{
+    align-content:space-between;
+    padding:10px;
+  }
+  .command-deck>.objective-ribbon{
+    align-self:start;
+    text-align:left;
+    border-color:rgba(140,229,184,.28);
+  }
+  .command-deck>.touch{
+    display:grid;
+    grid-template-rows:auto auto;
+    gap:12px;
+    align-self:end;
+    background:none;
+    padding:0;
+  }
+  .touch-dpad{
+    justify-self:center;
+    grid-template-columns:repeat(3,48px);
+    grid-template-rows:repeat(2,48px);
+    gap:5px;
+  }
+  .touch-actions{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:6px;
+    align-items:stretch;
+  }
+  .touch-actions button{
+    width:auto;
+    height:54px;
+    min-width:0;
+    border-radius:13px;
+    padding:0 4px;
+    overflow:hidden;
+    white-space:nowrap;
+    font-size:10px;
+    letter-spacing:-.02em;
+  }
+  .side{display:grid;grid-template-columns:1fr 1fr}
+}
+
+@media(max-width:700px), (orientation:portrait) and (max-width:960px){
+  .stage-shell{
+    grid-template-columns:1fr;
+    grid-template-rows:auto auto;
+  }
+  .command-deck{
+    grid-row:2;
+    border-radius:14px;
+    padding:0;
+    overflow:hidden;
+  }
+  .command-deck>.objective-ribbon{
+    padding:10px 12px;
+    border:0;
+    border-bottom:1px solid rgba(140,229,184,.24);
+    border-radius:0;
+    text-align:center;
+  }
+  .command-deck>.touch{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    padding:10px 8px 12px;
+    background:#07100b;
+  }
+  .touch-dpad{
+    grid-template-columns:repeat(3,46px);
+    grid-template-rows:repeat(2,46px);
+    gap:4px;
+  }
+  .touch-actions{display:flex;gap:5px}
+  .touch-actions button{
+    width:54px;
+    height:54px;
+    border-radius:50%;
+    font-size:9px;
+  }
+  .side{grid-template-columns:1fr}
+}
+
+@media(max-height:500px) and (orientation:landscape) and (max-width:960px){
+  .app{padding:4px 4px 18px}
+  body[data-view="action"] .topline{padding:4px 8px}
+  body[data-view="action"] .brandmark{width:34px;height:34px}
+  body[data-view="action"] .brand h1{font-size:18px}
+  body[data-view="action"] .eyebrow{font-size:8px}
+  .stage-shell{grid-template-columns:minmax(0,1fr) 238px;gap:6px}
+  .command-deck{padding:8px;gap:7px}
+  .command-deck>.objective-ribbon{padding:9px 10px}
+  .command-deck>.touch{gap:7px}
+  .touch-dpad{
+    grid-template-columns:repeat(3,44px);
+    grid-template-rows:repeat(2,44px);
+    gap:4px;
+  }
+  .touch-actions button{height:48px;font-size:9px}
+  .side{display:none}
+}
