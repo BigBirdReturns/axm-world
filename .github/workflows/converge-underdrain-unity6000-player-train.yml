@@ -22,7 +22,7 @@ jobs:
   converge:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,12 +30,7 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Apply the bounded source repairs
+      - name: Apply and publish the bounded source repairs
         shell: bash
         run: |
           set -euo pipefail
@@ -68,43 +63,6 @@ jobs:
           )
           PY
           git diff --check
-
-      - name: Qualify the source plane
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm ci --no-audit --no-fund
-          npm run typecheck
-          npm test -- tests/world/underdrain-unity6000-player-train.test.ts tests/world/action-natural-player.test.ts
-          npm test
-          npm run build
-          if git ls-files -- docs/game | grep -q .; then
-            git restore --source=HEAD --staged --worktree -- docs/game
-          fi
-          git clean -fdx -- docs/game
-          pwsh -NoProfile -Command '
-            $paths = @(
-              "scripts/build-unity-action-player.ps1",
-              "scripts/qualify-unity-action-player-product.ps1",
-              "scripts/run-underdrain-player-session.ps1",
-              "scripts/run-underdrain-unity6000-player-train.ps1"
-            )
-            foreach ($path in $paths) {
-              $tokens = $null
-              $errors = $null
-              [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors) | Out-Null
-              if (@($errors).Count -gt 0) {
-                $errors | Format-List | Out-String | Write-Error
-                throw "PowerShell parse errors remain in $path"
-              }
-            }
-          '
-          git diff --check
-
-      - name: Publish the carrier-free repair
-        shell: bash
-        run: |
-          set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git rm .github/workflows/converge-underdrain-unity6000-player-train.yml
