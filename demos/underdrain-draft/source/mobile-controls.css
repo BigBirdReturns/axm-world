@@ -1,8 +1,46 @@
 /*
- * Narrow-screen action law.
- * Mission copy and controls occupy a separate command deck and never cover
- * the rendered world. Landscape uses a right rail; portrait stacks below.
+ * Action-space law.
+ * The objective and touch controls are siblings of the rendered stage, never
+ * descendants of it. Desktop stacks the objective below the world. Narrow
+ * landscape uses a right command rail. Portrait stacks the command deck below.
  */
+.stage-shell{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:10px;
+  min-width:0;
+}
+.stage-shell>.stage{
+  min-width:0;
+}
+.command-deck{
+  display:grid;
+  gap:8px;
+  min-width:0;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:linear-gradient(180deg,rgba(18,28,22,.98),rgba(8,15,11,.98));
+  box-shadow:var(--shadow);
+  padding:10px;
+}
+.command-deck>.objective-ribbon{
+  position:static;
+  inset:auto;
+  transform:none;
+  width:auto;
+  margin:0;
+  padding:10px 14px;
+  text-align:left;
+  pointer-events:none;
+  background:rgba(7,14,10,.82);
+}
+.command-deck>.touch{
+  position:static;
+  inset:auto;
+  display:none;
+  pointer-events:auto;
+}
+
 @media(max-width:960px){
   body[data-view="action"] .topline{
     position:relative;
@@ -14,55 +52,39 @@
   body[data-view="action"] main{padding-top:6px}
 
   .action-grid{grid-template-columns:1fr}
-  .stage{
-    display:grid;
+  .stage-shell{
     grid-template-columns:minmax(0,1fr) clamp(220px,31vw,280px);
-    grid-template-rows:auto 1fr;
-    min-height:0;
     align-items:stretch;
+  }
+  .stage-shell>.stage{
+    min-height:0;
+    align-self:center;
     overflow:hidden;
     background:#050b08;
   }
-  .stage>canvas{
-    grid-column:1;
-    grid-row:1 / span 2;
+  .stage-shell>.stage>canvas{
     position:relative;
     z-index:1;
     width:100%;
     height:auto;
-    align-self:center;
   }
-  .hud{
-    grid-column:1;
-    grid-row:1;
-    z-index:5;
+  .stage-shell>.stage>.hud{z-index:5}
+  .command-deck{
+    align-content:space-between;
+    padding:10px;
   }
-  .objective-ribbon{
-    position:static;
-    grid-column:2;
-    grid-row:1;
-    transform:none;
-    width:auto;
-    margin:12px 12px 8px;
+  .command-deck>.objective-ribbon{
     align-self:start;
-    z-index:2;
     text-align:left;
-    background:#0b1510;
     border-color:rgba(140,229,184,.28);
   }
-  .touch{
-    position:static;
-    inset:auto;
-    grid-column:2;
-    grid-row:2;
+  .command-deck>.touch{
     display:grid;
     grid-template-rows:auto auto;
     gap:12px;
-    padding:0 12px 12px;
     align-self:end;
-    pointer-events:auto;
-    z-index:2;
-    background:linear-gradient(180deg,rgba(7,14,10,0),rgba(7,14,10,.88));
+    background:none;
+    padding:0;
   }
   .touch-dpad{
     justify-self:center;
@@ -91,31 +113,24 @@
 }
 
 @media(max-width:700px), (orientation:portrait) and (max-width:960px){
-  .stage{
+  .stage-shell{
     grid-template-columns:1fr;
-    grid-template-rows:auto auto auto;
+    grid-template-rows:auto auto;
   }
-  .stage>canvas{
-    grid-column:1;
-    grid-row:1;
-  }
-  .hud{
-    grid-column:1;
-    grid-row:1;
-  }
-  .objective-ribbon{
-    grid-column:1;
+  .command-deck{
     grid-row:2;
-    margin:0;
+    border-radius:14px;
+    padding:0;
+    overflow:hidden;
+  }
+  .command-deck>.objective-ribbon{
     padding:10px 12px;
-    border-left:0;
-    border-right:0;
+    border:0;
+    border-bottom:1px solid rgba(140,229,184,.24);
     border-radius:0;
     text-align:center;
   }
-  .touch{
-    grid-column:1;
-    grid-row:3;
+  .command-deck>.touch{
     display:flex;
     justify-content:space-between;
     align-items:flex-end;
@@ -143,9 +158,10 @@
   body[data-view="action"] .brandmark{width:34px;height:34px}
   body[data-view="action"] .brand h1{font-size:18px}
   body[data-view="action"] .eyebrow{font-size:8px}
-  .stage{grid-template-columns:minmax(0,1fr) 238px}
-  .objective-ribbon{margin:8px 8px 4px;padding:9px 10px}
-  .touch{padding:0 8px 8px;gap:7px}
+  .stage-shell{grid-template-columns:minmax(0,1fr) 238px;gap:6px}
+  .command-deck{padding:8px;gap:7px}
+  .command-deck>.objective-ribbon{padding:9px 10px}
+  .command-deck>.touch{gap:7px}
   .touch-dpad{
     grid-template-columns:repeat(3,44px);
     grid-template-rows:repeat(2,44px);
