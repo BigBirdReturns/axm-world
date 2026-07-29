@@ -1,0 +1,225 @@
+name: Unity action semantic cues
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/unity-action-semantic-cues.yml'
+      - 'docs/ACTION_SEMANTIC_CUE_RECEIVER.md'
+      - 'docs/action-player-floor.lock.json'
+      - 'scripts/replay-unity-action-candidate.ps1'
+      - 'tests/world/action-semantic-cue-receiver.test.ts'
+      - 'unity/Conformance/Axm.Rodoh.Action.Cues.csproj'
+      - 'unity/Conformance/CueParityProgram.cs'
+      - 'unity/Conformance/build-action-player-spec.ts'
+      - 'unity/Conformance/project-action-spec.mjs'
+      - 'unity/Conformance/arc-receipt-adapter.test.ts'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Core/**'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/**'
+  push:
+    branches:
+      - feature/action-semantic-cue-receiver-v1
+    paths:
+      - '.github/workflows/unity-action-semantic-cues.yml'
+      - 'docs/ACTION_SEMANTIC_CUE_RECEIVER.md'
+      - 'docs/action-player-floor.lock.json'
+      - 'scripts/replay-unity-action-candidate.ps1'
+      - 'tests/world/action-semantic-cue-receiver.test.ts'
+      - 'unity/Conformance/Axm.Rodoh.Action.Cues.csproj'
+      - 'unity/Conformance/CueParityProgram.cs'
+      - 'unity/Conformance/build-action-player-spec.ts'
+      - 'unity/Conformance/project-action-spec.mjs'
+      - 'unity/Conformance/arc-receipt-adapter.test.ts'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Core/**'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unity-action-semantic-cues-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARC_ACTION_PLAYER_SHA: aaa5685903a348b3c1ba875622fbe99d90c1da35
+  FLOOR_SHA: 9693cb99694338e72c15d0ffbb87b5a1c5bbf16a
+  AXM_ACTION_ORG_SEED: '1592598566'
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out exact World candidate
+        uses: actions/checkout@v4
+        with:
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Check out exact Arc player authority
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_ACTION_PLAYER_SHA }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            axm-world/package-lock.json
+            axm-arc/package-lock.json
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install exact dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix axm-world ci --no-audit --no-fund
+          npm --prefix axm-arc ci --no-audit --no-fund
+
+      - name: Bind the accepted floor and source contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/action-semantic-cues"
+          mkdir -p "$root"
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const lock = JSON.parse(readFileSync('axm-world/docs/action-player-floor.lock.json', 'utf8'));
+          if (lock.format !== 'axm-action-player-floor-lock/1') throw new Error('World floor lock format mismatch');
+          if (lock.floor.mainCommit !== process.env.FLOOR_SHA) throw new Error('World floor commit mismatch');
+          if (lock.arc.actionPlayerCommit !== process.env.ARC_ACTION_PLAYER_SHA) throw new Error('World Arc donor mismatch');
+          if (lock.productAccepted !== false || lock.aggregateReadinessScore !== null) throw new Error('World lock may not imply acceptance or aggregate readiness');
+          NODE
+          npm --prefix axm-world run typecheck
+          npm --prefix axm-world test -- tests/world/action-semantic-cue-receiver.test.ts
+
+      - name: Generate exact Arc reference and selected action spec
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/action-semantic-cues"
+          npm --prefix axm-arc run build:action-player-reference -- \
+            --output "$root/arc-reference.json" \
+            --timing-profile forgiving \
+            | tee "$root/arc-reference-build.log"
+          cp axm-world/unity/Conformance/build-action-player-spec.ts axm-arc/tools/world-build-action-player-spec.ts
+          (
+            cd axm-arc
+            npx vite-node tools/world-build-action-player-spec.ts \
+              --output "$root/action-spec.json" \
+              --timing-profile forgiving \
+              | tee "$root/action-spec-build.log"
+          )
+          rm axm-arc/tools/world-build-action-player-spec.ts
+          node axm-world/unity/Conformance/project-action-spec.mjs \
+            "$root/action-spec.json" \
+            "$root/unity-action-spec.json" \
+            | tee "$root/projection.log"
+
+      - name: Require exact Arc-to-C# cue and candidate parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/action-semantic-cues"
+          dotnet run --project axm-world/unity/Conformance/Axm.Rodoh.Action.Cues.csproj -- \
+            "$root/unity-action-spec.json" \
+            "$root/arc-reference.json" \
+            "$root/csharp-cue-parity.json" \
+            "$root/unity-candidate.json" \
+            | tee "$root/csharp-cue-parity.log"
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const root = process.env.RUNNER_TEMP + '/action-semantic-cues';
+          const parity = JSON.parse(readFileSync(root + '/csharp-cue-parity.json', 'utf8'));
+          const reference = JSON.parse(readFileSync(root + '/arc-reference.json', 'utf8'));
+          const candidate = JSON.parse(readFileSync(root + '/unity-candidate.json', 'utf8'));
+          if (parity.status !== 'pass' || !parity.exactCueParity || !parity.candidateTimingProfilePreserved) throw new Error('C# cue parity did not pass');
+          if (parity.arcCueTraceDigest !== reference.cueTrace.cueTraceDigest) throw new Error('C# parity receipt lost Arc cue identity');
+          if (candidate.timingProfileId !== reference.timingProfileId) throw new Error('Unity candidate lost selected timing profile');
+          if (candidate.authority !== 'Arc replay required') throw new Error('Unity candidate claimed outcome authority');
+          NODE
+
+      - name: Return the C# candidate through exact Arc replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/action-semantic-cues"
+          temporary=axm-arc/tests/action/unity-player-cue-receipt-adapter.test.ts
+          test ! -e "$temporary"
+          cp axm-world/unity/Conformance/arc-receipt-adapter.test.ts "$temporary"
+          export AXM_ACTION_NATIVE_SPEC="$root/action-spec.json"
+          export AXM_ACTION_CANDIDATE="$root/unity-candidate.json"
+          export AXM_ACTION_RECEIPT_OUT="$root/accepted-action-receipt.json"
+          export AXM_ACTION_RECONCILIATION_OUT="$root/result-reconciliation.json"
+          export ARC_ACTION_AUTHORITY_SHA="$ARC_ACTION_PLAYER_SHA"
+          (
+            cd axm-arc
+            npx vitest run tests/action/unity-player-cue-receipt-adapter.test.ts --reporter=verbose \
+              | tee "$root/arc-replay.log"
+          )
+          rm "$temporary"
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const root = process.env.RUNNER_TEMP + '/action-semantic-cues';
+          const reference = JSON.parse(readFileSync(root + '/arc-reference.json', 'utf8'));
+          const receipt = JSON.parse(readFileSync(root + '/accepted-action-receipt.json', 'utf8'));
+          const reconciliation = JSON.parse(readFileSync(root + '/result-reconciliation.json', 'utf8'));
+          if (receipt.receiptDigest !== reference.acceptedReceipt.receiptDigest) throw new Error('Returned Arc receipt differs from exact reference receipt');
+          if (receipt.timingProfileId !== 'forgiving') throw new Error('Returned Arc receipt lost timing-profile custody');
+          if (reconciliation.status !== 'accepted' || reconciliation.provisionalParity !== true) throw new Error('Arc result reconciliation did not accept exact provisional parity');
+          NODE
+
+      - name: Run the complete World and source regression estate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix axm-world test -- \
+            tests/world/action-semantic-cue-receiver.test.ts \
+            tests/world/action-unity-source-contract.test.ts \
+            tests/world/one-am-player.test.ts \
+            tests/world/one-am-structural-evidence.test.ts
+          npm --prefix axm-world test
+          npm --prefix axm-world run build
+          if git -C axm-world ls-files -- docs/game | grep -q .; then
+            git -C axm-world restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git -C axm-world clean -fdx -- docs/game
+
+      - name: Assemble exact hosted custody
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/action-semantic-cues"
+          cp axm-world/docs/action-player-floor.lock.json "$root/"
+          cp axm-world/docs/ACTION_SEMANTIC_CUE_RECEIVER.md "$root/"
+          cp axm-world/unity/Packages/com.axm.rodoh-action/Runtime/Core/ActionSemanticCues.cs "$root/"
+          cp axm-world/unity/Packages/com.axm.rodoh-action/Runtime/Unity/IActionPresentationAdapter.cs "$root/"
+          printf '%s\n' "$(git -C axm-world rev-parse HEAD)" > "$root/world-head.txt"
+          printf '%s\n' "$(git -C axm-arc rev-parse HEAD)" > "$root/arc-head.txt"
+          printf '%s\n' "$FLOOR_SHA" > "$root/floor-head.txt"
+          find axm-world/unity/Conformance -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
+          (
+            cd "$root"
+            find . -type f ! -name SHA256SUMS -printf '%P\0' |
+              sort -z |
+              xargs -0 sha256sum > SHA256SUMS
+          )
+          git -C axm-world diff --check
+          test -z "$(git -C axm-world status --porcelain)"
+          git -C axm-arc diff --check
+          test -z "$(git -C axm-arc status --porcelain)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unity-action-semantic-cues
+          path: ${{ runner.temp }}/action-semantic-cues
+          if-no-files-found: error
+          retention-days: 30
