@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
@@ -9,16 +10,17 @@ using UnityEngine;
 namespace Axm.Rodoh.Action.Editor
 {
     /// <summary>
-    /// Admits real, project-owned UNDERDRAIN prefabs into the player-product path.
-    /// The curated product profile supplies the expected asset identities and roles.
-    /// Intake refuses generated roots, built-in primitives, absent imported sources,
-    /// and active combat physics, then stamps each prefab with a digest over its exact
-    /// imported visual source files. This batch changes presentation assets only.
+    /// Admits named-approved, project-owned UNDERDRAIN prefabs into the player path.
+    /// The batch is read-only. It recomputes imported-source custody, validates the
+    /// separately issued approval receipt and serialized marker, and refuses any
+    /// primitive, generated-root, or active-physics substitution. Only
+    /// ActionProductionAssetApprovalBatch may create named approval state.
     /// </summary>
     public static class ActionProductionAssetIntakeBatch
     {
         private const string ProfileFormat = "rodoh-action-player-product-profile/1";
-        private const string ReceiptFormat = "rodoh-action-production-asset-intake/1";
+        private const string ApprovalFormat = "rodoh-action-production-asset-approval/1";
+        private const string ReceiptFormat = "rodoh-action-production-asset-intake/2";
 
         [Serializable]
         private class AssetRequirement
@@ -45,6 +47,45 @@ namespace Axm.Rodoh.Action.Editor
         }
 
         [Serializable]
+        private sealed class ApprovalAsset
+        {
+            public string assetId;
+            public string role;
+            public string prefabPath;
+            public string sourceSha256;
+            public string approvalId;
+            public string approvalAuthorityId;
+            public string approvalName;
+            public string approvalAttestation;
+            public string approvedAt;
+            public bool approved;
+            public bool generatedPrimitive;
+            public bool activePhysicsAuthority;
+        }
+
+        [Serializable]
+        private sealed class ApprovalReceipt
+        {
+            public string format;
+            public string status;
+            public string productId;
+            public string presentationManifestId;
+            public string approvalId;
+            public string approvalAuthorityId;
+            public string approvalName;
+            public string approvalAttestation;
+            public string approvedAt;
+            public bool confirmedAllAssets;
+            public ApprovalAsset[] assets = Array.Empty<ApprovalAsset>();
+            public int assetCount;
+            public bool productionApproved;
+            public bool generatedPrimitive;
+            public bool activePhysicsAuthority;
+            public string authorityAuthentication;
+            public string playerProductAcceptance;
+        }
+
+        [Serializable]
         private sealed class AssetReceipt
         {
             public string assetId;
@@ -54,6 +95,10 @@ namespace Axm.Rodoh.Action.Editor
             public string sourceSha256;
             public string[] visualSourcePaths = Array.Empty<string>();
             public string provenance;
+            public string approvalId;
+            public string approvalAuthorityId;
+            public string approvalName;
+            public string approvedAt;
             public bool productionApproved;
             public bool generatedPrimitive;
             public bool activePhysicsAuthority;
@@ -71,13 +116,22 @@ namespace Axm.Rodoh.Action.Editor
             public string presentationManifestId;
             public string presentationManifest;
             public string productProfile;
+            public string approvalReceipt;
+            public string approvalReceiptSha256;
+            public string approvalId;
+            public string approvalAuthorityId;
+            public string approvalName;
+            public string approvalAttestation;
+            public string approvedAt;
             public AssetReceipt[] assets = Array.Empty<AssetReceipt>();
             public int assetCount;
             public bool productionApproved;
             public bool generatedPrimitive;
             public bool activePhysicsAuthority;
-            public string semanticAuthority = "presentation asset provenance only";
+            public string semanticAuthority = "named-approval-bound presentation asset intake only";
+            public string approvalAuthorityAuthentication = "not-performed";
             public string actionAuthority = "Arc replay and axm-action-receipt/1";
+            public string playerProductAcceptance = "not-issued";
             public string error;
         }
 
@@ -89,19 +143,37 @@ namespace Axm.Rodoh.Action.Editor
             {
                 var presentationPath = Path.GetFullPath(GetRequiredArgument("-presentation"));
                 var profilePath = Path.GetFullPath(GetRequiredArgument("-productProfile"));
+                var approvalPath = Path.GetFullPath(GetRequiredArgument("-approvalReceipt"));
                 if (!File.Exists(presentationPath)) throw new FileNotFoundException("Authored action presentation manifest is absent.", presentationPath);
                 if (!File.Exists(profilePath)) throw new FileNotFoundException("Action player-product profile is absent.", profilePath);
+                if (!File.Exists(approvalPath)) throw new FileNotFoundException("Named production-asset approval receipt is absent.", approvalPath);
 
                 var presentation = JsonUtility.FromJson<ActionPresentationManifest>(File.ReadAllText(presentationPath));
                 var profile = JsonUtility.FromJson<PlayerProductProfile>(File.ReadAllText(profilePath));
+                var approval = JsonUtility.FromJson<ApprovalReceipt>(File.ReadAllText(approvalPath));
                 if (presentation == null || presentation.format != ActionPresentationManifest.Format) throw new InvalidOperationException("Authored action presentation format is unsupported.");
                 if (profile == null || profile.format != ProfileFormat) throw new InvalidOperationException("Action player-product profile format is unsupported.");
-                if (string.IsNullOrWhiteSpace(profile.productId)) throw new InvalidOperationException("Action player-product id is absent.");
+                if (approval == null || approval.format != ApprovalFormat || approval.status != "approved") throw new InvalidOperationException("Named production-asset approval receipt is unsupported or not approved.");
+                if (string.IsNullOrWhiteSpace(profile.productId) || approval.productId != profile.productId) throw new InvalidOperationException("Production-asset approval product identity differs from the player-product profile.");
+                if (approval.presentationManifestId != presentation.manifestId) throw new InvalidOperationException("Production-asset approval presentation identity differs from the authored manifest.");
+                if (!approval.confirmedAllAssets || !approval.productionApproved || approval.generatedPrimitive || approval.activePhysicsAuthority) throw new InvalidOperationException("Named production-asset approval did not establish a safe complete asset floor.");
+                if (string.IsNullOrWhiteSpace(approval.approvalId) || string.IsNullOrWhiteSpace(approval.approvalAuthorityId) || string.IsNullOrWhiteSpace(approval.approvalName) || string.IsNullOrWhiteSpace(approval.approvalAttestation)) throw new InvalidOperationException("Named production-asset approval identity or attestation is absent.");
+                if (approval.playerProductAcceptance != "not-issued") throw new InvalidOperationException("Presentation asset approval falsely claims player-product acceptance.");
                 if (profile.player == null || profile.arena == null || profile.enemies == null || profile.enemies.Length != 5) throw new InvalidOperationException("Action production intake profile is incomplete.");
                 if (presentation.player == null || presentation.arena == null || presentation.enemies == null || presentation.enemies.Length != 5) throw new InvalidOperationException("Authored action presentation asset inventory is incomplete.");
+                if (approval.assets == null || approval.assetCount != 7 || approval.assets.Length != 7) throw new InvalidOperationException("Named production-asset approval does not contain exactly seven assets.");
+
+                var approvalById = new Dictionary<string, ApprovalAsset>(StringComparer.Ordinal);
+                foreach (var value in approval.assets)
+                {
+                    if (value == null || string.IsNullOrWhiteSpace(value.assetId)) throw new InvalidOperationException("Named production-asset approval contains an asset without identity.");
+                    if (approvalById.ContainsKey(value.assetId)) throw new InvalidOperationException("Named production-asset approval contains duplicate asset identity: " + value.assetId + ".");
+                    if (!value.approved || value.generatedPrimitive || value.activePhysicsAuthority) throw new InvalidOperationException("Named production-asset approval contains an unapproved or unsafe asset: " + value.assetId + ".");
+                    approvalById.Add(value.assetId, value);
+                }
 
                 var assets = new List<AssetReceipt>();
-                assets.Add(Intake(presentation.player.bodyPrefab, profile.player, profile.forbiddenAssetRoots, false, profile.productId));
+                assets.Add(Intake(presentation.player.bodyPrefab, profile.player, profile.forbiddenAssetRoots, false, approval, RequiredApproval(approvalById, profile.player.assetId)));
 
                 var presentationsByKit = new Dictionary<string, ActionEnemyPresentation>(StringComparer.Ordinal);
                 foreach (var enemy in presentation.enemies)
@@ -114,16 +186,22 @@ namespace Axm.Rodoh.Action.Editor
                 {
                     if (required == null || string.IsNullOrWhiteSpace(required.kit)) throw new InvalidOperationException("Player-product enemy requirement is incomplete.");
                     if (!presentationsByKit.TryGetValue(required.kit, out var enemy)) throw new InvalidOperationException("Authored enemy presentation is absent: " + required.kit + ".");
-                    assets.Add(Intake(enemy.bodyPrefab, required, profile.forbiddenAssetRoots, false, profile.productId));
+                    assets.Add(Intake(enemy.bodyPrefab, required, profile.forbiddenAssetRoots, false, approval, RequiredApproval(approvalById, required.assetId)));
                 }
-
-                assets.Add(Intake(presentation.arena.recipe, profile.arena, profile.forbiddenAssetRoots, true, profile.productId));
+                assets.Add(Intake(presentation.arena.recipe, profile.arena, profile.forbiddenAssetRoots, true, approval, RequiredApproval(approvalById, profile.arena.assetId)));
                 if (assets.Select(value => value.assetId).Distinct(StringComparer.Ordinal).Count() != assets.Count) throw new InvalidOperationException("Production asset intake contains duplicate asset identities.");
 
                 receipt.productId = profile.productId;
                 receipt.presentationManifestId = presentation.manifestId;
                 receipt.presentationManifest = presentationPath;
                 receipt.productProfile = profilePath;
+                receipt.approvalReceipt = approvalPath;
+                receipt.approvalReceiptSha256 = Sha256File(approvalPath);
+                receipt.approvalId = approval.approvalId;
+                receipt.approvalAuthorityId = approval.approvalAuthorityId;
+                receipt.approvalName = approval.approvalName;
+                receipt.approvalAttestation = approval.approvalAttestation;
+                receipt.approvedAt = approval.approvedAt;
                 receipt.assets = assets.ToArray();
                 receipt.assetCount = assets.Count;
                 receipt.productionApproved = assets.All(value => value.productionApproved);
@@ -131,16 +209,14 @@ namespace Axm.Rodoh.Action.Editor
                 receipt.activePhysicsAuthority = assets.Any(value => value.activePhysicsAuthority);
                 if (receipt.assetCount != 7 || !receipt.productionApproved || receipt.generatedPrimitive || receipt.activePhysicsAuthority)
                 {
-                    throw new InvalidOperationException("Production asset intake did not establish the complete seven-asset authored floor.");
+                    throw new InvalidOperationException("Production asset intake did not retain the complete named-approved seven-asset floor.");
                 }
 
                 receipt.status = "pass";
                 Directory.CreateDirectory(outputRoot);
                 var receiptPath = Path.Combine(outputRoot, "production-asset-intake.json");
                 File.WriteAllText(receiptPath, JsonUtility.ToJson(receipt, true) + Environment.NewLine, new UTF8Encoding(false));
-                AssetDatabase.SaveAssets();
-                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
-                Debug.Log("RODOH production asset intake passed: " + receiptPath);
+                Debug.Log("RODOH named-approved production asset intake passed: " + receiptPath);
                 if (Application.isBatchMode) EditorApplication.Exit(0);
             }
             catch (Exception exception)
@@ -162,55 +238,48 @@ namespace Axm.Rodoh.Action.Editor
             }
         }
 
-        private static AssetReceipt Intake(string prefabPath, AssetRequirement requirement, string[] forbiddenRoots, bool arena, string productId)
+        private static ApprovalAsset RequiredApproval(Dictionary<string, ApprovalAsset> approvals, string assetId)
+        {
+            if (!approvals.TryGetValue(assetId, out var approval)) throw new InvalidOperationException("Named production-asset approval is absent for " + assetId + ".");
+            return approval;
+        }
+
+        private static AssetReceipt Intake(string prefabPath, AssetRequirement requirement, string[] forbiddenRoots, bool arena, ApprovalReceipt approvalReceipt, ApprovalAsset approval)
         {
             if (requirement == null || string.IsNullOrWhiteSpace(requirement.assetId) || string.IsNullOrWhiteSpace(requirement.role)) throw new InvalidOperationException("Production asset requirement is incomplete.");
             var path = NormalizeAssetPath(prefabPath, "Production prefab " + requirement.assetId);
             ActionProductionAssetDigest.RefuseForbidden(path, forbiddenRoots);
+            if (approval.assetId != requirement.assetId || approval.role != requirement.role || NormalizeAssetPath(approval.prefabPath, "Approval prefab") != path) throw new InvalidOperationException("Named approval identity, role, or prefab path differs for " + requirement.assetId + ".");
+            if (approval.approvalId != approvalReceipt.approvalId || approval.approvalAuthorityId != approvalReceipt.approvalAuthorityId || approval.approvalName != approvalReceipt.approvalName || approval.approvalAttestation != approvalReceipt.approvalAttestation || approval.approvedAt != approvalReceipt.approvedAt) throw new InvalidOperationException("Named approval custody differs for " + requirement.assetId + ".");
+
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             if (prefab == null) throw new InvalidOperationException("Production prefab is absent or not a GameObject: " + path);
-            var digest = ActionProductionAssetDigest.Compute(prefab, forbiddenRoots, out var sourcePaths);
+            var markers = prefab.GetComponentsInChildren<ActionProductionAssetMarker>(true);
+            if (markers.Length != 1) throw new InvalidOperationException("Production prefab " + path + " contains " + markers.Length + " production markers; expected exactly one named-approved marker.");
+            var marker = markers[0];
+            var errors = marker.Validate(requirement.role);
+            if (errors.Count > 0) throw new InvalidOperationException("Production asset marker is invalid: " + string.Join(" ", errors));
+            if (marker.AssetId != requirement.assetId) throw new InvalidOperationException("Production asset id differs from the player-product profile: " + marker.AssetId + ".");
+            if (marker.ApprovalId != approvalReceipt.approvalId || marker.ApprovalAuthorityId != approvalReceipt.approvalAuthorityId || marker.ApprovalName != approvalReceipt.approvalName || marker.ApprovalAttestation != approvalReceipt.approvalAttestation || marker.ApprovedAt != approvalReceipt.approvedAt) throw new InvalidOperationException("Serialized production marker differs from the named approval receipt for " + requirement.assetId + ".");
+
+            var computed = ActionProductionAssetDigest.Compute(prefab, forbiddenRoots, out var sources);
+            if (computed != marker.SourceSha256 || computed != approval.sourceSha256) throw new InvalidOperationException("Named-approved source digest is stale for " + path + ".");
             ValidatePhysics(prefab, arena, path, out var arenaCollisionSurface);
-            var provenance = "product-profile:" + productId + ";sources:" + string.Join("|", sourcePaths);
-
-            var root = PrefabUtility.LoadPrefabContents(path);
-            try
-            {
-                var markers = root.GetComponentsInChildren<ActionProductionAssetMarker>(true);
-                if (markers.Length > 1) throw new InvalidOperationException("Production prefab contains multiple asset markers: " + path);
-                var marker = markers.Length == 1 ? markers[0] : root.AddComponent<ActionProductionAssetMarker>();
-                marker.Configure(requirement.assetId, requirement.role, digest, provenance, true, false);
-                EditorUtility.SetDirty(marker);
-                PrefabUtility.SaveAsPrefabAsset(root, path);
-            }
-            finally
-            {
-                PrefabUtility.UnloadPrefabContents(root);
-            }
-
-            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
-            prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            if (prefab == null) throw new InvalidOperationException("Production prefab disappeared after marker intake: " + path);
-            var admittedMarkers = prefab.GetComponentsInChildren<ActionProductionAssetMarker>(true);
-            if (admittedMarkers.Length != 1) throw new InvalidOperationException("Production prefab did not retain exactly one asset marker: " + path);
-            var admitted = admittedMarkers[0];
-            var errors = admitted.Validate(requirement.role);
-            if (errors.Count > 0) throw new InvalidOperationException("Production asset marker did not validate after intake: " + string.Join(" ", errors));
-            if (admitted.AssetId != requirement.assetId || admitted.SourceSha256 != digest) throw new InvalidOperationException("Production asset marker identity or source digest changed during intake: " + path);
-            var verifiedDigest = ActionProductionAssetDigest.Compute(prefab, forbiddenRoots, out var verifiedSources);
-            if (verifiedDigest != digest) throw new InvalidOperationException("Production visual source digest changed during marker serialization: " + path);
-
             return new AssetReceipt
             {
-                assetId = admitted.AssetId,
-                role = admitted.Role,
+                assetId = marker.AssetId,
+                role = marker.Role,
                 prefabPath = path,
                 prefabGuid = AssetDatabase.AssetPathToGUID(path),
-                sourceSha256 = verifiedDigest,
-                visualSourcePaths = verifiedSources.ToArray(),
-                provenance = admitted.Provenance,
-                productionApproved = admitted.ProductionApproved,
-                generatedPrimitive = admitted.GeneratedPrimitive,
+                sourceSha256 = computed,
+                visualSourcePaths = sources.ToArray(),
+                provenance = marker.Provenance,
+                approvalId = marker.ApprovalId,
+                approvalAuthorityId = marker.ApprovalAuthorityId,
+                approvalName = marker.ApprovalName,
+                approvedAt = marker.ApprovedAt,
+                productionApproved = marker.ProductionApproved,
+                generatedPrimitive = marker.GeneratedPrimitive,
                 activePhysicsAuthority = false,
                 arenaCollisionSurface = arenaCollisionSurface
             };
@@ -237,6 +306,15 @@ namespace Axm.Rodoh.Action.Editor
             var path = (value ?? string.Empty).Replace('\\', '/');
             if (!path.StartsWith("Assets/", StringComparison.Ordinal)) throw new InvalidOperationException(label + " must remain under Assets/: " + path);
             return path;
+        }
+
+        private static string Sha256File(string path)
+        {
+            using (var stream = File.OpenRead(path))
+            using (var sha = SHA256.Create())
+            {
+                return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", string.Empty).ToLowerInvariant();
+            }
         }
 
         private static string GetRequiredArgument(string name)

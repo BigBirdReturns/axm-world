@@ -4,7 +4,9 @@ on:
   pull_request:
     paths:
       - '.github/workflows/underdrain-player-product-acceptance-source.yml'
+      - 'docs/UNDERDRAIN_PRODUCTION_ASSET_APPROVAL.md'
       - 'scripts/accept-underdrain-player-product.ps1'
+      - 'scripts/approve-underdrain-production-assets.ps1'
       - 'scripts/audit-underdrain-production-assets.ps1'
       - 'scripts/prepare-underdrain-production-assets.ps1'
       - 'scripts/record-underdrain-independent-comprehension.ps1'
@@ -14,16 +16,21 @@ on:
       - 'tests/world/underdrain-powershell-contract.test.ts'
       - 'tests/world/underdrain-unity6000-player-train.test.ts'
       - 'unity/Fixtures/underdrain.comprehension-contract.json'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetApprovalBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetAuditBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetDigest.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetIntakeBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionAssetMarker.cs'
       - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerSessionEvidence.cs'
   push:
     branches:
       - feature/underdrain-unity6000-player-train-v1
+      - repair/action-production-asset-approval-v2
     paths:
       - '.github/workflows/underdrain-player-product-acceptance-source.yml'
+      - 'docs/UNDERDRAIN_PRODUCTION_ASSET_APPROVAL.md'
       - 'scripts/accept-underdrain-player-product.ps1'
+      - 'scripts/approve-underdrain-production-assets.ps1'
       - 'scripts/audit-underdrain-production-assets.ps1'
       - 'scripts/prepare-underdrain-production-assets.ps1'
       - 'scripts/record-underdrain-independent-comprehension.ps1'
@@ -33,9 +40,11 @@ on:
       - 'tests/world/underdrain-powershell-contract.test.ts'
       - 'tests/world/underdrain-unity6000-player-train.test.ts'
       - 'unity/Fixtures/underdrain.comprehension-contract.json'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetApprovalBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetAuditBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetDigest.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetIntakeBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionAssetMarker.cs'
       - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerSessionEvidence.cs'
   workflow_dispatch:
 
@@ -72,7 +81,7 @@ jobs:
 
       - run: npm ci --no-audit --no-fund
 
-      - name: Qualify production custody, PowerShell, comprehension, and acceptance contracts
+      - name: Qualify production approval, custody, PowerShell, comprehension, and acceptance contracts
         shell: bash
         run: |
           set -euo pipefail
@@ -102,25 +111,29 @@ jobs:
           set -euo pipefail
           root="$RUNNER_TEMP/underdrain-player-product-acceptance-source"
           mkdir -p "$root/source"
+          cp docs/UNDERDRAIN_PRODUCTION_ASSET_APPROVAL.md "$root/source/"
           cp unity/Fixtures/underdrain.player-product.json "$root/source/"
           cp unity/Fixtures/underdrain.authored-presentation.template.json "$root/source/"
           cp unity/Fixtures/underdrain.comprehension-contract.json "$root/source/"
+          cp scripts/approve-underdrain-production-assets.ps1 "$root/source/"
           cp scripts/run-underdrain-unity6000-player-product.ps1 "$root/source/"
           cp scripts/prepare-underdrain-production-assets.ps1 "$root/source/"
           cp scripts/audit-underdrain-production-assets.ps1 "$root/source/"
           cp scripts/run-underdrain-player-session.ps1 "$root/source/"
           cp scripts/record-underdrain-independent-comprehension.ps1 "$root/source/"
           cp scripts/accept-underdrain-player-product.ps1 "$root/source/"
+          cp unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetApprovalBatch.cs "$root/source/"
           cp unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetDigest.cs "$root/source/"
           cp unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetIntakeBatch.cs "$root/source/"
           cp unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetAuditBatch.cs "$root/source/"
+          cp unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionAssetMarker.cs "$root/source/"
           cp unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerSessionEvidence.cs "$root/source/"
           WORLD_SHA="$(git rev-parse HEAD)" ROOT="$root" node --input-type=module <<'NODE'
           import { readFileSync, writeFileSync } from 'node:fs';
           const profile = JSON.parse(readFileSync('unity/Fixtures/underdrain.player-product.json', 'utf8'));
           const contract = JSON.parse(readFileSync('unity/Fixtures/underdrain.comprehension-contract.json', 'utf8'));
           writeFileSync(process.env.ROOT + '/source-qualification.json', JSON.stringify({
-            format: 'rodoh-underdrain-player-product-acceptance-source-qualification/1',
+            format: 'rodoh-underdrain-player-product-acceptance-source-qualification/2',
             status: 'pass',
             worldCommit: process.env.WORLD_SHA,
             arcActionPlayerCommit: process.env.ARC_ACTION_PLAYER_SHA,
@@ -129,7 +142,17 @@ jobs:
             challengeId: profile.challengeId,
             timingProfileId: profile.timingProfileId,
             productionAssetCount: 7,
-            importedSourceCustody: 'intake-plus-read-only-audit',
+            assetApproval: {
+              format: 'rodoh-action-production-asset-approval/1',
+              namedAuthorityRequired: true,
+              explicitSevenAssetConfirmationRequired: true,
+              authorityAuthentication: 'not-performed',
+              playerProductAcceptance: 'not-issued'
+            },
+            importedSourceCustody: 'named-approval-bound-read-only-intake-plus-read-only-audit',
+            sourceIntakeCreatesApproval: false,
+            sourceAuditCreatesApproval: false,
+            finalAcceptorMustDifferFromAssetApprover: true,
             keyboardMouseSessionRequired: profile.humanEvidence.keyboardMouseSessionRequired,
             gamepadSessionRequired: profile.humanEvidence.gamepadSessionRequired,
             independentComprehensionRequired: profile.humanEvidence.independentComprehensionRequired,
@@ -138,6 +161,8 @@ jobs:
             namedProductAcceptance: 'not-issued',
             questAcceptance: 'open',
             nonClaims: [
+              'named production-asset approval',
+              'approval-authority authentication',
               'real Unity 6000 import',
               'authored prefab existence',
               'serialized scene acceptance',

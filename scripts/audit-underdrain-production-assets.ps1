@@ -64,7 +64,7 @@ $arguments = @(
     "-outputRoot", $output,
     "-logFile", $logPath
 )
-Write-Host "Recomputing UNDERDRAIN production-prefab source custody without modifying assets..."
+Write-Host "Recomputing UNDERDRAIN production-prefab source and named-approval custody without modifying assets..."
 $process = Start-Process -FilePath $unityPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow
 if ($process.ExitCode -ne 0) { throw "UNDERDRAIN production-asset audit failed with exit $($process.ExitCode). See $logPath" }
 $auditPath = Join-Path $output "production-asset-audit.json"
@@ -74,9 +74,18 @@ if ($audit.status -ne "pass" -or $audit.assetCount -ne 7) { throw "Production-as
 if ($audit.exactSourceCustody -ne $true -or $audit.productionApproved -ne $true -or $audit.generatedPrimitive -ne $false -or $audit.activePhysicsAuthority -ne $false) {
     throw "Production-asset audit crossed the source, approval, primitive, or physics boundary."
 }
+if ([string]::IsNullOrWhiteSpace([string]$audit.approvalId) -or [string]::IsNullOrWhiteSpace([string]$audit.approvalAuthorityId) -or [string]::IsNullOrWhiteSpace([string]$audit.approvalName) -or [string]::IsNullOrWhiteSpace([string]$audit.approvedAt)) {
+    throw "Production-asset audit lost named approval custody."
+}
+if ($audit.approvalAuthorityAuthentication -ne "not-performed" -or $audit.playerProductAcceptance -ne "not-issued") {
+    throw "Production-asset audit misrepresented approval authentication or player-product acceptance."
+}
 foreach ($asset in @($audit.assets)) {
     if ($asset.markerSourceSha256 -ne $asset.computedSourceSha256) { throw "Production asset $($asset.assetId) has stale imported-source custody." }
     if ($asset.prefabSha256 -notmatch '^[0-9a-f]{64}$' -or @($asset.visualSourcePaths).Count -lt 1) { throw "Production asset $($asset.assetId) lacks prefab or source custody." }
+    if ($asset.approvalId -ne $audit.approvalId -or $asset.approvalAuthorityId -ne $audit.approvalAuthorityId -or $asset.approvalName -ne $audit.approvalName -or $asset.approvedAt -ne $audit.approvedAt) {
+        throw "Production asset $($asset.assetId) differs from the common named approval custody."
+    }
 }
 
 $worldCommit = (& git -C $worldRoot rev-parse HEAD).Trim()
@@ -92,16 +101,22 @@ $run = [ordered]@{
     presentationManifestId = $audit.presentationManifestId
     presentationManifest = $presentationPath
     productProfile = $profilePath
+    approvalId = $audit.approvalId
+    approvalAuthorityId = $audit.approvalAuthorityId
+    approvalName = $audit.approvalName
+    approvedAt = $audit.approvedAt
     assetCount = $audit.assetCount
     exactSourceCustody = $audit.exactSourceCustody
     assetReceipts = @($audit.assets)
     productionApproved = $audit.productionApproved
     generatedPrimitive = $audit.generatedPrimitive
     activePhysicsAuthority = $audit.activePhysicsAuthority
+    approvalAuthorityAuthentication = "not-performed"
+    playerProductAcceptance = "not-issued"
     auditReceipt = $auditPath
     unityLog = $logPath
 }
 $runPath = Join-Path $output "production-asset-audit-run.json"
 $run | ConvertTo-Json -Depth 24 | Set-Content -Encoding utf8 $runPath
-Write-Host "UNDERDRAIN production assets passed the read-only imported-source audit."
+Write-Host "UNDERDRAIN production assets passed the read-only imported-source and named-approval audit."
 Write-Host $runPath

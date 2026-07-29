@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
@@ -10,16 +9,16 @@ using UnityEngine;
 namespace Axm.Rodoh.Action.Editor
 {
     /// <summary>
-    /// Recomputes the imported-source digest of every named-approved production
-    /// prefab after scene serialization. The batch is read-only: it refuses stale
-    /// markers, changed approval custody, moved sources, built-in primitives,
-    /// generated roots, active combat physics, or an arena without a static
-    /// camera-collision surface.
+    /// Records a named presentation-asset approval assertion over the exact imported
+    /// visual-source bytes of the seven UNDERDRAIN player-product prefabs. This is the
+    /// only batch permitted to set ProductionApproved. It preserves the supplied
+    /// authority and attestation but does not authenticate either one and grants no
+    /// action, physics, campaign, receipt, or player-product authority.
     /// </summary>
-    public static class ActionProductionAssetAuditBatch
+    public static class ActionProductionAssetApprovalBatch
     {
         private const string ProfileFormat = "rodoh-action-player-product-profile/1";
-        private const string ReceiptFormat = "rodoh-action-production-asset-audit/1";
+        private const string ReceiptFormat = "rodoh-action-production-asset-approval/1";
 
         [Serializable]
         private class AssetRequirement
@@ -46,24 +45,22 @@ namespace Axm.Rodoh.Action.Editor
         }
 
         [Serializable]
-        private sealed class AssetAudit
+        private sealed class AssetApproval
         {
             public string assetId;
             public string role;
             public string prefabPath;
             public string prefabGuid;
-            public string prefabSha256;
-            public string markerSourceSha256;
-            public string computedSourceSha256;
+            public string sourceSha256;
             public string[] visualSourcePaths = Array.Empty<string>();
             public string provenance;
             public string approvalId;
             public string approvalAuthorityId;
             public string approvalName;
+            public string approvalAttestation;
             public string approvedAt;
-            public bool productionApproved;
+            public bool approved;
             public bool generatedPrimitive;
-            public bool exactSourceCustody;
             public bool activePhysicsAuthority;
             public bool arenaCollisionSurface;
         }
@@ -82,15 +79,16 @@ namespace Axm.Rodoh.Action.Editor
             public string approvalId;
             public string approvalAuthorityId;
             public string approvalName;
+            public string approvalAttestation;
             public string approvedAt;
-            public AssetAudit[] assets = Array.Empty<AssetAudit>();
+            public bool confirmedAllAssets;
+            public AssetApproval[] assets = Array.Empty<AssetApproval>();
             public int assetCount;
-            public bool exactSourceCustody;
             public bool productionApproved;
             public bool generatedPrimitive;
             public bool activePhysicsAuthority;
-            public string semanticAuthority = "read-only presentation asset provenance and approval-custody audit";
-            public string approvalAuthorityAuthentication = "not-performed";
+            public string approvalScope = "presentation assets only";
+            public string authorityAuthentication = "not-performed";
             public string actionAuthority = "Arc replay and axm-action-receipt/1";
             public string playerProductAcceptance = "not-issued";
             public string error;
@@ -98,12 +96,18 @@ namespace Axm.Rodoh.Action.Editor
 
         public static void Run()
         {
-            var outputRoot = Path.GetFullPath(GetArgument("-outputRoot") ?? Path.Combine("local", "action-production-audit"));
+            var outputRoot = Path.GetFullPath(GetArgument("-outputRoot") ?? Path.Combine("local", "action-production-approval"));
             var receipt = new Receipt();
             try
             {
                 var presentationPath = Path.GetFullPath(GetRequiredArgument("-presentation"));
                 var profilePath = Path.GetFullPath(GetRequiredArgument("-productProfile"));
+                var approvalId = GetRequiredArgument("-approvalId");
+                var approvalAuthorityId = GetRequiredArgument("-approvalAuthorityId");
+                var approvalName = GetRequiredArgument("-approvalName");
+                var approvalAttestation = GetRequiredArgument("-approvalAttestation");
+                var confirmedAll = string.Equals(GetRequiredArgument("-confirmAllAssets"), "true", StringComparison.OrdinalIgnoreCase);
+                if (!confirmedAll) throw new InvalidOperationException("Named production-asset approval requires explicit confirmation of all seven assets.");
                 if (!File.Exists(presentationPath)) throw new FileNotFoundException("Authored action presentation manifest is absent.", presentationPath);
                 if (!File.Exists(profilePath)) throw new FileNotFoundException("Action player-product profile is absent.", profilePath);
 
@@ -112,11 +116,13 @@ namespace Axm.Rodoh.Action.Editor
                 if (presentation == null || presentation.format != ActionPresentationManifest.Format) throw new InvalidOperationException("Authored action presentation format is unsupported.");
                 if (profile == null || profile.format != ProfileFormat) throw new InvalidOperationException("Action player-product profile format is unsupported.");
                 if (string.IsNullOrWhiteSpace(profile.productId)) throw new InvalidOperationException("Action player-product id is absent.");
-                if (profile.player == null || profile.arena == null || profile.enemies == null || profile.enemies.Length != 5) throw new InvalidOperationException("Action production audit profile is incomplete.");
+                if (profile.player == null || profile.arena == null || profile.enemies == null || profile.enemies.Length != 5) throw new InvalidOperationException("Action production approval profile is incomplete.");
                 if (presentation.player == null || presentation.arena == null || presentation.enemies == null || presentation.enemies.Length != 5) throw new InvalidOperationException("Authored action presentation asset inventory is incomplete.");
 
-                var assets = new List<AssetAudit>();
-                assets.Add(Audit(presentation.player.bodyPrefab, profile.player, profile.forbiddenAssetRoots, false));
+                var approvedAt = DateTime.UtcNow.ToString("O");
+                var assets = new List<AssetApproval>();
+                assets.Add(Approve(presentation.player.bodyPrefab, profile.player, profile.forbiddenAssetRoots, false, profile.productId, approvalId, approvalAuthorityId, approvalName, approvalAttestation, approvedAt));
+
                 var presentationsByKit = new Dictionary<string, ActionEnemyPresentation>(StringComparer.Ordinal);
                 foreach (var enemy in presentation.enemies)
                 {
@@ -128,44 +134,38 @@ namespace Axm.Rodoh.Action.Editor
                 {
                     if (required == null || string.IsNullOrWhiteSpace(required.kit)) throw new InvalidOperationException("Player-product enemy requirement is incomplete.");
                     if (!presentationsByKit.TryGetValue(required.kit, out var enemy)) throw new InvalidOperationException("Authored enemy presentation is absent: " + required.kit + ".");
-                    assets.Add(Audit(enemy.bodyPrefab, required, profile.forbiddenAssetRoots, false));
+                    assets.Add(Approve(enemy.bodyPrefab, required, profile.forbiddenAssetRoots, false, profile.productId, approvalId, approvalAuthorityId, approvalName, approvalAttestation, approvedAt));
                 }
-                assets.Add(Audit(presentation.arena.recipe, profile.arena, profile.forbiddenAssetRoots, true));
-
-                if (assets.Select(value => value.assetId).Distinct(StringComparer.Ordinal).Count() != assets.Count) throw new InvalidOperationException("Production asset audit contains duplicate asset identities.");
-                var approvalIds = assets.Select(value => value.approvalId).Distinct(StringComparer.Ordinal).ToArray();
-                var authorityIds = assets.Select(value => value.approvalAuthorityId).Distinct(StringComparer.Ordinal).ToArray();
-                var approvalNames = assets.Select(value => value.approvalName).Distinct(StringComparer.Ordinal).ToArray();
-                var approvedTimes = assets.Select(value => value.approvedAt).Distinct(StringComparer.Ordinal).ToArray();
-                if (approvalIds.Length != 1 || authorityIds.Length != 1 || approvalNames.Length != 1 || approvedTimes.Length != 1)
-                {
-                    throw new InvalidOperationException("Production asset audit found mixed named approval custody across the seven-asset floor.");
-                }
+                assets.Add(Approve(presentation.arena.recipe, profile.arena, profile.forbiddenAssetRoots, true, profile.productId, approvalId, approvalAuthorityId, approvalName, approvalAttestation, approvedAt));
+                if (assets.Select(value => value.assetId).Distinct(StringComparer.Ordinal).Count() != assets.Count) throw new InvalidOperationException("Production asset approval contains duplicate asset identities.");
 
                 receipt.productId = profile.productId;
                 receipt.presentationManifestId = presentation.manifestId;
                 receipt.presentationManifest = presentationPath;
                 receipt.productProfile = profilePath;
-                receipt.approvalId = approvalIds[0];
-                receipt.approvalAuthorityId = authorityIds[0];
-                receipt.approvalName = approvalNames[0];
-                receipt.approvedAt = approvedTimes[0];
+                receipt.approvalId = approvalId;
+                receipt.approvalAuthorityId = approvalAuthorityId;
+                receipt.approvalName = approvalName;
+                receipt.approvalAttestation = approvalAttestation;
+                receipt.approvedAt = approvedAt;
+                receipt.confirmedAllAssets = confirmedAll;
                 receipt.assets = assets.ToArray();
                 receipt.assetCount = assets.Count;
-                receipt.exactSourceCustody = assets.All(value => value.exactSourceCustody);
-                receipt.productionApproved = assets.All(value => value.productionApproved);
+                receipt.productionApproved = assets.All(value => value.approved);
                 receipt.generatedPrimitive = assets.Any(value => value.generatedPrimitive);
                 receipt.activePhysicsAuthority = assets.Any(value => value.activePhysicsAuthority);
-                if (receipt.assetCount != 7 || !receipt.exactSourceCustody || !receipt.productionApproved || receipt.generatedPrimitive || receipt.activePhysicsAuthority)
+                if (receipt.assetCount != 7 || !receipt.productionApproved || receipt.generatedPrimitive || receipt.activePhysicsAuthority)
                 {
-                    throw new InvalidOperationException("Production asset audit did not retain the complete named-approved seven-asset floor.");
+                    throw new InvalidOperationException("Named production asset approval did not establish the complete seven-asset authored floor.");
                 }
 
-                receipt.status = "pass";
+                receipt.status = "approved";
                 Directory.CreateDirectory(outputRoot);
-                var receiptPath = Path.Combine(outputRoot, "production-asset-audit.json");
+                var receiptPath = Path.Combine(outputRoot, "production-asset-approval.json");
                 File.WriteAllText(receiptPath, JsonUtility.ToJson(receipt, true) + Environment.NewLine, new UTF8Encoding(false));
-                Debug.Log("RODOH production asset audit passed: " + receiptPath);
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+                Debug.Log("RODOH named production asset approval recorded: " + receiptPath);
                 if (Application.isBatchMode) EditorApplication.Exit(0);
             }
             catch (Exception exception)
@@ -175,11 +175,11 @@ namespace Axm.Rodoh.Action.Editor
                 try
                 {
                     Directory.CreateDirectory(outputRoot);
-                    File.WriteAllText(Path.Combine(outputRoot, "production-asset-audit.json"), JsonUtility.ToJson(receipt, true) + Environment.NewLine, new UTF8Encoding(false));
+                    File.WriteAllText(Path.Combine(outputRoot, "production-asset-approval.json"), JsonUtility.ToJson(receipt, true) + Environment.NewLine, new UTF8Encoding(false));
                 }
                 catch
                 {
-                    // Preserve the controlling audit failure.
+                    // Preserve the controlling approval failure.
                 }
                 Debug.LogException(exception);
                 if (Application.isBatchMode) EditorApplication.Exit(1);
@@ -187,42 +187,84 @@ namespace Axm.Rodoh.Action.Editor
             }
         }
 
-        private static AssetAudit Audit(string prefabPath, AssetRequirement requirement, string[] forbiddenRoots, bool arena)
+        private static AssetApproval Approve(
+            string prefabPath,
+            AssetRequirement requirement,
+            string[] forbiddenRoots,
+            bool arena,
+            string productId,
+            string approvalId,
+            string approvalAuthorityId,
+            string approvalName,
+            string approvalAttestation,
+            string approvedAt)
         {
             if (requirement == null || string.IsNullOrWhiteSpace(requirement.assetId) || string.IsNullOrWhiteSpace(requirement.role)) throw new InvalidOperationException("Production asset requirement is incomplete.");
             var path = NormalizeAssetPath(prefabPath, "Production prefab " + requirement.assetId);
             ActionProductionAssetDigest.RefuseForbidden(path, forbiddenRoots);
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             if (prefab == null) throw new InvalidOperationException("Production prefab is absent or not a GameObject: " + path);
-            var markers = prefab.GetComponentsInChildren<ActionProductionAssetMarker>(true);
-            if (markers.Length != 1) throw new InvalidOperationException("Production prefab " + path + " contains " + markers.Length + " production markers; expected exactly one.");
-            var marker = markers[0];
-            var errors = marker.Validate(requirement.role);
-            if (errors.Count > 0) throw new InvalidOperationException("Production asset marker is invalid: " + string.Join(" ", errors));
-            if (marker.AssetId != requirement.assetId) throw new InvalidOperationException("Production asset id differs from the player-product profile: " + marker.AssetId + ".");
-
-            var computed = ActionProductionAssetDigest.Compute(prefab, forbiddenRoots, out var sources);
-            var exactSourceCustody = marker.SourceSha256 == computed;
-            if (!exactSourceCustody) throw new InvalidOperationException("Production asset source digest is stale for " + path + ": marker=" + marker.SourceSha256 + " computed=" + computed + ".");
+            var digest = ActionProductionAssetDigest.Compute(prefab, forbiddenRoots, out var sourcePaths);
             ValidatePhysics(prefab, arena, path, out var arenaCollisionSurface);
-            return new AssetAudit
+            var provenance = "product-profile:" + productId + ";sources:" + string.Join("|", sourcePaths);
+
+            var root = PrefabUtility.LoadPrefabContents(path);
+            try
             {
-                assetId = marker.AssetId,
-                role = marker.Role,
+                var markers = root.GetComponentsInChildren<ActionProductionAssetMarker>(true);
+                if (markers.Length > 1) throw new InvalidOperationException("Production prefab contains multiple asset markers: " + path);
+                var marker = markers.Length == 1 ? markers[0] : root.AddComponent<ActionProductionAssetMarker>();
+                marker.Configure(
+                    requirement.assetId,
+                    requirement.role,
+                    digest,
+                    provenance,
+                    approvalId,
+                    approvalAuthorityId,
+                    approvalName,
+                    approvalAttestation,
+                    approvedAt,
+                    true,
+                    false);
+                EditorUtility.SetDirty(marker);
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+            prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (prefab == null) throw new InvalidOperationException("Production prefab disappeared after approval: " + path);
+            var admittedMarkers = prefab.GetComponentsInChildren<ActionProductionAssetMarker>(true);
+            if (admittedMarkers.Length != 1) throw new InvalidOperationException("Production prefab did not retain exactly one asset marker: " + path);
+            var admitted = admittedMarkers[0];
+            var errors = admitted.Validate(requirement.role);
+            if (errors.Count > 0) throw new InvalidOperationException("Production asset marker did not validate after named approval: " + string.Join(" ", errors));
+            if (admitted.AssetId != requirement.assetId || admitted.SourceSha256 != digest || admitted.ApprovalId != approvalId || admitted.ApprovalAuthorityId != approvalAuthorityId)
+            {
+                throw new InvalidOperationException("Production asset marker identity, source digest, or named approval changed during serialization: " + path);
+            }
+            var verifiedDigest = ActionProductionAssetDigest.Compute(prefab, forbiddenRoots, out var verifiedSources);
+            if (verifiedDigest != digest) throw new InvalidOperationException("Production visual source digest changed during named approval: " + path);
+
+            return new AssetApproval
+            {
+                assetId = admitted.AssetId,
+                role = admitted.Role,
                 prefabPath = path,
                 prefabGuid = AssetDatabase.AssetPathToGUID(path),
-                prefabSha256 = Sha256File(ActionProductionAssetDigest.ProjectFilePath(path)),
-                markerSourceSha256 = marker.SourceSha256,
-                computedSourceSha256 = computed,
-                visualSourcePaths = sources.ToArray(),
-                provenance = marker.Provenance,
-                approvalId = marker.ApprovalId,
-                approvalAuthorityId = marker.ApprovalAuthorityId,
-                approvalName = marker.ApprovalName,
-                approvedAt = marker.ApprovedAt,
-                productionApproved = marker.ProductionApproved,
-                generatedPrimitive = marker.GeneratedPrimitive,
-                exactSourceCustody = exactSourceCustody,
+                sourceSha256 = verifiedDigest,
+                visualSourcePaths = verifiedSources.ToArray(),
+                provenance = admitted.Provenance,
+                approvalId = admitted.ApprovalId,
+                approvalAuthorityId = admitted.ApprovalAuthorityId,
+                approvalName = admitted.ApprovalName,
+                approvalAttestation = admitted.ApprovalAttestation,
+                approvedAt = admitted.ApprovedAt,
+                approved = admitted.ProductionApproved,
+                generatedPrimitive = admitted.GeneratedPrimitive,
                 activePhysicsAuthority = false,
                 arenaCollisionSurface = arenaCollisionSurface
             };
@@ -249,15 +291,6 @@ namespace Axm.Rodoh.Action.Editor
             var path = (value ?? string.Empty).Replace('\\', '/');
             if (!path.StartsWith("Assets/", StringComparison.Ordinal)) throw new InvalidOperationException(label + " must remain under Assets/: " + path);
             return path;
-        }
-
-        private static string Sha256File(string path)
-        {
-            using (var stream = File.OpenRead(path))
-            using (var sha = SHA256.Create())
-            {
-                return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", string.Empty).ToLowerInvariant();
-            }
         }
 
         private static string GetRequiredArgument(string name)

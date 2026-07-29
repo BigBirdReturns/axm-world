@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const ROOT = resolve(import.meta.dirname, "../..");
 const scripts = [
   "scripts/accept-underdrain-player-product.ps1",
+  "scripts/approve-underdrain-production-assets.ps1",
   "scripts/audit-underdrain-production-assets.ps1",
   "scripts/build-unity-action-player.ps1",
   "scripts/prepare-underdrain-production-assets.ps1",
