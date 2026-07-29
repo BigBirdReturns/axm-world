@@ -8,6 +8,7 @@ const ROOT = resolve(import.meta.dirname, "../..");
 const SCRIPT = resolve(ROOT, "scripts/assets/scaffold-authored-pilot-representation.mjs");
 const AUTHORING = resolve(ROOT, "demos/underdrain-draft/authoring.json");
 const PRESENTATION = resolve(ROOT, "demos/underdrain-draft/presentation.json");
+const PRODUCTION = resolve(ROOT, "demos/underdrain-draft/production.json");
 const PEOPLE = "marta-sump,morrowcap,mrs-kett,dax-venn";
 const STATES = "town-water-pressure,kett-water,fungus-contact,crown-grievance,rhea-status,evidence-custody,root-gate-open";
 const COMMON = [
@@ -48,7 +49,7 @@ describe("authored-pilot representation scaffold", () => {
       status: "pass",
       mode: "generate",
       namespace: "underdrain",
-      generatedAssetObligations: 41,
+      generatedRoleObligations: 41,
       derived: {
         people: ["dax-venn", "marta-sump", "morrowcap", "mrs-kett", "rhea-venn", "tess-loam"],
         objectives: [
@@ -91,7 +92,7 @@ describe("authored-pilot representation scaffold", () => {
         experienceId: "underdrain-continuous-pilot-v2",
       },
     });
-    expect(plan.requirements.people ?? plan.requirements.personIds).toEqual(receipt.derived.people);
+    expect(plan.requirements.personIds).toEqual(receipt.derived.people);
     expect(plan.requirements.objectiveIds).toEqual(receipt.derived.objectives);
     expect(plan.requirements.stateIds).toEqual(receipt.derived.states);
     expect(plan.requirements.surfaceIds).toEqual(receipt.derived.surfaces);
@@ -104,8 +105,8 @@ describe("authored-pilot representation scaffold", () => {
     )).toBe(true);
   });
 
-  it("accepts the completed Underdrain plan against obligations derived from Arc authoring", () => {
-    const result = run(["--presentation", PRESENTATION]);
+  it("checks Arc-derived obligations while reporting that Underdrain remains 1/48 production-complete", () => {
+    const result = run(["--presentation", PRESENTATION, "--production", PRODUCTION]);
     expect(result.status, result.stderr || result.stdout).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({
       format: "rodoh-representation-scaffold-receipt/1",
@@ -113,11 +114,18 @@ describe("authored-pilot representation scaffold", () => {
       mode: "check",
       namespace: "underdrain",
       missing: { surfaces: [], people: [], objectives: [], states: [] },
+      productionCoverage: {
+        status: "mixed",
+        declaredRoles: 48,
+        productionRoles: 1,
+        prototypeRoles: 47,
+        productionSources: 1,
+      },
       blockers: [],
     });
   });
 
-  it("fails before browser work when the representation omits a derived person and mechanism", () => {
+  it("fails before browser work when representation omits a derived person and mechanism", () => {
     const directory = mkdtempSync(join(tmpdir(), "representation-missing-"));
     const broken = join(directory, "broken.json");
     const plan = readJson(PRESENTATION);
@@ -127,7 +135,7 @@ describe("authored-pilot representation scaffold", () => {
     plan.bindings.objectives = plan.bindings.objectives.filter((binding: { objectiveId: string }) => binding.objectiveId !== "open-crown-sluice");
     writeFileSync(broken, `${JSON.stringify(plan, null, 2)}\n`);
 
-    const result = run(["--presentation", broken]);
+    const result = run(["--presentation", broken, "--production", PRODUCTION]);
     expect(result.status).toBe(1);
     const receipt = JSON.parse(result.stdout);
     expect(receipt.status).toBe("fail");
