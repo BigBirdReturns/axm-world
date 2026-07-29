@@ -90,6 +90,7 @@ jobs:
             unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionMinimalHud.cs \
             unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionRuntimeBehaviour.cs \
             > "$RUNNER_TEMP/unity-natural-player/SHA256SUMS"
+          rm -rf unity/Conformance/bin unity/Conformance/obj
           git diff --check
           status="$(git status --porcelain)"
           if [[ -n "$status" ]]; then
