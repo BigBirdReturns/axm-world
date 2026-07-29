@@ -54,7 +54,7 @@ describe("UNDERDRAIN Unity 6000 machine preflight", () => {
     expect(source).toContain('productAcceptance = "not-issued"');
     expect(source).toContain("read-only machine and filesystem preflight");
     expect(source).toContain('if ($status -ne "pass" -and -not $NoFail) { exit 2 }');
-    expect(source).toContain("underdrain-unity6000-machine-preflight.json.sha256");
+    expect(source).toContain('($receiptPath + ".sha256")');
     expect(source).toContain("named production-asset review and approval");
     expect(source).toContain("independent player comprehension");
     expect(source).toContain("Quest and physical Quest acceptance");
