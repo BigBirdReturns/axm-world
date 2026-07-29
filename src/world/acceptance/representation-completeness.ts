@@ -1,4 +1,5 @@
 export const REPRESENTATION_PLAN_FORMAT = "rodoh-representation-plan/1" as const;
+export const REPRESENTATION_PRODUCTION_FORMAT = "rodoh-representation-production/1" as const;
 export const REPRESENTATION_EVALUATION_FORMAT = "rodoh-representation-evaluation/1" as const;
 
 export const REQUIRED_REPRESENTATION_SURFACES = [
@@ -40,6 +41,14 @@ export interface RepresentationProductionSource {
   height?: number;
 }
 
+export interface RepresentationProductionCoverage {
+  format: typeof REPRESENTATION_PRODUCTION_FORMAT;
+  planId: string;
+  status: RepresentationProductionStatus;
+  productionAssetIds: string[];
+  sources: RepresentationProductionSource[];
+}
+
 export interface RepresentationPlan {
   format: typeof REPRESENTATION_PLAN_FORMAT;
   id: string;
@@ -65,13 +74,6 @@ export interface RepresentationPlan {
     stateIds: string[];
   };
   assets: RepresentationAsset[];
-  production: {
-    status: RepresentationProductionStatus;
-    requiredAssetIds: string[];
-    productionAssetIds: string[];
-    prototypeAssetIds: string[];
-    sources: RepresentationProductionSource[];
-  };
   bindings: {
     identityAssetId: string;
     people: Array<{
@@ -142,7 +144,10 @@ function unknownValues(actual: readonly string[], allowed: ReadonlySet<string>):
   return actual.filter((value) => !allowed.has(value)).sort();
 }
 
-export function evaluateRepresentationPlan(plan: RepresentationPlan): RepresentationEvaluation {
+export function evaluateRepresentationPlan(
+  plan: RepresentationPlan,
+  production: RepresentationProductionCoverage | null = null,
+): RepresentationEvaluation {
   const blockers: string[] = [];
   if (plan.format !== REPRESENTATION_PLAN_FORMAT) blockers.push(`Unsupported representation plan format: ${String(plan.format)}.`);
   if (!nonEmpty(plan.id)) blockers.push("Representation plan identity is absent.");
@@ -157,8 +162,8 @@ export function evaluateRepresentationPlan(plan: RepresentationPlan): Representa
   const assetIds = plan.assets.map((asset) => asset.id);
   const assetIdSet = new Set(assetIds);
   const duplicateAssetIds = duplicateValues(assetIds);
-  if (duplicateAssetIds.length > 0) blockers.push(`Representation plan contains duplicate asset ids: ${duplicateAssetIds.join(", ")}.`);
-  if (plan.assets.length < 12) blockers.push("Representation pack does not contain a production-sized role vocabulary.");
+  if (duplicateAssetIds.length > 0) blockers.push(`Representation plan contains duplicate role ids: ${duplicateAssetIds.join(", ")}.`);
+  if (plan.assets.length < 12) blockers.push("Representation plan does not contain a production-sized role vocabulary.");
   const assets = new Map(plan.assets.map((asset) => [asset.id, asset]));
   for (const asset of plan.assets) {
     if (!nonEmpty(asset.id)) blockers.push("Representation plan contains a role without an id.");
@@ -239,38 +244,22 @@ export function evaluateRepresentationPlan(plan: RepresentationPlan): Representa
     blockers.push("Cold entry does not carry the cartridge identity role.");
   }
 
-  const production = plan.production;
+  let productionRoleCount = 0;
+  let productionSourceCount = 0;
   if (!production) {
-    blockers.push("Production coverage manifest is absent.");
+    blockers.push("Production coverage receipt is absent.");
   } else {
-    const requiredProductionIds = production.requiredAssetIds ?? [];
+    if (production.format !== REPRESENTATION_PRODUCTION_FORMAT) blockers.push(`Unsupported production coverage format: ${String(production.format)}.`);
+    if (production.planId !== plan.id) blockers.push(`Production coverage belongs to ${production.planId || "<missing>"}, not ${plan.id}.`);
     const productionIds = production.productionAssetIds ?? [];
-    const prototypeIds = production.prototypeAssetIds ?? [];
-    const requiredSet = new Set(requiredProductionIds);
     const productionSet = new Set(productionIds);
-    const prototypeSet = new Set(prototypeIds);
+    productionRoleCount = productionSet.size;
+    productionSourceCount = production.sources?.length ?? 0;
 
-    for (const [label, values] of [
-      ["required", requiredProductionIds],
-      ["production", productionIds],
-      ["prototype", prototypeIds],
-    ] as const) {
-      const duplicates = duplicateValues(values);
-      if (duplicates.length > 0) blockers.push(`Production coverage contains duplicate ${label} roles: ${duplicates.join(", ")}.`);
-      const unknown = unknownValues(values, assetIdSet);
-      if (unknown.length > 0) blockers.push(`Production coverage contains unknown ${label} roles: ${unknown.join(", ")}.`);
-    }
-
-    const omittedRequired = missingValues(assetIds, requiredSet);
-    if (omittedRequired.length > 0) blockers.push(`Production coverage omits declared roles: ${omittedRequired.join(", ")}.`);
-    const extraRequired = unknownValues(requiredProductionIds, assetIdSet);
-    if (extraRequired.length > 0) blockers.push(`Production coverage requires unknown roles: ${extraRequired.join(", ")}.`);
-
-    const overlap = productionIds.filter((assetId) => prototypeSet.has(assetId)).sort();
-    if (overlap.length > 0) blockers.push(`Production and prototype partitions overlap: ${overlap.join(", ")}.`);
-    const partition = new Set([...productionIds, ...prototypeIds]);
-    const unclassified = missingValues(requiredProductionIds, partition);
-    if (unclassified.length > 0) blockers.push(`Production coverage leaves roles unclassified: ${unclassified.join(", ")}.`);
+    const duplicateProductionIds = duplicateValues(productionIds);
+    if (duplicateProductionIds.length > 0) blockers.push(`Production coverage contains duplicate role ids: ${duplicateProductionIds.join(", ")}.`);
+    const unknownProductionIds = unknownValues(productionIds, assetIdSet);
+    if (unknownProductionIds.length > 0) blockers.push(`Production coverage contains unknown roles: ${unknownProductionIds.join(", ")}.`);
 
     const sourceIds = production.sources?.map((source) => source.id) ?? [];
     const duplicateSourceIds = duplicateValues(sourceIds);
@@ -289,20 +278,19 @@ export function evaluateRepresentationPlan(plan: RepresentationPlan): Representa
         blockers.push(`Production source ${source.id || "<missing>"} has invalid dimensions.`);
       }
       for (const assetId of source.assetIds ?? []) {
-        if (!productionSet.has(assetId)) blockers.push(`Production source ${source.id || "<missing>"} binds non-production role ${assetId}.`);
+        if (!productionSet.has(assetId)) blockers.push(`Production source ${source.id || "<missing>"} binds undeclared production role ${assetId}.`);
         sourcedProductionRoles.add(assetId);
       }
     }
     const unsourcedProduction = missingValues(productionIds, sourcedProductionRoles);
-    if (unsourcedProduction.length > 0) blockers.push(`Production roles lack an exact authored source: ${unsourcedProduction.join(", ")}.`);
+    if (unsourcedProduction.length > 0) blockers.push(`Production roles lack exact authored sources: ${unsourcedProduction.join(", ")}.`);
 
+    const prototypeIds = assetIds.filter((assetId) => !productionSet.has(assetId));
     if (production.status === "prototype") blockers.push("Production coverage is prototype-only.");
     if (production.status === "mixed") blockers.push(`Production coverage is mixed: ${prototypeIds.length} declared roles still use prototype sources.`);
     if (production.status === "complete" && prototypeIds.length > 0) blockers.push(`Production coverage is marked complete but ${prototypeIds.length} prototype roles remain.`);
-    if (production.status === "complete" && productionIds.length !== requiredProductionIds.length) {
-      blockers.push("Production coverage is marked complete without covering every required role.");
-    }
-    if (production.status === "complete" && (production.sources?.length ?? 0) === 0) blockers.push("Complete production coverage has no authored sources.");
+    if (production.status === "complete" && productionRoleCount !== assetIds.length) blockers.push("Production coverage is marked complete without covering every declared role.");
+    if (production.status === "complete" && productionSourceCount === 0) blockers.push("Complete production coverage has no authored sources.");
   }
 
   return {
@@ -312,9 +300,9 @@ export function evaluateRepresentationPlan(plan: RepresentationPlan): Representa
     blockers,
     metrics: {
       declaredRoles: plan.assets.length,
-      productionRoles: plan.production?.productionAssetIds?.length ?? 0,
-      prototypeRoles: plan.production?.prototypeAssetIds?.length ?? plan.assets.length,
-      productionSources: plan.production?.sources?.length ?? 0,
+      productionRoles: productionRoleCount,
+      prototypeRoles: Math.max(0, plan.assets.length - productionRoleCount),
+      productionSources: productionSourceCount,
       surfaces: plan.surfaces.length,
       people: plan.bindings.people.length,
       objectives: plan.bindings.objectives.length,
