@@ -58,40 +58,44 @@
 
     <section id="action" class="view" aria-labelledby="action-title">
       <div class="action-grid">
-        <div class="stage">
-          <canvas id="game" width="960" height="540" aria-label="Deterministic Underdrain action encounter"></canvas>
-          <div class="hud">
-            <div class="hudbox"><strong>RHEA</strong><div class="meter" aria-label="Rhea health"><i id="health-fill"></i></div></div>
-            <div class="hudbox mono"><strong id="place-label">SERVICE CALL</strong><span id="timer">00:35</span></div>
-          </div>
-          <div class="objective-ribbon" aria-live="polite">
-            <b id="action-title">Inspect the living trap joint</b>
-            <span id="action-hint">Walk to the green mechanism and press WORK.</span>
-          </div>
-          <div id="recovery-panel" class="recovery-panel" hidden>
-            <div class="card">
-              <div class="eyebrow">The current trace ended in failure</div>
-              <h2>Rhea is down, but the episode is not over.</h2>
-              <p id="recovery-copy">Retry from the current mechanism. Completed work and the authored situation remain intact.</p>
-              <div class="buttonrow">
-                <button id="retry-objective" class="primary">Retry this mechanism</button>
-                <button id="accept-failure" class="secondary">Accept the failed operation and continue</button>
+        <div class="stage-shell">
+          <div class="stage">
+            <canvas id="game" width="960" height="540" aria-label="Deterministic Underdrain action encounter"></canvas>
+            <div class="hud">
+              <div class="hudbox"><strong>RHEA</strong><div class="meter" aria-label="Rhea health"><i id="health-fill"></i></div></div>
+              <div class="hudbox mono"><strong id="place-label">SERVICE CALL</strong><span id="timer">00:35</span></div>
+            </div>
+            <div id="recovery-panel" class="recovery-panel" hidden>
+              <div class="card">
+                <div class="eyebrow">The current trace ended in failure</div>
+                <h2>Rhea is down, but the episode is not over.</h2>
+                <p id="recovery-copy">Retry from the current mechanism. Completed work and the authored situation remain intact.</p>
+                <div class="buttonrow">
+                  <button id="retry-objective" class="primary">Retry this mechanism</button>
+                  <button id="accept-failure" class="secondary">Accept the failed operation and continue</button>
+                </div>
               </div>
             </div>
           </div>
-          <div class="touch" aria-label="Touch controls">
-            <div class="touch-dpad">
-              <button class="up" data-hold="up" aria-label="Move up">▲</button>
-              <button class="left" data-hold="left" aria-label="Move left">◀</button>
-              <button class="down" data-hold="down" aria-label="Move down">▼</button>
-              <button class="right" data-hold="right" aria-label="Move right">▶</button>
+          <section class="command-deck" aria-label="Current objective and controls">
+            <div class="objective-ribbon" aria-live="polite">
+              <b id="action-title">Inspect the living trap joint</b>
+              <span id="action-hint">Walk to the green mechanism and press WORK.</span>
             </div>
-            <div class="touch-actions">
-              <button data-hold="dodge" aria-label="Dodge">DODGE</button>
-              <button data-hold="wrench" aria-label="Wrench">WRENCH</button>
-              <button class="work" data-hold="work" aria-label="Work on mechanism">WORK</button>
+            <div class="touch" aria-label="Touch controls">
+              <div class="touch-dpad">
+                <button class="up" data-hold="up" aria-label="Move up">▲</button>
+                <button class="left" data-hold="left" aria-label="Move left">◀</button>
+                <button class="down" data-hold="down" aria-label="Move down">▼</button>
+                <button class="right" data-hold="right" aria-label="Move right">▶</button>
+              </div>
+              <div class="touch-actions">
+                <button data-hold="dodge" aria-label="Dodge">DODGE</button>
+                <button data-hold="wrench" aria-label="Wrench">WRENCH</button>
+                <button class="work" data-hold="work" aria-label="Work on mechanism">WORK</button>
+              </div>
             </div>
-          </div>
+          </section>
         </div>
         <aside class="side">
           <article class="card">
