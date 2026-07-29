@@ -183,4 +183,25 @@ describe("UNDERDRAIN Unity 6000 player train", () => {
     expect(session).toContain('comprehensionReceipt = "not-issued"');
     expect(session).toContain('namedPlayerProductAcceptance = "not-issued"');
   });
+
+  it("extends the real project train through source intake, read-only audit, independent comprehension, and named acceptance", () => {
+    const productTrain = read("scripts/run-underdrain-unity6000-player-product.ps1");
+    const intake = read("scripts/prepare-underdrain-production-assets.ps1");
+    const audit = read("scripts/audit-underdrain-production-assets.ps1");
+    const comprehension = read("scripts/record-underdrain-independent-comprehension.ps1");
+    const acceptance = read("scripts/accept-underdrain-player-product.ps1");
+    expect(productTrain).toContain("prepare-underdrain-production-assets.ps1");
+    expect(productTrain).toContain("audit-underdrain-production-assets.ps1");
+    expect(productTrain).toContain("Production asset $id changed between intake, player-product qualification, and read-only audit");
+    expect(productTrain).toContain('format = "rodoh-underdrain-unity6000-player-product-train/1"');
+    expect(intake).toContain("ActionProductionAssetIntakeBatch.Run");
+    expect(audit).toContain("ActionProductionAssetAuditBatch.Run");
+    expect(comprehension).toContain('format = "rodoh-underdrain-independent-comprehension/1"');
+    expect(comprehension).toContain("The independent player may not receive a walkthrough before adjudication");
+    expect(comprehension).toContain('runtimeIssued = $false');
+    expect(acceptance).toContain('format = "rodoh-underdrain-player-product-acceptance/1"');
+    expect(acceptance).toContain("Gamepad acceptance must include a persisted runtime rebind");
+    expect(acceptance).toContain("voluntarilyContinuedAfterConsequence -ne $true");
+    expect(acceptance).toContain('questAcceptance = "not-issued"');
+  });
 });
