@@ -85,3 +85,5 @@ jobs:
           git -C carrier-main rm .github/workflows/run-action-semantic-cue-receiver-convergence.yml
           git -C carrier-main commit -m 'Remove completed semantic cue receiver carrier'
           git -C carrier-main push origin HEAD:main
+
+# One-shot trigger: action-semantic-cue-receiver-v1.
