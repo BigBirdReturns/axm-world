@@ -79,6 +79,18 @@ if ($train.primitiveFallback -ne $false -or $train.diagnosticPresentation -ne $f
 if ($train.productionAssetCount -ne 7 -or @($train.productionAssetSourceDigests).Count -ne 7) { throw "Player-product train lacks the complete seven-asset production floor." }
 if ($train.presentationAdapterId -ne "production.prefab/v1" -or $train.cameraCollision -ne $true -or $train.runtimeRebinding -ne $true) { throw "Player-product train lacks the production adapter, camera collision, or runtime rebinding." }
 
+$assetApprovalPath = Resolve-FullPath ([string]$train.assetApprovalReceipt) ([System.IO.Path]::GetDirectoryName($trainPath))
+Require-File $assetApprovalPath "Named production-asset approval receipt"
+$assetApproval = Get-Content $assetApprovalPath -Raw | ConvertFrom-Json
+if ($assetApproval.format -ne "rodoh-action-production-asset-approval/1" -or $assetApproval.status -ne "approved") { throw "Named production-asset approval receipt is unsupported or not approved." }
+if ($assetApproval.productId -ne $train.productId -or $assetApproval.presentationManifestId -ne $train.presentationManifestId) { throw "Named production-asset approval differs from the accepted player product." }
+if ($assetApproval.assetCount -ne 7 -or $assetApproval.confirmedAllAssets -ne $true -or $assetApproval.productionApproved -ne $true -or $assetApproval.generatedPrimitive -ne $false -or $assetApproval.activePhysicsAuthority -ne $false) { throw "Named production-asset approval does not cover the complete safe seven-asset floor." }
+if ($assetApproval.playerProductAcceptance -ne "not-issued" -or $assetApproval.authorityAuthentication -ne "not-performed") { throw "Named asset approval crossed product-acceptance authority or misrepresented authentication." }
+if ($train.assetApprovalId -ne $assetApproval.approvalId -or $train.assetApprovalAuthorityId -ne $assetApproval.approvalAuthorityId -or $train.assetApprovalName -ne $assetApproval.approvalName) { throw "Player-product train lost named asset-approval custody." }
+$assetApprovalSha = (Get-FileHash $assetApprovalPath -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($train.assetApprovalReceiptSha256 -ne $assetApprovalSha) { throw "Player-product train asset-approval receipt digest mismatch." }
+if ($assetApproval.approvalAuthorityId -eq $AcceptorId) { throw "Presentation-asset approver and final player-product acceptor must be different named actors." }
+
 foreach ($entry in @(@($keyboard, $keyboardPath, "keyboard-mouse", "Keyboard/mouse"), @($gamepad, $gamepadPath, "gamepad", "Gamepad"))) {
     $session = $entry[0]
     $path = $entry[1]
@@ -114,7 +126,7 @@ if ($comprehension.behavior.voluntarilyContinuedAfterConsequence -ne $true) { th
 $comprehensionSessionPath = Resolve-FullPath ([string]$comprehension.run.playerSessionReceipt) ([System.IO.Path]::GetDirectoryName($comprehensionPath))
 if ($comprehensionSessionPath -ne $keyboardPath -and $comprehensionSessionPath -ne $gamepadPath) { throw "Independent comprehension does not cite either accepted physical input session." }
 
-$evidenceFiles = @($trainPath, $keyboardPath, $gamepadPath, $keyboardRaw.path, $gamepadRaw.path, $comprehensionPath)
+$evidenceFiles = @($trainPath, $assetApprovalPath, $keyboardPath, $gamepadPath, $keyboardRaw.path, $gamepadRaw.path, $comprehensionPath)
 $evidence = @($evidenceFiles | ForEach-Object {
     [ordered]@{
         path = $_
@@ -151,6 +163,15 @@ $receipt = [ordered]@{
     productionAssetCount = $train.productionAssetCount
     exactSourceCustody = $train.exactSourceCustody
     exactCueParity = $train.exactCueParity
+    namedAssetApproval = [ordered]@{
+        receipt = $assetApprovalPath
+        receiptSha256 = $assetApprovalSha
+        approvalId = $assetApproval.approvalId
+        approvalAuthorityId = $assetApproval.approvalAuthorityId
+        approvalName = $assetApproval.approvalName
+        approvedAt = $assetApproval.approvedAt
+        authorityAuthentication = $assetApproval.authorityAuthentication
+    }
     keyboardMouseSession = [ordered]@{
         receipt = $keyboardPath
         acceptedArcReceiptDigest = $keyboard.acceptedReceiptDigest
@@ -178,7 +199,7 @@ $receipt = [ordered]@{
     evidence = $evidence
     questAcceptance = "not-issued"
     physicalQuestAcceptance = "open"
-    authority = "named Windows player-product acceptance over exact Arc, Unity, device, performance, and independent human evidence"
+    authority = "named Windows player-product acceptance over exact Arc, Unity, named asset approval, device, performance, and independent human evidence"
 }
 $receipt | ConvertTo-Json -Depth 30 | Set-Content -Encoding utf8 $output
 $shaPath = $output + ".sha256"
