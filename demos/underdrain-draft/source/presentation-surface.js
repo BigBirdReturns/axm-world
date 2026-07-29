@@ -3,19 +3,27 @@
 (()=>{
   const art=globalThis.UnderdrainArt;
   const runtime=globalThis.UnderdrainRuntime;
-  const production=globalThis.UnderdrainProductionAssets;
+  const productionAssets=globalThis.UnderdrainProductionAssets;
   const planNode=document.getElementById("underdrain-presentation");
+  const coverageNode=document.getElementById("underdrain-production");
   const presentationSha256=globalThis.__UNDERDRAIN_PRESENTATION_SHA256__;
-  if(!art||!runtime||!planNode||!production)throw new Error("UNDERDRAIN representation custody did not load.");
+  const productionSha256=globalThis.__UNDERDRAIN_PRODUCTION_SHA256__;
+  if(!art||!runtime||!planNode||!coverageNode||!productionAssets)throw new Error("UNDERDRAIN representation custody did not load.");
   const plan=JSON.parse(planNode.textContent);
+  const coverage=JSON.parse(coverageNode.textContent);
   if(plan.format!=="rodoh-representation-plan/1")throw new Error("UNDERDRAIN representation plan format is unsupported.");
   if(plan.id!==art.plan.id)throw new Error("UNDERDRAIN representation plan and registry disagree.");
-  if(!/^[0-9a-f]{64}$/.test(presentationSha256))throw new Error("UNDERDRAIN representation is not bound to exact bytes.");
+  if(coverage.format!=="rodoh-representation-production/1"||coverage.planId!==plan.id)throw new Error("UNDERDRAIN production coverage is absent or belongs to another plan.");
+  if(coverage.status!=="mixed")throw new Error("UNDERDRAIN production coverage must remain honestly mixed until every role is replaced.");
+  if(!/^[0-9a-f]{64}$/.test(presentationSha256)||!/^[0-9a-f]{64}$/.test(productionSha256))throw new Error("UNDERDRAIN representation is not bound to exact bytes.");
 
-  const pumpAsset=production.assets?.["underdrain:scene-pump-seven"]??null;
-  if(!pumpAsset||pumpAsset.mediaType!=="image/webp"||pumpAsset.width!==960||pumpAsset.height!==540||!/^[0-9a-f]{64}$/.test(pumpAsset.sha256)){
+  const pumpAsset=productionAssets.assets?.["underdrain:scene-pump-seven"]??null;
+  const pumpSource=coverage.sources?.find(entry=>entry.assetIds?.includes("underdrain:scene-pump-seven"))??null;
+  if(!pumpAsset||!pumpSource||pumpAsset.mediaType!=="image/webp"||pumpAsset.width!==960||pumpAsset.height!==540||pumpAsset.sha256!==pumpSource.sha256){
     throw new Error("UNDERDRAIN Pump Seven production art is absent or unbound.");
   }
+  const productionRoleCount=new Set(coverage.productionAssetIds??[]).size;
+  const prototypeRoleCount=Math.max(0,plan.assets.length-productionRoleCount);
   const pumpImage=new Image();
   pumpImage.decoding="async";
   pumpImage.src=pumpAsset.dataUrl;
@@ -37,12 +45,17 @@
     runtime.reset();
   }
   runtime.session.representation={
-    format:"rodoh-underdrain-representation/2",
+    format:"rodoh-underdrain-representation/3",
     planId:plan.id,
     presentationSha256,
+    productionSha256,
     namespace:plan.namespace,
     declaredRoleCount:plan.assets.length,
-    declaredRoleCountMeaning:"representation identities, not independently authored files",
+    declaredRoleCountMeaning:"representation obligations, not independently authored files",
+    productionRoleCount,
+    prototypeRoleCount,
+    productionSourceCount:coverage.sources.length,
+    productionCoverageStatus:coverage.status,
     productionAssets:[{
       id:"underdrain:scene-pump-seven",
       mediaType:pumpAsset.mediaType,
@@ -245,7 +258,7 @@
     const canvasIds=(canvas.dataset.representationAssets??"").split(/\s+/).filter(Boolean);
     return [...new Set([...ids,...canvasIds])].sort();
   }
-  function representativeAssetsMounted(){
+  function representativePrototypeRolesMounted(){
     const mounted=new Set(mountedAssetIds());
     return [
       "underdrain:emblem","underdrain:scene-kitchen","underdrain:portrait-rhea-venn",
@@ -256,15 +269,17 @@
   }
   function buildRepresentationEvidence(){
     return {
-      format:"rodoh-representation-runtime-evidence/2",
+      format:"rodoh-representation-runtime-evidence/3",
       candidate:{repository:"BigBirdReturns/axm-world",commit:ARC.worldSourceCommit,authoredIdentity:session.cartridgeDigest,experienceId:"underdrain-continuous-pilot-v2"},
       planId:plan.id,
       presentationSha256,
+      productionSha256,
       provenance:structuredClone(plan.provenance),
       renderer:structuredClone(plan.renderer),
-      declaredAssetIds:plan.assets.map(asset=>asset.id).sort(),
-      declaredAssetCountMeaning:"representation identities, not independently authored files",
-      mountedAssetIds:mountedAssetIds(),
+      declaredRoleIds:plan.assets.map(asset=>asset.id).sort(),
+      declaredRoleCountMeaning:"representation obligations, not independently authored files",
+      mountedRoleIds:mountedAssetIds(),
+      productionCoverage:structuredClone(coverage),
       productionAssets:structuredClone(runtime.session.representation.productionAssets),
       productionCoverageComplete:false,
       releaseClassification:"representation-rework",
@@ -279,7 +294,7 @@
   runtime.buildStructuralEvidence=buildStructuralEvidence;
   runtime.buildRepresentationEvidence=buildRepresentationEvidence;
   runtime.episodeRecord=episodeRecord;
-  runtime.representation=Object.freeze({plan,presentationSha256,productionAssets:runtime.session.representation.productionAssets,productionCoverageComplete:false});
+  runtime.representation=Object.freeze({plan,coverage,presentationSha256,productionSha256,productionAssets:runtime.session.representation.productionAssets,productionCoverageComplete:false});
 
   const originalRunAutomatedSuite=runAutomatedSuite;
   runAutomatedSuite=async function(){
@@ -289,23 +304,31 @@
     const representationChecks={
       representationPlanId:plan.id,
       presentationSha256,
+      productionSha256,
       declaredRepresentationRoleCount:plan.assets.length,
       declaredRoleCountIsNotFileCount:true,
-      productionAssetCount:1,
+      productionRoleCount,
+      prototypeRoleCount,
+      productionSourceCount:coverage.sources.length,
       productionPumpSceneBound:pumpAsset.sha256,
       productionCoverageComplete:false,
       releaseClassification:"representation-rework",
-      completeSurfacePlan:plan.surfaces.length===6&&plan.surfaces.every(surface=>surface.desktop&&surface.mobile&&surface.assetIds.length>0),
-      representativePrototypeRolesMounted:representativeAssetsMounted(),
+      commandDeckOutsideRenderedWorld:Boolean(document.querySelector(".stage-shell>.command-deck")),
+      completeSurfaceRolePlan:plan.surfaces.length===6&&plan.surfaces.every(surface=>surface.desktop&&surface.mobile&&surface.assetIds.length>0),
+      representativePrototypeRolesMounted:representativePrototypeRolesMounted(),
     };
     Object.assign(result.checks,representationChecks);
     const truthful=/^[0-9a-f]{64}$/.test(representationChecks.presentationSha256)
+      &&/^[0-9a-f]{64}$/.test(representationChecks.productionSha256)
       &&/^[0-9a-f]{64}$/.test(representationChecks.productionPumpSceneBound)
       &&representationChecks.declaredRoleCountIsNotFileCount
-      &&representationChecks.productionAssetCount===1
+      &&representationChecks.productionRoleCount===1
+      &&representationChecks.prototypeRoleCount===plan.assets.length-1
+      &&representationChecks.productionSourceCount===1
       &&representationChecks.productionCoverageComplete===false
       &&representationChecks.releaseClassification==="representation-rework"
-      &&representationChecks.completeSurfacePlan
+      &&representationChecks.commandDeckOutsideRenderedWorld
+      &&representationChecks.completeSurfaceRolePlan
       &&representationChecks.representativePrototypeRolesMounted;
     result.status=result.status==="pass"&&truthful?"pass":"fail";
     document.getElementById("autotest-results").textContent=JSON.stringify(result,null,2);
@@ -315,7 +338,7 @@
   const status=document.createElement("span");
   status.className="status representation-status";
   status.id="representation-status";
-  status.textContent="ART REWORK · 1 production scene";
+  status.textContent=`ART REWORK · ${productionRoleCount}/${plan.assets.length} production roles`;
   document.querySelector(".statusline")?.append(status);
   document.body.dataset.representationPlan=plan.id;
   document.body.dataset.representationStatus="rework";
