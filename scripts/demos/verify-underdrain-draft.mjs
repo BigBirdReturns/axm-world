@@ -30,6 +30,7 @@ const expectedWorldCommit = option("--world-commit");
 const expectedArcCommit = option("--arc-commit");
 const expectedAuthoringSha256 = option("--authoring-sha256");
 const expectedPresentationSha256 = option("--presentation-sha256");
+const expectedProductionSha256 = option("--production-sha256");
 let currentCheck = "arguments";
 
 function writeReceipt(receipt) {
@@ -42,7 +43,7 @@ function writeReceipt(receipt) {
 }
 function fail(message) {
   const receipt = {
-    format: "rodoh-underdrain-static-verification/3",
+    format: "rodoh-underdrain-static-verification/4",
     status: "fail",
     check: currentCheck,
     error: message,
@@ -50,6 +51,7 @@ function fail(message) {
     arcCommit: expectedArcCommit ?? null,
     authoringSha256: expectedAuthoringSha256 ?? null,
     presentationSha256: expectedPresentationSha256 ?? null,
+    productionSha256: expectedProductionSha256 ?? null,
     htmlPath,
     root,
   };
@@ -69,15 +71,19 @@ if (!expectedWorldCommit || !/^[0-9a-f]{40}$/.test(expectedWorldCommit)) fail("E
 if (!expectedArcCommit || !/^[0-9a-f]{40}$/.test(expectedArcCommit)) fail("Expected Arc commit is invalid.");
 if (!expectedAuthoringSha256 || !/^[0-9a-f]{64}$/.test(expectedAuthoringSha256)) fail("Expected authoring SHA-256 is invalid.");
 if (!expectedPresentationSha256 || !/^[0-9a-f]{64}$/.test(expectedPresentationSha256)) fail("Expected presentation SHA-256 is invalid.");
+if (!expectedProductionSha256 || !/^[0-9a-f]{64}$/.test(expectedProductionSha256)) fail("Expected production SHA-256 is invalid.");
 
 currentCheck = "load-inputs";
 const manifestPath = resolve(root, "authoring.json");
 const presentationPath = resolve(root, "presentation.json");
+const productionPath = resolve(root, "production.json");
 const html = readFileSync(htmlPath, "utf8");
 const manifestBytes = readFileSync(manifestPath);
 const manifest = JSON.parse(manifestBytes.toString("utf8"));
 const presentationBytes = readFileSync(presentationPath);
 const presentation = JSON.parse(presentationBytes.toString("utf8"));
+const productionBytes = readFileSync(productionPath);
+const production = JSON.parse(productionBytes.toString("utf8"));
 
 currentCheck = "embedded-authoring";
 const authoringMatch = html.match(/<script id="underdrain-authoring" type="application\/json">\s*([\s\S]*?)\s*<\/script>/);
@@ -86,10 +92,15 @@ if (JSON.stringify(JSON.parse(authoringMatch[1] ?? "null")) !== JSON.stringify(m
 
 currentCheck = "embedded-presentation";
 const presentationMatch = html.match(/<script id="underdrain-presentation" type="application\/json">\s*([\s\S]*?)\s*<\/script>/);
-if (!presentationMatch) fail("Embedded representation plan is absent.");
-if (JSON.stringify(JSON.parse(presentationMatch[1] ?? "null")) !== JSON.stringify(presentation)) fail("Embedded and companion representation plans differ.");
+if (!presentationMatch) fail("Embedded representation role plan is absent.");
+if (JSON.stringify(JSON.parse(presentationMatch[1] ?? "null")) !== JSON.stringify(presentation)) fail("Embedded and companion representation role plans differ.");
 
-currentCheck = "representation-plan";
+currentCheck = "embedded-production";
+const productionMatch = html.match(/<script id="underdrain-production" type="application\/json">\s*([\s\S]*?)\s*<\/script>/);
+if (!productionMatch) fail("Embedded representation production coverage is absent.");
+if (JSON.stringify(JSON.parse(productionMatch[1] ?? "null")) !== JSON.stringify(production)) fail("Embedded and companion production coverage differ.");
+
+currentCheck = "representation-role-plan";
 if (presentation.format !== "rodoh-representation-plan/1") fail("Representation plan format is unsupported.");
 if (presentation.classification !== "authored-pilot-candidate") fail("Representation plan is not bound to the authored-pilot classification.");
 if (presentation.namespace !== "underdrain") fail("Representation plan does not own an Underdrain namespace.");
@@ -104,52 +115,73 @@ const requiredSurfaces = ["cold-entry", "authored-commitment", "first-action", "
 const requiredPeople = ["rhea-venn", "tess-loam", "marta-sump", "morrowcap", "mrs-kett", "dax-venn"];
 const requiredObjectives = ["inspect-living-trap", "restore-kett-water", "diagnose-spore-valves", "operate-purge-wheel", "open-crown-sluice"];
 const requiredStates = ["town-water-pressure", "kett-water", "fungus-contact", "crown-grievance", "rhea-status", "evidence-custody", "root-gate-open"];
-if (!Array.isArray(presentation.assets) || presentation.assets.length < 40) fail("Underdrain representation pack is below the production asset floor.");
-const assetIds = presentation.assets.map((asset) => asset.id);
-const duplicateAssetIds = duplicateValues(assetIds);
-if (duplicateAssetIds.length > 0) fail(`Representation plan contains duplicate asset ids: ${duplicateAssetIds.join(", ")}.`);
-const assetById = new Map(presentation.assets.map((asset) => [asset.id, asset]));
+if (!Array.isArray(presentation.assets) || presentation.assets.length !== 48) fail("Underdrain must retain exactly 48 declared representation roles while art is reworked.");
+const roleIds = presentation.assets.map((asset) => asset.id);
+const duplicateRoleIds = duplicateValues(roleIds);
+if (duplicateRoleIds.length > 0) fail(`Representation plan contains duplicate role ids: ${duplicateRoleIds.join(", ")}.`);
+const roleById = new Map(presentation.assets.map((asset) => [asset.id, asset]));
 for (const asset of presentation.assets) {
-  if (typeof asset.id !== "string" || !asset.id.startsWith("underdrain:")) fail(`Asset ${String(asset.id)} escapes the Underdrain namespace.`);
-  if (/(?:placeholder|generic|debug|wireframe|prototype|bare-doll|neutral)/i.test(asset.id)) fail(`Asset ${asset.id} is a placeholder or neutral fallback.`);
-  if (typeof asset.accessibleEquivalent !== "string" || asset.accessibleEquivalent.trim() === "") fail(`Asset ${asset.id} has no nonvisual equivalent.`);
-  repositoryPath(asset.sourcePath, `Asset ${asset.id} source`);
+  if (typeof asset.id !== "string" || !asset.id.startsWith("underdrain:")) fail(`Role ${String(asset.id)} escapes the Underdrain namespace.`);
+  if (/(?:placeholder|generic|debug|wireframe|bare-doll|neutral)/i.test(asset.id)) fail(`Role ${asset.id} is a placeholder or neutral fallback.`);
+  if (typeof asset.accessibleEquivalent !== "string" || asset.accessibleEquivalent.trim() === "") fail(`Role ${asset.id} has no nonvisual equivalent.`);
+  repositoryPath(asset.sourcePath, `Role ${asset.id} source`);
 }
-function requireAsset(assetId, label) {
-  if (!assetById.has(assetId)) fail(`${label} references missing asset ${String(assetId)}.`);
+function requireRole(roleId, label) {
+  if (!roleById.has(roleId)) fail(`${label} references missing representation role ${String(roleId)}.`);
 }
-requireAsset(presentation.bindings?.identityAssetId, "Cartridge identity");
+requireRole(presentation.bindings?.identityAssetId, "Cartridge identity");
 const peopleById = new Map((presentation.bindings?.people ?? []).map((binding) => [binding.personId, binding]));
 for (const personId of requiredPeople) {
   const binding = peopleById.get(personId);
   if (!binding) fail(`Required person ${personId} lacks portrait/body representation.`);
-  requireAsset(binding.portraitAssetId, `Person ${personId} portrait`);
-  requireAsset(binding.bodyAssetId, `Person ${personId} body`);
+  requireRole(binding.portraitAssetId, `Person ${personId} portrait`);
+  requireRole(binding.bodyAssetId, `Person ${personId} body`);
 }
 const objectiveById = new Map((presentation.bindings?.objectives ?? []).map((binding) => [binding.objectiveId, binding]));
 for (const objectiveId of requiredObjectives) {
   const binding = objectiveById.get(objectiveId);
   if (!binding) fail(`Required objective ${objectiveId} lacks mechanism-state representation.`);
-  requireAsset(binding.idleAssetId, `Objective ${objectiveId} idle state`);
-  requireAsset(binding.activeAssetId, `Objective ${objectiveId} active state`);
-  requireAsset(binding.completeAssetId, `Objective ${objectiveId} completed state`);
+  requireRole(binding.idleAssetId, `Objective ${objectiveId} idle state`);
+  requireRole(binding.activeAssetId, `Objective ${objectiveId} active state`);
+  requireRole(binding.completeAssetId, `Objective ${objectiveId} completed state`);
 }
 const stateById = new Map((presentation.bindings?.states ?? []).map((binding) => [binding.stateId, binding]));
 for (const stateId of requiredStates) {
   const binding = stateById.get(stateId);
   if (!binding) fail(`Required persistent state ${stateId} lacks a visible mark.`);
-  requireAsset(binding.assetId, `Persistent state ${stateId}`);
+  requireRole(binding.assetId, `Persistent state ${stateId}`);
 }
 const surfaceById = new Map((presentation.surfaces ?? []).map((surface) => [surface.id, surface]));
 for (const surfaceId of requiredSurfaces) {
   const surface = surfaceById.get(surfaceId);
   if (!surface) fail(`Required player surface ${surfaceId} lacks representation.`);
   if (!surface.desktop || !surface.mobile) fail(`Player surface ${surfaceId} lacks desktop/mobile parity.`);
-  if (!Array.isArray(surface.assetIds) || surface.assetIds.length === 0) fail(`Player surface ${surfaceId} has no cartridge assets.`);
-  for (const assetId of surface.assetIds) requireAsset(assetId, `Player surface ${surfaceId}`);
+  if (!Array.isArray(surface.assetIds) || surface.assetIds.length === 0) fail(`Player surface ${surfaceId} has no representation roles.`);
+  for (const roleId of surface.assetIds) requireRole(roleId, `Player surface ${surfaceId}`);
   if (typeof surface.accessibleEquivalent !== "string" || surface.accessibleEquivalent.trim() === "") fail(`Player surface ${surfaceId} has no nonvisual equivalent.`);
 }
-if (!surfaceById.get("cold-entry")?.assetIds.includes(presentation.bindings.identityAssetId)) fail("Cold entry does not carry the Underdrain identity asset.");
+if (!surfaceById.get("cold-entry")?.assetIds.includes(presentation.bindings.identityAssetId)) fail("Cold entry does not carry the Underdrain identity role.");
+
+currentCheck = "representation-production-coverage";
+if (production.format !== "rodoh-representation-production/1") fail("Production coverage format is unsupported.");
+if (production.planId !== presentation.id) fail("Production coverage belongs to another representation plan.");
+if (production.status !== "mixed") fail("Production coverage must remain mixed until all declared roles have production sources.");
+if (!Array.isArray(production.productionAssetIds) || production.productionAssetIds.length !== 1 || production.productionAssetIds[0] !== "underdrain:scene-pump-seven") {
+  fail("Current production coverage must contain exactly the Pump Seven scene.");
+}
+const productionRoleIds = new Set(production.productionAssetIds);
+const prototypeRoleIds = roleIds.filter((roleId) => !productionRoleIds.has(roleId));
+if (prototypeRoleIds.length !== 47) fail(`Expected 47 prototype roles, found ${prototypeRoleIds.length}.`);
+if (!Array.isArray(production.sources) || production.sources.length !== 1) fail("Current production coverage must retain exactly one authored source.");
+const pumpSource = production.sources[0];
+if (pumpSource.id !== "underdrain-production:pump-seven-webp") fail("Pump Seven production source id is invalid.");
+if (pumpSource.mediaType !== "image/webp" || pumpSource.width !== 960 || pumpSource.height !== 540) fail("Pump Seven production source metadata is invalid.");
+if (!/^[0-9a-f]{64}$/.test(pumpSource.sha256 ?? "")) fail("Pump Seven production source has no exact SHA-256.");
+if (JSON.stringify(pumpSource.assetIds) !== JSON.stringify(["underdrain:scene-pump-seven"])) fail("Pump Seven source binds the wrong representation roles.");
+if (!Array.isArray(pumpSource.sourcePaths) || pumpSource.sourcePaths.length !== 5) fail("Pump Seven source must retain five exact chunks.");
+const pumpBase64 = pumpSource.sourcePaths.map((path) => readFileSync(repositoryPath(path, "Pump Seven production chunk"), "utf8").trim()).join("");
+const pumpBytes = Buffer.from(pumpBase64, "base64");
+if (sha256(pumpBytes) !== pumpSource.sha256) fail("Pump Seven production source bytes do not match their receipt.");
 
 currentCheck = "executable-syntax";
 const scripts = [...html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)];
@@ -181,17 +213,18 @@ for (const marker of [
   "rodoh-underdrain-session/2",
   "rodoh-underdrain-episode-record/2",
   "rodoh-one-am-structural-evidence/1",
-  "rodoh-representation-runtime-evidence/1",
+  "rodoh-representation-runtime-evidence/3",
+  "rodoh-representation-production/1",
   "rodoh-underdrain-automated-pilot-qualification/2",
   "rodoh-underdrain-window-name-storage/1",
   "rodoh-underdrain-persistence/1",
   "underdrain-white-label-art/1",
   "underdrain-white-label-v1",
-  "underdrain:scene-kitchen",
   "underdrain:scene-pump-seven",
-  "underdrain:scene-root-gate",
-  "actionRendererUsesCartridgeAssets",
-  "neutralFallbackAbsent",
+  "declaredRoleCountMeaning",
+  "productionCoverageComplete:false",
+  'releaseClassification:"representation-rework"',
+  "commandDeckOutsideRenderedWorld",
   "closeTabRequiresExport",
   "Direct-file mode preserves reload and resume in this tab.",
   "axm-authored-experience/1",
@@ -208,10 +241,22 @@ for (const marker of [
   if (!html.includes(marker)) fail(`Standalone HTML is missing ${marker}.`);
 }
 
+currentCheck = "action-command-deck";
+const stageShell = html.indexOf('<div class="stage-shell">');
+const stage = html.indexOf('<div class="stage">', stageShell);
+const commandDeck = html.indexOf('<section class="command-deck"', stage);
+const touch = html.indexOf('<div class="touch"', commandDeck);
+if (stageShell < 0 || stage < 0 || commandDeck < 0 || touch < 0 || !(stageShell < stage && stage < commandDeck && commandDeck < touch)) {
+  fail("Action objective and controls are not structurally outside the rendered stage.");
+}
+if (!html.includes(".stage-shell>.stage") || !html.includes(".command-deck>.objective-ribbon") || !html.includes(".command-deck>.touch")) {
+  fail("Standalone lacks the no-overlay command-deck layout law.");
+}
+
 currentCheck = "representation-before-boot";
-const representationInstall = html.indexOf("UNDERDRAIN fell back to schematic or neutral representation.");
+const representationInstall = html.indexOf("UNDERDRAIN representation custody did not load.");
 const boot = html.indexOf("const params=new URLSearchParams(location.search);");
-if (representationInstall < 0 || boot < 0 || representationInstall > boot) fail("Representation is not installed before the game boots.");
+if (representationInstall < 0 || boot < 0 || representationInstall > boot) fail("Representation custody is not installed before the game boots.");
 if (html.includes('"action":"primitive-only"')) fail("Standalone declares primitive-only action representation.");
 if (html.includes('"neutralFallbackUsed":true')) fail("Standalone declares a neutral white-label fallback.");
 
@@ -229,19 +274,22 @@ if (/placeholder\s*:\s*(?:true|!0)/.test(html)) fail("Standalone still contains 
 if (!html.includes(expectedWorldCommit)) fail("Standalone is not bound to the exact World candidate.");
 if (!html.includes(expectedArcCommit)) fail("Standalone is not bound to the exact Arc authority.");
 if (!html.includes(expectedAuthoringSha256)) fail("Standalone capsule is not bound to the exact authoring bytes.");
-if (!html.includes(expectedPresentationSha256)) fail("Standalone is not bound to the exact representation bytes.");
+if (!html.includes(expectedPresentationSha256)) fail("Standalone is not bound to the exact representation-role bytes.");
+if (!html.includes(expectedProductionSha256)) fail("Standalone is not bound to the exact production-coverage bytes.");
 if (manifest.format !== "rodoh-underdrain-standalone/2") fail("Manifest format is unsupported.");
-if (manifest.classification !== "authored-pilot-candidate") fail("Manifest does not use the qualified pilot classification.");
+if (manifest.classification !== "authored-pilot-candidate") fail("Manifest does not use the authored-pilot candidate classification.");
 if (manifest.oneAmBoundary?.independentPlayerReceiptRequired !== true) fail("Manifest does not preserve the independent player boundary.");
 if (!manifest.experienceOrder?.includes("root-gate-parley")) fail("Root Gate is not an implemented experience.");
 
 const manifestSha256 = sha256(manifestBytes);
 if (manifestSha256 !== expectedAuthoringSha256) fail("World authoring bytes differ from exact Arc custody.");
 const presentationSha256 = sha256(presentationBytes);
-if (presentationSha256 !== expectedPresentationSha256) fail("World representation bytes differ from exact custody.");
+if (presentationSha256 !== expectedPresentationSha256) fail("World representation-role bytes differ from exact custody.");
+const productionSha256 = sha256(productionBytes);
+if (productionSha256 !== expectedProductionSha256) fail("World production-coverage bytes differ from exact custody.");
 const htmlSha256 = sha256(html);
 const receipt = {
-  format: "rodoh-underdrain-static-verification/3",
+  format: "rodoh-underdrain-static-verification/4",
   status: "pass",
   worldCommit: expectedWorldCommit,
   arcCommit: expectedArcCommit,
@@ -265,7 +313,10 @@ const receipt = {
     sha256: presentationSha256,
     planId: presentation.id,
     namespace: presentation.namespace,
-    assets: presentation.assets.length,
+    declaredRoles: presentation.assets.length,
+    productionRoles: production.productionAssetIds.length,
+    prototypeRoles: prototypeRoleIds.length,
+    productionSources: production.sources.length,
     people: presentation.bindings.people.length,
     objectives: presentation.bindings.objectives.length,
     states: presentation.bindings.states.length,
@@ -274,17 +325,31 @@ const receipt = {
     neutralFallbackUsed: presentation.renderer.neutralFallbackUsed,
     provenance: presentation.provenance,
   },
+  production: {
+    path: productionPath,
+    sha256: productionSha256,
+    format: production.format,
+    status: production.status,
+    sourceId: pumpSource.id,
+    sourceSha256: pumpSource.sha256,
+    mediaType: pumpSource.mediaType,
+    width: pumpSource.width,
+    height: pumpSource.height,
+  },
   checks: {
     executableSyntax: "pass",
     networkRuntime: "absent",
     deterministicTickRate: 30,
     semanticMechanisms: "present",
-    cartridgeOwnedRepresentation: "present-before-boot",
+    representationRolePlan: "present-before-boot",
+    productionCoverageComplete: false,
+    releaseClassification: "representation-rework",
+    actionCommandDeck: "outside-rendered-world",
     representationDesktopMobile: "pass",
     representationAccessibility: "pass",
     safeOpening: "zero-pressure",
     acceptedArcConsequence: "required-before-world-delta",
-    rootGate: "playable-and-represented",
+    rootGate: "playable-but-prototype-represented",
     directFileReload: "window-name-current-tab",
     directFileCloseTab: "episode-record-export-required",
     blindPlayerReceipt: "external-and-unissued",
