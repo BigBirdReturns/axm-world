@@ -8,6 +8,7 @@ param(
 
     [string]$AuthoredPresentationTemplate,
     [string]$ProductProfile,
+    [string]$AssetApprovalReceipt,
     [string]$JobId = "underdrain-unity6000-player-v1",
     [string]$SessionId,
     [string]$DeviceId = "windows-local",
@@ -66,7 +67,6 @@ if ([string]::IsNullOrWhiteSpace($AuthoredPresentationTemplate)) { $AuthoredPres
 if ([string]::IsNullOrWhiteSpace($ProductProfile)) { $ProductProfile = Join-Path $worldRoot "unity\Fixtures\underdrain.player-product.json" }
 $templatePath = Resolve-FullPath $AuthoredPresentationTemplate $worldRoot
 $profilePath = Resolve-FullPath $ProductProfile $worldRoot
-foreach ($path in @($templatePath, $profilePath)) { if (-not (Test-Path $path)) { throw "UNDERDRAIN player-product input is absent: $path" } }
 if ([string]::IsNullOrWhiteSpace($SessionId)) { $SessionId = $JobId }
 if ([string]::IsNullOrWhiteSpace($UnityEditor)) { $UnityEditor = "C:\Program Files\Unity\Hub\Editor\$UnityVersion\Editor\Unity.exe" }
 $unityPath = [System.IO.Path]::GetFullPath($UnityEditor)
@@ -79,8 +79,15 @@ if (& git -C $worldRoot status --porcelain) { throw "World checkout must be clea
 $jobRoot = Join-Path $projectRoot "local\scene-jobs\$JobId"
 $outputRoot = Join-Path $jobRoot "output"
 $trainRoot = Join-Path $outputRoot "player-train"
+$approvalRoot = Join-Path $trainRoot "production-asset-approval"
 $intakeRoot = Join-Path $trainRoot "production-asset-intake"
 $auditRoot = Join-Path $trainRoot "production-asset-audit"
+if ([string]::IsNullOrWhiteSpace($AssetApprovalReceipt)) { $AssetApprovalReceipt = Join-Path $approvalRoot "production-asset-approval.json" }
+$approvalPath = Resolve-FullPath $AssetApprovalReceipt (Get-Location).Path
+foreach ($path in @($templatePath, $profilePath, $approvalPath)) { if (-not (Test-Path $path)) { throw "UNDERDRAIN player-product input is absent: $path" } }
+$approval = Get-Content $approvalPath -Raw | ConvertFrom-Json
+if ($approval.format -ne "rodoh-action-production-asset-approval/1" -or $approval.status -ne "approved" -or $approval.assetCount -ne 7 -or $approval.productionApproved -ne $true) { throw "UNDERDRAIN production assets lack a complete named approval receipt." }
+if ($approval.playerProductAcceptance -ne "not-issued") { throw "Asset approval receipt falsely claims player-product acceptance." }
 New-Item -ItemType Directory -Force $intakeRoot, $auditRoot | Out-Null
 
 $intakeScript = Join-Path $worldRoot "scripts\prepare-underdrain-production-assets.ps1"
@@ -92,15 +99,17 @@ Invoke-CheckedPowerShell $intakeScript @{
     EmbodiedArLabRoot = $projectRoot
     PresentationManifest = $templatePath
     ProductProfile = $profilePath
+    AssetApprovalReceipt = $approvalPath
     OutputRoot = $intakeRoot
     UnityVersion = $UnityVersion
     UnityEditor = $unityPath
     ForceCloseUnity = $ForceCloseUnity
-} "Admitting the seven real UNDERDRAIN production prefabs through imported-source custody..."
+} "Admitting the seven named-approved UNDERDRAIN production prefabs through imported-source custody..."
 $intakeRunPath = Join-Path $intakeRoot "production-asset-intake-run.json"
 if (-not (Test-Path $intakeRunPath)) { throw "UNDERDRAIN production-asset intake run is absent: $intakeRunPath" }
 $intake = Get-Content $intakeRunPath -Raw | ConvertFrom-Json
-if ($intake.status -ne "pass" -or $intake.assetCount -ne 7 -or $intake.generatedPrimitive -ne $false -or $intake.activePhysicsAuthority -ne $false) { throw "UNDERDRAIN production-asset intake did not pass." }
+if ($intake.format -ne "rodoh-underdrain-production-asset-intake-run/2" -or $intake.status -ne "pass" -or $intake.assetCount -ne 7 -or $intake.generatedPrimitive -ne $false -or $intake.activePhysicsAuthority -ne $false) { throw "UNDERDRAIN production-asset intake did not pass." }
+if ($intake.approvalId -ne $approval.approvalId -or $intake.approvalAuthorityId -ne $approval.approvalAuthorityId) { throw "UNDERDRAIN production-asset intake lost named approval custody." }
 
 Invoke-CheckedPowerShell $sourceTrainScript @{
     EmbodiedArLabRoot = $projectRoot
@@ -200,6 +209,13 @@ $receipt = [ordered]@{
     productionAssetIds = @($productRun.productionAssetIds)
     productionAssetSourceDigests = @($audit.assetReceipts | ForEach-Object { [ordered]@{ assetId = $_.assetId; sourceSha256 = $_.computedSourceSha256; prefabSha256 = $_.prefabSha256; visualSourcePaths = $_.visualSourcePaths } })
     exactSourceCustody = $true
+    assetApprovalReceipt = $approvalPath
+    assetApprovalReceiptSha256 = $intake.approvalReceiptSha256
+    assetApprovalId = $intake.approvalId
+    assetApprovalAuthorityId = $intake.approvalAuthorityId
+    assetApprovalName = $intake.approvalName
+    assetApprovedAt = $intake.approvedAt
+    assetApprovalAuthorityAuthentication = "not-performed"
     exactCueParity = $sourceTrain.exactCueParity
     cameraCollision = $productRun.cameraCollision
     runtimeRebinding = $productRun.runtimeRebinding
@@ -212,6 +228,7 @@ $receipt = [ordered]@{
     independentComprehension = "open"
     namedPlayerProductAcceptance = "not-issued"
     questAcceptance = "open"
+    productionAssetApproval = $approvalPath
     productionAssetIntake = $intakeRunPath
     sourceTrainReceipt = $sourceTrainPath
     playerProductReceipt = $productRunPath
@@ -231,6 +248,6 @@ Get-ChildItem $trainRoot -File -Recurse |
         "$hash  $relative"
     } | Set-Content -Encoding ascii $checksumPath
 
-Write-Host "UNDERDRAIN Unity 6000 player product passed imported-source intake, exact Arc/C# law, serialized-scene qualification, read-only asset audit, and the requested Windows build boundary."
+Write-Host "UNDERDRAIN Unity 6000 player product passed named asset approval, exact source intake, Arc/C# law, serialized-scene qualification, read-only audit, and the requested Windows build boundary."
 Write-Host "Keyboard/mouse, gamepad, independent comprehension, named acceptance, and Quest remain separate evidence gates."
 Write-Host $receiptPath
