@@ -1,0 +1,109 @@
+name: underdrain-integration-materialize
+
+on:
+  push:
+    branches:
+      - integration/underdrain-unity6000-player-product-v1
+    paths:
+      - '.github/workflows/underdrain-integration-materialize.yml'
+      - '.underdrain/payload.part*.b64'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: underdrain-integration-materialize
+  cancel-in-progress: false
+
+jobs:
+  materialize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact carrier commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Verify and materialize the exact integration source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git branch --show-current)" = "integration/underdrain-unity6000-player-product-v1"
+
+          mapfile -t parts < <(find .underdrain -maxdepth 1 -type f -name 'payload.part*.b64' -printf '%f\n' | sort)
+          test "${#parts[@]}" -eq 7
+          for index in 01 02 03 04 05 06 07; do
+            test -f ".underdrain/payload.part${index}.b64"
+          done
+
+          payload="$RUNNER_TEMP/underdrain-integration-payload.tar.xz"
+          cat .underdrain/payload.part*.b64 | base64 --decode > "$payload"
+          echo "1879c7f200abbabe61a0a2db9a35e9d0d6af6044296b130a650a97a35d9b7ca8  $payload" | sha256sum --check --strict
+
+          tar -tJf "$payload" | LC_ALL=C sort > "$RUNNER_TEMP/actual-paths"
+          cat > "$RUNNER_TEMP/expected-paths" <<'PATHS'
+          .github/workflows/underdrain-player-product-integration.yml
+          .github/workflows/underdrain-unity6000-real.yml
+          scripts/accept-underdrain-player-product.ps1
+          scripts/augment-underdrain-player-evidence.ps1
+          scripts/build-underdrain-visual-review.mjs
+          scripts/build-unity-action-player.ps1
+          scripts/continue-underdrain-unity6000.ps1
+          scripts/lib/underdrain-runtime.ps1
+          scripts/qualify-unity-action-player-product.ps1
+          scripts/record-underdrain-independent-comprehension.ps1
+          scripts/record-underdrain-visual-review.ps1
+          scripts/run-underdrain-camera-collision-qa.ps1
+          scripts/run-underdrain-player-session.ps1
+          scripts/run-underdrain-unity-visual-qa.ps1
+          scripts/run-underdrain-unity6000-player-product.ps1
+          scripts/run-underdrain-unity6000-player-train.ps1
+          scripts/settle-underdrain-player-product-integration.ps1
+          tests/world/underdrain-player-product-acceptance.test.ts
+          tests/world/underdrain-player-product-integration.test.ts
+          tests/world/underdrain-powershell-contract.test.ts
+          tests/world/underdrain-unity6000-player-train.test.ts
+          unity/Fixtures/underdrain.arc-execution-authority.json
+          unity/Fixtures/underdrain.comprehension-contract.json
+          unity/Fixtures/underdrain.player-product.integration-lock.json
+          unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs
+          unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainCameraCollisionQaBatch.cs
+          unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainEvidenceAugmentBatch.cs
+          unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainVisualQaBatch.cs
+          unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionInputBindings.cs
+          unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerProductIdentity.cs
+          unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerSessionEvidence.cs
+          unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionRebindSessionEvidence.cs
+          PATHS
+          sed -i 's/^          //' "$RUNNER_TEMP/expected-paths"
+          LC_ALL=C sort -o "$RUNNER_TEMP/expected-paths" "$RUNNER_TEMP/expected-paths"
+          diff -u "$RUNNER_TEMP/expected-paths" "$RUNNER_TEMP/actual-paths"
+
+          tar --no-same-owner --no-same-permissions -xJf "$payload" -C .
+          rm -rf .underdrain
+          rm -f .github/workflows/underdrain-integration-materialize.yml
+
+          node --check scripts/build-underdrain-visual-review.mjs
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for relative in (
+              'unity/Fixtures/underdrain.arc-execution-authority.json',
+              'unity/Fixtures/underdrain.comprehension-contract.json',
+              'unity/Fixtures/underdrain.player-product.integration-lock.json',
+          ):
+              json.loads(Path(relative).read_text(encoding='utf-8'))
+          PY
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          test ! -e .underdrain
+          test ! -e .github/workflows/underdrain-integration-materialize.yml
+          git commit -m 'Consolidate exact UNDERDRAIN Unity 6000 player product'
+          git push origin HEAD:integration/underdrain-unity6000-player-product-v1
