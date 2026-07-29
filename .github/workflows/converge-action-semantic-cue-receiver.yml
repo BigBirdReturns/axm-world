@@ -1,0 +1,71 @@
+name: Converge action semantic cue receiver
+
+on:
+  push:
+    branches:
+      - feature/action-semantic-cue-receiver-v1
+    paths:
+      - '.github/workflows/converge-action-semantic-cue-receiver.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: converge-action-semantic-cue-receiver
+  cancel-in-progress: true
+
+jobs:
+  converge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/action-semantic-cue-receiver-v1
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Apply the bounded source repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/converge-action-semantic-cue-receiver.py
+          python -m py_compile scripts/converge-action-semantic-cue-receiver.py
+          git diff --check
+
+      - name: Compile the patched source contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm test -- tests/world/action-semantic-cue-receiver.test.ts
+          dotnet build unity/Conformance/Axm.Rodoh.Action.Cues.csproj --configuration Release
+          find unity/Conformance -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
+
+      - name: Publish one carrier-free receiver commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm \
+            .github/workflows/converge-action-semantic-cue-receiver.yml \
+            scripts/converge-action-semantic-cue-receiver.py
+          git add -A
+          git diff --cached --check
+          git commit -m 'Consume exact Arc semantic cues through the production player adapter'
+          git push origin HEAD:feature/action-semantic-cue-receiver-v1
