@@ -26,7 +26,7 @@ namespace Axm.Rodoh.Action.Editor
         private const string ReceiptFormat = "rodoh-unity-action-player-product-qualification/1";
 
         [Serializable]
-        private sealed class AssetRequirement
+        private class AssetRequirement
         {
             public string assetId;
             public string role;
@@ -244,7 +244,8 @@ namespace Axm.Rodoh.Action.Editor
                 foreach (var binding in production.EnemyPrefabs)
                 {
                     if (binding == null || string.IsNullOrWhiteSpace(binding.kit)) continue;
-                    if (!bindingByKit.TryAdd(binding.kit, binding)) throw new InvalidOperationException("Serialized production presentation contains duplicate enemy kit " + binding.kit + ".");
+                    if (bindingByKit.ContainsKey(binding.kit)) throw new InvalidOperationException("Serialized production presentation contains duplicate enemy kit " + binding.kit + ".");
+                    bindingByKit.Add(binding.kit, binding);
                 }
                 foreach (var required in profile.enemies)
                 {

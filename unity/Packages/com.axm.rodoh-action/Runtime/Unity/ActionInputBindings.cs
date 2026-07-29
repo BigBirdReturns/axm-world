@@ -150,7 +150,7 @@ namespace Axm.Rodoh.Action
                 + Short(heavyPrimary) + " crush   "
                 + Short(dodgePrimary) + " dodge   "
                 + Short(parryPrimary) + " parry   "
-                + Short(interactPrimary) + " work   F10 rebind";
+                + Short(interactPrimary) + " work";
         }
 
         public string GamepadSummary()
