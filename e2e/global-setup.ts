@@ -35,7 +35,7 @@ export default function globalSetup(): void {
   });
   if (build.status !== 0) {
     throw new Error([
-      "Playwright could not assemble the exact represented Underdrain standalone.",
+      "Playwright could not assemble the exact Underdrain representation rework standalone.",
       build.stdout,
       build.stderr,
     ].filter(Boolean).join("\n"));
@@ -49,13 +49,14 @@ export default function globalSetup(): void {
     "--arc-commit", ARC_COMMIT,
     "--authoring-sha256", sha256(resolve(DEMO, "authoring.json")),
     "--presentation-sha256", sha256(resolve(DEMO, "presentation.json")),
+    "--production-sha256", sha256(resolve(DEMO, "production.json")),
   ], {
     cwd: ROOT,
     encoding: "utf8",
   });
   if (verify.status !== 0) {
     throw new Error([
-      "Playwright refused the Underdrain representation boundary before launching a browser.",
+      "Playwright refused the Underdrain authoring, role, production, or player-space boundary before launching a browser.",
       verify.stdout,
       verify.stderr,
     ].filter(Boolean).join("\n"));
