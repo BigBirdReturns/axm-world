@@ -110,9 +110,10 @@ namespace Axm.Rodoh.Action
 
         private void DrawControls(float margin, float scale)
         {
+            const string rebind = "F10 rebind";
             var text = bindings?.Profile == null
-                ? "WASD move   MOUSE look   LMB sweep   RMB crush   SPACE dodge   Q parry   E work"
-                : "WASD move   MOUSE look   " + bindings.Profile.ControlSummary();
+                ? "WASD move   MOUSE look   LMB sweep   RMB crush   SPACE dodge   Q parry   E work   " + rebind
+                : "WASD move   MOUSE look   " + bindings.Profile.ControlSummary() + "   " + rebind;
             var width = Mathf.Min(Screen.width - margin * 2f, 940f * scale);
             GUI.Label(new Rect(Screen.width - margin - width, Screen.height - margin - 28f * scale, width, 28f * scale), text, _small);
         }
