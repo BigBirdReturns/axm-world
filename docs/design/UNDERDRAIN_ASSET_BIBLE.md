@@ -1,33 +1,49 @@
 # UNDERDRAIN production asset bible
 
-Status: governing representation authority for `underdrain-white-label-v1`.
+Status: **governing production specification; current coverage is 1 of 48 declared roles**.
 
-This document defines the production representation floor for **UNDERDRAIN: The Bloom Below**. It does not own action law, outcomes, campaign state, or authored causality. Those remain with Arc and the accepted World runtime. The asset pack makes already-authorized people, places, mechanisms, routes, evidence, and persistent consequences legible across the player journey.
+This document defines the visual production floor for **UNDERDRAIN: The Bloom Below**. It does not claim that the floor has been reached. Arc owns action law, authored causality, outcomes, and campaign effects. World owns presentation, persistence, and evidence only for consequences Arc accepts.
 
-## Identity
+## Current truth
 
 ```text
-representation format  rodoh-representation-plan/1
-plan id                 underdrain-white-label-v1
-namespace               underdrain
-classification          authored-pilot-candidate
-action renderer         cartridge-assets
-neutral fallback        forbidden
-provenance              rodoh-original-asset-provenance/1
+role plan format          rodoh-representation-plan/1
+production format         rodoh-representation-production/1
+plan id                   underdrain-white-label-v1
+namespace                 underdrain
+classification            authored-pilot-candidate
+release classification    representation-rework
+neutral fallback          forbidden
 ```
 
-The primary emblem combines:
+Current production coverage:
 
-- Rhea's brass wrench;
-- a municipal water ring;
-- the Crown's living fungal cap;
-- a pressure-regulating center valve.
+```text
+declared roles             48
+production roles            1
+prototype roles            47
+production sources          1
+coverage                    mixed
+release representation     fail closed
+machine-qualified pilot    false
+```
 
-The mark means **repair, flow, and negotiated cohabitation**. It is not a military insignia and must not make the fungal Crown read as a generic monster faction.
+The only completed production source is:
+
+```text
+role       underdrain:scene-pump-seven
+media      image/webp
+size       960 x 540
+sha256     c5810b7362b511a8789e26300517ab0156b2593f99c9b45227765f465ef871ca
+```
+
+The five exact source chunks are retained under `demos/underdrain-draft/assets/production/` and bound by `production.json`.
+
+`presentation.json` describes required roles. It does not establish that those roles have independently authored production files. The procedural registry `assets/underdrain-art.js` is a prototype implementation for the remaining roles and cannot satisfy production coverage by multiplying IDs.
 
 ## Visual thesis
 
-Underdrain begins in familiar domestic infrastructure and descends into an inhabited civic ecology. The player should always be able to distinguish:
+Underdrain begins in ordinary domestic infrastructure and descends into an inhabited civic ecology. Every final frame must distinguish:
 
 ```text
 ordinary household plumbing
@@ -37,35 +53,31 @@ pressure actors around the work
 accepted state after the work
 ```
 
-The visual language is built from copper, brass, wet tile, municipal green, tide-blue flow, pale chartreuse living tissue, rooted brown, and warning rust. Geometry is allowed only as authored industrial design. Debug circles, unstyled lines, generic tokens, and neutral Rodoh dolls are not final representation.
+The visual language uses copper, brass, wet tile, municipal green, tide-blue flow, pale chartreuse living tissue, rooted brown, warning rust, and Crown-signal violet.
 
-## Palette
+Debug circles, generic tokens, unstyled lines, primitive dolls, and panel-only staging are not final representation. Geometry is acceptable only as deliberate industrial design inside a coherent environment.
 
-| Role | Reference |
-|---|---|
-| Ink and readable light | `#f6f1df` |
-| Deep pipe-space | `#07100b` |
-| Municipal panel | `#142019` |
-| Repair mint | `#8ce5b8` |
-| Living spore | `#c1f078` |
-| Brass authority/tooling | `#e6bd63` |
-| Municipal water | `#63c7d8` / `#8ac7d9` |
-| Root and old infrastructure | `#6a4d3d` |
-| Warning and grievance | `#dd7d56` / `#ff7878` |
-| Crown signal violet | `#a78cc8` |
+## Identity
 
-Color is supplementary. Forced-colors mode must retain boundaries, labels, and state distinction without relying on this palette.
+The final emblem combines:
 
-## Cast pack
+- Rhea's brass wrench;
+- a municipal water ring;
+- the Crown's living cap;
+- a pressure-regulating center valve.
 
-Every required person owns both a portrait and standing-body representation, or a compatible equivalent in future renderers.
+The mark means **repair, flow, and negotiated cohabitation**. It is not a military insignia and may not reduce the Crown to a generic monster faction.
+
+## Required cast roles
+
+Each required person needs an independently authored portrait and standing-body equivalent.
 
 ### Rhea Venn
 
-- Practical civilian plumber.
-- Green work jacket, brass wrench, no military silhouette.
-- Readable as competent, tired, and immediately task-focused.
-- Body must preserve wrench orientation in action and staging.
+- Civilian plumber, not soldier.
+- Green work jacket and brass wrench.
+- Competent, tired, and task-focused.
+- Action body preserves readable wrench orientation and work posture.
 
 ### Tess Loam
 
@@ -77,84 +89,83 @@ Every required person owns both a portrait and standing-body representation, or 
 
 - Director of Public Works.
 - Formal municipal coat, brass requisition tabs, squared posture.
-- Authority should read as administrative and infrastructural rather than villainous.
+- Administrative authority rather than generic villain silhouette.
 
 ### Morrowcap
 
-- Fungal envoy rather than enemy boss.
+- Fungal envoy rather than boss monster.
 - Layered cap, root filaments, signal spores, Crown violet.
-- Eyes and posture must support dialogue and negotiation.
+- Face and posture must support dialogue and negotiation.
 
 ### Mrs. Kett
 
-- Ordinary customer whose household water is the first meaningful stake.
+- Ordinary customer and first meaningful human stake.
 - Kitchen robe and dry teacup.
-- Must remain visually present enough that the opening does not become an abstract tutorial.
+- Present in the opening so the service call never becomes an abstract tutorial.
 
 ### Dax Venn
 
 - Opportunistic relative and household B-plot pressure.
 - Compostable drain-cap samples and warm brown pack.
-- Comic energy without breaking the shared world style.
+- Comic energy within the shared world style.
 
-## Environment pack
+## Required environments
 
 ### Mrs. Kett's kitchen
 
-Required facts:
+Must show:
 
-- inhabited domestic kitchen;
-- dry tap;
-- exposed copper trap;
+- an inhabited domestic kitchen;
+- dry tap and exposed copper trap;
 - living pressure-regulating tissue;
 - clean bypass route;
 - Rhea and Mrs. Kett in the same situation.
 
-The opening must not read as a blank grid with a target circle. It is an ordinary service call before it becomes a town crisis.
+It may not read as a blank grid with a target circle.
 
 ### Pump Seven
 
-Required facts:
+The completed production scene must preserve:
 
 - municipal pipe and control architecture;
-- three living spore valves;
-- purge wheel;
-- Crown Sluice;
-- protected nursery branch;
-- town-flow line;
-- room for pressure actors without making them the semantic objective.
+- living spore-valve route;
+- purge wheel and Crown Sluice zones;
+- nursery branch and town-flow line;
+- clear floor space for pressure actors;
+- service gantry and readable traversal lanes.
 
-Each route may add information or framing:
+The existing WebP establishes the production environment source. Its current runtime annotations and player/mechanism figures remain part of the rework and do not count as separate production roles.
 
-- emergency plan: municipal override boundaries;
-- service tunnel: household pressure route;
-- truce offer: translated Crown signal field.
+Route-specific layers:
 
-The underlying deterministic challenge remains Arc-owned.
+- **emergency plan:** municipal override boundaries;
+- **service tunnel:** household pressure route;
+- **truce offer:** translated Crown signal field.
 
 ### Accepted consequence
 
-The consequence environment must show, in one frame:
+One authored frame must show:
 
 - town flow restored or altered;
 - nursery route preserved, harmed, or contested according to accepted state;
-- pump control and Crown relationship no longer identical to pre-action staging.
+- changed pump control;
+- changed relationship between Bellwether and the Crown.
 
-A result paragraph alone does not satisfy this surface.
+A result paragraph and state-card grid alone do not satisfy this role.
 
 ### Root Gate
 
-Required facts:
+Must show:
 
 - municipal brasswork meeting living Crown architecture;
 - shared sluice as the object of negotiation;
 - Rhea physically between Marta and Morrowcap;
-- room for the three compact choices;
-- no blank teaser surface.
+- space for the three compact choices;
+- an inhabited continuation rather than a teaser panel.
 
-## Mechanism pack
+## Required mechanism roles
 
-Every mechanism has three required visual states:
+Every mechanism has three independently authored states:
 
 ```text
 idle
@@ -162,79 +173,59 @@ active
 complete
 ```
 
-The state must be visible independently of objective copy.
+The state must remain legible without objective copy.
 
 ### Inspect living trap
 
 - Copper U-trap and living valve tissue.
-- Active state shows diagnostic operation.
+- Active state communicates diagnosis.
 - Complete state reads stable, not destroyed.
 
 ### Restore Kett water
 
 - Clean household bypass.
-- Active state shows held flow or valve operation.
-- Complete state shows clean water path.
+- Active state communicates sustained operation.
+- Complete state shows a clean water path.
 
 ### Diagnose spore valves
 
 - Three individually addressable living valves.
-- Work state differs from attacking pressure actors.
-- Completed valves remain visibly stable while later objectives proceed.
+- Work state cannot resemble attacking a pressure actor.
+- Completed valves remain visibly stable during later objectives.
 
 ### Operate purge wheel
 
-- Municipal wheel and shared-flow pressure.
+- Municipal wheel under shared-flow pressure.
 - Active state communicates sustained work.
-- Completion cannot resemble an enemy defeat marker.
+- Completion cannot resemble an enemy defeat token.
 
 ### Open Crown Sluice
 
-- Crown and municipal control geometry around a shared water path.
-- Active state communicates balance rather than brute opening.
-- Complete state supports the Root Gate continuation.
+- Crown and municipal controls around a shared water path.
+- Active state communicates balance rather than brute force.
+- Complete state leads visually into the Root Gate.
 
 ## Pressure actors
 
-Pressure actors exist to contest the work. They never replace it.
+Pressure actors contest the operation but never replace it.
 
-### Capling defender
+- **Capling defender:** root-footed cap silhouette and readable telegraph.
+- **Spore swarm:** linked signal-spore cluster, distinct from mechanisms.
+- **Root breaker:** heavy root-and-cap body with floor-impact threat.
 
-- Root-footed cap silhouette.
-- Orange telegraph.
-- Defensive posture near nursery infrastructure.
-
-### Spore swarm
-
-- Linked signal-spore cluster.
-- Visually distinct from a single mechanism target.
-
-### Root breaker
-
-- Heavy root-and-cap body.
-- Floor-impact threat and warning rust.
-
-Health bars and attack telegraphs may use shared action affordances, but the bodies remain Underdrain-owned.
+Shared health and telegraph affordances are allowed. Bodies, attacks, and silhouettes remain Underdrain-owned.
 
 ## Route marks
 
-### Emergency plan
+- **Emergency plan:** numbered brass valve and municipal command chevrons.
+- **Service tunnel:** copper household pressure line with water trace.
+- **Truce offer:** promise knot, cap signal, and translated violet pulse.
 
-Numbered brass valve and municipal command chevrons.
-
-### Service tunnel
-
-Copper household pressure line with water trace.
-
-### Truce offer
-
-Promise knot, cap signal, and violet translated pulse.
-
-Route marks appear with the choice and may remain visible during Pump Seven. They must not imply a secret difficulty change.
+Route marks appear with the choice and can persist during Pump Seven. They may not imply a hidden difficulty change.
 
 ## Persistent-state marks
 
-The durable record and consequence surface require distinct marks for:
+The consequence and record surfaces need distinct authored marks for:
 
 - town water pressure;
 - Mrs. Kett's water;
@@ -244,36 +235,34 @@ The durable record and consequence surface require distinct marks for:
 - evidence custody;
 - Root Gate access.
 
-State marks accompany textual values. They do not replace them.
+Marks accompany textual values; they never replace them.
 
-## Evidence marks
+## Evidence roles
 
 ### Living sample
 
-Sealed jar containing pressure-regulating tissue.
+A sealed jar containing pressure-regulating tissue.
 
 ### Municipal discharge
 
-Traced antifungal discharge entering the nursery branch.
+A traced antifungal discharge entering the nursery branch.
 
-These marks make the causal reveal inspectable after action without turning the product into an infographic.
+These preserve the causal revelation after action without turning the product into an infographic.
 
-## Durable-record seal
+## Durable record
 
-The final seal combines:
+The final record seal combines:
 
 - Bellwether meter;
 - Rhea's wrench;
 - Crown valve;
 - water-flow arc.
 
-It must appear on the complete record and exported episode identity. It does not certify blind-player comprehension.
+It appears in the completed record and exported identity. It does not certify player comprehension.
 
-## Required surfaces
+## Six controlling player surfaces
 
-The representation plan binds assets to:
-
-| Surface | Minimum requirement |
+| Surface | Production requirement |
 |---|---|
 | Cold entry | Emblem, kitchen, Rhea, Mrs. Kett, living trap problem |
 | Authored commitment | Marta, Tess, Dax, Morrowcap, three route marks |
@@ -282,55 +271,88 @@ The representation plan binds assets to:
 | Playable successor | Root Gate, Rhea, Marta, Morrowcap, shared sluice |
 | Durable record | Record seal and every persistent-state mark |
 
-All six surfaces require desktop, mobile, and nonvisual equivalents.
+All six surfaces need desktop, portrait mobile, short-landscape mobile, and nonvisual equivalents.
 
-## Mobile law
+## Player-space law
 
-At the 390 x 844 reference viewport:
+The objective and controls are not art-layer overlays. They live in a separate command deck:
 
-- every touch target remains inside the stage;
-- every touch target is at least 44 x 44 CSS pixels;
-- touch controls do not overlap;
-- the objective ribbon remains separated from the control cluster;
-- the current mechanism and player remain legible behind controls;
-- art may crop or restage but may not disappear or fall back to neutral presentation.
+```text
+stage-shell
+├── stage / canvas / HUD
+└── command-deck / objective / touch controls
+```
 
-The geometry is executable acceptance, not a screenshot-only judgment.
+Reference geometry:
+
+- 390 x 844 portrait: command deck below the world;
+- 844 x 390 landscape: command deck on a dedicated right rail;
+- desktop: objective below the world, touch controls hidden.
+
+Executable acceptance requires:
+
+- zero command-deck intersection with the canvas or stage;
+- zero ribbon or touch-control intersection with the canvas;
+- 44 x 44 minimum touch targets;
+- label ink contained inside its target;
+- no pairwise control overlap;
+- sufficient unobstructed canvas size.
+
+The old rule “controls remain inside the stage” is retired because it certified the exact obstruction the player reported.
 
 ## Accessibility
 
-- Every asset declares an accessible equivalent in `presentation.json`.
-- Every required surface declares a nonvisual equivalent.
-- Canvas state remains available through objective text, story thread, controls, event evidence, and episode record.
-- Reduced motion removes timing decoration without removing state.
-- Forced colors preserve semantic borders and labels.
+- Every declared role has a written accessible equivalent.
+- Every surface has a nonvisual equivalent.
+- Canvas state remains available through objective text, story thread, event evidence, and episode record.
+- Reduced motion removes decoration without removing state.
+- Forced colors preserve boundaries and labels.
 - Color is never the sole marker for completion, damage, route, or persistent state.
+
+Accessible descriptions do not turn prototype imagery into production art.
 
 ## Provenance and custody
 
-`assets/provenance.json` declares original project authorship, local-only runtime, no raster payload, no executable SVG, no network reference, and the boundary between representation and semantic authority.
+Production coverage requires a separate `rodoh-representation-production/1` receipt containing:
 
-Every asset id begins with:
+- exact role IDs covered;
+- exact source paths;
+- media type;
+- source SHA-256;
+- dimensions where applicable.
+
+A role is production-complete only when it appears in `productionAssetIds` and is bound to at least one exact source. Multiple role IDs pointing to one procedural file remain prototype roles unless that source is explicitly accepted as the authored production source for each role.
+
+## Acceptance ladder
 
 ```text
-underdrain:
+role plan complete
+production coverage mixed
+  -> representation release rejected
+
+role plan complete
+production coverage complete
+all player-space/device gates pass
+  -> representation gate pass
+
+structural authored experience pass
+representation gate pass
+  -> machine-qualified-authored-pilot
+
+same candidate plus independent blind-player receipt
+  -> accepted-playable-authored-episode
 ```
 
-Every source path remains under the candidate directory. The static verifier refuses missing, escaped, generic, placeholder, debug, wireframe, prototype, bare-doll, or neutral assets.
+## Closure condition
 
-## Acceptance
+This production specification is satisfied only when one exact candidate proves:
 
-The pack is complete only when the same exact candidate passes:
+1. all 48 roles have exact production sources;
+2. no prototype role remains;
+3. every required person, mechanism state, environment, route, state, evidence role, and record role is mounted;
+4. all six player surfaces pass desktop, portrait, and short-landscape review;
+5. objective and controls never cover the rendered world;
+6. static, browser, direct-file Windows/Edge, accessibility, and global asset-custody gates pass;
+7. retained screenshots are reviewed as product evidence, not merely generated files.
 
-1. `evaluateRepresentationPlan`;
-2. authored-pilot discovery;
-3. static authoring and presentation verification;
-4. desktop and mobile represented cold walk;
-5. mobile control geometry;
-6. represented HTTP reload;
-7. represented direct-file Chromium and Edge reload;
-8. route-by-compact matrix with representation checks;
-9. global asset custody;
-10. complete World regression, build, parity, browser, and local-estate lanes.
-
-The independent zero-assistance one-a.m. receipt remains a separate human-observation boundary.
+Until then, Underdrain remains a representation rework with valid authored logic, not a machine-qualified pilot.
