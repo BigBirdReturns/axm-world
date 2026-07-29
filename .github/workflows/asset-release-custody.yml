@@ -38,13 +38,14 @@ jobs:
           test -z "$(git status --porcelain)"
           git diff --check
       - run: npm ci --no-audit --no-fund
-      - name: Derive and check authored-pilot representation obligations
+      - name: Derive obligations and record actual candidate production coverage
         run: |
           set -euo pipefail
           mkdir -p asset-release-receipt
           node scripts/assets/scaffold-authored-pilot-representation.mjs \
             --authoring demos/underdrain-draft/authoring.json \
             --presentation demos/underdrain-draft/presentation.json \
+            --production demos/underdrain-draft/production.json \
             --namespace underdrain \
             --repository BigBirdReturns/axm-world \
             --authored-identity underdrain-continuous-pilot-v2 \
@@ -52,7 +53,19 @@ jobs:
             --people marta-sump,morrowcap,mrs-kett,dax-venn \
             --state-ids town-water-pressure,kett-water,fungus-contact,crown-grievance,rhea-status,evidence-custody,root-gate-open \
             | tee asset-release-receipt/representation-scaffold-check.json
-      - name: Deterministic inventory and focused contracts
+          cat > asset-release-receipt/underdrain-release-boundary.json <<JSON
+          {
+            "format": "rodoh-underdrain-asset-release-boundary/1",
+            "status": "representation-rework",
+            "declaredRepresentationRoles": 48,
+            "productionRoles": 1,
+            "prototypeRoles": 47,
+            "productionCoverageComplete": false,
+            "releaseRepresentationGate": "fail-closed-mixed-coverage",
+            "machineQualifiedAuthoredPilot": false
+          }
+          JSON
+      - name: Deterministic v1 inventory and candidate refusal contracts
         run: |
           set -euo pipefail
           node scripts/assets/build-release-asset-inventory.mjs \
@@ -68,6 +81,7 @@ jobs:
             tests/world/authored-pilot-representation-discovery.test.ts \
             tests/world/authored-pilot-representation-scaffold.test.ts \
             tests/world/representation-completeness.test.ts \
+            tests/world/playable-product-completeness.test.ts \
             tests/world/underdrain-presentation-completeness.test.ts \
             tests/world/asset-standard.test.ts \
             tests/world/production-asset-wave-one.test.ts \
@@ -84,8 +98,11 @@ jobs:
             --budgets docs/performance/RODOH_PERFORMANCE_BUDGETS.json \
             --output asset-release-receipt/static-performance.json
           cp docs/release/RODOH_ASSET_INVENTORY.json asset-release-receipt/asset-inventory.json
-          cp demos/underdrain-draft/presentation.json asset-release-receipt/underdrain-presentation.json
+          cp demos/underdrain-draft/presentation.json asset-release-receipt/underdrain-role-plan.json
+          cp demos/underdrain-draft/production.json asset-release-receipt/underdrain-production-coverage.json
+          cp -a demos/underdrain-draft/assets/production asset-release-receipt/underdrain-production-source
           cp demos/underdrain-draft/assets/provenance.json asset-release-receipt/underdrain-provenance.json
+          cp demos/underdrain-draft/assets/underdrain-art.js asset-release-receipt/underdrain-prototype-role-renderer.js
           cp docs/design/UNDERDRAIN_ASSET_BIBLE.md asset-release-receipt/UNDERDRAIN_ASSET_BIBLE.md
           cp docs/design/UNDERDRAIN_REPRESENTATION_FAILURE_ANALYSIS.md asset-release-receipt/UNDERDRAIN_REPRESENTATION_FAILURE_ANALYSIS.md
           cp scripts/assets/scaffold-authored-pilot-representation.mjs asset-release-receipt/scaffold-authored-pilot-representation.mjs
