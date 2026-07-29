@@ -119,14 +119,19 @@ describe("UNDERDRAIN Unity 6000 player train", () => {
     expect(refused.result.stderr).toContain("forbidden generated asset root");
   });
 
-  it("requires exact production markers, imported visuals, static arena collision, and no Unity combat physics", () => {
+  it("requires exact production markers, named approval custody, imported visuals, static arena collision, and no Unity combat physics", () => {
     const marker = read("unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionAssetMarker.cs");
     const identity = read("unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerProductIdentity.cs");
     const batch = read("unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs");
-    expect(marker).toContain('Format = "rodoh-action-production-asset/1"');
+    expect(marker).toContain('Format = "rodoh-action-production-asset/2"');
     expect(marker).toContain("productionApproved");
+    expect(marker).toContain("approvalRecordFormat");
+    expect(marker).toContain("approvalAuthorityId");
+    expect(marker).toContain("approvalAttestation");
+    expect(marker).toContain("approvedAt");
     expect(marker).toContain("generatedPrimitive");
     expect(marker).toContain("Production asset source SHA-256 is absent or malformed");
+    expect(marker).toContain("Production asset approval authority is absent");
     expect(identity).toContain('Format = "rodoh-action-player-product-identity/1"');
     expect(identity).toContain('qualification = "source-and-scene-qualified"');
     expect(identity).toContain("runtimeMayIssueComprehensionReceipt = false");
@@ -184,17 +189,23 @@ describe("UNDERDRAIN Unity 6000 player train", () => {
     expect(session).toContain('namedPlayerProductAcceptance = "not-issued"');
   });
 
-  it("extends the real project train through source intake, read-only audit, independent comprehension, and named acceptance", () => {
+  it("extends the real project train through named asset approval, read-only intake and audit, independent comprehension, and named acceptance", () => {
     const productTrain = read("scripts/run-underdrain-unity6000-player-product.ps1");
+    const approval = read("scripts/approve-underdrain-production-assets.ps1");
     const intake = read("scripts/prepare-underdrain-production-assets.ps1");
     const audit = read("scripts/audit-underdrain-production-assets.ps1");
     const comprehension = read("scripts/record-underdrain-independent-comprehension.ps1");
     const acceptance = read("scripts/accept-underdrain-player-product.ps1");
+    expect(productTrain).toContain("AssetApprovalReceipt");
     expect(productTrain).toContain("prepare-underdrain-production-assets.ps1");
     expect(productTrain).toContain("audit-underdrain-production-assets.ps1");
     expect(productTrain).toContain("Production asset $id changed between intake, player-product qualification, and read-only audit");
     expect(productTrain).toContain('format = "rodoh-underdrain-unity6000-player-product-train/1"');
+    expect(productTrain).toContain("Read-only production-asset audit lost named approval custody");
+    expect(approval).toContain("ActionProductionAssetApprovalBatch.Run");
+    expect(approval).toContain("ConfirmAllAssets");
     expect(intake).toContain("ActionProductionAssetIntakeBatch.Run");
+    expect(intake).toContain("AssetApprovalReceipt");
     expect(audit).toContain("ActionProductionAssetAuditBatch.Run");
     expect(comprehension).toContain('format = "rodoh-underdrain-independent-comprehension/1"');
     expect(comprehension).toContain("The independent player may not receive a walkthrough before adjudication");
@@ -202,6 +213,8 @@ describe("UNDERDRAIN Unity 6000 player train", () => {
     expect(acceptance).toContain('format = "rodoh-underdrain-player-product-acceptance/1"');
     expect(acceptance).toContain("Gamepad acceptance must include a persisted runtime rebind");
     expect(acceptance).toContain("voluntarilyContinuedAfterConsequence -ne $true");
+    expect(acceptance).toContain("assetApproval.approvalAuthorityId -eq $AcceptorId");
+    expect(acceptance).toContain("Final player-product acceptor must differ from the presentation-asset approval authority");
     expect(acceptance).toContain('questAcceptance = "not-issued"');
   });
 });
