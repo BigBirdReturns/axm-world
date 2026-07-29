@@ -35,15 +35,15 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Apply the bounded C# compatibility repair
+      - name: Apply the bounded source repairs
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
 
-          path = Path('unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs')
-          text = path.read_text(encoding='utf-8')
+          product = Path('unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs')
+          text = product.read_text(encoding='utf-8')
           replacements = [
               (
                   '        private sealed class AssetRequirement\n',
@@ -60,9 +60,30 @@ jobs:
           for before, after, expected in replacements:
               count = text.count(before)
               if count != expected:
-                  raise SystemExit(f'{path}: expected {expected} occurrence(s), found {count}: {before!r}')
+                  raise SystemExit(f'{product}: expected {expected} occurrence(s), found {count}: {before!r}')
               text = text.replace(before, after)
-          path.write_text(text, encoding='utf-8', newline='\n')
+          product.write_text(text, encoding='utf-8', newline='\n')
+
+          hud = Path('unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionMinimalHud.cs')
+          text = hud.read_text(encoding='utf-8')
+          replacements = [
+              (
+                  '                ? "WASD move   MOUSE look   LMB sweep   RMB crush   SPACE dodge   Q parry   E work"\n',
+                  '                ? "WASD move   MOUSE look   LMB sweep   RMB crush   SPACE dodge   Q parry   E work   F10 rebind"\n',
+                  1,
+              ),
+              (
+                  '                : "WASD move   MOUSE look   " + bindings.Profile.ControlSummary();\n',
+                  '                : "WASD move   MOUSE look   " + bindings.Profile.ControlSummary() + "   F10 rebind";\n',
+                  1,
+              ),
+          ]
+          for before, after, expected in replacements:
+              count = text.count(before)
+              if count != expected:
+                  raise SystemExit(f'{hud}: expected {expected} occurrence(s), found {count}: {before!r}')
+              text = text.replace(before, after)
+          hud.write_text(text, encoding='utf-8', newline='\n')
           PY
           git diff --check
 
