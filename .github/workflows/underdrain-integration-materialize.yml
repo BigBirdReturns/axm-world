@@ -107,3 +107,5 @@ jobs:
           test ! -e .github/workflows/underdrain-integration-materialize.yml
           git commit -m 'Consolidate exact UNDERDRAIN Unity 6000 player product'
           git push origin HEAD:integration/underdrain-unity6000-player-product-v1
+
+# trigger-after-workflow-admission
