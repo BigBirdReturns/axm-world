@@ -48,7 +48,7 @@ namespace Axm.Rodoh.Action.Editor
             {
                 foreach (var path in paths)
                 {
-                    var fullPath = Path.GetFullPath(path);
+                    var fullPath = ProjectFilePath(path);
                     if (!File.Exists(fullPath)) throw new FileNotFoundException("Imported production source file is absent.", fullPath);
                     var pathBytes = Encoding.UTF8.GetBytes(path + "\0");
                     aggregate.TransformBlock(pathBytes, 0, pathBytes.Length, null, 0);
@@ -62,6 +62,14 @@ namespace Axm.Rodoh.Action.Editor
                 aggregate.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
                 return BitConverter.ToString(aggregate.Hash).Replace("-", string.Empty).ToLowerInvariant();
             }
+        }
+
+        public static string ProjectFilePath(string assetPath)
+        {
+            var path = NormalizeAssetPath(assetPath);
+            var projectRoot = Directory.GetParent(Application.dataPath)?.FullName;
+            if (string.IsNullOrWhiteSpace(projectRoot)) throw new InvalidOperationException("Unity project root could not be resolved from Application.dataPath.");
+            return Path.GetFullPath(Path.Combine(projectRoot, path.Replace('/', Path.DirectorySeparatorChar)));
         }
 
         public static void RefuseForbidden(string path, string[] forbiddenRoots)
