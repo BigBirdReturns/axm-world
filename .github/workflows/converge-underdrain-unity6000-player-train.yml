@@ -1,21 +1,26 @@
 name: Converge UNDERDRAIN Unity 6000 player train
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/converge-underdrain-unity6000-player-train.yml'
   push:
     branches:
       - feature/underdrain-unity6000-player-train-v1
     paths:
       - '.github/workflows/converge-underdrain-unity6000-player-train.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: converge-underdrain-unity6000-player-train
+  group: converge-underdrain-unity6000-player-train-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   converge:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
