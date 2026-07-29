@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/converge-action-semantic-cue-receiver.yml'
+      - 'unity/Conformance/CueParityProgram.cs'
   workflow_dispatch:
 
 permissions:
