@@ -57,7 +57,7 @@ internal static class CueParityProgram
         var receipt = new Receipt();
         try
         {
-            if (args.Length < 2) throw new ArgumentException("usage: cue-parity <unity-projection.json> <arc-reference.json> [receipt.json]");
+            if (args.Length < 2) throw new ArgumentException("usage: cue-parity <unity-projection.json> <arc-reference.json> [receipt.json] [candidate.json]");
             var projectionPath = Path.GetFullPath(args[0]);
             var referencePath = Path.GetFullPath(args[1]);
             if (!File.Exists(projectionPath)) throw new FileNotFoundException("Unity action projection is absent.", projectionPath);
@@ -106,6 +106,12 @@ internal static class CueParityProgram
             if (!receipt.exactCueParity) throw new InvalidOperationException("Arc and C# cue-trace digests differ.");
             if (!receipt.candidateTimingProfilePreserved) throw new InvalidOperationException("Unity candidate dropped the timing-profile identity.");
             if (candidate.authority != "Arc replay required") throw new InvalidOperationException("Unity candidate claimed accepted authority.");
+            if (args.Length > 3)
+            {
+                var candidatePath = Path.GetFullPath(args[3]);
+                Directory.CreateDirectory(Path.GetDirectoryName(candidatePath) ?? Directory.GetCurrentDirectory());
+                File.WriteAllText(candidatePath, ActionBridgeJson.SerializeCandidate(candidate, true));
+            }
             receipt.status = "pass";
             return Write(receipt, args.Length > 2 ? args[2] : null, false);
         }

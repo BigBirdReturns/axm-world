@@ -14,6 +14,7 @@ const candidatePath = process.env.AXM_ACTION_CANDIDATE;
 const receiptOutputPath = process.env.AXM_ACTION_RECEIPT_OUT;
 const reconciliationOutputPath = process.env.AXM_ACTION_RECONCILIATION_OUT;
 const arcModules = import.meta.glob("../../src/arcs/*.{ts,js}", { eager: true });
+const demoModules = import.meta.glob("../../src/demos/**/index.{ts,js}", { eager: true });
 
 function required(value: string | undefined, name: string): string {
   if (!value) throw new Error(`Missing ${name}.`);
@@ -38,7 +39,8 @@ function isArc(value: unknown): value is Arc {
 function discoverArcs(): Arc[] {
   const arcs: Arc[] = [];
   const seen = new Set<unknown>();
-  for (const moduleValue of Object.values(arcModules as Record<string, Record<string, unknown>>)) {
+  const moduleSets = [arcModules, demoModules] as Array<Record<string, Record<string, unknown>>>;
+  for (const modules of moduleSets) for (const moduleValue of Object.values(modules)) {
     for (const candidate of Object.values(moduleValue)) {
       if (!isArc(candidate) || seen.has(candidate)) continue;
       seen.add(candidate);
@@ -50,12 +52,13 @@ function discoverArcs(): Arc[] {
 
 function findAuthority(spec: any, candidate: any): { arc: Arc; challenge: Challenge } {
   const difficultyModeId = candidate.difficultyModeId ?? null;
+  const timingProfileId = candidate.timingProfileId ?? null;
   const attempts: Array<{ arcId: string; challengeId: string; error: string }> = [];
   for (const arc of discoverArcs()) {
     for (const challenge of arc.challenges) {
       if (challenge.id !== candidate.challengeId) continue;
       try {
-        const compiled = compileActionEncounter(arc, challenge, difficultyModeId);
+        const compiled = compileActionEncounter(arc, challenge, difficultyModeId, timingProfileId);
         if (compiled.arcDigest === spec.arcDigest && compiled.specDigest === spec.specDigest) {
           return { arc, challenge };
         }
@@ -126,17 +129,20 @@ describe("Unity candidate to Arc receipt convergence", () => {
     expect(candidate.authority).toBe("Arc replay required");
     expect(candidate.arcDigest).toBe(spec.arcDigest);
     expect(candidate.actionSpecDigest).toBe(spec.specDigest);
+    expect(candidate.timingProfileId ?? null).toBe(spec.timingProfileId ?? null);
     expect(candidate.trace.reduce((total: number, run: any) => total + run.ticks, 0)).toBe(candidate.totalTicks);
 
     const { arc, challenge } = findAuthority(spec, candidate);
     const difficultyModeId = candidate.difficultyModeId ?? null;
-    const expectedSeed = actionSeed(orgSeed, candidate.cycle, challenge.id, difficultyModeId);
+    const timingProfileId = candidate.timingProfileId ?? null;
+    const expectedSeed = actionSeed(orgSeed, candidate.cycle, challenge.id, difficultyModeId, timingProfileId);
     expect(candidate.seed).toBe(expectedSeed);
 
     const receipt = buildActionReceipt({
       arc,
       challenge,
       difficultyModeId,
+      timingProfileId,
       cycle: candidate.cycle,
       orgSeed,
       controlledAgentId: candidate.controlledAgentId,
@@ -147,6 +153,7 @@ describe("Unity candidate to Arc receipt convergence", () => {
       arc,
       challenge,
       difficultyModeId,
+      timingProfileId,
       cycle: candidate.cycle,
       orgSeed,
       partyAgentIds: candidate.partyAgentIds,
@@ -165,6 +172,7 @@ describe("Unity candidate to Arc receipt convergence", () => {
       arcDigest: spec.arcDigest,
       actionSpecDigest: spec.specDigest,
       challengeId: candidate.challengeId,
+      timingProfileId,
       creator: "buildActionReceipt",
       creatorInvocation: "exact Arc, challenge, execution context, and Unity trace",
       verifier: "verifyActionReceipt",
