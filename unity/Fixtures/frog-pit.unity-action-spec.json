@@ -7,6 +7,7 @@
   "challengeId": "unity-frog-pit-conformance",
   "title": "The Frog Pit",
   "difficultyModeId": null,
+  "timingProfileId": null,
   "tickRate": 30,
   "maxTicks": 900,
   "arena": {

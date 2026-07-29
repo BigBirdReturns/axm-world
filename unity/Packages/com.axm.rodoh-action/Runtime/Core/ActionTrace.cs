@@ -211,6 +211,7 @@ namespace Axm.Rodoh.Action
       arcDigest = spec.sourceArcDigest,
                 challengeId = spec.challengeId,
                 difficultyModeId = spec.difficultyModeId,
+                timingProfileId = spec.timingProfileId,
                 actionSpecDigest = spec.sourceSpecDigest,
                 cycle = cycle,
                 seed = seed,

@@ -13,7 +13,9 @@ namespace Axm.Rodoh.Action
         bool DiagnosticOnly { get; }
         void Initialize(ActionSpecProjection spec, ActionSimulationState state);
         void Render(ActionSimulationState state, float interpolation);
-        void ApplyEvents(IReadOnlyList<ActionEvent> events);
+        bool SupportsCue(string cueId);
+        IReadOnlyList<string> ValidatePlayerProfile();
+        void ApplyCues(IReadOnlyList<ActionSemanticCue> cues);
         bool UsesUnityPhysicsAuthority();
     }
 }

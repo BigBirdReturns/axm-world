@@ -146,6 +146,7 @@ namespace Axm.Rodoh.Action
         public string challengeId = string.Empty;
         public string title = string.Empty;
         public string difficultyModeId;
+        public string timingProfileId;
         public int tickRate = ActionContract.TickRate;
         public int maxTicks;
         public ActionArenaSpec arena = new ActionArenaSpec();
@@ -162,6 +163,7 @@ namespace Axm.Rodoh.Action
             if (string.IsNullOrWhiteSpace(sourceSpecDigest) || !sourceSpecDigest.StartsWith("actspec1_", StringComparison.Ordinal)) errors.Add("Source action-spec digest is absent or malformed.");
             if (string.IsNullOrWhiteSpace(sourceArcDigest) || !sourceArcDigest.StartsWith("cart1_", StringComparison.Ordinal)) errors.Add("Source cartridge digest is absent or malformed.");
             if (!ActionContract.IsRuntimeVersion(runtimeVersion)) errors.Add("Unsupported action runtime version.");
+            if (timingProfileId != null && string.IsNullOrWhiteSpace(timingProfileId)) errors.Add("Timing-profile identity is empty.");
             if (tickRate != ActionContract.TickRate) errors.Add("Action projection must run at exactly 30 Hz.");
             if (maxTicks <= 0 || maxTicks > 600 * ActionContract.TickRate) errors.Add("maxTicks is outside the v1 bound.");
             if (arena == null || !ActionContract.IsArenaKit(arena.kit) || arena.radius < 1000 || arena.radius > 20000) errors.Add("Arena law is missing or outside the v1 bound.");
@@ -459,6 +461,7 @@ namespace Axm.Rodoh.Action
         public string arcDigest = string.Empty;
         public string challengeId = string.Empty;
         public string difficultyModeId;
+        public string timingProfileId;
         public string actionSpecDigest = string.Empty;
         public int cycle;
         public uint seed;
