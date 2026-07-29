@@ -120,10 +120,13 @@ async function actionGeometry(page: Page) {
 
 test("UNDERDRAIN mobile portrait and landscape keep every command outside the rendered world", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile", "Touch geometry is qualified by the mobile project.");
+  test.setTimeout(60_000);
 
   for (const viewport of VIEWPORTS) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.goto(DEMO);
+    await page.evaluate(() => (window as any).UnderdrainRuntime.reset());
+    await expect(page.locator("#cold")).toHaveClass(/active/);
     await page.getByRole("button", { name: "Answer the service call" }).click();
     await expect(page.locator("#action")).toHaveClass(/active/);
     await expect(page.locator(".touch")).toBeVisible();
