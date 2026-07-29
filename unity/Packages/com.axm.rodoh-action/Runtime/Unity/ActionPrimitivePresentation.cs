@@ -9,7 +9,7 @@ namespace Axm.Rodoh.Action
     /// no Rigidbody is created. Arc integer state determines every combat position,
     /// hit, parry, dodge, defeat, and terminal result.
     /// </summary>
-    public sealed class ActionPrimitivePresentation : MonoBehaviour
+    public sealed class ActionPrimitivePresentation : MonoBehaviour, IActionPresentationAdapter
     {
         [SerializeField, Min(0.00001f)] private float unityUnitsPerActionUnit = 0.0005f;
         [SerializeField] private Transform presentationRoot;
@@ -24,6 +24,9 @@ namespace Axm.Rodoh.Action
         private Material _arenaMaterial;
         private ActionSpecProjection _spec;
         private int _lastRenderedTick = -1;
+
+        public string AdapterId => "diagnostic.primitive/v1";
+        public bool DiagnosticOnly => true;
 
         public void Initialize(ActionSpecProjection spec, ActionSimulationState state)
         {
