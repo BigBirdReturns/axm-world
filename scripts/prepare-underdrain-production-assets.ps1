@@ -9,7 +9,6 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$ProductProfile,
 
-    [Parameter(Mandatory = $true)]
     [string]$AssetApprovalReceipt,
 
     [Parameter(Mandatory = $true)]
@@ -32,8 +31,11 @@ $worldRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $projectRoot = Resolve-FullPath $EmbodiedArLabRoot (Get-Location).Path
 $presentationPath = Resolve-FullPath $PresentationManifest $worldRoot
 $profilePath = Resolve-FullPath $ProductProfile $worldRoot
-$approvalPath = Resolve-FullPath $AssetApprovalReceipt (Get-Location).Path
 $output = Resolve-FullPath $OutputRoot $projectRoot
+if ([string]::IsNullOrWhiteSpace($AssetApprovalReceipt)) {
+    $AssetApprovalReceipt = Join-Path ([System.IO.Path]::GetDirectoryName($output)) "production-asset-approval\production-asset-approval.json"
+}
+$approvalPath = Resolve-FullPath $AssetApprovalReceipt (Get-Location).Path
 foreach ($directory in @("Assets", "Packages", "ProjectSettings")) {
     if (-not (Test-Path (Join-Path $projectRoot $directory))) { throw "Embodied-AR-Lab $directory directory is absent: $projectRoot" }
 }
