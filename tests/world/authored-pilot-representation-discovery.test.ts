@@ -3,8 +3,10 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   REPRESENTATION_PLAN_FORMAT,
+  REPRESENTATION_PRODUCTION_FORMAT,
   evaluateRepresentationPlan,
   type RepresentationPlan,
+  type RepresentationProductionCoverage,
 } from "../../src/world/acceptance/representation-completeness.js";
 
 const ROOT = resolve(import.meta.dirname, "../..");
@@ -48,21 +50,30 @@ const firstPartyPilots = authoringFiles.flatMap((path) => {
 });
 
 describe("first-party authored-pilot representation discovery", () => {
-  it("discovers at least one governed first-party pilot instead of auditing only the frozen v1 rollup", () => {
+  it("discovers governed first-party candidates instead of auditing only the frozen v1 rollup", () => {
     expect(firstPartyPilots.map((entry) => repositoryPath(entry.path)))
       .toContain("demos/underdrain-draft/authoring.json");
   });
 
   for (const candidate of firstPartyPilots) {
     const label = repositoryPath(candidate.directory);
-    it(`${label} carries a complete cartridge-owned representation plan`, () => {
+    it(`${label} carries role, provenance, and exact production-coverage custody`, () => {
       const presentationPath = join(candidate.directory, "presentation.json");
-      expect(existsSync(presentationPath), `${label} is outside representation custody`).toBe(true);
+      const productionPath = join(candidate.directory, "production.json");
+      expect(existsSync(presentationPath), `${label} is outside representation-role custody`).toBe(true);
+      expect(existsSync(productionPath), `${label} has no production-coverage receipt`).toBe(true);
       const plan = readJson(presentationPath) as RepresentationPlan;
+      const production = readJson(productionPath) as RepresentationProductionCoverage;
       expect(plan.format).toBe(REPRESENTATION_PLAN_FORMAT);
+      expect(production.format).toBe(REPRESENTATION_PRODUCTION_FORMAT);
       expect(plan.classification).toBe(candidate.authoring.classification);
-      const result = evaluateRepresentationPlan(plan);
-      expect(result, result.blockers.join("\n")).toMatchObject({ status: "pass", blockers: [] });
+      const result = evaluateRepresentationPlan(plan, production);
+      if (production.status === "complete") {
+        expect(result, result.blockers.join("\n")).toMatchObject({ status: "pass", blockers: [] });
+      } else {
+        expect(result.status).toBe("fail");
+        expect(result.blockers.some((blocker) => blocker.startsWith("Production coverage is "))).toBe(true);
+      }
 
       const provenancePath = resolve(candidate.directory, plan.provenance.path);
       expect(confined(candidate.directory, provenancePath)).toBe(true);
@@ -73,6 +84,14 @@ describe("first-party authored-pilot representation discovery", () => {
         const sourcePath = resolve(candidate.directory, asset.sourcePath);
         expect(confined(candidate.directory, sourcePath), `${asset.id} escapes candidate custody`).toBe(true);
         expect(existsSync(sourcePath), `missing ${repositoryPath(sourcePath)} for ${asset.id}`).toBe(true);
+      }
+      for (const source of production.sources) {
+        expect(source.sha256).toMatch(/^[0-9a-f]{64}$/);
+        for (const path of source.sourcePaths) {
+          const sourcePath = resolve(candidate.directory, path);
+          expect(confined(candidate.directory, sourcePath), `${source.id} escapes candidate custody`).toBe(true);
+          expect(existsSync(sourcePath), `missing ${repositoryPath(sourcePath)} for ${source.id}`).toBe(true);
+        }
       }
     });
   }
