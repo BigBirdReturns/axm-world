@@ -69,3 +69,5 @@ jobs:
           git diff --cached --check
           git commit -m 'Consume exact Arc semantic cues through the production player adapter'
           git push origin HEAD:feature/action-semantic-cue-receiver-v1
+
+# Explicitly retriggered after the initial PR-only checks exposed the unapplied carrier patch.
