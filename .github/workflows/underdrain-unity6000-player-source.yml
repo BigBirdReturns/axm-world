@@ -4,36 +4,63 @@ on:
   pull_request:
     paths:
       - '.github/workflows/underdrain-unity6000-player-source.yml'
+      - 'docs/UNDERDRAIN_PRODUCTION_ASSET_APPROVAL.md'
+      - 'scripts/accept-underdrain-player-product.ps1'
+      - 'scripts/approve-underdrain-production-assets.ps1'
+      - 'scripts/audit-underdrain-production-assets.ps1'
       - 'scripts/build-unity-action-player.ps1'
+      - 'scripts/prepare-underdrain-production-assets.ps1'
       - 'scripts/qualify-unity-action-player-product.ps1'
+      - 'scripts/record-underdrain-independent-comprehension.ps1'
       - 'scripts/run-underdrain-player-session.ps1'
+      - 'scripts/run-underdrain-unity6000-player-product.ps1'
       - 'scripts/run-underdrain-unity6000-player-train.ps1'
       - 'tests/world/action-natural-player.test.ts'
+      - 'tests/world/underdrain-player-product-acceptance.test.ts'
       - 'tests/world/underdrain-unity6000-player-train.test.ts'
       - 'unity/Conformance/project-authored-action-presentation.mjs'
       - 'unity/Fixtures/underdrain.authored-presentation.template.json'
+      - 'unity/Fixtures/underdrain.comprehension-contract.json'
       - 'unity/Fixtures/underdrain.player-product.json'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionBuildBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionPolishAugmentBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetApprovalBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetAuditBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetDigest.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetIntakeBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Runtime/**'
   push:
     branches:
       - feature/underdrain-unity6000-player-train-v1
+      - repair/action-production-asset-approval-v1
     paths:
       - '.github/workflows/underdrain-unity6000-player-source.yml'
+      - 'docs/UNDERDRAIN_PRODUCTION_ASSET_APPROVAL.md'
+      - 'scripts/accept-underdrain-player-product.ps1'
+      - 'scripts/approve-underdrain-production-assets.ps1'
+      - 'scripts/audit-underdrain-production-assets.ps1'
       - 'scripts/build-unity-action-player.ps1'
+      - 'scripts/prepare-underdrain-production-assets.ps1'
       - 'scripts/qualify-unity-action-player-product.ps1'
+      - 'scripts/record-underdrain-independent-comprehension.ps1'
       - 'scripts/run-underdrain-player-session.ps1'
+      - 'scripts/run-underdrain-unity6000-player-product.ps1'
       - 'scripts/run-underdrain-unity6000-player-train.ps1'
       - 'tests/world/action-natural-player.test.ts'
+      - 'tests/world/underdrain-player-product-acceptance.test.ts'
       - 'tests/world/underdrain-unity6000-player-train.test.ts'
       - 'unity/Conformance/project-authored-action-presentation.mjs'
       - 'unity/Fixtures/underdrain.authored-presentation.template.json'
+      - 'unity/Fixtures/underdrain.comprehension-contract.json'
       - 'unity/Fixtures/underdrain.player-product.json'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionBuildBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionPolishAugmentBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetApprovalBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetAuditBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetDigest.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetIntakeBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Runtime/**'
   workflow_dispatch:
 
@@ -83,6 +110,7 @@ jobs:
           npm --prefix axm-world run typecheck
           npm --prefix axm-world test -- \
             tests/world/action-natural-player.test.ts \
+            tests/world/underdrain-player-product-acceptance.test.ts \
             tests/world/underdrain-unity6000-player-train.test.ts \
             tests/world/action-semantic-cue-receiver.test.ts \
             tests/world/action-unity-source-contract.test.ts
@@ -107,13 +135,26 @@ jobs:
           set -euo pipefail
           root="$RUNNER_TEMP/underdrain-unity6000-player-source"
           mkdir -p "$root/source"
+          cp axm-world/docs/UNDERDRAIN_PRODUCTION_ASSET_APPROVAL.md "$root/source/"
           cp axm-world/unity/Fixtures/underdrain.player-product.json "$root/source/"
           cp axm-world/unity/Fixtures/underdrain.authored-presentation.template.json "$root/source/"
+          cp axm-world/unity/Fixtures/underdrain.comprehension-contract.json "$root/source/"
+          cp axm-world/scripts/approve-underdrain-production-assets.ps1 "$root/source/"
+          cp axm-world/scripts/prepare-underdrain-production-assets.ps1 "$root/source/"
+          cp axm-world/scripts/audit-underdrain-production-assets.ps1 "$root/source/"
+          cp axm-world/scripts/run-underdrain-unity6000-player-product.ps1 "$root/source/"
           cp axm-world/scripts/run-underdrain-unity6000-player-train.ps1 "$root/source/"
           cp axm-world/scripts/qualify-unity-action-player-product.ps1 "$root/source/"
           cp axm-world/scripts/build-unity-action-player.ps1 "$root/source/"
           cp axm-world/scripts/run-underdrain-player-session.ps1 "$root/source/"
+          cp axm-world/scripts/record-underdrain-independent-comprehension.ps1 "$root/source/"
+          cp axm-world/scripts/accept-underdrain-player-product.ps1 "$root/source/"
+          cp axm-world/unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetApprovalBatch.cs "$root/source/"
+          cp axm-world/unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetIntakeBatch.cs "$root/source/"
+          cp axm-world/unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetAuditBatch.cs "$root/source/"
+          cp axm-world/unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetDigest.cs "$root/source/"
           cp axm-world/unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs "$root/source/"
+          cp axm-world/unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionAssetMarker.cs "$root/source/"
           cp axm-world/unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerProductIdentity.cs "$root/source/"
           cp axm-world/unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerSessionEvidence.cs "$root/source/"
           cp axm-world/unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionInputBindings.cs "$root/source/"
@@ -125,7 +166,7 @@ jobs:
           const profile = JSON.parse(readFileSync('axm-world/unity/Fixtures/underdrain.player-product.json', 'utf8'));
           const manifest = JSON.parse(readFileSync('axm-world/unity/Fixtures/underdrain.authored-presentation.template.json', 'utf8'));
           const receipt = {
-            format: 'rodoh-underdrain-unity6000-player-source-qualification/1',
+            format: 'rodoh-underdrain-unity6000-player-source-qualification/2',
             status: 'pass',
             worldCommit: process.env.WORLD_SHA,
             floorCommit: process.env.FLOOR_SHA,
@@ -146,6 +187,15 @@ jobs:
             runtimeRebinding: profile.input.runtimeRebinding,
             playerFollowCamera: profile.camera.playerFollow,
             cameraCollision: profile.camera.collision,
+            assetApprovalBoundary: {
+              format: 'rodoh-action-production-asset-approval/1',
+              namedAuthorityRequired: true,
+              explicitSevenAssetConfirmationRequired: true,
+              sourceIntakeCreatesApproval: false,
+              sourceAuditCreatesApproval: false,
+              authorityAuthentication: 'not-performed',
+              playerProductAcceptance: 'not-issued'
+            },
             humanEvidenceRequired: profile.humanEvidence,
             evidence: {
               typecheck: 'pass',
@@ -156,6 +206,8 @@ jobs:
               productionBuild: 'pass'
             },
             nonClaims: [
+              'named production-asset approval',
+              'approval-authority authentication',
               'Unity 6000 package import',
               'serialized scene acceptance',
               'authored asset existence in Embodied-AR-Lab',
