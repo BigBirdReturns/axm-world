@@ -14,7 +14,6 @@
     "renderer",
     "requirements",
     "assets",
-    "production",
     "bindings",
     "surfaces"
   ],
@@ -72,21 +71,6 @@
       "type": "array",
       "minItems": 1,
       "items": { "$ref": "#/$defs/asset" }
-    },
-    "production": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["status", "requiredAssetIds", "productionAssetIds", "prototypeAssetIds", "sources"],
-      "properties": {
-        "status": { "enum": ["prototype", "mixed", "complete"] },
-        "requiredAssetIds": { "$ref": "#/$defs/idArray" },
-        "productionAssetIds": { "$ref": "#/$defs/idArray" },
-        "prototypeAssetIds": { "$ref": "#/$defs/idArray" },
-        "sources": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/productionSource" }
-        }
-      }
     },
     "bindings": {
       "type": "object",
@@ -190,20 +174,6 @@
           ]
         },
         "accessibleEquivalent": { "$ref": "#/$defs/nonEmpty" }
-      }
-    },
-    "productionSource": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["id", "assetIds", "sourcePaths", "mediaType", "sha256"],
-      "properties": {
-        "id": { "$ref": "#/$defs/nonEmpty" },
-        "assetIds": { "$ref": "#/$defs/idArray" },
-        "sourcePaths": { "$ref": "#/$defs/idArray" },
-        "mediaType": { "$ref": "#/$defs/nonEmpty" },
-        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-        "width": { "type": "integer", "minimum": 1 },
-        "height": { "type": "integer", "minimum": 1 }
       }
     }
   }
