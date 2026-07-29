@@ -25,7 +25,16 @@ const representation: RepresentationEvaluation = {
   planId: "fixture-white-label-v1",
   status: "pass",
   blockers: [],
-  metrics: { assets: 20, surfaces: 6, people: 4, objectives: 3, states: 4 },
+  metrics: {
+    declaredRoles: 20,
+    productionRoles: 20,
+    prototypeRoles: 0,
+    productionSources: 4,
+    surfaces: 6,
+    people: 4,
+    objectives: 3,
+    states: 4,
+  },
 };
 
 const blindPlayer: OneAmPlayerEvaluation = {
@@ -36,24 +45,25 @@ const blindPlayer: OneAmPlayerEvaluation = {
 };
 
 describe("playable product completeness", () => {
-  it("refuses authored structure when representation is still schematic", () => {
+  it("refuses authored structure when representation is still schematic or mixed", () => {
     const result = evaluatePlayableProduct({
       structural,
       representation: {
         ...representation,
         status: "fail",
-        blockers: ["Final action representation is primitive-only rather than cartridge-owned."],
+        blockers: ["Production coverage is mixed: 19 declared roles still use prototype sources."],
+        metrics: { ...representation.metrics, productionRoles: 1, prototypeRoles: 19, productionSources: 1 },
       },
     });
     expect(result).toEqual({
       format: PLAYABLE_PRODUCT_EVALUATION_FORMAT,
       classification: "rejected",
-      blockers: ["Representation: Final action representation is primitive-only rather than cartridge-owned."],
+      blockers: ["Representation: Production coverage is mixed: 19 declared roles still use prototype sources."],
       gates: { authoredStructure: "pass", representation: "fail", blindPlayer: "absent" },
     });
   });
 
-  it("calls the candidate machine-qualified only after structure and representation both pass", () => {
+  it("calls the candidate machine-qualified only after structure and complete representation both pass", () => {
     const result = evaluatePlayableProduct({ structural, representation });
     expect(result.classification).toBe("machine-qualified-authored-pilot");
     expect(result.blockers).toEqual(["Blind player: independent zero-assistance receipt is absent."]);
