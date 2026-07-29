@@ -9,20 +9,20 @@ internal static class CueParityProgram
     [Serializable]
     private sealed class ArcReference
     {
-        public string format;
-        public string timingProfileId;
-        public ActionReceiptView acceptedReceipt;
-        public ActionCueTrace cueTrace;
+        public string format = string.Empty;
+        public string timingProfileId = string.Empty;
+        public ActionReceiptView acceptedReceipt = new ActionReceiptView();
+        public ActionCueTrace cueTrace = new ActionCueTrace();
     }
 
     [Serializable]
     private sealed class ActionReceiptView
     {
-        public string timingProfileId;
-        public uint seed;
+        public string timingProfileId = string.Empty;
+        public uint seed = 0;
         public ActionInputRun[] trace = Array.Empty<ActionInputRun>();
-        public int totalTicks;
-        public string receiptDigest;
+        public int totalTicks = 0;
+        public string receiptDigest = string.Empty;
     }
 
     [Serializable]
@@ -30,19 +30,19 @@ internal static class CueParityProgram
     {
         public string format = "rodoh-unity-action-cue-parity/1";
         public string status = "fail";
-        public string projection;
-        public string sourceSpecDigest;
-        public string sourceArcDigest;
-        public string challengeId;
-        public string timingProfileId;
+        public string projection = string.Empty;
+        public string sourceSpecDigest = string.Empty;
+        public string sourceArcDigest = string.Empty;
+        public string challengeId = string.Empty;
+        public string timingProfileId = string.Empty;
         public int cueCount;
-        public string arcCueTraceDigest;
-        public string csharpCueTraceDigest;
+        public string arcCueTraceDigest = string.Empty;
+        public string csharpCueTraceDigest = string.Empty;
         public bool exactCueParity;
         public bool candidateTimingProfilePreserved;
         public bool presentationOnly;
         public string authority = "C# mirrors Arc cues; Arc replay remains action and outcome authority";
-        public string error;
+        public string error = string.Empty;
     }
 
     private static readonly JsonSerializerOptions Options = new JsonSerializerOptions
