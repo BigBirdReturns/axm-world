@@ -96,11 +96,14 @@ $buildReceipt = Get-Content $buildReceiptPath -Raw | ConvertFrom-Json
 if ($buildReceipt.status -ne "pass") { throw "Unity build receipt reports $($buildReceipt.status): $($buildReceipt.error)" }
 if (-not (Test-Path $buildOutput)) { throw "Built action product is absent: $buildOutput" }
 if ($RequirePlayerProduct) {
-    if ($buildReceipt.playerProductRequired -ne $true
-        -or $buildReceipt.playerProductId -ne $playerProduct.productId
-        -or $buildReceipt.playerProductProfileSha256 -ne $playerProduct.productProfileSha256
-        -or $buildReceipt.playerProductWorldCommit -ne $playerProduct.worldCommit
-        -or $buildReceipt.playerProductArcCommit -ne $playerProduct.arcCommit) {
+    $identityMatches = (
+        $buildReceipt.playerProductRequired -eq $true -and
+        $buildReceipt.playerProductId -eq $playerProduct.productId -and
+        $buildReceipt.playerProductProfileSha256 -eq $playerProduct.productProfileSha256 -and
+        $buildReceipt.playerProductWorldCommit -eq $playerProduct.worldCommit -and
+        $buildReceipt.playerProductArcCommit -eq $playerProduct.arcCommit
+    )
+    if (-not $identityMatches) {
         throw "Built player lost exact player-product identity custody."
     }
 }
