@@ -33,7 +33,7 @@ namespace Axm.Rodoh.Action.Editor
         [Serializable]
         private sealed class Receipt
         {
-            public string format = "rodoh-unity-action-polish-augmentation/2";
+            public string format = "rodoh-unity-action-polish-augmentation/3";
             public string status = "fail";
             public string generatedAt = DateTime.UtcNow.ToString("O");
             public string unityVersion = Application.unityVersion;
@@ -42,6 +42,8 @@ namespace Axm.Rodoh.Action.Editor
             public string actionSpecDigest;
             public string presentationManifestId;
             public string themeId;
+            public string presentationAdapterId;
+            public bool diagnosticPresentation;
             public bool proceduralMotion;
             public bool playerFollowCamera;
             public bool naturalInput;
@@ -66,7 +68,7 @@ namespace Axm.Rodoh.Action.Editor
             var receipt = new Receipt();
             try
             {
-                var scenePath = GetRequiredArgument("-scenePath").Replace('\', '/');
+                var scenePath = GetRequiredArgument("-scenePath").Replace('\\', '/');
                 if (!scenePath.StartsWith("Assets/", StringComparison.Ordinal)) throw new InvalidOperationException("Action polish scene must remain under Assets/.");
                 var sceneJobPath = Path.GetFullPath(GetRequiredArgument("-sceneJob"));
                 var presentationPath = Path.GetFullPath(GetRequiredArgument("-presentation"));
@@ -78,6 +80,9 @@ namespace Axm.Rodoh.Action.Editor
                 var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
                 var runtime = FindExactlyOne<ActionRuntimeBehaviour>(scene);
                 var production = FindExactlyOne<ActionProductionPresentation>(scene);
+                runtime.ConfigurePresentation(production, false);
+                var primitive = runtime.GetComponent<ActionPrimitivePresentation>();
+                if (primitive != null) primitive.enabled = false;
                 var router = runtime.GetComponent<ActionInputRouter>() ?? runtime.gameObject.AddComponent<ActionInputRouter>();
                 var bodies = FindChildByName(scene, "Action Bodies") ?? production.transform;
                 var camera = FindCamera(scene);
@@ -123,6 +128,8 @@ namespace Axm.Rodoh.Action.Editor
                 receipt.actionSpecDigest = sceneJob.source.actionSpecDigest;
                 receipt.presentationManifestId = sceneJob.source.presentationManifestId;
                 receipt.themeId = manifest.themeId;
+                receipt.presentationAdapterId = runtime.PresentationAdapterId;
+                receipt.diagnosticPresentation = runtime.UsesDiagnosticPresentation;
                 receipt.proceduralMotion = motion != null;
                 receipt.playerFollowCamera = combatCamera != null && combatCamera.Mode == ActionCameraMode.PlayerFollow;
                 receipt.naturalInput = naturalInput != null;
@@ -135,6 +142,10 @@ namespace Axm.Rodoh.Action.Editor
                 receipt.reducedMotion = reducedMotion;
                 receipt.highContrast = highContrast;
                 receipt.activePhysicsAuthority = quarantine.HasActivePhysicsAuthority();
+                if (receipt.presentationAdapterId != "production.prefab/v1" || receipt.diagnosticPresentation)
+                {
+                    throw new InvalidOperationException("Natural action player is not bound to the production presentation adapter.");
+                }
                 if (!receipt.proceduralMotion
                     || !receipt.playerFollowCamera
                     || !receipt.naturalInput
