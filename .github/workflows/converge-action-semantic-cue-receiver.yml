@@ -56,18 +56,16 @@ jobs:
           dotnet build unity/Conformance/Axm.Rodoh.Action.Cues.csproj --configuration Release
           find unity/Conformance -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
 
-      - name: Publish one carrier-free receiver commit
+      - name: Publish the bounded receiver implementation
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git rm \
-            .github/workflows/converge-action-semantic-cue-receiver.yml \
-            scripts/converge-action-semantic-cue-receiver.py
+          git rm scripts/converge-action-semantic-cue-receiver.py
           git add -A
           git diff --cached --check
           git commit -m 'Consume exact Arc semantic cues through the production player adapter'
           git push origin HEAD:feature/action-semantic-cue-receiver-v1
 
-# Explicitly retriggered after the initial PR-only checks exposed the unapplied carrier patch.
+# The carrier workflow remains until the pushed implementation is qualified, then is removed through repository custody.
