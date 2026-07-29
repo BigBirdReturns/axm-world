@@ -23,6 +23,7 @@ on:
       - 'tests/world/playable-product-completeness.test.ts'
       - 'tests/world/underdrain-presentation-completeness.test.ts'
       - 'tests/world/underdrain-draft-standalone.test.ts'
+      - 'e2e/global-setup.ts'
       - 'e2e/underdrain-draft.spec.ts'
       - 'e2e/underdrain-mobile-layout.spec.ts'
   workflow_dispatch:
@@ -249,7 +250,7 @@ jobs:
             find . -type f ! -name SHA256SUMS -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS
           )
           rm -rf axm-world/local/underdrain-draft axm-world/test-results axm-world/playwright-report
-          if git ls-files -- axm-world/docs/game | grep -q .; then
+          if git -C axm-world ls-files -- docs/game | grep -q .; then
             git -C axm-world restore --source=HEAD --staged --worktree -- docs/game
           fi
           git -C axm-world clean -fdx -- docs/game
