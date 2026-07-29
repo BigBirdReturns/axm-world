@@ -37,6 +37,11 @@ async function actionGeometry(page: Page) {
     const deck = deckNode.getBoundingClientRect();
     const ribbon = ribbonNode.getBoundingClientRect();
     const touch = touchNode.getBoundingClientRect();
+    const stageStyle = getComputedStyle(stageNode);
+    const stageBorderX = Number.parseFloat(stageStyle.borderLeftWidth) + Number.parseFloat(stageStyle.borderRightWidth);
+    const stageBorderY = Number.parseFloat(stageStyle.borderTopWidth) + Number.parseFloat(stageStyle.borderBottomWidth);
+    const stageContentWidth = stage.width - stageBorderX;
+    const stageContentHeight = stage.height - stageBorderY;
     const buttons = [...document.querySelectorAll<HTMLElement>(".touch button")].map((button) => {
       const range = document.createRange();
       range.selectNodeContents(button);
@@ -81,6 +86,7 @@ async function actionGeometry(page: Page) {
     ].filter((entry) => entry.area > tolerance);
     return {
       stage: rect(".stage"),
+      stageContent: { width: stageContentWidth, height: stageContentHeight, borderX: stageBorderX, borderY: stageBorderY },
       canvas: rect("#game"),
       deck: rect(".command-deck"),
       ribbon: rect(".objective-ribbon"),
@@ -104,7 +110,8 @@ async function actionGeometry(page: Page) {
       pairwiseOverlap,
       worldObstructions,
       stageObstructions,
-      canvasFillsStage: Math.abs(canvas.width - stage.width) <= tolerance && Math.abs(canvas.height - stage.height) <= tolerance,
+      canvasFillsStageContent: Math.abs(canvas.width - stageContentWidth) <= tolerance
+        && Math.abs(canvas.height - stageContentHeight) <= tolerance,
       deckIsSibling: deckNode.parentElement?.classList.contains("stage-shell") === true
         && stageNode.parentElement === deckNode.parentElement,
     };
@@ -124,7 +131,7 @@ test("UNDERDRAIN mobile portrait and landscape keep every command outside the re
     const geometry = await actionGeometry(page);
     const diagnostic = JSON.stringify({ viewport, geometry }, null, 2);
     expect(geometry.deckIsSibling, diagnostic).toBe(true);
-    expect(geometry.canvasFillsStage, diagnostic).toBe(true);
+    expect(geometry.canvasFillsStageContent, diagnostic).toBe(true);
     expect(geometry.insideDeck, diagnostic).toBe(true);
     expect(geometry.minimumTarget, diagnostic).toBe(true);
     expect(geometry.labelsContained, diagnostic).toBe(true);
