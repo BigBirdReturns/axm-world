@@ -1,167 +1,129 @@
-name: UNDERDRAIN player-product acceptance source
+name: UNDERDRAIN integration bootstrap
 
 on:
   pull_request:
+    branches:
+      - feature/underdrain-natural-player-v1
     paths:
       - '.github/workflows/underdrain-player-product-acceptance-source.yml'
-      - 'scripts/accept-underdrain-player-product.ps1'
-      - 'scripts/audit-underdrain-production-assets.ps1'
-      - 'scripts/prepare-underdrain-production-assets.ps1'
-      - 'scripts/record-underdrain-independent-comprehension.ps1'
-      - 'scripts/run-underdrain-player-session.ps1'
-      - 'scripts/run-underdrain-unity6000-player-product.ps1'
-      - 'tests/world/underdrain-player-product-acceptance.test.ts'
-      - 'tests/world/underdrain-powershell-contract.test.ts'
-      - 'tests/world/underdrain-unity6000-player-train.test.ts'
-      - 'unity/Fixtures/underdrain.comprehension-contract.json'
-      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetAuditBatch.cs'
-      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetDigest.cs'
-      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetIntakeBatch.cs'
-      - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerSessionEvidence.cs'
+      - '.github/workflows/underdrain-integration-materialize.yml'
+      - '.underdrain/payload.part*.b64'
   push:
     branches:
-      - feature/underdrain-unity6000-player-train-v1
+      - integration/underdrain-unity6000-player-product-v1
     paths:
       - '.github/workflows/underdrain-player-product-acceptance-source.yml'
-      - 'scripts/accept-underdrain-player-product.ps1'
-      - 'scripts/audit-underdrain-production-assets.ps1'
-      - 'scripts/prepare-underdrain-production-assets.ps1'
-      - 'scripts/record-underdrain-independent-comprehension.ps1'
-      - 'scripts/run-underdrain-player-session.ps1'
-      - 'scripts/run-underdrain-unity6000-player-product.ps1'
-      - 'tests/world/underdrain-player-product-acceptance.test.ts'
-      - 'tests/world/underdrain-powershell-contract.test.ts'
-      - 'tests/world/underdrain-unity6000-player-train.test.ts'
-      - 'unity/Fixtures/underdrain.comprehension-contract.json'
-      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetAuditBatch.cs'
-      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetDigest.cs'
-      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetIntakeBatch.cs'
-      - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerSessionEvidence.cs'
-  workflow_dispatch:
+      - '.github/workflows/underdrain-integration-materialize.yml'
+      - '.underdrain/payload.part*.b64'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: underdrain-player-product-acceptance-source-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: underdrain-integration-bootstrap
+  cancel-in-progress: false
 
 env:
-  ARC_ACTION_PLAYER_SHA: aaa5685903a348b3c1ba875622fbe99d90c1da35
-  FLOOR_SHA: 9693cb99694338e72c15d0ffbb87b5a1c5bbf16a
+  EXPECTED_BRANCH: integration/underdrain-unity6000-player-product-v1
+  BASELINE_SHA: 7a3fb2e32702b4e8e2621d4fce2abb8336da231f
+  PAYLOAD_SHA256: 1879c7f200abbabe61a0a2db9a35e9d0d6af6044296b130a650a97a35d9b7ca8
 
 jobs:
-  qualify:
+  materialize:
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out exact carrier head
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           show-progress: false
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - run: npm ci --no-audit --no-fund
-
-      - name: Qualify production custody, PowerShell, comprehension, and acceptance contracts
+      - name: Verify and materialize exact integration source
         shell: bash
         run: |
           set -euo pipefail
-          npm run typecheck
-          npm test -- \
-            tests/world/underdrain-player-product-acceptance.test.ts \
-            tests/world/underdrain-powershell-contract.test.ts \
-            tests/world/underdrain-unity6000-player-train.test.ts \
-            tests/world/action-natural-player.test.ts
-          dotnet build unity/Conformance/Axm.Rodoh.Action.Cues.csproj --configuration Release
-          dotnet build unity/Conformance/Axm.Rodoh.Action.Conformance.csproj --configuration Release
-
-      - name: Run complete World regression and production build
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm test
-          npm run build
-          if git ls-files -- docs/game | grep -q .; then
-            git restore --source=HEAD --staged --worktree -- docs/game
+          expected_sha='${{ github.event.pull_request.head.sha || github.sha }}'
+          test "$(git rev-parse HEAD)" = "$expected_sha"
+          if [[ "$GITHUB_EVENT_NAME" == 'pull_request' ]]; then
+            test '${{ github.head_ref }}' = "$EXPECTED_BRANCH"
+          else
+            test "$GITHUB_REF_NAME" = "$EXPECTED_BRANCH"
           fi
-          git clean -fdx -- docs/game
 
-      - name: Assemble exact acceptance-source custody
-        shell: bash
-        run: |
-          set -euo pipefail
-          root="$RUNNER_TEMP/underdrain-player-product-acceptance-source"
-          mkdir -p "$root/source"
-          cp unity/Fixtures/underdrain.player-product.json "$root/source/"
-          cp unity/Fixtures/underdrain.authored-presentation.template.json "$root/source/"
-          cp unity/Fixtures/underdrain.comprehension-contract.json "$root/source/"
-          cp scripts/run-underdrain-unity6000-player-product.ps1 "$root/source/"
-          cp scripts/prepare-underdrain-production-assets.ps1 "$root/source/"
-          cp scripts/audit-underdrain-production-assets.ps1 "$root/source/"
-          cp scripts/run-underdrain-player-session.ps1 "$root/source/"
-          cp scripts/record-underdrain-independent-comprehension.ps1 "$root/source/"
-          cp scripts/accept-underdrain-player-product.ps1 "$root/source/"
-          cp unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetDigest.cs "$root/source/"
-          cp unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetIntakeBatch.cs "$root/source/"
-          cp unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetAuditBatch.cs "$root/source/"
-          cp unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerSessionEvidence.cs "$root/source/"
-          WORLD_SHA="$(git rev-parse HEAD)" ROOT="$root" node --input-type=module <<'NODE'
-          import { readFileSync, writeFileSync } from 'node:fs';
-          const profile = JSON.parse(readFileSync('unity/Fixtures/underdrain.player-product.json', 'utf8'));
-          const contract = JSON.parse(readFileSync('unity/Fixtures/underdrain.comprehension-contract.json', 'utf8'));
-          writeFileSync(process.env.ROOT + '/source-qualification.json', JSON.stringify({
-            format: 'rodoh-underdrain-player-product-acceptance-source-qualification/1',
-            status: 'pass',
-            worldCommit: process.env.WORLD_SHA,
-            arcActionPlayerCommit: process.env.ARC_ACTION_PLAYER_SHA,
-            floorCommit: process.env.FLOOR_SHA,
-            productId: profile.productId,
-            challengeId: profile.challengeId,
-            timingProfileId: profile.timingProfileId,
-            productionAssetCount: 7,
-            importedSourceCustody: 'intake-plus-read-only-audit',
-            keyboardMouseSessionRequired: profile.humanEvidence.keyboardMouseSessionRequired,
-            gamepadSessionRequired: profile.humanEvidence.gamepadSessionRequired,
-            independentComprehensionRequired: profile.humanEvidence.independentComprehensionRequired,
-            runtimeMayIssueComprehensionReceipt: false,
-            nextPlayableActionId: contract.nextPlayableAction.expectedId,
-            namedProductAcceptance: 'not-issued',
-            questAcceptance: 'open',
-            nonClaims: [
-              'real Unity 6000 import',
-              'authored prefab existence',
-              'serialized scene acceptance',
-              'Windows player build',
-              'keyboard and mouse physical session',
-              'gamepad and rebinding physical session',
-              'independent comprehension',
-              'named player-product acceptance',
-              'Quest acceptance'
-            ]
-          }, null, 2) + '\n');
-          NODE
-          find unity/Conformance -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
-          (
-            cd "$root"
-            find . -type f ! -name SHA256SUMS -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS
-          )
-          git diff --check
-          test -z "$(git status --porcelain)"
+          mapfile -t parts < <(find .underdrain -maxdepth 1 -type f -name 'payload.part*.b64' -printf '%f\n' | sort)
+          test "${#parts[@]}" -eq 7
+          for index in 01 02 03 04 05 06 07; do
+            test -f ".underdrain/payload.part${index}.b64"
+          done
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: underdrain-player-product-acceptance-source
-          path: ${{ runner.temp }}/underdrain-player-product-acceptance-source
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 30
+          payload="$RUNNER_TEMP/underdrain-integration-payload.tar.xz"
+          cat .underdrain/payload.part*.b64 | base64 --decode > "$payload"
+          echo "$PAYLOAD_SHA256  $payload" | sha256sum --check --strict
+
+          tar -tJf "$payload" | LC_ALL=C sort > "$RUNNER_TEMP/actual-paths"
+          cat > "$RUNNER_TEMP/expected-paths" <<'PATHS'
+          .github/workflows/underdrain-player-product-integration.yml
+          .github/workflows/underdrain-unity6000-real.yml
+          scripts/accept-underdrain-player-product.ps1
+          scripts/augment-underdrain-player-evidence.ps1
+          scripts/build-underdrain-visual-review.mjs
+          scripts/build-unity-action-player.ps1
+          scripts/continue-underdrain-unity6000.ps1
+          scripts/lib/underdrain-runtime.ps1
+          scripts/qualify-unity-action-player-product.ps1
+          scripts/record-underdrain-independent-comprehension.ps1
+          scripts/record-underdrain-visual-review.ps1
+          scripts/run-underdrain-camera-collision-qa.ps1
+          scripts/run-underdrain-player-session.ps1
+          scripts/run-underdrain-unity-visual-qa.ps1
+          scripts/run-underdrain-unity6000-player-product.ps1
+          scripts/run-underdrain-unity6000-player-train.ps1
+          scripts/settle-underdrain-player-product-integration.ps1
+          tests/world/underdrain-player-product-acceptance.test.ts
+          tests/world/underdrain-player-product-integration.test.ts
+          tests/world/underdrain-powershell-contract.test.ts
+          tests/world/underdrain-unity6000-player-train.test.ts
+          unity/Fixtures/underdrain.arc-execution-authority.json
+          unity/Fixtures/underdrain.comprehension-contract.json
+          unity/Fixtures/underdrain.player-product.integration-lock.json
+          unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs
+          unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainCameraCollisionQaBatch.cs
+          unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainEvidenceAugmentBatch.cs
+          unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainVisualQaBatch.cs
+          unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionInputBindings.cs
+          unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerProductIdentity.cs
+          unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerSessionEvidence.cs
+          unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionRebindSessionEvidence.cs
+          PATHS
+          sed -i 's/^          //' "$RUNNER_TEMP/expected-paths"
+          LC_ALL=C sort -o "$RUNNER_TEMP/expected-paths" "$RUNNER_TEMP/expected-paths"
+          diff -u "$RUNNER_TEMP/expected-paths" "$RUNNER_TEMP/actual-paths"
+
+          tar --no-same-owner --no-same-permissions -xJf "$payload" -C .
+          rm -rf .underdrain
+          rm -f .github/workflows/underdrain-integration-materialize.yml
+          git checkout "$BASELINE_SHA" -- .github/workflows/underdrain-player-product-acceptance-source.yml
+
+          node --check scripts/build-underdrain-visual-review.mjs
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for relative in (
+              'unity/Fixtures/underdrain.arc-execution-authority.json',
+              'unity/Fixtures/underdrain.comprehension-contract.json',
+              'unity/Fixtures/underdrain.player-product.integration-lock.json',
+          ):
+              json.loads(Path(relative).read_text(encoding='utf-8'))
+          PY
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          test ! -e .underdrain
+          test ! -e .github/workflows/underdrain-integration-materialize.yml
+          test "$(git show "$BASELINE_SHA":.github/workflows/underdrain-player-product-acceptance-source.yml | sha256sum | cut -d' ' -f1)" = "$(sha256sum .github/workflows/underdrain-player-product-acceptance-source.yml | cut -d' ' -f1)"
+          git commit -m 'Consolidate exact UNDERDRAIN Unity 6000 player product'
+          git push origin HEAD:"$EXPECTED_BRANCH"
