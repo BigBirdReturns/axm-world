@@ -73,33 +73,17 @@ jobs:
 
           path = Path('unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionRuntimeBehaviour.cs')
           text = path.read_text(encoding='utf-8')
-          before = """            var candidate = ActionCandidateBuilder.Build(
-                  _spec,
-                  cycle,
-                  seed,
-                  controlledAgentId,
-                  partyAgentIds,
-                  _trace,
-                  _state);
-              return ActionBridgeJson.SerializeCandidate(candidate, true);
-          """
-          after = """            var candidate = ActionCandidateBuilder.Build(
-                  _spec,
-                  cycle,
-                  seed,
-                  controlledAgentId,
-                  partyAgentIds,
-                  _trace,
-                  _state);
-              if (candidate.authority != \"Arc replay required\")
-              {
-                  throw new InvalidOperationException(\"Action execution candidate lost provisional Arc replay authority.\");
-              }
-              return ActionBridgeJson.SerializeCandidate(candidate, true);
-          """
-          if text.count(before) != 1:
-              raise SystemExit(f'expected one BuildCandidateJson authority boundary, found {text.count(before)}')
-          path.write_text(text.replace(before, after), encoding='utf-8', newline='\n')
+          needle = '            return ActionBridgeJson.SerializeCandidate(candidate, true);\n'
+          replacement = (
+              '            if (candidate.authority != "Arc replay required")\n'
+              '            {\n'
+              '                throw new InvalidOperationException("Action execution candidate lost provisional Arc replay authority.");\n'
+              '            }\n'
+              + needle
+          )
+          if text.count(needle) != 1:
+              raise SystemExit(f'expected one candidate serialization boundary, found {text.count(needle)}')
+          path.write_text(text.replace(needle, replacement), encoding='utf-8', newline='\n')
           PY
           python -m py_compile scripts/converge-action-semantic-cue-receiver.py
           git diff --check
