@@ -64,7 +64,7 @@ function semanticCompletion(value, label) {
   errors.push(`${label}.kind is unsupported.`);
 }
 
-exactKeys(source, ["format", "runtimeVersion", "arcDigest", "challengeId", "title", "difficultyModeId", "tickRate", "maxTicks", "arena", "player", "enemyLaws", "objectives", "completion", "specDigest"], "action spec");
+exactKeys(source, ["format", "runtimeVersion", "arcDigest", "challengeId", "title", "difficultyModeId", "timingProfileId", "tickRate", "maxTicks", "arena", "player", "enemyLaws", "objectives", "completion", "specDigest"], "action spec");
 if (source.format !== "axm-action-spec/1") errors.push("Source is not axm-action-spec/1.");
 if (!["1.0.0", "1.1.0"].includes(source.runtimeVersion)) errors.push("Source action runtime version is unsupported.");
 if (source.tickRate !== 30) errors.push("Source action tick rate is not 30 Hz.");
@@ -72,6 +72,7 @@ text(source.arcDigest, "arcDigest");
 text(source.specDigest, "specDigest");
 text(source.challengeId, "challengeId");
 text(source.title, "title");
+if (source.timingProfileId !== undefined) text(source.timingProfileId, "timingProfileId");
 integer(source.maxTicks, "maxTicks", 1, 18000);
 
 exactKeys(source.arena, ["kit", "radius"], "arena");
@@ -139,6 +140,7 @@ const projection = {
   challengeId: source.challengeId,
   title: source.title,
   difficultyModeId: source.difficultyModeId ?? null,
+  timingProfileId: source.timingProfileId ?? null,
   tickRate: source.tickRate,
   maxTicks: source.maxTicks,
   arena: source.arena,
@@ -157,6 +159,7 @@ console.log(JSON.stringify({
   sourceSpecDigest: source.specDigest,
   challengeId: source.challengeId,
   runtimeVersion: source.runtimeVersion,
+  timingProfileId: source.timingProfileId ?? null,
   objectives: source.objectives.length,
   semanticObjectives: semanticObjectiveCount,
   maximumActiveEnemies: Math.max(...source.objectives.map((objective) => objective.enemyCount)),

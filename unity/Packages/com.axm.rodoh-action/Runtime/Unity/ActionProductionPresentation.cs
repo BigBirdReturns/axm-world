@@ -18,12 +18,16 @@ namespace Axm.Rodoh.Action
     [Serializable]
     public sealed class ActionPresentationFeedbackEvent : UnityEvent<string, string, int, Vector3> { }
 
+    [Serializable]
+    public sealed class ActionSemanticCueFeedbackEvent : UnityEvent<string, string, string, int, int, Vector3> { }
+
     /// <summary>
     /// Dynamic production presentation for arbitrary action waves. Serialized
     /// prefab references are resolved by the editor assembler from the cartridge
-    /// presentation manifest. Missing assets use complete local neutral bodies.
+    /// presentation manifest. Missing assets use complete local neutral bodies only
+    /// when the selected player profile explicitly permits them.
     /// </summary>
-    public sealed class ActionProductionPresentation : MonoBehaviour
+    public sealed class ActionProductionPresentation : MonoBehaviour, IActionPresentationAdapter
     {
         [SerializeField] private ActionRuntimeBehaviour runtime;
         [SerializeField] private Transform presentationRoot;
@@ -34,6 +38,7 @@ namespace Axm.Rodoh.Action
         [SerializeField] private ActionEnemyPrefabBinding[] enemyPrefabs = Array.Empty<ActionEnemyPrefabBinding>();
         [SerializeField, Min(0.00001f)] private float unityUnitsPerActionUnit = 0.0005f;
         [SerializeField] private ActionPresentationFeedbackEvent onFeedback = new ActionPresentationFeedbackEvent();
+        [SerializeField] private ActionSemanticCueFeedbackEvent onSemanticCue = new ActionSemanticCueFeedbackEvent();
 
         private readonly Dictionary<string, ActionActorBinding> _actors = new Dictionary<string, ActionActorBinding>(StringComparer.Ordinal);
         private readonly Dictionary<string, ActionEnemyPrefabBinding> _enemyByKit = new Dictionary<string, ActionEnemyPrefabBinding>(StringComparer.Ordinal);
@@ -51,8 +56,17 @@ namespace Axm.Rodoh.Action
         private static readonly int Dodge = Animator.StringToHash("AXM_Dodge");
         private static readonly int Defeat = Animator.StringToHash("AXM_Defeat");
         private static readonly int Objective = Animator.StringToHash("AXM_Objective");
+        private static readonly int Cue = Animator.StringToHash("AXM_Cue");
+        private static readonly int CueCode = Animator.StringToHash("AXM_CueCode");
+        private static readonly int CueDuration = Animator.StringToHash("AXM_CueDuration");
+        private static readonly int DefenseWindow = Animator.StringToHash("AXM_DefenseWindow");
+        private static readonly int WorkWindow = Animator.StringToHash("AXM_WorkWindow");
+        private static readonly string[] RequiredEnemyKits = { "skirmisher", "duelist", "swarm", "hexer", "breaker" };
 
+        public string AdapterId => "production.prefab/v1";
+        public bool DiagnosticOnly => false;
         public ActionPresentationFeedbackEvent OnFeedback => onFeedback;
+        public ActionSemanticCueFeedbackEvent OnSemanticCue => onSemanticCue;
 
         public void Configure(
             ActionRuntimeBehaviour actionRuntime,
@@ -64,7 +78,6 @@ namespace Axm.Rodoh.Action
             ActionEnemyPrefabBinding[] authoredEnemyPrefabs,
             float metersPerActionUnit)
         {
-            if (runtime != null) runtime.TickAdvanced -= ApplyState;
             runtime = actionRuntime;
             presentationRoot = root;
             playerPrefab = authoredPlayerPrefab;
@@ -74,36 +87,30 @@ namespace Axm.Rodoh.Action
             enemyPrefabs = authoredEnemyPrefabs ?? Array.Empty<ActionEnemyPrefabBinding>();
             unityUnitsPerActionUnit = Mathf.Max(0.00001f, metersPerActionUnit);
             RebuildLibrary();
-            if (isActiveAndEnabled && runtime != null) runtime.TickAdvanced += ApplyState;
         }
 
         private void Awake()
         {
             if (runtime == null) runtime = GetComponentInParent<ActionRuntimeBehaviour>();
-            if (presentationRoot == null)
-            {
-                var root = new GameObject("RODOH Action Bodies");
-                root.transform.SetParent(transform, false);
-                presentationRoot = root.transform;
-            }
+            EnsureRoot();
             CreateNeutralMaterials();
             RebuildLibrary();
         }
 
-        private void OnEnable()
+        public void Initialize(ActionSpecProjection spec, ActionSimulationState state)
         {
-            if (runtime == null) runtime = GetComponentInParent<ActionRuntimeBehaviour>();
-            if (runtime != null) runtime.TickAdvanced += ApplyState;
+            if (spec == null) throw new ArgumentNullException(nameof(spec));
+            if (state == null) throw new ArgumentNullException(nameof(state));
+            EnsureRoot();
+            CreateNeutralMaterials();
+            RebuildLibrary();
+            ResetActors();
+            ApplyState(state);
         }
 
-        private void OnDisable()
+        public void Render(ActionSimulationState state, float interpolation)
         {
-            if (runtime != null) runtime.TickAdvanced -= ApplyState;
-        }
-
-        private void Start()
-        {
-            if (runtime != null && runtime.State != null) ApplyState(runtime.State);
+            ApplyState(state);
         }
 
         public void RebuildLibrary()
@@ -146,7 +153,79 @@ namespace Axm.Rodoh.Action
                 _actors.Remove(id);
                 if (actor != null) actor.gameObject.SetActive(false);
             }
-            ApplyEvents(state.events);
+        }
+
+        public bool SupportsCue(string cueId)
+        {
+            return ActionCueContract.IsRequiredCue(cueId);
+        }
+
+        public IReadOnlyList<string> ValidatePlayerProfile()
+        {
+            var errors = new List<string>();
+            if (playerPrefab == null) errors.Add("Authored player prefab is absent.");
+            if (playerNeutralFallback) errors.Add("Player primitive fallback remains enabled.");
+            foreach (var kit in RequiredEnemyKits)
+            {
+                if (!_enemyByKit.TryGetValue(kit, out var binding) || binding == null || binding.prefab == null)
+                {
+                    errors.Add("Authored enemy prefab is absent: " + kit + ".");
+                }
+                else if (binding.neutralFallback)
+                {
+                    errors.Add("Enemy primitive fallback remains enabled: " + kit + ".");
+                }
+            }
+            return errors;
+        }
+
+        public void ApplyCues(IReadOnlyList<ActionSemanticCue> cues)
+        {
+            if (cues == null) return;
+            foreach (var cue in cues)
+            {
+                if (cue == null) continue;
+                if (!SupportsCue(cue.cueId)) throw new InvalidOperationException("Unsupported Arc semantic cue: " + cue.cueId);
+                ActionActorBinding actor = null;
+                if (!string.IsNullOrEmpty(cue.subjectId)) _actors.TryGetValue(cue.subjectId, out actor);
+                ActionActorBinding playerActor = null;
+                _actors.TryGetValue("player", out playerActor);
+                if (cue.cueId.StartsWith("cue.player-", StringComparison.Ordinal) || cue.cueId == "cue.dodge-invulnerability") actor = playerActor;
+                var animator = actor?.Animator;
+                if (cue.cueId == "cue.parry-succeeded") Trigger(playerActor?.Animator, Parry);
+                if (cue.cueId == "cue.dodge-invulnerability") Trigger(playerActor?.Animator, Dodge);
+                if (cue.cueId == "cue.enemy-stagger-started") Trigger(animator, Hit);
+                if (cue.cueId == "cue.objective-completed")
+                {
+                    foreach (var value in _actors.Values) Trigger(value?.Animator, Objective);
+                }
+                var cueCode = ActionCueContract.CueCode(cue.cueId);
+                var cueDuration = cue.durationTicks ?? 0;
+                foreach (var value in new[] { animator, playerActor?.Animator })
+                {
+                    SetInteger(value, CueCode, cueCode);
+                    SetInteger(value, CueDuration, cueDuration);
+                    Trigger(value, Cue);
+                }
+                if (cue.cueId == "cue.defense-window-opened") SetBool(playerActor?.Animator, DefenseWindow, true);
+                if (cue.cueId == "cue.defense-window-closed") SetBool(playerActor?.Animator, DefenseWindow, false);
+                if (cue.cueId == "cue.work-window-opened") SetBool(playerActor?.Animator, WorkWindow, true);
+                if (cue.cueId == "cue.work-window-closed") SetBool(playerActor?.Animator, WorkWindow, false);
+                var position = actor == null ? Vector3.zero : actor.transform.position;
+                onFeedback?.Invoke(cue.cueId, cue.subjectId ?? cue.objectiveId ?? string.Empty, cueDuration, position);
+                onSemanticCue?.Invoke(cue.cueId, cue.subjectId ?? string.Empty, cue.objectiveId ?? string.Empty, cueDuration, cue.progress ?? 0, position);
+            }
+        }
+
+        public bool UsesUnityPhysicsAuthority()
+        {
+            if (presentationRoot == null) return false;
+            if (presentationRoot.GetComponentInChildren<Rigidbody>(true) != null) return true;
+            foreach (var collider in presentationRoot.GetComponentsInChildren<Collider>(true))
+            {
+                if (collider != null && collider.enabled) return true;
+            }
+            return false;
         }
 
         public int ActiveAuthoredBodies()
@@ -157,6 +236,26 @@ namespace Axm.Rodoh.Action
                 if (actor != null && actor.gameObject.activeInHierarchy) count += 1;
             }
             return count;
+        }
+
+        private void EnsureRoot()
+        {
+            if (presentationRoot != null) return;
+            var root = new GameObject("RODOH Action Bodies");
+            root.transform.SetParent(transform, false);
+            presentationRoot = root.transform;
+        }
+
+        private void ResetActors()
+        {
+            foreach (var actor in _actors.Values)
+            {
+                if (actor == null) continue;
+                if (Application.isPlaying) Destroy(actor.gameObject);
+                else DestroyImmediate(actor.gameObject);
+            }
+            _actors.Clear();
+            _player = null;
         }
 
         private void EnsurePlayer()
@@ -242,30 +341,9 @@ namespace Axm.Rodoh.Action
             }
         }
 
-        private void ApplyEvents(IReadOnlyList<ActionEvent> events)
-        {
-            if (events == null) return;
-            foreach (var actionEvent in events)
-            {
-                if (actionEvent == null) continue;
-                ActionActorBinding actor = null;
-                if (actionEvent.enemyId != null) _actors.TryGetValue(actionEvent.enemyId, out actor);
-                if (actionEvent.type == "player_hit" || actionEvent.type == "parry" || actionEvent.type == "dodge") _actors.TryGetValue("player", out actor);
-                var animator = actor?.Animator;
-                if (actionEvent.type == "enemy_hit" || actionEvent.type == "player_hit") Trigger(animator, Hit);
-                if (actionEvent.type == "parry") Trigger(animator, Parry);
-                if (actionEvent.type == "dodge") Trigger(animator, Dodge);
-                if (actionEvent.defeated) Trigger(animator, Defeat);
-                if (actionEvent.type == "objective_completed")
-                {
-                    foreach (var value in _actors.Values) Trigger(value?.Animator, Objective);
-                }
-                onFeedback?.Invoke(actionEvent.type, actionEvent.enemyId ?? actionEvent.objectiveId ?? string.Empty, actionEvent.damage, actor == null ? Vector3.zero : actor.transform.position);
-            }
-        }
-
         private void CreateNeutralMaterials()
         {
+            if (_neutralPlayerMaterial != null && _neutralEnemyMaterial != null && _telegraphMaterial != null) return;
             var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
             if (shader == null) return;
             _neutralPlayerMaterial = new Material(shader) { color = new Color(0.20f, 0.75f, 0.88f), hideFlags = HideFlags.DontSave };

@@ -8,8 +8,8 @@ using UnityEngine.SceneManagement;
 namespace Axm.Rodoh.Action.Editor
 {
     /// <summary>
-    /// Installs the complete low-cost presentation floor into a generated action
-    /// scene. All components are downstream readers of deterministic action state.
+    /// Installs the complete low-cost player-facing action floor into a generated
+    /// scene. Every component remains downstream of deterministic Arc action state.
     /// </summary>
     public static class ActionPolishAugmentBatch
     {
@@ -33,7 +33,7 @@ namespace Axm.Rodoh.Action.Editor
         [Serializable]
         private sealed class Receipt
         {
-            public string format = "rodoh-unity-action-polish-augmentation/1";
+            public string format = "rodoh-unity-action-polish-augmentation/3";
             public string status = "fail";
             public string generatedAt = DateTime.UtcNow.ToString("O");
             public string unityVersion = Application.unityVersion;
@@ -42,15 +42,22 @@ namespace Axm.Rodoh.Action.Editor
             public string actionSpecDigest;
             public string presentationManifestId;
             public string themeId;
+            public string presentationAdapterId;
+            public bool diagnosticPresentation;
             public bool proceduralMotion;
-            public bool boundedCamera;
+            public bool playerFollowCamera;
+            public bool naturalInput;
+            public bool bufferedInput;
+            public bool contactHold;
+            public bool minimalHud;
             public bool visualFeedback;
             public bool proceduralAudio;
             public bool preferenceControlled;
             public bool reducedMotion;
             public bool highContrast;
             public bool activePhysicsAuthority;
-            public string semanticAuthority = "presentation only";
+            public string playerSurface = "camera-relative movement, free look, buffered light/heavy/dodge/parry, holdable mechanism work";
+            public string semanticAuthority = "presentation and input ingress only";
             public string actionAuthority = "Arc replay and axm-action-receipt/1";
             public string error;
         }
@@ -73,27 +80,46 @@ namespace Axm.Rodoh.Action.Editor
                 var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
                 var runtime = FindExactlyOne<ActionRuntimeBehaviour>(scene);
                 var production = FindExactlyOne<ActionProductionPresentation>(scene);
+                runtime.ConfigurePresentation(production, false);
+                var primitive = runtime.GetComponent<ActionPrimitivePresentation>();
+                if (primitive != null) primitive.enabled = false;
+                var router = runtime.GetComponent<ActionInputRouter>() ?? runtime.gameObject.AddComponent<ActionInputRouter>();
                 var bodies = FindChildByName(scene, "Action Bodies") ?? production.transform;
                 var camera = FindCamera(scene);
+                camera.tag = "MainCamera";
                 var reducedMotion = ParseBoolean(GetArgument("-reducedMotion"), false);
                 var highContrast = ParseBoolean(GetArgument("-highContrast"), false);
 
                 var motion = runtime.GetComponent<ActionProceduralMotionDriver>() ?? runtime.gameObject.AddComponent<ActionProceduralMotionDriver>();
                 motion.Configure(runtime, bodies, reducedMotion);
+
                 var visual = runtime.GetComponent<ActionVisualFeedback>() ?? runtime.gameObject.AddComponent<ActionVisualFeedback>();
                 visual.Configure(runtime, production, bodies);
                 visual.SetPreferences(true, reducedMotion, highContrast);
+
                 var audio = runtime.GetComponent<ActionProceduralAudio>() ?? runtime.gameObject.AddComponent<ActionProceduralAudio>();
                 audio.Configure(production, manifest.themeId);
+
                 var combatCamera = runtime.GetComponent<ActionCombatCamera>() ?? runtime.gameObject.AddComponent<ActionCombatCamera>();
                 combatCamera.Configure(runtime, production, bodies, camera);
+                combatCamera.SetCameraMode(ActionCameraMode.PlayerFollow);
                 combatCamera.SetReducedMotion(reducedMotion);
+
+                var naturalInput = runtime.GetComponent<ActionNaturalPlayerInput>() ?? runtime.gameObject.AddComponent<ActionNaturalPlayerInput>();
+                naturalInput.Configure(router, combatCamera);
+
+                var gameFeel = runtime.GetComponent<ActionGameFeelController>() ?? runtime.gameObject.AddComponent<ActionGameFeelController>();
+                gameFeel.Configure(runtime, production, bodies, reducedMotion);
+
+                var hud = runtime.GetComponent<ActionMinimalHud>() ?? runtime.gameObject.AddComponent<ActionMinimalHud>();
+                hud.Configure(runtime);
 
                 var quarantine = bodies.GetComponent<ActionPhysicsQuarantine>() ?? bodies.gameObject.AddComponent<ActionPhysicsQuarantine>();
                 quarantine.ApplyHierarchy();
                 if (quarantine.HasActivePhysicsAuthority()) throw new InvalidOperationException("Polished action body hierarchy retains active Unity physics authority.");
 
                 EditorUtility.SetDirty(runtime.gameObject);
+                EditorUtility.SetDirty(camera.gameObject);
                 if (!EditorSceneManager.SaveScene(scene, scenePath)) throw new InvalidOperationException("Unity refused to save the polished action scene.");
                 AssetDatabase.SaveAssets();
 
@@ -102,20 +128,41 @@ namespace Axm.Rodoh.Action.Editor
                 receipt.actionSpecDigest = sceneJob.source.actionSpecDigest;
                 receipt.presentationManifestId = sceneJob.source.presentationManifestId;
                 receipt.themeId = manifest.themeId;
+                receipt.presentationAdapterId = runtime.PresentationAdapterId;
+                receipt.diagnosticPresentation = runtime.UsesDiagnosticPresentation;
                 receipt.proceduralMotion = motion != null;
-                receipt.boundedCamera = combatCamera != null;
+                receipt.playerFollowCamera = combatCamera != null && combatCamera.Mode == ActionCameraMode.PlayerFollow;
+                receipt.naturalInput = naturalInput != null;
+                receipt.bufferedInput = router.InputBufferTicks > 0;
+                receipt.contactHold = gameFeel != null;
+                receipt.minimalHud = hud != null;
                 receipt.visualFeedback = visual != null;
                 receipt.proceduralAudio = audio != null;
                 receipt.preferenceControlled = true;
                 receipt.reducedMotion = reducedMotion;
                 receipt.highContrast = highContrast;
                 receipt.activePhysicsAuthority = quarantine.HasActivePhysicsAuthority();
-                if (!receipt.proceduralMotion || !receipt.boundedCamera || !receipt.visualFeedback || !receipt.proceduralAudio) throw new InvalidOperationException("Action polish augmentation is incomplete.");
+                if (receipt.presentationAdapterId != "production.prefab/v1" || receipt.diagnosticPresentation)
+                {
+                    throw new InvalidOperationException("Natural action player is not bound to the production presentation adapter.");
+                }
+                if (!receipt.proceduralMotion
+                    || !receipt.playerFollowCamera
+                    || !receipt.naturalInput
+                    || !receipt.bufferedInput
+                    || !receipt.contactHold
+                    || !receipt.minimalHud
+                    || !receipt.visualFeedback
+                    || !receipt.proceduralAudio)
+                {
+                    throw new InvalidOperationException("Natural action player augmentation is incomplete.");
+                }
+
                 receipt.status = "pass";
                 Directory.CreateDirectory(outputRoot);
                 var receiptPath = Path.Combine(outputRoot, "polish-augmentation.json");
                 File.WriteAllText(receiptPath, JsonUtility.ToJson(receipt, true));
-                Debug.Log("RODOH action polish augmentation passed: " + receiptPath);
+                Debug.Log("RODOH natural action player augmentation passed: " + receiptPath);
                 if (Application.isBatchMode) EditorApplication.Exit(0);
             }
             catch (Exception exception)
@@ -129,7 +176,7 @@ namespace Axm.Rodoh.Action.Editor
                 }
                 catch
                 {
-                    // Preserve the controlling polish failure.
+                    // Preserve the controlling player-surface failure.
                 }
                 Debug.LogException(exception);
                 if (Application.isBatchMode) EditorApplication.Exit(1);

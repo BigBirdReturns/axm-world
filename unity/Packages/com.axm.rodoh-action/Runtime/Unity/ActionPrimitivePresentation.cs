@@ -9,7 +9,7 @@ namespace Axm.Rodoh.Action
     /// no Rigidbody is created. Arc integer state determines every combat position,
     /// hit, parry, dodge, defeat, and terminal result.
     /// </summary>
-    public sealed class ActionPrimitivePresentation : MonoBehaviour
+    public sealed class ActionPrimitivePresentation : MonoBehaviour, IActionPresentationAdapter
     {
         [SerializeField, Min(0.00001f)] private float unityUnitsPerActionUnit = 0.0005f;
         [SerializeField] private Transform presentationRoot;
@@ -24,6 +24,9 @@ namespace Axm.Rodoh.Action
         private Material _arenaMaterial;
         private ActionSpecProjection _spec;
         private int _lastRenderedTick = -1;
+
+        public string AdapterId => "diagnostic.primitive/v1";
+        public bool DiagnosticOnly => true;
 
         public void Initialize(ActionSpecProjection spec, ActionSimulationState state)
         {
@@ -71,15 +74,25 @@ namespace Axm.Rodoh.Action
             _lastRenderedTick = state.tick;
         }
 
-        public void ApplyEvents(IReadOnlyList<ActionEvent> events)
+        public bool SupportsCue(string cueId)
         {
-            if (events == null) return;
-            foreach (var actionEvent in events)
+            return ActionCueContract.IsRequiredCue(cueId);
+        }
+
+        public IReadOnlyList<string> ValidatePlayerProfile()
+        {
+            return new[] { "diagnostic.primitive/v1 is not a player presentation" };
+        }
+
+        public void ApplyCues(IReadOnlyList<ActionSemanticCue> cues)
+        {
+            if (cues == null) return;
+            foreach (var cue in cues)
             {
-                if (actionEvent == null) continue;
-                if (actionEvent.type == "parry" && _playerVisual != null) _playerVisual.localScale = new Vector3(1.2f, 0.8f, 1.2f);
-                if (actionEvent.type == "dodge" && _playerVisual != null) _playerVisual.localScale = new Vector3(0.6f, 0.6f, 1.4f);
-                if (actionEvent.type == "enemy_hit" && actionEvent.enemyId != null && _enemyVisuals.TryGetValue(actionEvent.enemyId, out var enemy)) enemy.localScale *= 1.2f;
+                if (cue == null) continue;
+                if (cue.cueId == "cue.parry-succeeded" && _playerVisual != null) _playerVisual.localScale = new Vector3(1.2f, 0.8f, 1.2f);
+                if (cue.cueId == "cue.dodge-invulnerability" && _playerVisual != null) _playerVisual.localScale = new Vector3(0.6f, 0.6f, 1.4f);
+                if (cue.cueId == "cue.enemy-stagger-started" && cue.subjectId != null && _enemyVisuals.TryGetValue(cue.subjectId, out var enemy)) enemy.localScale *= 1.2f;
             }
         }
 

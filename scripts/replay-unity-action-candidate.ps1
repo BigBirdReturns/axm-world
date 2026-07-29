@@ -10,7 +10,7 @@ param(
     [string]$Candidate,
 
     [string]$OutputRoot,
-    [string]$ArcActionAuthorityCommit = "6eef311836ee7cb3a43a94ce51f448a2699c3b04",
+    [string]$ArcActionAuthorityCommit = "aaa5685903a348b3c1ba875622fbe99d90c1da35",
     [switch]$InstallDependencies,
     [string]$Node,
     [string]$Npm,
