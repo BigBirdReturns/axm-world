@@ -9,7 +9,8 @@ namespace Axm.Rodoh.Action
     /// Serialized identity installed only after the authored scene, production
     /// assets, Arc projection, and player-product profile pass the editor gate. It is
     /// an import/build identity, not a player-comprehension or product-acceptance
-    /// receipt.
+    /// receipt. Build and session layers must preserve this object without upgrading
+    /// its qualification label into an acceptance claim.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class ActionPlayerProductIdentity : MonoBehaviour
