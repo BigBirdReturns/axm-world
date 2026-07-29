@@ -1,0 +1,187 @@
+name: UNDERDRAIN Unity 6000 player source
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/underdrain-unity6000-player-source.yml'
+      - 'scripts/build-unity-action-player.ps1'
+      - 'scripts/qualify-unity-action-player-product.ps1'
+      - 'scripts/run-underdrain-player-session.ps1'
+      - 'scripts/run-underdrain-unity6000-player-train.ps1'
+      - 'tests/world/action-natural-player.test.ts'
+      - 'tests/world/underdrain-unity6000-player-train.test.ts'
+      - 'unity/Conformance/project-authored-action-presentation.mjs'
+      - 'unity/Fixtures/underdrain.authored-presentation.template.json'
+      - 'unity/Fixtures/underdrain.player-product.json'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionBuildBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionPolishAugmentBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/**'
+  push:
+    branches:
+      - feature/underdrain-unity6000-player-train-v1
+    paths:
+      - '.github/workflows/underdrain-unity6000-player-source.yml'
+      - 'scripts/build-unity-action-player.ps1'
+      - 'scripts/qualify-unity-action-player-product.ps1'
+      - 'scripts/run-underdrain-player-session.ps1'
+      - 'scripts/run-underdrain-unity6000-player-train.ps1'
+      - 'tests/world/action-natural-player.test.ts'
+      - 'tests/world/underdrain-unity6000-player-train.test.ts'
+      - 'unity/Conformance/project-authored-action-presentation.mjs'
+      - 'unity/Fixtures/underdrain.authored-presentation.template.json'
+      - 'unity/Fixtures/underdrain.player-product.json'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionBuildBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionPolishAugmentBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: underdrain-unity6000-player-source-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLOOR_SHA: 9693cb99694338e72c15d0ffbb87b5a1c5bbf16a
+  ARC_ACTION_PLAYER_SHA: aaa5685903a348b3c1ba875622fbe99d90c1da35
+  FLOOR_CATALOG: actionfloor1_55eb8869417b3b36a28a309263624fe04ad07028f2254337a2f1548cd03b47d8
+  PLAYER_INTENT: playerintent1_91647652ca3f387b114d5fa7cfab416e2d99c5f307098b6426a17f624cdfbe6c
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Check out exact World candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: axm-world/package-lock.json
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install exact dependencies
+        run: npm --prefix axm-world ci --no-audit --no-fund
+
+      - name: Qualify the bounded player-product source plane
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix axm-world run typecheck
+          npm --prefix axm-world test -- \
+            tests/world/action-natural-player.test.ts \
+            tests/world/underdrain-unity6000-player-train.test.ts \
+            tests/world/action-semantic-cue-receiver.test.ts \
+            tests/world/action-unity-source-contract.test.ts
+          dotnet build axm-world/unity/Conformance/Axm.Rodoh.Action.Cues.csproj --configuration Release
+          dotnet build axm-world/unity/Conformance/Axm.Rodoh.Action.Conformance.csproj --configuration Release
+
+      - name: Run complete World regression and production build
+        working-directory: axm-world
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+
+      - name: Assemble exact source qualification custody
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/underdrain-unity6000-player-source"
+          mkdir -p "$root/source"
+          cp axm-world/unity/Fixtures/underdrain.player-product.json "$root/source/"
+          cp axm-world/unity/Fixtures/underdrain.authored-presentation.template.json "$root/source/"
+          cp axm-world/scripts/run-underdrain-unity6000-player-train.ps1 "$root/source/"
+          cp axm-world/scripts/qualify-unity-action-player-product.ps1 "$root/source/"
+          cp axm-world/scripts/build-unity-action-player.ps1 "$root/source/"
+          cp axm-world/scripts/run-underdrain-player-session.ps1 "$root/source/"
+          cp axm-world/unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs "$root/source/"
+          cp axm-world/unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerProductIdentity.cs "$root/source/"
+          cp axm-world/unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerSessionEvidence.cs "$root/source/"
+          cp axm-world/unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionInputBindings.cs "$root/source/"
+          cp axm-world/unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionRebindOverlay.cs "$root/source/"
+          cp axm-world/unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionCameraCollision.cs "$root/source/"
+          world_sha="$(git -C axm-world rev-parse HEAD)"
+          WORLD_SHA="$world_sha" ROOT="$root" node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const profile = JSON.parse(readFileSync('axm-world/unity/Fixtures/underdrain.player-product.json', 'utf8'));
+          const manifest = JSON.parse(readFileSync('axm-world/unity/Fixtures/underdrain.authored-presentation.template.json', 'utf8'));
+          const receipt = {
+            format: 'rodoh-underdrain-unity6000-player-source-qualification/1',
+            status: 'pass',
+            worldCommit: process.env.WORLD_SHA,
+            floorCommit: process.env.FLOOR_SHA,
+            arcActionPlayerCommit: process.env.ARC_ACTION_PLAYER_SHA,
+            floorCatalogId: process.env.FLOOR_CATALOG,
+            playerIntentId: process.env.PLAYER_INTENT,
+            productId: profile.productId,
+            challengeId: profile.challengeId,
+            timingProfileId: profile.timingProfileId,
+            presentationAdapterId: profile.presentationAdapterId,
+            themeId: manifest.themeId,
+            diagnosticPresentationAllowed: profile.allowDiagnosticPresentation,
+            primitiveFallbackAllowed: profile.allowPrimitiveFallback,
+            requiredCueCount: profile.requiredCueIds.length,
+            enemyKitCount: profile.enemies.length,
+            keyboardMouse: profile.input.keyboardMouse,
+            gamepad: profile.input.gamepad,
+            runtimeRebinding: profile.input.runtimeRebinding,
+            playerFollowCamera: profile.camera.playerFollow,
+            cameraCollision: profile.camera.collision,
+            humanEvidenceRequired: profile.humanEvidence,
+            evidence: {
+              typecheck: 'pass',
+              focusedSourceContracts: 'pass',
+              csharpCueMirrorBuild: 'pass',
+              csharpConformanceBuild: 'pass',
+              completeWorldRegression: 'pass',
+              productionBuild: 'pass'
+            },
+            nonClaims: [
+              'Unity 6000 package import',
+              'serialized scene acceptance',
+              'authored asset existence in Embodied-AR-Lab',
+              'Windows player build',
+              'keyboard and mouse session',
+              'gamepad and rebinding session',
+              'independent player comprehension',
+              'Quest session',
+              'named product acceptance'
+            ],
+            productAcceptance: 'not-issued'
+          };
+          writeFileSync(process.env.ROOT + '/source-qualification.json', JSON.stringify(receipt, null, 2) + '\n');
+          NODE
+          find axm-world/unity/Conformance -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
+          (
+            cd "$root"
+            find . -type f ! -name SHA256SUMS -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS
+          )
+          git -C axm-world diff --check
+          test -z "$(git -C axm-world status --porcelain)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-unity6000-player-source
+          path: ${{ runner.temp }}/underdrain-unity6000-player-source
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
