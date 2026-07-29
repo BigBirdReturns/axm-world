@@ -7,8 +7,9 @@ const runtime = (path: string) => readFileSync(resolve(ROOT, "unity/Packages/com
 const editor = (path: string) => readFileSync(resolve(ROOT, "unity/Packages/com.axm.rodoh-action/Editor", path), "utf8");
 
 describe("Unity natural action player plane", () => {
-  it("uses player-follow free look instead of encounter-wide diorama framing", () => {
+  it("uses player-follow free look and presentation-only camera collision", () => {
     const source = runtime("Unity/ActionCombatCamera.cs");
+    const collision = runtime("Unity/ActionCameraCollision.cs");
     expect(source).toContain("cameraMode = ActionCameraMode.PlayerFollow");
     expect(source).toContain("public void AddLook(Vector2 deltaDegrees)");
     expect(source).toContain("public Vector2 PlanarForward");
@@ -16,20 +17,37 @@ describe("Unity natural action player plane", () => {
     expect(source).toContain("UpdatePlayerFollow()");
     expect(source).toContain("UpdateGroupFraming()");
     expect(source).toContain("Time.unscaledTime - _lastManualLookTime >= recenterDelay");
+    expect(collision).toContain("Physics.SphereCast");
+    expect(collision).toContain("targetCamera.transform.position = pivot + direction * resolvedDistance");
+    expect(collision).toContain("never");
+    expect(collision).not.toContain("ActionKernel.Step");
   });
 
-  it("maps ordinary mouse keyboard and gamepad intent through the camera basis", () => {
+  it("maps keyboard mouse and gamepad through one persistent rebindable input profile", () => {
     const source = runtime("Unity/ActionNaturalPlayerInput.cs");
+    const bindings = runtime("Unity/ActionInputBindings.cs");
+    const overlay = runtime("Unity/ActionRebindOverlay.cs");
     expect(source).toContain("cameraRig.PlanarForward");
     expect(source).toContain("cameraRig.PlanarRight");
     expect(source).toContain("right * move.x + forward * move.y");
+    expect(source).toContain("bindings.IsHeld(ActionPlayerAction.Light");
+    expect(source).toContain("bindings.IsHeld(ActionPlayerAction.Interact");
     expect(source).toContain("Input.GetMouseButton(0)");
     expect(source).toContain("Input.GetMouseButton(1)");
-    expect(source).toContain("KeyCode.Space");
-    expect(source).toContain("KeyCode.Q");
-    expect(source).toContain("router.SetInteract(Input.GetKey(KeyCode.E)");
+    expect(source).toContain("interactKeyboardMouse = Input.GetKey(KeyCode.E)");
+    expect(source).toContain("router.SetInteract(interact)");
+    expect(source).toContain("ObservedDeviceClass");
+    expect(source).toContain("SawGamepad");
     expect(source).toContain("CursorLockMode.Locked");
     expect(source).toMatch(/router\?*\.SetDesktopKeyboardFallback\(false\)/);
+    expect(bindings).toContain('Format = "rodoh-action-input-bindings/1"');
+    expect(bindings).toContain('return "actbind1_"');
+    expect(bindings).toContain("PlayerPrefs.SetString");
+    expect(bindings).toContain("public bool Rebind(string action, string device, KeyCode key)");
+    expect(overlay).toContain("KeyCode.F10");
+    expect(overlay).toContain("BeginCapture");
+    expect(overlay).toContain("bindings.Rebind");
+    expect(overlay).toContain("Arc timing and action law do not change");
   });
 
   it("buffers edges until the next legal tick while preserving held mechanism work", () => {
@@ -64,21 +82,23 @@ describe("Unity natural action player plane", () => {
     expect(host).toContain("ActionStateSnapshot.Clone(_state)");
     expect(host).toContain("ActionCueProjector.Project(_spec, prior, _state)");
     expect(host).toContain("_presentation.ApplyCues(cues)");
+    expect(host).toContain('candidate.authority != "Arc replay required"');
     expect(host).not.toContain("_presentation?.ApplyEvents(_state.events)");
     expect(host).not.toContain("private ActionPrimitivePresentation presentation;");
     expect(diagnostic).toContain("IActionPresentationAdapter");
     expect(diagnostic).toContain('AdapterId => "diagnostic.primitive/v1"');
     expect(diagnostic).toContain("DiagnosticOnly => true");
-    expect(diagnostic).toContain("ValidatePlayerProfile()");
     expect(production).toContain("IActionPresentationAdapter");
     expect(production).toContain('AdapterId => "production.prefab/v1"');
-    expect(production).toContain("DiagnosticOnly => false");
     expect(production).toContain("ApplyCues(IReadOnlyList<ActionSemanticCue> cues)");
+    expect(production).toContain("OnSemanticCue");
     expect(production).toContain("Authored player prefab is absent.");
     expect(production).not.toContain("runtime.TickAdvanced += ApplyState");
     expect(batch).toContain("runtime.ConfigurePresentation(production, false)");
     expect(batch).toContain("primitive.enabled = false");
-    expect(batch).toContain('receipt.presentationAdapterId != "production.prefab/v1"');
+    expect(batch).toContain("ActionPlayerSessionEvidence");
+    expect(batch).toContain("ActionInputBindings");
+    expect(batch).toContain("ActionCameraCollision");
   });
 
   it("adds contact holds without hidden state or trace advancement", () => {
@@ -92,15 +112,25 @@ describe("Unity natural action player plane", () => {
     expect(feel).toContain("animator.speed = 0f");
   });
 
-  it("keeps receipts behind the player surface and installs a minimal game HUD", () => {
+  it("keeps exact receipts behind the player surface and makes controls truthful", () => {
     const hud = runtime("Unity/ActionMinimalHud.cs");
+    const evidence = runtime("Unity/ActionPlayerSessionEvidence.cs");
+    const performance = runtime("Unity/ActionPerformanceRecorder.cs");
     const batch = editor("ActionPolishAugmentBatch.cs");
     expect(hud).toContain("WASD move");
-    expect(hud).toContain("LMB sweep");
-    expect(hud).toContain("RMB crush");
-    expect(hud).toContain("HOLD E  ·  WORK");
+    expect(hud).toContain("bindings.Profile.ControlSummary()");
+    expect(hud).toContain("F10 rebind");
+    expect(hud).toContain("bindings?.Profile?.Primary(ActionPlayerAction.Interact)");
     expect(hud).not.toContain("candidateFileName");
     expect(hud).not.toContain("receiptDigest");
+    expect(evidence).toContain('format = "rodoh-action-player-session-evidence/1"');
+    expect(evidence).toContain('comprehensionReceipt = "not-issued-by-runtime"');
+    expect(evidence).toContain('acceptance = "diagnostic-mechanic-session-only"');
+    expect(evidence).toContain("candidateAuthority == \"Arc replay required\"");
+    expect(performance).toContain('format = "rodoh-action-performance-receipt/2"');
+    expect(performance).toContain("p95WithinBudget");
+    expect(performance).toContain("p99WithinBudget");
+    expect(performance).toContain("changesActionResult = false");
     expect(batch).toContain("ActionCameraMode.PlayerFollow");
     expect(batch).toContain("ActionNaturalPlayerInput");
     expect(batch).toContain("ActionGameFeelController");
