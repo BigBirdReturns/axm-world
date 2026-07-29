@@ -1,0 +1,237 @@
+name: Unity action real-cartridge convergence
+
+on:
+  pull_request:
+    paths:
+      - 'unity/Conformance/arc-real-action-spec-adapter.test.ts'
+      - 'unity/Conformance/arc-receipt-adapter.test.ts'
+      - 'unity/Conformance/arc-vector.test.ts'
+      - 'unity/Conformance/project-action-spec.mjs'
+      - 'unity/Conformance/project-presentation-manifest.mjs'
+      - 'unity/Conformance/build-action-scene-job.mjs'
+      - 'unity/Conformance/CandidateProgram.cs'
+      - 'unity/Conformance/Axm.Rodoh.Action.Candidate.csproj'
+      - 'unity/Conformance/ArcParityProgram.cs'
+      - 'unity/Conformance/Axm.Rodoh.Action.ArcParity.csproj'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Core/**'
+      - 'unity/Fixtures/frog-pit.presentation.json'
+      - '.github/workflows/unity-action-real-cartridge.yml'
+  push:
+    branches:
+      - feature/action-runtime-v1
+    paths:
+      - 'unity/Conformance/arc-real-action-spec-adapter.test.ts'
+      - 'unity/Conformance/arc-receipt-adapter.test.ts'
+      - 'unity/Conformance/arc-vector.test.ts'
+      - 'unity/Conformance/project-action-spec.mjs'
+      - 'unity/Conformance/project-presentation-manifest.mjs'
+      - 'unity/Conformance/build-action-scene-job.mjs'
+      - 'unity/Conformance/CandidateProgram.cs'
+      - 'unity/Conformance/Axm.Rodoh.Action.Candidate.csproj'
+      - 'unity/Conformance/ArcParityProgram.cs'
+      - 'unity/Conformance/Axm.Rodoh.Action.ArcParity.csproj'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Core/**'
+      - 'unity/Fixtures/frog-pit.presentation.json'
+      - '.github/workflows/unity-action-real-cartridge.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unity-action-real-cartridge-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARC_ACTION_AUTHORITY_SHA: 6eef311836ee7cb3a43a94ce51f448a2699c3b04
+
+jobs:
+  convergence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - name: Check out exact World candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Check out exact Arc action authority
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_ACTION_AUTHORITY_SHA }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: axm-arc/package-lock.json
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Record exact source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C axm-world rev-parse HEAD)" = '${{ github.event.pull_request.head.sha || github.sha }}'
+          test "$(git -C axm-arc rev-parse HEAD)" = "$ARC_ACTION_AUTHORITY_SHA"
+          test -z "$(git -C axm-world status --porcelain)"
+          test -z "$(git -C axm-arc status --porcelain)"
+          git -C axm-world diff --check
+          git -C axm-arc diff --check
+          mkdir -p receipts
+          printf '%s\n' '${{ github.event.pull_request.head.sha || github.sha }}' > receipts/world-candidate-sha.txt
+          printf '%s\n' "$ARC_ACTION_AUTHORITY_SHA" > receipts/arc-action-authority-sha.txt
+
+      - name: Install exact Arc dependencies
+        run: npm --prefix axm-arc ci --no-audit --no-fund
+
+      - name: Compile a real bundled Arc challenge into axm-action-spec/1
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp axm-world/unity/Conformance/arc-real-action-spec-adapter.test.ts axm-arc/tests/action/unity-real-action-spec.test.ts
+          export AXM_REAL_ACTION_SPEC_OUT="$GITHUB_WORKSPACE/receipts/real.action-spec.json"
+          (
+            cd axm-arc
+            npx vitest run tests/action/unity-real-action-spec.test.ts --reporter=verbose
+          ) 2>&1 | tee receipts/real-action-spec.log
+          rm -f axm-arc/tests/action/unity-real-action-spec.test.ts
+          test -s receipts/real.action-spec.json
+          test -s receipts/real.action-spec.json.receipt.json
+          test "$(jq -r '.format' receipts/real.action-spec.json)" = 'axm-action-spec/1'
+          test "$(jq -r '.tickRate' receipts/real.action-spec.json)" = '30'
+          jq -e '.arcDigest | test("^cart1_[0-9a-f]{64}$")' receipts/real.action-spec.json >/dev/null
+          jq -e '.specDigest | test("^actspec1_[0-9a-f]{64}$")' receipts/real.action-spec.json >/dev/null
+          jq -e '.execution.orgSeed >= 0 and .execution.seed >= 0 and .execution.cycle >= 0' receipts/real.action-spec.json.receipt.json >/dev/null
+
+      - name: Derive the exact Unity projection, presentation, and scene job
+        shell: bash
+        run: |
+          set -euo pipefail
+          node axm-world/unity/Conformance/project-action-spec.mjs \
+            receipts/real.action-spec.json \
+            receipts/real.unity-action-spec.json \
+            2>&1 | tee receipts/action-projection.log
+          node axm-world/unity/Conformance/project-presentation-manifest.mjs \
+            receipts/real.action-spec.json \
+            axm-world/unity/Fixtures/frog-pit.presentation.json \
+            receipts/real.presentation.json \
+            2>&1 | tee receipts/presentation-projection.log
+          node axm-world/unity/Conformance/build-action-scene-job.mjs \
+            receipts/real.unity-action-spec.json \
+            receipts/real.presentation.json \
+            receipts/real.scene-job.json \
+            2>&1 | tee receipts/scene-job.log
+          test "$(jq -r '.sourceSpecDigest' receipts/real.unity-action-spec.json)" = "$(jq -r '.specDigest' receipts/real.action-spec.json)"
+          test "$(jq -r '.sourceActionSpecDigest' receipts/real.presentation.json)" = "$(jq -r '.specDigest' receipts/real.action-spec.json)"
+          test "$(jq -r '.source.actionSpecDigest' receipts/real.scene-job.json)" = "$(jq -r '.specDigest' receipts/real.action-spec.json)"
+          jq -e '.jobDigest | test("^unityjob1_[0-9a-f]{64}$")' receipts/real.scene-job.json >/dev/null
+
+      - name: Execute the projected encounter and emit a provisional Unity candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          execution='receipts/real.action-spec.json.receipt.json'
+          dotnet run \
+            --configuration Release \
+            --project axm-world/unity/Conformance/Axm.Rodoh.Action.Candidate.csproj \
+            -- \
+            receipts/real.unity-action-spec.json \
+            receipts/real.action-candidate.json \
+            "$(jq -r '.execution.cycle' "$execution")" \
+            "$(jq -r '.execution.seed' "$execution")" \
+            "$(jq -r '.execution.controlledAgentId' "$execution")" \
+            2>&1 | tee receipts/candidate-generation.log
+          test "$(jq -r '.format' receipts/real.action-candidate.json)" = 'rodoh-action-execution-candidate/1'
+          test "$(jq -r '.authority' receipts/real.action-candidate.json)" = 'Arc replay required'
+          test "$(jq -r '.actionSpecDigest' receipts/real.action-candidate.json)" = "$(jq -r '.specDigest' receipts/real.action-spec.json)"
+          test "$(jq -r '.seed' receipts/real.action-candidate.json)" = "$(jq -r '.execution.seed' "$execution")"
+          test "$(jq '[.trace[].ticks] | add' receipts/real.action-candidate.json)" = "$(jq '.totalTicks' receipts/real.action-candidate.json)"
+
+      - name: Require exact Arc-to-Csharp terminal-state parity on the real cartridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp axm-world/unity/Conformance/arc-vector.test.ts axm-arc/tests/action/unity-real-vector.test.ts
+          export AXM_UNITY_NATIVE_SPEC="$GITHUB_WORKSPACE/receipts/real.action-spec.json"
+          export AXM_UNITY_PROJECTION="$GITHUB_WORKSPACE/receipts/real.unity-action-spec.json"
+          export AXM_UNITY_VECTOR_OUT="$GITHUB_WORKSPACE/receipts/real.arc-vector.json"
+          (
+            cd axm-arc
+            npx vitest run tests/action/unity-real-vector.test.ts --reporter=verbose
+          ) 2>&1 | tee receipts/real-arc-vector.log
+          rm -f axm-arc/tests/action/unity-real-vector.test.ts
+          dotnet run \
+            --configuration Release \
+            --project axm-world/unity/Conformance/Axm.Rodoh.Action.ArcParity.csproj \
+            -- \
+            receipts/real.arc-vector.json \
+            receipts/real.arc-csharp-parity.json \
+            2>&1 | tee receipts/real-arc-csharp-parity.log
+          grep -q '"status": "pass"' receipts/real.arc-csharp-parity.json
+          grep -q '"parity": true' receipts/real.arc-csharp-parity.json
+
+      - name: Replay the Unity candidate through Arc and mint the accepted receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp axm-world/unity/Conformance/arc-receipt-adapter.test.ts axm-arc/tests/action/unity-real-receipt.test.ts
+          export AXM_ACTION_NATIVE_SPEC="$GITHUB_WORKSPACE/receipts/real.action-spec.json"
+          export AXM_ACTION_CANDIDATE="$GITHUB_WORKSPACE/receipts/real.action-candidate.json"
+          export AXM_ACTION_RECEIPT_OUT="$GITHUB_WORKSPACE/receipts/real.accepted-action-receipt.json"
+          export AXM_ACTION_RECONCILIATION_OUT="$GITHUB_WORKSPACE/receipts/real.result-reconciliation.json"
+          export AXM_ACTION_ORG_SEED="$(jq -r '.execution.orgSeed' receipts/real.action-spec.json.receipt.json)"
+          (
+            cd axm-arc
+            npx vitest run tests/action/unity-real-receipt.test.ts --reporter=verbose
+          ) 2>&1 | tee receipts/real-arc-receipt.log
+          rm -f axm-arc/tests/action/unity-real-receipt.test.ts
+          test "$(jq -r '.format' receipts/real.accepted-action-receipt.json)" = 'axm-action-receipt/1'
+          test "$(jq -r '.status' receipts/real.result-reconciliation.json)" = 'accepted'
+          test "$(jq -r '.campaignAuthority' receipts/real.result-reconciliation.json)" = 'Arc only'
+          test "$(jq -r '.actionSpecDigest' receipts/real.result-reconciliation.json)" = "$(jq -r '.specDigest' receipts/real.action-spec.json)"
+
+      - name: Preserve clean source checkouts and summarize convergence
+        if: always()
+        shell: bash
+        run: |
+          rm -f \
+            axm-arc/tests/action/unity-real-action-spec.test.ts \
+            axm-arc/tests/action/unity-real-vector.test.ts \
+            axm-arc/tests/action/unity-real-receipt.test.ts
+          test "$(git -C axm-arc rev-parse HEAD)" = "$ARC_ACTION_AUTHORITY_SHA"
+          test -z "$(git -C axm-arc status --porcelain)"
+          git -C axm-world diff --check
+          if test -s receipts/real.accepted-action-receipt.json; then
+            jq -n \
+              --arg format 'rodoh-unity-real-cartridge-convergence/2' \
+              --arg status pass \
+              --arg world '${{ github.event.pull_request.head.sha || github.sha }}' \
+              --arg arc "$ARC_ACTION_AUTHORITY_SHA" \
+              --arg arcDigest "$(jq -r '.arcDigest' receipts/real.action-spec.json)" \
+              --arg actionSpecDigest "$(jq -r '.specDigest' receipts/real.action-spec.json)" \
+              --arg challengeId "$(jq -r '.challengeId' receipts/real.action-spec.json)" \
+              --arg sceneJobDigest "$(jq -r '.jobDigest' receipts/real.scene-job.json)" \
+              --arg acceptedOutcome "$(jq -r '.acceptedResult.outcome // .acceptedResult.result.outcome // "unknown"' receipts/real.result-reconciliation.json)" \
+              --argjson provisionalParity "$(jq '.provisionalParity' receipts/real.result-reconciliation.json)" \
+              '{format:$format,status:$status,worldCandidate:$world,arcActionAuthorityCommit:$arc,arcDigest:$arcDigest,actionSpecDigest:$actionSpecDigest,challengeId:$challengeId,sceneJobDigest:$sceneJobDigest,acceptedOutcome:$acceptedOutcome,provisionalParity:$provisionalParity}' \
+              > receipts/convergence-summary.json
+          fi
+
+      - name: Upload real-cartridge convergence evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rodoh-unity-real-cartridge-convergence
+          path: receipts
+          if-no-files-found: warn
+          retention-days: 30

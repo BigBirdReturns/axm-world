@@ -1,0 +1,107 @@
+name: Unity action bridge
+
+on:
+  pull_request:
+    paths:
+      - 'unity/**'
+      - 'scripts/run-unity-action-bridge.ps1'
+      - 'docs/UNITY_ACTION_RUNTIME_BRIDGE.md'
+      - '.github/workflows/unity-action-bridge.yml'
+  push:
+    branches:
+      - feature/action-runtime-v1
+    paths:
+      - 'unity/**'
+      - 'scripts/run-unity-action-bridge.ps1'
+      - 'docs/UNITY_ACTION_RUNTIME_BRIDGE.md'
+      - '.github/workflows/unity-action-bridge.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unity-action-bridge-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARC_ACTION_AUTHORITY_SHA: 6eef311836ee7cb3a43a94ce51f448a2699c3b04
+
+jobs:
+  conformance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact World bridge candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Check out exact Arc action authority
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_ACTION_AUTHORITY_SHA }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Record exact source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C axm-world rev-parse HEAD)" = '${{ github.event.pull_request.head.sha || github.sha }}'
+          test "$(git -C axm-arc rev-parse HEAD)" = "$ARC_ACTION_AUTHORITY_SHA"
+          git -C axm-world diff --check
+          git -C axm-arc diff --check
+
+      - name: Verify projection against pinned Arc action source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p receipts
+          node axm-world/unity/Conformance/check-arc-source-parity.mjs \
+            axm-arc \
+            axm-world/unity/Fixtures/frog-pit.unity-action-spec.json \
+            receipts/arc-source-parity.json
+
+      - name: Build and run dependency-free C# conformance mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet run \
+            --configuration Release \
+            --project axm-world/unity/Conformance/Axm.Rodoh.Action.Conformance.csproj \
+            -- \
+            axm-world/unity/Fixtures/frog-pit.unity-action-spec.json \
+            receipts/csharp-conformance.json
+          grep -q '"status": "pass"' receipts/csharp-conformance.json
+          grep -q '"deterministicReplay": true' receipts/csharp-conformance.json
+
+      - name: Enforce authority and dependency boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -R -n -E 'UnityEngine\.Physics|Physics\.|Rigidbody' axm-world/unity/Packages/com.axm.rodoh-action/Runtime/Core
+          grep -R -n 'Arc replay required' axm-world/unity/Packages/com.axm.rodoh-action/Runtime
+          grep -R -n 'Arc replay remains' axm-world/unity/Packages/com.axm.rodoh-action/Runtime
+          test "$(find axm-world/unity/Packages/com.axm.rodoh-action/Runtime/Core -name '*.cs' | wc -l)" -ge 3
+
+      - name: Upload Unity action bridge receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rodoh-unity-action-bridge
+          path: receipts
+          if-no-files-found: error
+          retention-days: 30

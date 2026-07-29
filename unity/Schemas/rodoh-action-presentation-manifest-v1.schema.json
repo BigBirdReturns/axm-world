@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axm.tools/schemas/rodoh-action-presentation-manifest-1.json",
+  "title": "RODOH action presentation manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "manifestId",
+    "sourceActionSpecDigest",
+    "themeId",
+    "player",
+    "enemies",
+    "arena",
+    "feedback",
+    "qualityProfiles",
+    "accessibility",
+    "provenance"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "format": { "const": "rodoh-action-presentation-manifest/1" },
+    "manifestId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{1,127}$" },
+    "sourceActionSpecDigest": { "type": "string", "pattern": "^actspec1_[0-9a-f]{64}$" },
+    "themeId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "player": { "$ref": "#/$defs/actor" },
+    "enemies": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": { "$ref": "#/$defs/enemy" }
+    },
+    "arena": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kit", "recipe", "neutralFallback", "metersPerActionUnit"],
+      "properties": {
+        "kit": { "enum": ["ring", "lane", "islands"] },
+        "recipe": { "type": ["string", "null"] },
+        "neutralFallback": { "type": "boolean" },
+        "metersPerActionUnit": { "type": "number", "exclusiveMinimum": 0, "maximum": 0.01 }
+      }
+    },
+    "feedback": {
+      "type": "array",
+      "minItems": 6,
+      "items": { "$ref": "#/$defs/feedback" }
+    },
+    "qualityProfiles": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": { "$ref": "#/$defs/quality" }
+    },
+    "accessibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["telegraphScale", "reducedMotion", "highContrast", "hapticsOptional", "audioOptional", "oneHandedMappings"],
+      "properties": {
+        "telegraphScale": { "type": "number", "minimum": 1, "maximum": 3 },
+        "reducedMotion": { "type": "boolean" },
+        "highContrast": { "type": "boolean" },
+        "hapticsOptional": { "const": true },
+        "audioOptional": { "const": true },
+        "oneHandedMappings": { "type": "boolean" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "license", "assetRoots", "remoteRuntimeReferencesAllowed"],
+      "properties": {
+        "format": { "const": "rodoh-action-presentation-provenance/1" },
+        "license": { "type": "string", "minLength": 1 },
+        "assetRoots": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^Assets/" }
+        },
+        "remoteRuntimeReferencesAllowed": { "const": false }
+      }
+    }
+  },
+  "$defs": {
+    "motionSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["idle", "move", "light", "heavy", "dodge", "parry", "stagger", "defeat"],
+      "properties": {
+        "idle": { "type": ["string", "null"] },
+        "move": { "type": ["string", "null"] },
+        "light": { "type": ["string", "null"] },
+        "heavy": { "type": ["string", "null"] },
+        "dodge": { "type": ["string", "null"] },
+        "parry": { "type": ["string", "null"] },
+        "stagger": { "type": ["string", "null"] },
+        "defeat": { "type": ["string", "null"] }
+      }
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actorId", "bodyPrefab", "animatorController", "motionSet", "neutralFallback", "scale"],
+      "properties": {
+        "actorId": { "type": "string", "minLength": 1 },
+        "bodyPrefab": { "type": ["string", "null"] },
+        "animatorController": { "type": ["string", "null"] },
+        "motionSet": { "$ref": "#/$defs/motionSet" },
+        "neutralFallback": { "type": "boolean" },
+        "scale": { "type": "number", "exclusiveMinimum": 0, "maximum": 10 }
+      }
+    },
+    "enemy": {
+      "allOf": [
+        { "$ref": "#/$defs/actor" },
+        {
+          "type": "object",
+          "required": ["kit"],
+          "properties": {
+            "kit": { "enum": ["skirmisher", "duelist", "swarm", "hexer", "breaker"] }
+          }
+        }
+      ]
+    },
+    "feedback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "vfxPrefab", "audioClip", "haptic", "cameraImpulse", "hitStopMilliseconds", "neutralFallback"],
+      "properties": {
+        "event": { "enum": ["player_action", "enemy_hit", "player_hit", "parry", "dodge", "objective_completed", "encounter_completed"] },
+        "vfxPrefab": { "type": ["string", "null"] },
+        "audioClip": { "type": ["string", "null"] },
+        "haptic": { "type": "number", "minimum": 0, "maximum": 1 },
+        "cameraImpulse": { "type": "number", "minimum": 0, "maximum": 1 },
+        "hitStopMilliseconds": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "neutralFallback": { "type": "boolean" }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "renderScale", "maximumSkinnedActors", "maximumParticles", "shadowMode", "postProcessing", "targetFps"],
+      "properties": {
+        "id": { "enum": ["low", "standard", "high"] },
+        "renderScale": { "type": "number", "minimum": 0.5, "maximum": 1.5 },
+        "maximumSkinnedActors": { "type": "integer", "minimum": 1, "maximum": 13 },
+        "maximumParticles": { "type": "integer", "minimum": 0, "maximum": 4096 },
+        "shadowMode": { "enum": ["none", "one-directional", "baked"] },
+        "postProcessing": { "type": "boolean" },
+        "targetFps": { "enum": [30, 60, 72, 90] }
+      }
+    }
+  }
+}
