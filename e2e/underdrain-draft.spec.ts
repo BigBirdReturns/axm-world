@@ -126,7 +126,7 @@ test.describe("UNDERDRAIN authored continuity under representation rework", () =
     await expect(page.locator("#game")).toHaveAttribute("data-presentation-asset", "underdrain:scene-pump-seven");
     await expect(page.locator("#game")).toHaveAttribute("data-production-asset", "underdrain:scene-pump-seven");
     await expect(page.locator("#game")).toHaveAttribute("data-production-asset-sha256", PUMP_PRODUCTION_SHA);
-    await expect(page.locator("#game")).toHaveAttribute("data-representation-assets", /underdrain:mechanism-diagnose-spore-valves-active/);
+    await expect(page.locator("#game")).toHaveAttribute("data-representation-assets", /underdrain:mechanism-spore-valve-active/);
     await expect(page.locator("#game")).toHaveAttribute("data-representation-assets", /underdrain:pressure-/);
     await page.screenshot({ path: testInfo.outputPath("pump-seven-one-production-scene.png"), fullPage: true });
     await completeCurrentEncounter(page, "breach-crown-pump", 2, 0x5eed2026);
