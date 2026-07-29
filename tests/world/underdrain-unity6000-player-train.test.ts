@@ -119,14 +119,19 @@ describe("UNDERDRAIN Unity 6000 player train", () => {
     expect(refused.result.stderr).toContain("forbidden generated asset root");
   });
 
-  it("requires exact production markers, imported visuals, static arena collision, and no Unity combat physics", () => {
+  it("requires exact production markers, named approval custody, imported visuals, static arena collision, and no Unity combat physics", () => {
     const marker = read("unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionAssetMarker.cs");
     const identity = read("unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerProductIdentity.cs");
     const batch = read("unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs");
-    expect(marker).toContain('Format = "rodoh-action-production-asset/1"');
+    expect(marker).toContain('Format = "rodoh-action-production-asset/2"');
     expect(marker).toContain("productionApproved");
+    expect(marker).toContain("approvalRecordFormat");
+    expect(marker).toContain("approvalAuthorityId");
+    expect(marker).toContain("approvalAttestation");
+    expect(marker).toContain("approvedAt");
     expect(marker).toContain("generatedPrimitive");
     expect(marker).toContain("Production asset source SHA-256 is absent or malformed");
+    expect(marker).toContain("Production asset approval authority is absent");
     expect(identity).toContain('Format = "rodoh-action-player-product-identity/1"');
     expect(identity).toContain('qualification = "source-and-scene-qualified"');
     expect(identity).toContain("runtimeMayIssueComprehensionReceipt = false");
