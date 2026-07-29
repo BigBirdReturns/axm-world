@@ -101,7 +101,12 @@ if ($player.ExitCode -ne 0) { throw "UNDERDRAIN $Device session exited $($player
 foreach ($path in @($sessionEvidencePath, $performancePath)) { if (-not (Test-Path $path)) { throw "Built player did not write required session evidence: $path" } }
 $session = Get-Content $sessionEvidencePath -Raw | ConvertFrom-Json
 $performance = Get-Content $performancePath -Raw | ConvertFrom-Json
+if ($session.format -ne "rodoh-action-player-session-evidence/2") { throw "Built player emitted an unsupported session-evidence format." }
 if ($session.status -ne "pass" -or $session.terminal -ne $true) { throw "Built-player mechanic session did not pass: $($session.error)" }
+if ($session.playerProductIdentityValid -ne $true -or $session.playerProductQualification -ne "source-and-scene-qualified") { throw "Built-player session did not validate its serialized product identity." }
+if ($session.playerProductId -ne $productRun.productId -or $session.playerProductProfileSha256 -ne $productRun.productProfileSha256) { throw "Built-player session loaded a different player-product identity." }
+if ($session.worldCommit -ne $productRun.worldCommit -or $session.arcCommit -ne $productRun.arcCommit) { throw "Built-player session lost exact World or Arc commit custody." }
+if ($session.presentationManifestId -ne $productRun.presentationManifestId -or $session.sceneJobDigest -ne $productRun.sceneJobDigest) { throw "Built-player session loaded a different presentation or scene-job identity." }
 if ($session.presentationAdapterId -ne "production.prefab/v1" -or $session.diagnosticPresentation -ne $false) { throw "Built-player session lost the production presentation adapter." }
 if ($session.actionSpecDigest -ne $productRun.actionSpecDigest -or $session.arcDigest -ne $productRun.arcDigest -or $session.timingProfileId -ne $productRun.timingProfileId) { throw "Built-player session loaded different Arc or timing-profile authority." }
 if ($session.candidateAuthority -ne "Arc replay required" -or $session.comprehensionReceipt -ne "not-issued-by-runtime" -or $session.acceptance -ne "diagnostic-mechanic-session-only") { throw "Built-player session crossed the candidate or human-evidence authority boundary." }
@@ -140,14 +145,17 @@ if ($replay.status -ne "pass" -or $reconciliation.status -ne "accepted") { throw
 if ($accepted.timingProfileId -ne $productRun.timingProfileId) { throw "Accepted Arc receipt lost the built-player timing profile." }
 
 $receipt = [ordered]@{
-    format = "rodoh-underdrain-windows-player-session/1"
+    format = "rodoh-underdrain-windows-player-session/2"
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
     status = "pass"
     device = $Device
     worldCommit = $productRun.worldCommit
     arcCommit = $productRun.arcCommit
-    playerProductId = $productRun.productId
-    playerProductProfileSha256 = $productRun.productProfileSha256
+    playerProductId = $session.playerProductId
+    playerProductProfileSha256 = $session.playerProductProfileSha256
+    playerProductQualification = $session.playerProductQualification
+    presentationManifestId = $session.presentationManifestId
+    sceneJobDigest = $session.sceneJobDigest
     windowsProduct = $playerPath
     windowsProductSha256 = $buildRun.productSha256
     actionSpecDigest = $session.actionSpecDigest
@@ -196,6 +204,6 @@ Get-ChildItem $sessionRoot -File -Recurse |
         "$hash  $relative"
     } | Set-Content -Encoding ascii $checksumPath
 
-Write-Host "UNDERDRAIN $Device Windows player session passed its mechanic, device, frame-pacing, and exact Arc-replay boundary."
+Write-Host "UNDERDRAIN $Device Windows player session passed its product identity, mechanic, device, frame-pacing, and exact Arc-replay boundary."
 Write-Host "This is not an independent comprehension or final product-acceptance receipt."
 Write-Host $sessionRunPath
