@@ -42,6 +42,31 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('scripts/converge-action-semantic-cue-receiver.py')
+          text = path.read_text(encoding='utf-8')
+          before = """        (
+                      '  const difficultyModeId = candidate.difficultyModeId ?? null;\\n',
+                      '  const difficultyModeId = candidate.difficultyModeId ?? null;\\n'
+                      '  const timingProfileId = candidate.timingProfileId ?? null;\\n',
+                      1,
+                  ),
+          """
+          after = """        (
+                      'function findAuthority(spec: any, candidate: any): { arc: Arc; challenge: Challenge } {\\n'
+                      '  const difficultyModeId = candidate.difficultyModeId ?? null;\\n',
+                      'function findAuthority(spec: any, candidate: any): { arc: Arc; challenge: Challenge } {\\n'
+                      '  const difficultyModeId = candidate.difficultyModeId ?? null;\\n'
+                      '  const timingProfileId = candidate.timingProfileId ?? null;\\n',
+                      1,
+                  ),
+          """
+          if text.count(before) != 1:
+              raise SystemExit(f'expected one ambiguous Arc timing-profile replacement, found {text.count(before)}')
+          path.write_text(text.replace(before, after), encoding='utf-8', newline='\n')
+          PY
           python scripts/converge-action-semantic-cue-receiver.py
           python -m py_compile scripts/converge-action-semantic-cue-receiver.py
           git diff --check
