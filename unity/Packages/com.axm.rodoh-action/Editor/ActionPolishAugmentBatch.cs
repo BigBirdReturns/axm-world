@@ -33,7 +33,7 @@ namespace Axm.Rodoh.Action.Editor
         [Serializable]
         private sealed class Receipt
         {
-            public string format = "rodoh-unity-action-polish-augmentation/3";
+            public string format = "rodoh-unity-action-polish-augmentation/4";
             public string status = "fail";
             public string generatedAt = DateTime.UtcNow.ToString("O");
             public string unityVersion = Application.unityVersion;
@@ -46,18 +46,23 @@ namespace Axm.Rodoh.Action.Editor
             public bool diagnosticPresentation;
             public bool proceduralMotion;
             public bool playerFollowCamera;
+            public bool cameraCollision;
             public bool naturalInput;
+            public bool rebindableInput;
+            public bool rebindOverlay;
+            public string bindingProfileDigest;
             public bool bufferedInput;
             public bool contactHold;
             public bool minimalHud;
+            public bool playerSessionEvidence;
             public bool visualFeedback;
             public bool proceduralAudio;
             public bool preferenceControlled;
             public bool reducedMotion;
             public bool highContrast;
             public bool activePhysicsAuthority;
-            public string playerSurface = "camera-relative movement, free look, buffered light/heavy/dodge/parry, holdable mechanism work";
-            public string semanticAuthority = "presentation and input ingress only";
+            public string playerSurface = "camera-relative movement, free look, camera collision, persistent keyboard/gamepad rebinding, buffered actions, holdable mechanism work, and exact session evidence";
+            public string semanticAuthority = "presentation, preferences, evidence, and input ingress only";
             public string actionAuthority = "Arc replay and axm-action-receipt/1";
             public string error;
         }
@@ -105,14 +110,23 @@ namespace Axm.Rodoh.Action.Editor
                 combatCamera.SetCameraMode(ActionCameraMode.PlayerFollow);
                 combatCamera.SetReducedMotion(reducedMotion);
 
+                var collision = runtime.GetComponent<ActionCameraCollision>() ?? runtime.gameObject.AddComponent<ActionCameraCollision>();
+                collision.Configure(runtime, bodies, camera);
+
+                var bindings = runtime.GetComponent<ActionInputBindings>() ?? runtime.gameObject.AddComponent<ActionInputBindings>();
                 var naturalInput = runtime.GetComponent<ActionNaturalPlayerInput>() ?? runtime.gameObject.AddComponent<ActionNaturalPlayerInput>();
-                naturalInput.Configure(router, combatCamera);
+                naturalInput.Configure(router, combatCamera, bindings);
+                var rebind = runtime.GetComponent<ActionRebindOverlay>() ?? runtime.gameObject.AddComponent<ActionRebindOverlay>();
 
                 var gameFeel = runtime.GetComponent<ActionGameFeelController>() ?? runtime.gameObject.AddComponent<ActionGameFeelController>();
                 gameFeel.Configure(runtime, production, bodies, reducedMotion);
 
                 var hud = runtime.GetComponent<ActionMinimalHud>() ?? runtime.gameObject.AddComponent<ActionMinimalHud>();
-                hud.Configure(runtime);
+                hud.Configure(runtime, bindings);
+
+                var spool = runtime.GetComponent<ActionSessionSpoolRuntime>();
+                var sessionEvidence = runtime.GetComponent<ActionPlayerSessionEvidence>() ?? runtime.gameObject.AddComponent<ActionPlayerSessionEvidence>();
+                sessionEvidence.Configure(runtime, naturalInput, bindings, collision, spool);
 
                 var quarantine = bodies.GetComponent<ActionPhysicsQuarantine>() ?? bodies.gameObject.AddComponent<ActionPhysicsQuarantine>();
                 quarantine.ApplyHierarchy();
@@ -132,10 +146,15 @@ namespace Axm.Rodoh.Action.Editor
                 receipt.diagnosticPresentation = runtime.UsesDiagnosticPresentation;
                 receipt.proceduralMotion = motion != null;
                 receipt.playerFollowCamera = combatCamera != null && combatCamera.Mode == ActionCameraMode.PlayerFollow;
+                receipt.cameraCollision = collision != null && collision.CollisionEnabled;
                 receipt.naturalInput = naturalInput != null;
+                receipt.rebindableInput = bindings != null && naturalInput != null && naturalInput.RebindingEnabled;
+                receipt.rebindOverlay = rebind != null;
+                receipt.bindingProfileDigest = bindings?.ProfileDigest;
                 receipt.bufferedInput = router.InputBufferTicks > 0;
                 receipt.contactHold = gameFeel != null;
                 receipt.minimalHud = hud != null;
+                receipt.playerSessionEvidence = sessionEvidence != null;
                 receipt.visualFeedback = visual != null;
                 receipt.proceduralAudio = audio != null;
                 receipt.preferenceControlled = true;
@@ -148,10 +167,15 @@ namespace Axm.Rodoh.Action.Editor
                 }
                 if (!receipt.proceduralMotion
                     || !receipt.playerFollowCamera
+                    || !receipt.cameraCollision
                     || !receipt.naturalInput
+                    || !receipt.rebindableInput
+                    || !receipt.rebindOverlay
+                    || string.IsNullOrWhiteSpace(receipt.bindingProfileDigest)
                     || !receipt.bufferedInput
                     || !receipt.contactHold
                     || !receipt.minimalHud
+                    || !receipt.playerSessionEvidence
                     || !receipt.visualFeedback
                     || !receipt.proceduralAudio)
                 {
