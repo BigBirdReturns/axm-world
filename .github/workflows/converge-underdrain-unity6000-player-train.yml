@@ -66,24 +66,11 @@ jobs:
 
           hud = Path('unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionMinimalHud.cs')
           text = hud.read_text(encoding='utf-8')
-          replacements = [
-              (
-                  '                ? "WASD move   MOUSE look   LMB sweep   RMB crush   SPACE dodge   Q parry   E work"\n',
-                  '                ? "WASD move   MOUSE look   LMB sweep   RMB crush   SPACE dodge   Q parry   E work   F10 rebind"\n',
-                  1,
-              ),
-              (
-                  '                : "WASD move   MOUSE look   " + bindings.Profile.ControlSummary();\n',
-                  '                : "WASD move   MOUSE look   " + bindings.Profile.ControlSummary() + "   F10 rebind";\n',
-                  1,
-              ),
-          ]
-          for before, after, expected in replacements:
-              count = text.count(before)
-              if count != expected:
-                  raise SystemExit(f'{hud}: expected {expected} occurrence(s), found {count}: {before!r}')
-              text = text.replace(before, after)
-          hud.write_text(text, encoding='utf-8', newline='\n')
+          before = '                ? "WASD move   MOUSE look   LMB sweep   RMB crush   SPACE dodge   Q parry   E work"\n'
+          after = '                ? "WASD move   MOUSE look   LMB sweep   RMB crush   SPACE dodge   Q parry   E work   F10 rebind"\n'
+          if text.count(before) != 1:
+              raise SystemExit(f'{hud}: expected one fallback control string, found {text.count(before)}')
+          hud.write_text(text.replace(before, after), encoding='utf-8', newline='\n')
           PY
           git diff --check
 
