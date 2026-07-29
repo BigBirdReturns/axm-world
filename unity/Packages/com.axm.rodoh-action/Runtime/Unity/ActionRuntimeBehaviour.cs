@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Axm.Rodoh.Action
 {
@@ -20,7 +21,9 @@ namespace Axm.Rodoh.Action
 
         [Header("Unity adapters")]
         [SerializeField] private ActionInputRouter inputRouter;
-        [SerializeField] private ActionPrimitivePresentation presentation;
+        [FormerlySerializedAs("presentation")]
+        [SerializeField] private MonoBehaviour presentationComponent;
+        [SerializeField] private bool allowDiagnosticPresentation;
         [SerializeField] private bool autoStart = true;
         [SerializeField, Range(1, 30)] private int maximumTicksPerFrame = 8;
         [SerializeField, Range(0f, 0.2f)] private float maximumPresentationHoldSeconds = 0.12f;
@@ -30,6 +33,7 @@ namespace Axm.Rodoh.Action
         private readonly ActionTraceRecorder _trace = new ActionTraceRecorder();
         private ActionSpecProjection _spec;
         private ActionSimulationState _state;
+        private IActionPresentationAdapter _presentation;
         private double _accumulator;
         private float _presentationHoldRemaining;
         private bool _running;
@@ -40,6 +44,8 @@ namespace Axm.Rodoh.Action
         public ActionTraceRecorder Trace => _trace;
         public bool Running => _running;
         public float PresentationHoldRemaining => _presentationHoldRemaining;
+        public string PresentationAdapterId => _presentation?.AdapterId ?? string.Empty;
+        public bool UsesDiagnosticPresentation => _presentation?.DiagnosticOnly ?? false;
         public event Action<ActionSimulationState> TickAdvanced;
         public event Action<ActionSimulationResult> EncounterCompleted;
 
@@ -52,10 +58,22 @@ namespace Axm.Rodoh.Action
             partyAgentIds = party ?? Array.Empty<string>();
         }
 
+        /// <summary>
+        /// Selects the one presentation receiver used by the fixed-step host. The
+        /// selected component must implement IActionPresentationAdapter. A player
+        /// scene must not permit a diagnostic-only adapter.
+        /// </summary>
+        public void ConfigurePresentation(MonoBehaviour component, bool allowDiagnostic)
+        {
+            presentationComponent = component;
+            allowDiagnosticPresentation = allowDiagnostic;
+            ResolvePresentation(true);
+        }
+
         private void Awake()
         {
             if (inputRouter == null) inputRouter = GetComponent<ActionInputRouter>();
-            if (presentation == null) presentation = GetComponent<ActionPrimitivePresentation>();
+            ResolvePresentation(false);
         }
 
         private void Start()
@@ -66,6 +84,17 @@ namespace Axm.Rodoh.Action
         public void StartRuntime()
         {
             if (actionProjection == null) throw new InvalidOperationException("Action projection TextAsset is not assigned.");
+            ResolvePresentation(true);
+            if (_presentation == null) throw new InvalidOperationException("Action runtime has no presentation adapter.");
+            if (_presentation.DiagnosticOnly && !allowDiagnosticPresentation)
+            {
+                throw new InvalidOperationException("Diagnostic action presentation is not permitted by this player profile: " + _presentation.AdapterId);
+            }
+            if (_presentation.UsesUnityPhysicsAuthority())
+            {
+                throw new InvalidOperationException("Action presentation retains active Unity physics authority: " + _presentation.AdapterId);
+            }
+
             _spec = ActionBridgeJson.ParseSpec(actionProjection.text);
             _state = ActionKernel.InitialState(_spec, seed);
             _trace.Reset();
@@ -73,7 +102,7 @@ namespace Axm.Rodoh.Action
             _presentationHoldRemaining = 0f;
             _candidateWritten = false;
             _running = true;
-            if (presentation != null) presentation.Initialize(_spec, _state);
+            _presentation.Initialize(_spec, _state);
         }
 
         public void StopRuntime()
@@ -99,7 +128,7 @@ namespace Axm.Rodoh.Action
             if (_presentationHoldRemaining > 0f)
             {
                 _presentationHoldRemaining = Mathf.Max(0f, _presentationHoldRemaining - Time.unscaledDeltaTime);
-                if (presentation != null) presentation.Render(_state, 0f);
+                _presentation?.Render(_state, 0f);
                 return;
             }
 
@@ -114,11 +143,11 @@ namespace Axm.Rodoh.Action
                 _accumulator -= tickDuration;
                 advanced += 1;
                 TickAdvanced?.Invoke(_state);
-                if (presentation != null) presentation.ApplyEvents(_state.events);
+                _presentation?.ApplyEvents(_state.events);
             }
 
             var interpolation = tickDuration <= 0d ? 0f : Mathf.Clamp01((float)(_accumulator / tickDuration));
-            if (presentation != null) presentation.Render(_state, interpolation);
+            _presentation?.Render(_state, interpolation);
 
             if (_state.result == null) return;
             _running = false;
@@ -152,6 +181,22 @@ namespace Axm.Rodoh.Action
             if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
             File.WriteAllText(fullPath, BuildCandidateJson());
             return fullPath;
+        }
+
+        private void ResolvePresentation(bool required)
+        {
+            if (presentationComponent == null)
+            {
+                presentationComponent = GetComponentInChildren<ActionProductionPresentation>(true);
+                if (presentationComponent == null) presentationComponent = GetComponentInChildren<ActionPrimitivePresentation>(true);
+            }
+
+            _presentation = presentationComponent as IActionPresentationAdapter;
+            if (presentationComponent != null && _presentation == null)
+            {
+                throw new InvalidOperationException("Selected action presentation component does not implement IActionPresentationAdapter: " + presentationComponent.GetType().FullName);
+            }
+            if (required && _presentation == null) throw new InvalidOperationException("Action runtime has no IActionPresentationAdapter.");
         }
     }
 }

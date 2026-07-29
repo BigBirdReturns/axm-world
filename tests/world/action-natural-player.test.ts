@@ -45,6 +45,32 @@ describe("Unity natural action player plane", () => {
     expect(host).toContain("inputRouter.SampleTick(_state.player.mode)");
   });
 
+  it("routes exact Arc state through one selected presentation adapter", () => {
+    const contract = runtime("Unity/IActionPresentationAdapter.cs");
+    const host = runtime("Unity/ActionRuntimeBehaviour.cs");
+    const diagnostic = runtime("Unity/ActionPrimitivePresentation.cs");
+    const production = runtime("Unity/ActionProductionPresentation.cs");
+    const batch = editor("ActionPolishAugmentBatch.cs");
+
+    expect(contract).toContain("public interface IActionPresentationAdapter");
+    expect(contract).toContain("void Initialize(ActionSpecProjection spec, ActionSimulationState state)");
+    expect(contract).toContain("void Render(ActionSimulationState state, float interpolation)");
+    expect(contract).toContain("void ApplyEvents(IReadOnlyList<ActionEvent> events)");
+    expect(host).toContain("private IActionPresentationAdapter _presentation");
+    expect(host).toContain("_presentation?.ApplyEvents(_state.events)");
+    expect(host).not.toContain("private ActionPrimitivePresentation presentation;");
+    expect(diagnostic).toContain("IActionPresentationAdapter");
+    expect(diagnostic).toContain('AdapterId => "diagnostic.primitive/v1"');
+    expect(diagnostic).toContain("DiagnosticOnly => true");
+    expect(production).toContain("IActionPresentationAdapter");
+    expect(production).toContain('AdapterId => "production.prefab/v1"');
+    expect(production).toContain("DiagnosticOnly => false");
+    expect(production).not.toContain("runtime.TickAdvanced += ApplyState");
+    expect(batch).toContain("runtime.ConfigurePresentation(production, false)");
+    expect(batch).toContain("primitive.enabled = false");
+    expect(batch).toContain('receipt.presentationAdapterId != "production.prefab/v1"');
+  });
+
   it("adds contact holds without hidden state or trace advancement", () => {
     const host = runtime("Unity/ActionRuntimeBehaviour.cs");
     const feel = runtime("Unity/ActionGameFeelController.cs");
