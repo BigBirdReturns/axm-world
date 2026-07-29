@@ -20,7 +20,7 @@ A qualifying first session therefore needs:
 - an unobstructed player-space layout;
 - independent comprehension evidence.
 
-Automated completion is necessary and insufficient. It can prove reachability, determinism, authority, persistence, production custody, protected-world geometry, accessibility, and candidate identity. It cannot prove that a cold player understood why they acted or what changed.
+A scripted browser can prove reachability, determinism, persistence, accessibility, authority boundaries, production custody, and protected-world geometry. It cannot prove that a cold player understood why they acted or what their action changed.
 
 ## Five comprehension questions
 
@@ -270,4 +270,6 @@ blind receipt PASS
   -> accepted-playable-authored-episode
 ```
 
-No stronger language is permitted by successful completion, green unrelated asset inventories, role-plan counts, or unreviewed screenshots.
+A playable authored episode is the accepted result of the full conjunctive gate, not a synonym for successful deterministic completion.
+
+No stronger language is permitted by green unrelated asset inventories, role-plan counts, successful bots, or unreviewed screenshots.
