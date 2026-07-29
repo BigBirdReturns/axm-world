@@ -1,21 +1,21 @@
 name: Converge action semantic cue receiver
 
 on:
-  push:
-    branches:
-      - feature/action-semantic-cue-receiver-v1
+  pull_request:
     paths:
       - '.github/workflows/converge-action-semantic-cue-receiver.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: converge-action-semantic-cue-receiver
+  group: converge-action-semantic-cue-receiver-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   converge:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -68,4 +68,4 @@ jobs:
           git commit -m 'Consume exact Arc semantic cues through the production player adapter'
           git push origin HEAD:feature/action-semantic-cue-receiver-v1
 
-# The carrier workflow remains until the pushed implementation is qualified, then is removed through repository custody.
+# The workflow remains until the published receiver implementation is independently qualified.
