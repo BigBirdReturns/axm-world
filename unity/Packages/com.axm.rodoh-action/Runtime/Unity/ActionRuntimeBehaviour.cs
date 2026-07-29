@@ -40,13 +40,21 @@ namespace Axm.Rodoh.Action
         private bool _running;
         private bool _candidateWritten;
 
+        public TextAsset ProjectionAsset => actionProjection;
+        public uint RuntimeSeed => seed;
+        public int RuntimeCycle => cycle;
+        public string ControlledAgentId => controlledAgentId;
+        public IReadOnlyList<string> PartyAgentIds => partyAgentIds ?? Array.Empty<string>();
+        public MonoBehaviour ConfiguredPresentationComponent => presentationComponent;
+        public bool AllowsDiagnosticPresentation => allowDiagnosticPresentation;
+        public bool AutoStart => autoStart;
         public ActionSpecProjection Spec => _spec;
         public ActionSimulationState State => _state;
         public ActionTraceRecorder Trace => _trace;
         public bool Running => _running;
         public float PresentationHoldRemaining => _presentationHoldRemaining;
-        public string PresentationAdapterId => _presentation?.AdapterId ?? string.Empty;
-        public bool UsesDiagnosticPresentation => _presentation?.DiagnosticOnly ?? false;
+        public string PresentationAdapterId => _presentation?.AdapterId ?? (presentationComponent as IActionPresentationAdapter)?.AdapterId ?? string.Empty;
+        public bool UsesDiagnosticPresentation => _presentation?.DiagnosticOnly ?? (presentationComponent as IActionPresentationAdapter)?.DiagnosticOnly ?? false;
         public event Action<ActionSimulationState> TickAdvanced;
         public event Action<IReadOnlyList<ActionSemanticCue>> CuesProjected;
         public event Action<ActionSimulationResult> EncounterCompleted;
