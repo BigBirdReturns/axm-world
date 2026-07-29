@@ -1,0 +1,106 @@
+name: Converge UNDERDRAIN Unity 6000 player train
+
+on:
+  push:
+    branches:
+      - feature/underdrain-unity6000-player-train-v1
+    paths:
+      - '.github/workflows/converge-underdrain-unity6000-player-train.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: converge-underdrain-unity6000-player-train
+  cancel-in-progress: true
+
+jobs:
+  converge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/underdrain-unity6000-player-train-v1
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply the bounded C# compatibility repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs')
+          text = path.read_text(encoding='utf-8')
+          replacements = [
+              (
+                  '        private sealed class AssetRequirement\n',
+                  '        private class AssetRequirement\n',
+                  1,
+              ),
+              (
+                  '                    if (!bindingByKit.TryAdd(binding.kit, binding)) throw new InvalidOperationException("Serialized production presentation contains duplicate enemy kit " + binding.kit + ".");\n',
+                  '                    if (bindingByKit.ContainsKey(binding.kit)) throw new InvalidOperationException("Serialized production presentation contains duplicate enemy kit " + binding.kit + ".");\n'
+                  '                    bindingByKit.Add(binding.kit, binding);\n',
+                  1,
+              ),
+          ]
+          for before, after, expected in replacements:
+              count = text.count(before)
+              if count != expected:
+                  raise SystemExit(f'{path}: expected {expected} occurrence(s), found {count}: {before!r}')
+              text = text.replace(before, after)
+          path.write_text(text, encoding='utf-8', newline='\n')
+          PY
+          git diff --check
+
+      - name: Qualify the source plane
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm test -- tests/world/underdrain-unity6000-player-train.test.ts tests/world/action-natural-player.test.ts
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          pwsh -NoProfile -Command '
+            $paths = @(
+              "scripts/build-unity-action-player.ps1",
+              "scripts/qualify-unity-action-player-product.ps1",
+              "scripts/run-underdrain-player-session.ps1",
+              "scripts/run-underdrain-unity6000-player-train.ps1"
+            )
+            foreach ($path in $paths) {
+              $tokens = $null
+              $errors = $null
+              [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors) | Out-Null
+              if (@($errors).Count -gt 0) {
+                $errors | Format-List | Out-String | Write-Error
+                throw "PowerShell parse errors remain in $path"
+              }
+            }
+          '
+          git diff --check
+
+      - name: Publish the carrier-free repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/converge-underdrain-unity6000-player-train.yml
+          git add -A
+          git diff --cached --check
+          git commit -m 'Harden the UNDERDRAIN Unity 6000 player-product source plane'
+          git push origin HEAD:feature/underdrain-unity6000-player-train-v1
