@@ -71,8 +71,9 @@ function Invoke-PreflightCase(
         "-UnityEditor", $UnityEditor,
         "-OutputRoot", $caseRoot
     )
-    & $pwsh @arguments
+    $childOutput = @(& $pwsh @arguments 2>&1)
     $exitCode = $LASTEXITCODE
+    foreach ($line in $childOutput) { Write-Host "[$Name] $line" }
     if ($exitCode -ne $ExpectedExitCode) { throw "Preflight case $Name exited $exitCode, expected $ExpectedExitCode." }
     $receiptPath = Join-Path $caseRoot "underdrain-unity6000-machine-preflight.json"
     if (-not (Test-Path $receiptPath -PathType Leaf)) { throw "Preflight case $Name did not write its receipt." }
@@ -86,7 +87,7 @@ function Invoke-PreflightCase(
     $expectedSha = ((Get-Content $shaPath -Raw).Trim() -split '\s+')[0]
     $actualSha = (Get-FileHash $receiptPath -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($expectedSha -ne $actualSha) { throw "Preflight case $Name checksum sidecar is stale." }
-    return [ordered]@{
+    return [pscustomobject]@{
         name = $Name
         exitCode = $exitCode
         status = $receipt.status
