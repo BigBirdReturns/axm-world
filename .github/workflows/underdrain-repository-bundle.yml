@@ -1,0 +1,96 @@
+name: UNDERDRAIN repository recovery bundle
+
+on:
+  push:
+    branches:
+      - integration/underdrain-unity6000-player-product-v1
+    paths:
+      - '.github/workflows/underdrain-repository-bundle.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: underdrain-repository-bundle
+  cancel-in-progress: false
+
+jobs:
+  bundle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact bundle commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+          show-progress: false
+
+      - name: Fetch repository recovery refs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_REF_NAME" = "integration/underdrain-unity6000-player-product-v1"
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune --force
+          git fetch origin '+refs/tags/*:refs/tags/*' --prune --force
+          git fetch origin '+refs/pull/*/head:refs/remotes/pull/*/head' --force || true
+          git fetch origin '+refs/pull/*/merge:refs/remotes/pull/*/merge' --force || true
+
+      - name: Build and verify complete reachable-object bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="$RUNNER_TEMP/axm-world-underdrain-recovery-$GITHUB_SHA.bundle"
+          git bundle create "$bundle" --all
+          git bundle verify "$bundle" | tee "$RUNNER_TEMP/repository-bundle.verify.txt"
+          sha256sum "$bundle" | tee "$RUNNER_TEMP/repository-bundle.sha256"
+          git show-ref | LC_ALL=C sort > "$RUNNER_TEMP/repository-bundle.refs.txt"
+
+      - name: Retain repository recovery bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-repository-recovery-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/axm-world-underdrain-recovery-${{ github.sha }}.bundle
+            ${{ runner.temp }}/repository-bundle.verify.txt
+            ${{ runner.temp }}/repository-bundle.sha256
+            ${{ runner.temp }}/repository-bundle.refs.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish repository-bundle locator
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .underdrain
+          python - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          receipt = {
+              "format": "rodoh-underdrain-repository-recovery-bundle/1",
+              "generatedAt": datetime.now(timezone.utc).isoformat(),
+              "sourceCommit": os.environ["GITHUB_SHA"],
+              "workflowRunId": int(os.environ["GITHUB_RUN_ID"]),
+              "workflowRunAttempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
+              "artifactName": f"underdrain-repository-recovery-{os.environ['GITHUB_SHA']}",
+              "scope": "all fetched heads, tags, and available pull refs",
+              "materializationPerformed": False,
+              "productAccepted": False,
+              "namedPlayerProductAcceptance": "not-issued",
+          }
+          Path(".underdrain/repository-bundle.json").write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .underdrain/repository-bundle.json
+          git diff --cached --check
+          git commit -m 'Retain UNDERDRAIN repository recovery bundle locator'
+          git push origin HEAD:integration/underdrain-unity6000-player-product-v1
