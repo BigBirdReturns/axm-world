@@ -3,25 +3,30 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Axm.Rodoh.Action
 {
     /// <summary>
     /// Candidate-owned provenance attached to an authored player, enemy, mechanism,
     /// or arena prefab. The marker preserves a separately supplied named approval
-    /// assertion over exact imported visual-source bytes. It grants no action,
-    /// physics, campaign, candidate, receipt, or product-acceptance authority.
+    /// assertion over both the imported visual-source identity and the recursive
+    /// project-owned dependency closure. It grants no action, physics, campaign,
+    /// candidate, receipt, or product-acceptance authority.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class ActionProductionAssetMarker : MonoBehaviour
     {
-        public const string Format = "rodoh-action-production-asset/2";
-        public const string ApprovalFormat = "rodoh-action-production-asset-approval/1";
+        public const string Format = "rodoh-action-production-asset/3";
+        public const string ApprovalFormat = "rodoh-action-production-asset-approval/2";
 
         [SerializeField] private string format = Format;
         [SerializeField] private string assetId = string.Empty;
         [SerializeField] private string role = string.Empty;
-        [SerializeField] private string sourceSha256 = string.Empty;
+        [FormerlySerializedAs("sourceSha256")]
+        [SerializeField] private string visualSourceSha256 = string.Empty;
+        [SerializeField] private string dependencyClosureSha256 = string.Empty;
+        [SerializeField] private int dependencyCount;
         [SerializeField] private string provenance = string.Empty;
         [SerializeField] private string approvalRecordFormat = ApprovalFormat;
         [SerializeField] private string approvalId = string.Empty;
@@ -34,7 +39,10 @@ namespace Axm.Rodoh.Action
 
         public string AssetId => assetId;
         public string Role => role;
-        public string SourceSha256 => sourceSha256;
+        public string SourceSha256 => visualSourceSha256;
+        public string VisualSourceSha256 => visualSourceSha256;
+        public string DependencyClosureSha256 => dependencyClosureSha256;
+        public int DependencyCount => dependencyCount;
         public string Provenance => provenance;
         public string ApprovalId => approvalId;
         public string ApprovalAuthorityId => approvalAuthorityId;
@@ -47,7 +55,9 @@ namespace Axm.Rodoh.Action
         public void Configure(
             string id,
             string assetRole,
-            string sourceDigest,
+            string visualSourceDigest,
+            string dependencyDigest,
+            int importedDependencyCount,
             string sourceProvenance,
             string namedApprovalId,
             string namedApprovalAuthorityId,
@@ -60,7 +70,9 @@ namespace Axm.Rodoh.Action
             format = Format;
             assetId = id ?? string.Empty;
             role = assetRole ?? string.Empty;
-            sourceSha256 = sourceDigest ?? string.Empty;
+            visualSourceSha256 = visualSourceDigest ?? string.Empty;
+            dependencyClosureSha256 = dependencyDigest ?? string.Empty;
+            dependencyCount = importedDependencyCount;
             provenance = sourceProvenance ?? string.Empty;
             approvalRecordFormat = ApprovalFormat;
             approvalId = namedApprovalId ?? string.Empty;
@@ -82,10 +94,15 @@ namespace Axm.Rodoh.Action
             {
                 errors.Add("Production asset role is " + role + ", expected " + expectedRole + ".");
             }
-            if (!Regex.IsMatch(sourceSha256 ?? string.Empty, "^[0-9a-f]{64}$"))
+            if (!Regex.IsMatch(visualSourceSha256 ?? string.Empty, "^[0-9a-f]{64}$"))
             {
-                errors.Add("Production asset source SHA-256 is absent or malformed.");
+                errors.Add("Production asset visual-source SHA-256 is absent or malformed.");
             }
+            if (!Regex.IsMatch(dependencyClosureSha256 ?? string.Empty, "^[0-9a-f]{64}$"))
+            {
+                errors.Add("Production asset dependency-closure SHA-256 is absent or malformed.");
+            }
+            if (dependencyCount < 1) errors.Add("Production asset dependency closure is empty.");
             if (string.IsNullOrWhiteSpace(provenance)) errors.Add("Production asset provenance is absent.");
             if (approvalRecordFormat != ApprovalFormat) errors.Add("Production asset approval format is unsupported.");
             if (string.IsNullOrWhiteSpace(approvalId)) errors.Add("Production asset approval id is absent.");

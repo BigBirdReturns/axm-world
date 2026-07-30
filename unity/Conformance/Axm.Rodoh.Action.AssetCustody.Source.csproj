@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="ActionProductionAssetUnityStubs.cs" />
+    <Compile Include="../Packages/com.axm.rodoh-action/Runtime/Unity/ActionPresentationManifest.cs" Link="Package/ActionPresentationManifest.cs" />
+    <Compile Include="../Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionAssetMarker.cs" Link="Package/ActionProductionAssetMarker.cs" />
+    <Compile Include="../Packages/com.axm.rodoh-action/Editor/ActionProductionAssetDigest.cs" Link="Package/ActionProductionAssetDigest.cs" />
+    <Compile Include="../Packages/com.axm.rodoh-action/Editor/ActionProductionAssetApprovalBatch.cs" Link="Package/ActionProductionAssetApprovalBatch.cs" />
+    <Compile Include="../Packages/com.axm.rodoh-action/Editor/ActionProductionAssetIntakeBatch.cs" Link="Package/ActionProductionAssetIntakeBatch.cs" />
+    <Compile Include="../Packages/com.axm.rodoh-action/Editor/ActionProductionAssetAuditBatch.cs" Link="Package/ActionProductionAssetAuditBatch.cs" />
+  </ItemGroup>
+</Project>

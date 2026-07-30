@@ -41,8 +41,8 @@ foreach ($directory in @("Assets", "Packages", "ProjectSettings")) {
 }
 foreach ($path in @($presentationPath, $profilePath, $approvalPath)) { if (-not (Test-Path $path)) { throw "Production-asset intake input is absent: $path" } }
 $approval = Get-Content $approvalPath -Raw | ConvertFrom-Json
-if ($approval.format -ne "rodoh-action-production-asset-approval/1" -or $approval.status -ne "approved") { throw "Production-asset approval receipt is unsupported or not approved." }
-if ($approval.assetCount -ne 7 -or $approval.confirmedAllAssets -ne $true -or $approval.productionApproved -ne $true) { throw "Production-asset approval receipt does not cover the complete seven-asset floor." }
+if ($approval.format -ne "rodoh-action-production-asset-approval/2" -or $approval.status -ne "approved") { throw "Production-asset approval receipt is unsupported or not approved." }
+if ($approval.assetCount -ne 7 -or $approval.declaredBindingCount -ne 27 -or $approval.uniqueDeclaredAssetCount -ne 23 -or $approval.declaredBindingClosureSha256 -notmatch '^[0-9a-f]{64}$' -or $approval.confirmedAllAssets -ne $true -or $approval.productionApproved -ne $true) { throw "Production-asset approval receipt does not cover the complete seven-asset and 27-binding floor." }
 if ($approval.playerProductAcceptance -ne "not-issued") { throw "Presentation-asset approval receipt falsely claims player-product acceptance." }
 if ([string]::IsNullOrWhiteSpace([string]$approval.approvalId) -or [string]::IsNullOrWhiteSpace([string]$approval.approvalAuthorityId) -or [string]::IsNullOrWhiteSpace([string]$approval.approvalAttestation)) { throw "Named production-asset approval identity or attestation is absent." }
 if ([string]::IsNullOrWhiteSpace($UnityEditor)) { $UnityEditor = "C:\Program Files\Unity\Hub\Editor\$UnityVersion\Editor\Unity.exe" }
@@ -76,25 +76,25 @@ $arguments = @(
     "-outputRoot", $output,
     "-logFile", $logPath
 )
-Write-Host "Verifying the seven named-approved UNDERDRAIN prefabs through imported-source and physics custody..."
+Write-Host "Verifying the seven named-approved UNDERDRAIN prefabs through visual, recursive-dependency, prefab, meta, GUID, manifest-binding, and physics custody..."
 $process = Start-Process -FilePath $unityPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow
 if ($process.ExitCode -ne 0) { throw "UNDERDRAIN production-asset intake failed with exit $($process.ExitCode). See $logPath" }
 $receiptPath = Join-Path $output "production-asset-intake.json"
 if (-not (Test-Path $receiptPath)) { throw "Unity did not write the production-asset intake receipt: $receiptPath" }
 $receipt = Get-Content $receiptPath -Raw | ConvertFrom-Json
-if ($receipt.format -ne "rodoh-action-production-asset-intake/2" -or $receipt.status -ne "pass" -or $receipt.assetCount -ne 7) { throw "Production-asset intake did not admit the complete named-approved seven-asset floor: $($receipt.error)" }
+if ($receipt.format -ne "rodoh-action-production-asset-intake/3" -or $receipt.status -ne "pass" -or $receipt.assetCount -ne 7) { throw "Production-asset intake did not admit the complete named-approved seven-asset floor: $($receipt.error)" }
 if ($receipt.approvalId -ne $approval.approvalId -or $receipt.approvalAuthorityId -ne $approval.approvalAuthorityId) { throw "Production-asset intake lost the named approval identity." }
 $approvalSha = (Get-FileHash $approvalPath -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($receipt.approvalReceiptSha256 -ne $approvalSha) { throw "Production-asset intake approval-receipt digest mismatch." }
-if ($receipt.productionApproved -ne $true -or $receipt.generatedPrimitive -ne $false -or $receipt.activePhysicsAuthority -ne $false) { throw "Production-asset intake crossed the approval, primitive, or physics boundary." }
+if ($receipt.declaredBindingCount -ne 27 -or $receipt.uniqueDeclaredAssetCount -ne 23 -or $receipt.declaredBindingClosureSha256 -ne $approval.declaredBindingClosureSha256 -or $receipt.exactRepresentationCustody -ne $true -or $receipt.productionApproved -ne $true -or $receipt.generatedPrimitive -ne $false -or $receipt.activePhysicsAuthority -ne $false) { throw "Production-asset intake crossed the representation, approval, primitive, or physics boundary." }
 foreach ($asset in @($receipt.assets)) {
-    if ($asset.sourceSha256 -notmatch '^[0-9a-f]{64}$' -or @($asset.visualSourcePaths).Count -lt 1) { throw "Production asset $($asset.assetId) lacks imported-source custody." }
+    if ($asset.sourceSha256 -ne $asset.visualSourceSha256 -or $asset.visualSourceSha256 -notmatch '^[0-9a-f]{64}$' -or $asset.dependencyClosureSha256 -notmatch '^[0-9a-f]{64}$' -or $asset.prefabSha256 -notmatch '^[0-9a-f]{64}$' -or $asset.prefabMetaSha256 -notmatch '^[0-9a-f]{64}$' -or $asset.prefabGuid -notmatch '^[0-9a-f]{32}$' -or @($asset.visualSourcePaths).Count -lt 1 -or [int]$asset.dependencyCount -lt 1) { throw "Production asset $($asset.assetId) lacks visual, dependency, prefab, meta, or GUID custody." }
     if ($asset.approvalId -ne $approval.approvalId -or $asset.approvalAuthorityId -ne $approval.approvalAuthorityId) { throw "Production asset $($asset.assetId) lost named approval custody." }
 }
 
 $worldCommit = (& git -C $worldRoot rev-parse HEAD).Trim()
 $run = [ordered]@{
-    format = "rodoh-underdrain-production-asset-intake-run/2"
+    format = "rodoh-underdrain-production-asset-intake-run/3"
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
     status = "pass"
     worldCommit = $worldCommit
@@ -113,7 +113,11 @@ $run = [ordered]@{
     approvedAt = $receipt.approvedAt
     assetCount = $receipt.assetCount
     assetIds = @($receipt.assets | ForEach-Object { $_.assetId })
-    sourceDigests = @($receipt.assets | ForEach-Object { [ordered]@{ assetId = $_.assetId; sourceSha256 = $_.sourceSha256; visualSourcePaths = $_.visualSourcePaths } })
+    declaredBindingCount = $receipt.declaredBindingCount
+    uniqueDeclaredAssetCount = $receipt.uniqueDeclaredAssetCount
+    declaredBindingClosureSha256 = $receipt.declaredBindingClosureSha256
+    exactRepresentationCustody = $receipt.exactRepresentationCustody
+    representationClosures = @($receipt.assets | ForEach-Object { [ordered]@{ assetId = $_.assetId; prefabGuid = $_.prefabGuid; prefabSha256 = $_.prefabSha256; prefabMetaSha256 = $_.prefabMetaSha256; visualSourceSha256 = $_.visualSourceSha256; visualSourcePaths = $_.visualSourcePaths; dependencyClosureSha256 = $_.dependencyClosureSha256; dependencyCount = $_.dependencyCount } })
     productionApproved = $receipt.productionApproved
     generatedPrimitive = $receipt.generatedPrimitive
     activePhysicsAuthority = $receipt.activePhysicsAuthority
@@ -124,5 +128,5 @@ $run = [ordered]@{
 }
 $runPath = Join-Path $output "production-asset-intake-run.json"
 $run | ConvertTo-Json -Depth 24 | Set-Content -Encoding utf8 $runPath
-Write-Host "UNDERDRAIN production assets passed named-approval-bound imported-source intake."
+Write-Host "UNDERDRAIN production assets passed named-approval-bound exact representation intake."
 Write-Host $runPath
