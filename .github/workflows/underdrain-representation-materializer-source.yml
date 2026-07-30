@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - '.github/workflows/underdrain-representation-materializer-source.yml'
+      - '.github/workflows/underdrain-materializer-unity-import-closure-carrier.yml'
+      - '.github/workflows/underdrain-materializer-unity-import-closure-runner.yml'
+      - '.github/triggers/underdrain-materializer-unity-import-closure-v1'
       - 'docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md'
       - 'scripts/extract-underdrain-shine-assets.mjs'
       - 'scripts/resolve-underdrain-shine-representation.mjs'
@@ -174,3 +177,144 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
+
+  apply-unity-import-closure:
+    if: github.event_name == 'pull_request' && github.head_ref == 'repair/underdrain-materializer-unity-import-closure-v1'
+    needs: qualify
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: repair/underdrain-materializer-unity-import-closure-v1
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Detect the still-pending repair payload
+        id: guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          carrier='.github/workflows/underdrain-materializer-unity-import-closure-carrier.yml'
+          runner='.github/workflows/underdrain-materializer-unity-import-closure-runner.yml'
+          trigger='.github/triggers/underdrain-materializer-unity-import-closure-v1'
+          if test -f "$carrier" && test -f "$runner" && test -f "$trigger"; then
+            echo 'apply=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'apply=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.guard.outputs.apply == 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-dotnet@v4
+        if: steps.guard.outputs.apply == 'true'
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Apply the content-addressed Unity import repair
+        if: steps.guard.outputs.apply == 'true'
+        shell: bash
+        env:
+          BASE_SHA: 1a6255d7dcff7b8e0096c49321f00d51d114a71c
+          PAYLOAD_CARRIER: .github/workflows/underdrain-materializer-unity-import-closure-carrier.yml
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$BASE_SHA" HEAD
+          payload="$(sed -n 's/^[[:space:]]*PATCH_GZIP_BASE64:[[:space:]]*//p' "$PAYLOAD_CARRIER")"
+          test -n "$payload"
+          test "$(printf '%s' "$payload" | wc -l)" -eq 0
+          PATCH_GZIP_BASE64="$payload" python - <<'PY'
+          import base64, gzip, os
+          source = gzip.decompress(base64.b64decode(os.environ['PATCH_GZIP_BASE64']))
+          exec(compile(source, '<underdrain-unity-import-closure>', 'exec'))
+          PY
+          python - <<'PY'
+          from pathlib import Path
+          batch = Path('unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainRepresentationMaterializerBatch.cs').read_text()
+          runner = Path('scripts/materialize-underdrain-production-representation.ps1').read_text()
+          stubs = Path('unity/Conformance/ActionUnderdrainRepresentationUnityStubs.cs').read_text()
+          billboard = Path('unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionCameraFacingSprite.cs').read_text()
+          witnesses = {
+              'custom sprite alignment': 'spriteAlignment = (int)SpriteAlignment.Custom' in batch,
+              'separate facing pivot': 'var facing = Child(root.transform, "Facing")' in batch,
+              'nested visual curves': 'clip.SetCurve("Facing/Visual"' in batch,
+              'no old visual curves': 'clip.SetCurve("Visual"' not in batch,
+              'up-front approval refusal': batch.index('RefuseApprovedRepresentation(presentation)') < batch.index('EnsureFolders(assetRoot'),
+              'sprite alignment stub': 'enum SpriteAlignment { Custom = 9 }' in stubs and 'public int spriteAlignment;' in stubs,
+              'billboard facing fallback': 'transform.Find("Facing")' in billboard,
+              'machine lock': 'MACHINE_LOCK.json' in runner,
+              'exact World commit': 'ExpectedWorldCommit' in runner and 'Resolve-CleanGitCommit' in runner,
+              'exact Arc commit': 'ExpectedArcCommit' in runner and 'arcCommit = $arcCommit' in runner,
+              'Unity before package mutation': runner.index('Get-Process Unity') < runner.index('robocopy.exe'),
+          }
+          missing = [name for name, present in witnesses.items() if not present]
+          if missing:
+              raise SystemExit('Repair payload lost required witnesses: ' + ', '.join(missing))
+          PY
+          git diff --check
+
+      - name: Qualify the repaired import and machine-custody source
+        if: steps.guard.outputs.apply == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm test -- \
+            tests/world/underdrain-representation-materializer.test.ts \
+            tests/world/underdrain-powershell-contract.test.ts \
+            tests/world/underdrain-machine-preflight.test.ts \
+            tests/world/underdrain-player-product-acceptance.test.ts \
+            tests/world/underdrain-unity6000-player-train.test.ts
+          dotnet build unity/Conformance/Axm.Rodoh.Action.UnderdrainRepresentation.Source.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.Cues.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.Conformance.csproj --configuration Release
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          find unity/Conformance -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
+          git diff --check
+
+      - name: Publish only the admitted repair and remove all carriers
+        if: steps.guard.outputs.apply == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          payload_carrier='.github/workflows/underdrain-materializer-unity-import-closure-carrier.yml'
+          runner_carrier='.github/workflows/underdrain-materializer-unity-import-closure-runner.yml'
+          trigger='.github/triggers/underdrain-materializer-unity-import-closure-v1'
+          git rm -- "$payload_carrier" "$runner_carrier" "$trigger"
+          git add -- \
+            docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md \
+            scripts/materialize-underdrain-production-representation.ps1 \
+            tests/world/underdrain-representation-materializer.test.ts \
+            unity/Conformance/ActionUnderdrainRepresentationUnityStubs.cs \
+            unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainRepresentationMaterializerBatch.cs \
+            unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionCameraFacingSprite.cs
+          cat > "$RUNNER_TEMP/expected-paths" <<'PATHS'
+          .github/triggers/underdrain-materializer-unity-import-closure-v1
+          .github/workflows/underdrain-materializer-unity-import-closure-carrier.yml
+          .github/workflows/underdrain-materializer-unity-import-closure-runner.yml
+          docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md
+          scripts/materialize-underdrain-production-representation.ps1
+          tests/world/underdrain-representation-materializer.test.ts
+          unity/Conformance/ActionUnderdrainRepresentationUnityStubs.cs
+          unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainRepresentationMaterializerBatch.cs
+          unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionCameraFacingSprite.cs
+          PATHS
+          git diff --cached --name-only | LC_ALL=C sort > "$RUNNER_TEMP/observed-paths"
+          diff -u "$RUNNER_TEMP/expected-paths" "$RUNNER_TEMP/observed-paths"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m 'Bind UNDERDRAIN materialization to exact machine custody'
+          git push origin HEAD:repair/underdrain-materializer-unity-import-closure-v1
