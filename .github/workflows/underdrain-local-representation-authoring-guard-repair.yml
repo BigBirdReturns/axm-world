@@ -99,14 +99,28 @@ jobs:
           find unity/Conformance -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
           git diff --check
 
-      - name: Publish the admitted non-workflow authoring source
+      - name: Publish the admitted non-workflow source and remove all child carriers
         shell: bash
         run: |
           set -euo pipefail
+          # GitHub Apps without the workflows permission may not push workflow-file
+          # changes. Preserve the fully qualified workflow bytes for a separate
+          # connector-owned commit, and publish the remaining admitted source here.
+          git restore --source=HEAD --worktree -- \
+            .github/workflows/underdrain-representation-materializer-source.yml \
+            .github/workflows/underdrain-unity6000-machine-kit.yml
+          carrier='.github/workflows/underdrain-local-representation-authoring-carrier.yml'
+          git rm -- "$carrier" .github/carriers/underdrain-authoring-payload-*.b64
           git add -- \
             scripts/author-underdrain-production-representation.mjs \
             scripts/stage-underdrain-production-representation.ps1
           cat > "$RUNNER_TEMP/expected-paths" <<'PATHS'
+          .github/carriers/underdrain-authoring-payload-00.b64
+          .github/carriers/underdrain-authoring-payload-01.b64
+          .github/carriers/underdrain-authoring-payload-02.b64
+          .github/carriers/underdrain-authoring-payload-03.b64
+          .github/carriers/underdrain-authoring-payload-04.b64
+          .github/workflows/underdrain-local-representation-authoring-carrier.yml
           scripts/author-underdrain-production-representation.mjs
           scripts/stage-underdrain-production-representation.ps1
           PATHS
@@ -114,5 +128,5 @@ jobs:
           diff -u "$RUNNER_TEMP/expected-paths" "$RUNNER_TEMP/observed-paths"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git commit -m 'Publish qualified UNDERDRAIN authoring and staging scripts'
+          git commit -m 'Author and stage the UNDERDRAIN production representation locally'
           git push origin HEAD:feature/underdrain-local-representation-authoring-v1
