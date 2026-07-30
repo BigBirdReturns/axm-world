@@ -1,0 +1,364 @@
+{
+  "actualPayloadPathCount": 0,
+  "actualPayloadSha256": "7983b094c35c9e1fe62fa266977c205a4723def9dc0340043e466df45fe599fa",
+  "aggregateReadinessScore": null,
+  "allSealedFilesMatch": false,
+  "carrierCommit": "da61ddb10e2fd09fef059369d9c3cfc0a28c2abf",
+  "decoder": "independent-base64-streams-in-ordinal-order",
+  "errors": [
+    "payload-digest-mismatch",
+    "payload-open:LZMAError:Corrupt input data",
+    "payload-path-set-mismatch",
+    "sealed-file-mismatch:.github/workflows/underdrain-player-product-integration.yml",
+    "sealed-file-mismatch:.github/workflows/underdrain-unity6000-real.yml",
+    "sealed-file-mismatch:scripts/accept-underdrain-player-product.ps1",
+    "sealed-file-mismatch:scripts/augment-underdrain-player-evidence.ps1",
+    "sealed-file-mismatch:scripts/build-underdrain-visual-review.mjs",
+    "sealed-file-mismatch:scripts/build-unity-action-player.ps1",
+    "sealed-file-mismatch:scripts/continue-underdrain-unity6000.ps1",
+    "sealed-file-mismatch:scripts/lib/underdrain-runtime.ps1",
+    "sealed-file-mismatch:scripts/qualify-unity-action-player-product.ps1",
+    "sealed-file-mismatch:scripts/record-underdrain-independent-comprehension.ps1",
+    "sealed-file-mismatch:scripts/record-underdrain-visual-review.ps1",
+    "sealed-file-mismatch:scripts/run-underdrain-camera-collision-qa.ps1",
+    "sealed-file-mismatch:scripts/run-underdrain-player-session.ps1",
+    "sealed-file-mismatch:scripts/run-underdrain-unity-visual-qa.ps1",
+    "sealed-file-mismatch:scripts/run-underdrain-unity6000-player-product.ps1",
+    "sealed-file-mismatch:scripts/run-underdrain-unity6000-player-train.ps1",
+    "sealed-file-mismatch:scripts/settle-underdrain-player-product-integration.ps1",
+    "sealed-file-mismatch:tests/world/underdrain-player-product-acceptance.test.ts",
+    "sealed-file-mismatch:tests/world/underdrain-player-product-integration.test.ts",
+    "sealed-file-mismatch:tests/world/underdrain-powershell-contract.test.ts",
+    "sealed-file-mismatch:tests/world/underdrain-unity6000-player-train.test.ts",
+    "sealed-file-mismatch:unity/Fixtures/underdrain.arc-execution-authority.json",
+    "sealed-file-mismatch:unity/Fixtures/underdrain.comprehension-contract.json",
+    "sealed-file-mismatch:unity/Fixtures/underdrain.player-product.integration-lock.json",
+    "sealed-file-mismatch:unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs",
+    "sealed-file-mismatch:unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainCameraCollisionQaBatch.cs",
+    "sealed-file-mismatch:unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainEvidenceAugmentBatch.cs",
+    "sealed-file-mismatch:unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainVisualQaBatch.cs",
+    "sealed-file-mismatch:unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionInputBindings.cs",
+    "sealed-file-mismatch:unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerProductIdentity.cs",
+    "sealed-file-mismatch:unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerSessionEvidence.cs",
+    "sealed-file-mismatch:unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionRebindSessionEvidence.cs"
+  ],
+  "expectedPayloadPathCount": 32,
+  "expectedPayloadSha256": "1879c7f200abbabe61a0a2db9a35e9d0d6af6044296b130a650a97a35d9b7ca8",
+  "files": [
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 6799,
+      "expectedSha256": "008738a3c2af3f0aec5b050d18ff150ff27c5c937e93821b67b5e11d5c4151d5",
+      "match": false,
+      "path": ".github/workflows/underdrain-player-product-integration.yml",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 8909,
+      "expectedSha256": "81a1c311666c9b24d9ce48679507123a9df7bd1ed227af06942d818e4cb2d637",
+      "match": false,
+      "path": ".github/workflows/underdrain-unity6000-real.yml",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 42968,
+      "expectedSha256": "a211d0c146a42fcb67ecbd4b3752c553d33c494b97b69f073d409731cc667079",
+      "match": false,
+      "path": "scripts/accept-underdrain-player-product.ps1",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 6178,
+      "expectedSha256": "0ff662e73da7196a90d1bff42f078259afd39fbb54a76452a20e27eff0c09f9d",
+      "match": false,
+      "path": "scripts/augment-underdrain-player-evidence.ps1",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 6447,
+      "expectedSha256": "4c82bb5f731c4a33ef6a4700efafc8a49bb58d3106868595980ea0bbd76378e2",
+      "match": false,
+      "path": "scripts/build-underdrain-visual-review.mjs",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 15723,
+      "expectedSha256": "6551bc091c0e8990092bb9014efd03ccbadc548254a227621c3117658d00b409",
+      "match": false,
+      "path": "scripts/build-unity-action-player.ps1",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 23909,
+      "expectedSha256": "1e79db98afaa7c24a5f8f4494d1221c43f60afac4753eedfbda9245b06eb6ab5",
+      "match": false,
+      "path": "scripts/continue-underdrain-unity6000.ps1",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 9400,
+      "expectedSha256": "25529abd0db6d43cbc91234f20a142603eefe53ace40178d8cee05ad3977f5ca",
+      "match": false,
+      "path": "scripts/lib/underdrain-runtime.ps1",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 10923,
+      "expectedSha256": "164ad7fe673e8b2624a565b80a7998f1ab56b4ae5c96202ab80925e252f4d2d7",
+      "match": false,
+      "path": "scripts/qualify-unity-action-player-product.ps1",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 17331,
+      "expectedSha256": "c088d45cf3b4f98d2ef3ebae71178022103f0487e2b8d309609dc75eafe04923",
+      "match": false,
+      "path": "scripts/record-underdrain-independent-comprehension.ps1",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 6068,
+      "expectedSha256": "6ea6a1a6df544c334ada7390405cdbdecf9df889c2519ce98f2a667dbf9d0d7d",
+      "match": false,
+      "path": "scripts/record-underdrain-visual-review.ps1",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 5642,
+      "expectedSha256": "dfde2db769ba9ac36fac8c5236aaaca7cbaba30e592bce1e830457704100425a",
+      "match": false,
+      "path": "scripts/run-underdrain-camera-collision-qa.ps1",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 26070,
+      "expectedSha256": "0bd2a83c9c116ba13f9a6d703d45cff7166111528519408de241f43e5deca692",
+      "match": false,
+      "path": "scripts/run-underdrain-player-session.ps1",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 6402,
+      "expectedSha256": "ca4d6f592a2a248738f4bd9faf16efcf928a122f1b75f62eb6179e16f468887b",
+      "match": false,
+      "path": "scripts/run-underdrain-unity-visual-qa.ps1",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 14659,
+      "expectedSha256": "bafdc7bcfb231e112567f7abbca4845d5eb4e5f91fe61ff5d5f592a9d8643a19",
+      "match": false,
+      "path": "scripts/run-underdrain-unity6000-player-product.ps1",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 22181,
+      "expectedSha256": "6f0c43323bd06d2fa680dbc695dcc6135cf199d9bbbffd31be75e2605bd91707",
+      "match": false,
+      "path": "scripts/run-underdrain-unity6000-player-train.ps1",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 9765,
+      "expectedSha256": "4e788aae3834d71dffb7138bc4e893ab1fe3c09dceaf06416a2b1b6ee0d618cc",
+      "match": false,
+      "path": "scripts/settle-underdrain-player-product-integration.ps1",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 8137,
+      "expectedSha256": "10da2960827b4a544aa40a62ad351f1abe47504746d5365d899d4c05c6c6dad9",
+      "match": false,
+      "path": "tests/world/underdrain-player-product-acceptance.test.ts",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 12492,
+      "expectedSha256": "c78c77f7d1c0fb384b62bd0d12063ae19a9e513503c9c36eb7bcc2fc1802807c",
+      "match": false,
+      "path": "tests/world/underdrain-player-product-integration.test.ts",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 2087,
+      "expectedSha256": "4610ccdc0175ef669726220b26bd021734ea00d729c8bcf11005f9d388ba0378",
+      "match": false,
+      "path": "tests/world/underdrain-powershell-contract.test.ts",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 7337,
+      "expectedSha256": "63e8620dd38992b5bcb6537ffec8ba5e98fde77acb28057c88b338a96374b168",
+      "match": false,
+      "path": "tests/world/underdrain-unity6000-player-train.test.ts",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 533,
+      "expectedSha256": "eaf1f4207f17a5a85e775567c3682574571755b55863b02cc5f77c9a0205a111",
+      "match": false,
+      "path": "unity/Fixtures/underdrain.arc-execution-authority.json",
+      "source": "payload"
+    },
+    {
+      "actualBytes": 6507,
+      "actualSha256": "6cbce6ad397ef959450ed6b956ea849c1824b59de884f126606e3c13b5cc9d94",
+      "expectedBytes": 6507,
+      "expectedSha256": "6cbce6ad397ef959450ed6b956ea849c1824b59de884f126606e3c13b5cc9d94",
+      "match": true,
+      "path": "unity/Fixtures/underdrain.authored-presentation.template.json",
+      "source": "checkout"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 2574,
+      "expectedSha256": "637ac033c0cf30120b8c82937e548b7e47d9bbed9947720b4884ca9d1e490eda",
+      "match": false,
+      "path": "unity/Fixtures/underdrain.comprehension-contract.json",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 4394,
+      "expectedSha256": "356e1e982b6f2878416b09e861a576495fa480b2c48e35f3f380b01f94150639",
+      "match": false,
+      "path": "unity/Fixtures/underdrain.player-product.integration-lock.json",
+      "source": "payload"
+    },
+    {
+      "actualBytes": 2198,
+      "actualSha256": "c6589d9942eae4b98045bd9f603b3a4e736a2143e91a18f4a705fc3846d4e10d",
+      "expectedBytes": 2198,
+      "expectedSha256": "c6589d9942eae4b98045bd9f603b3a4e736a2143e91a18f4a705fc3846d4e10d",
+      "match": true,
+      "path": "unity/Fixtures/underdrain.player-product.json",
+      "source": "checkout"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 45045,
+      "expectedSha256": "ffa5a5902d7859b0c6b6e157b321033d93c59ccb105885bb7a4ec8e0b62a3b20",
+      "match": false,
+      "path": "unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 18861,
+      "expectedSha256": "44aa3f9cca49932d06a984e50687c800c9f24c99678f14d57a95f6b5556c3599",
+      "match": false,
+      "path": "unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainCameraCollisionQaBatch.cs",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 16711,
+      "expectedSha256": "77027eb438f71dd2cff7040d280094952ead5661b0a5543a941d9e7ed5faf76a",
+      "match": false,
+      "path": "unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainEvidenceAugmentBatch.cs",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 20475,
+      "expectedSha256": "7ee4cd0c5c9ea2b5620ca7829dd7f857ef1a2a88f8960ed0f61a29f81bbb9f92",
+      "match": false,
+      "path": "unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainVisualQaBatch.cs",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 13259,
+      "expectedSha256": "dacce8600f3f0af04c44f6aa4e54dae0d11445e292bf5a9d07223e055770f2a9",
+      "match": false,
+      "path": "unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionInputBindings.cs",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 10716,
+      "expectedSha256": "63bc26bb0f05c65b7c0f40ded057f20fea605530ae25e6c42a68ddbb7e32ae50",
+      "match": false,
+      "path": "unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerProductIdentity.cs",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 24873,
+      "expectedSha256": "d4bac659fd397835a8e6b2f40144768d240eddbda50dc7070dd3a2f6cb33db8d",
+      "match": false,
+      "path": "unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerSessionEvidence.cs",
+      "source": "payload"
+    },
+    {
+      "actualBytes": null,
+      "actualSha256": null,
+      "expectedBytes": 12587,
+      "expectedSha256": "80b4f438db9a8b5c198e775ad0d5e80777eb297b373d9eb5ac7bf1bc1ee05d89",
+      "match": false,
+      "path": "unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionRebindSessionEvidence.cs",
+      "source": "payload"
+    }
+  ],
+  "format": "rodoh-underdrain-integration-carrier-recovery/1",
+  "generatedAt": "2026-07-30T06:03:05.919317+00:00",
+  "materializationPerformed": false,
+  "namedPlayerProductAcceptance": "not-issued",
+  "payloadDigestMatch": false,
+  "payloadPathSetMatch": false,
+  "productAccepted": false,
+  "sealedFileCount": 34,
+  "status": "held"
+}
