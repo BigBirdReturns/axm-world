@@ -7,6 +7,7 @@ on:
       - '.github/workflows/underdrain-materializer-unity-import-closure-carrier.yml'
       - '.github/workflows/underdrain-materializer-unity-import-closure-runner.yml'
       - '.github/triggers/underdrain-materializer-unity-import-closure-v1'
+      - '.github/carriers/underdrain-materializer-unity-import-closure.py'
       - 'docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md'
       - 'scripts/extract-underdrain-shine-assets.mjs'
       - 'scripts/resolve-underdrain-shine-representation.mjs'
@@ -192,15 +193,16 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
-      - name: Detect the still-pending repair payload
+      - name: Detect the still-pending repair carrier set
         id: guard
         shell: bash
         run: |
           set -euo pipefail
-          carrier='.github/workflows/underdrain-materializer-unity-import-closure-carrier.yml'
+          patch='.github/carriers/underdrain-materializer-unity-import-closure.py'
+          payload='.github/workflows/underdrain-materializer-unity-import-closure-carrier.yml'
           runner='.github/workflows/underdrain-materializer-unity-import-closure-runner.yml'
           trigger='.github/triggers/underdrain-materializer-unity-import-closure-v1'
-          if test -f "$carrier" && test -f "$runner" && test -f "$trigger"; then
+          if test -f "$patch" && test -f "$payload" && test -f "$runner" && test -f "$trigger"; then
             echo 'apply=true' >> "$GITHUB_OUTPUT"
           else
             echo 'apply=false' >> "$GITHUB_OUTPUT"
@@ -217,23 +219,16 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Apply the content-addressed Unity import repair
+      - name: Apply the plain-text Unity import repair
         if: steps.guard.outputs.apply == 'true'
         shell: bash
         env:
           BASE_SHA: 1a6255d7dcff7b8e0096c49321f00d51d114a71c
-          PAYLOAD_CARRIER: .github/workflows/underdrain-materializer-unity-import-closure-carrier.yml
+          PATCH_SCRIPT: .github/carriers/underdrain-materializer-unity-import-closure.py
         run: |
           set -euo pipefail
           git merge-base --is-ancestor "$BASE_SHA" HEAD
-          payload="$(sed -n 's/^[[:space:]]*PATCH_GZIP_BASE64:[[:space:]]*//p' "$PAYLOAD_CARRIER")"
-          test -n "$payload"
-          test "$(printf '%s' "$payload" | wc -l)" -eq 0
-          PATCH_GZIP_BASE64="$payload" python - <<'PY'
-          import base64, gzip, os
-          source = gzip.decompress(base64.b64decode(os.environ['PATCH_GZIP_BASE64']))
-          exec(compile(source, '<underdrain-unity-import-closure>', 'exec'))
-          PY
+          python "$PATCH_SCRIPT"
           python - <<'PY'
           from pathlib import Path
           batch = Path('unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainRepresentationMaterializerBatch.cs').read_text()
@@ -255,7 +250,7 @@ jobs:
           }
           missing = [name for name, present in witnesses.items() if not present]
           if missing:
-              raise SystemExit('Repair payload lost required witnesses: ' + ', '.join(missing))
+              raise SystemExit('Repair carrier lost required witnesses: ' + ', '.join(missing))
           PY
           git diff --check
 
@@ -285,15 +280,16 @@ jobs:
           find unity/Conformance -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
           git diff --check
 
-      - name: Publish only the admitted repair and remove all carriers
+      - name: Publish only the admitted repair and remove all temporary carriers
         if: steps.guard.outputs.apply == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          payload_carrier='.github/workflows/underdrain-materializer-unity-import-closure-carrier.yml'
-          runner_carrier='.github/workflows/underdrain-materializer-unity-import-closure-runner.yml'
+          patch='.github/carriers/underdrain-materializer-unity-import-closure.py'
+          payload='.github/workflows/underdrain-materializer-unity-import-closure-carrier.yml'
+          runner='.github/workflows/underdrain-materializer-unity-import-closure-runner.yml'
           trigger='.github/triggers/underdrain-materializer-unity-import-closure-v1'
-          git rm -- "$payload_carrier" "$runner_carrier" "$trigger"
+          git rm -- "$patch" "$payload" "$runner" "$trigger"
           git add -- \
             docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md \
             scripts/materialize-underdrain-production-representation.ps1 \
@@ -302,6 +298,7 @@ jobs:
             unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainRepresentationMaterializerBatch.cs \
             unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionCameraFacingSprite.cs
           cat > "$RUNNER_TEMP/expected-paths" <<'PATHS'
+          .github/carriers/underdrain-materializer-unity-import-closure.py
           .github/triggers/underdrain-materializer-unity-import-closure-v1
           .github/workflows/underdrain-materializer-unity-import-closure-carrier.yml
           .github/workflows/underdrain-materializer-unity-import-closure-runner.yml
