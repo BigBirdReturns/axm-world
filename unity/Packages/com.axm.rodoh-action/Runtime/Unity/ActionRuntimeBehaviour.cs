@@ -37,16 +37,26 @@ namespace Axm.Rodoh.Action
         private IActionPresentationAdapter _presentation;
         private double _accumulator;
         private float _presentationHoldRemaining;
+        private bool _playerMenuPaused;
         private bool _running;
         private bool _candidateWritten;
 
+        public TextAsset ProjectionAsset => actionProjection;
+        public uint RuntimeSeed => seed;
+        public int RuntimeCycle => cycle;
+        public string ControlledAgentId => controlledAgentId;
+        public IReadOnlyList<string> PartyAgentIds => partyAgentIds ?? Array.Empty<string>();
+        public MonoBehaviour ConfiguredPresentationComponent => presentationComponent;
+        public bool AllowsDiagnosticPresentation => allowDiagnosticPresentation;
+        public bool AutoStart => autoStart;
         public ActionSpecProjection Spec => _spec;
         public ActionSimulationState State => _state;
         public ActionTraceRecorder Trace => _trace;
         public bool Running => _running;
         public float PresentationHoldRemaining => _presentationHoldRemaining;
-        public string PresentationAdapterId => _presentation?.AdapterId ?? string.Empty;
-        public bool UsesDiagnosticPresentation => _presentation?.DiagnosticOnly ?? false;
+        public bool PlayerMenuPaused => _playerMenuPaused;
+        public string PresentationAdapterId => _presentation?.AdapterId ?? (presentationComponent as IActionPresentationAdapter)?.AdapterId ?? string.Empty;
+        public bool UsesDiagnosticPresentation => _presentation?.DiagnosticOnly ?? (presentationComponent as IActionPresentationAdapter)?.DiagnosticOnly ?? false;
         public event Action<ActionSimulationState> TickAdvanced;
         public event Action<IReadOnlyList<ActionSemanticCue>> CuesProjected;
         public event Action<ActionSimulationResult> EncounterCompleted;
@@ -103,6 +113,7 @@ namespace Axm.Rodoh.Action
             _trace.Reset();
             _accumulator = 0d;
             _presentationHoldRemaining = 0f;
+            _playerMenuPaused = false;
             _candidateWritten = false;
             _running = true;
             _presentation.Initialize(_spec, _state);
@@ -112,6 +123,21 @@ namespace Axm.Rodoh.Action
         public void StopRuntime()
         {
             _running = false;
+        }
+
+        /// <summary>
+        /// Pauses deterministic tick admission for an explicit player menu. Unlike
+        /// Time.timeScale, this also stops a runtime driven by unscaled time. No trace
+        /// row, action state, cue, damage, objective, or candidate advances while the
+        /// menu is open. Input is cleared on both transitions so a rebinding key cannot
+        /// become a deferred combat action after the menu closes.
+        /// </summary>
+        public void SetPlayerMenuPaused(bool paused)
+        {
+            if (_playerMenuPaused == paused) return;
+            _playerMenuPaused = paused;
+            _accumulator = 0d;
+            inputRouter?.ClearContinuousInput();
         }
 
         /// <summary>
@@ -129,6 +155,11 @@ namespace Axm.Rodoh.Action
         private void Update()
         {
             if (!_running || _spec == null || _state == null) return;
+            if (_playerMenuPaused)
+            {
+                _presentation?.Render(_state, 0f);
+                return;
+            }
             if (_presentationHoldRemaining > 0f)
             {
                 _presentationHoldRemaining = Mathf.Max(0f, _presentationHoldRemaining - Time.unscaledDeltaTime);

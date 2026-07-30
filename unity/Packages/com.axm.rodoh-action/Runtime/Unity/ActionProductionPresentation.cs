@@ -67,6 +67,13 @@ namespace Axm.Rodoh.Action
         public bool DiagnosticOnly => false;
         public ActionPresentationFeedbackEvent OnFeedback => onFeedback;
         public ActionSemanticCueFeedbackEvent OnSemanticCue => onSemanticCue;
+        public Transform PresentationRoot => presentationRoot;
+        public GameObject PlayerPrefab => playerPrefab;
+        public RuntimeAnimatorController PlayerAnimatorController => playerAnimatorController;
+        public bool PlayerNeutralFallback => playerNeutralFallback;
+        public float PlayerScale => playerScale;
+        public IReadOnlyList<ActionEnemyPrefabBinding> EnemyPrefabs => enemyPrefabs ?? Array.Empty<ActionEnemyPrefabBinding>();
+        public float UnityUnitsPerActionUnit => unityUnitsPerActionUnit;
 
         public void Configure(
             ActionRuntimeBehaviour actionRuntime,
@@ -320,68 +327,57 @@ namespace Axm.Rodoh.Action
         private void ApplyActor(ActionActorBinding actor, int x, int y, int facingX, int facingY, int mode, int modeTick, int health, bool active, bool telegraph)
         {
             if (actor == null) return;
-            var root = actor.VisualRoot;
-            root.localPosition = new Vector3(x * unityUnitsPerActionUnit, root.localPosition.y, y * unityUnitsPerActionUnit);
-            var facing = new Vector3(facingX, 0f, facingY);
-            if (facing.sqrMagnitude > 0f) root.localRotation = Quaternion.LookRotation(facing.normalized, Vector3.up);
             actor.gameObject.SetActive(active);
+            actor.transform.localPosition = new Vector3(x * unityUnitsPerActionUnit, 0f, y * unityUnitsPerActionUnit);
+            var direction = new Vector3(facingX, 0f, facingY);
+            if (direction.sqrMagnitude > 0f) actor.transform.localRotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
             var animator = actor.Animator;
             if (animator != null)
             {
-                animator.applyRootMotion = false;
-                SetInteger(animator, Mode, mode);
-                SetInteger(animator, ModeTick, modeTick);
-                SetInteger(animator, Health, health);
-                SetBool(animator, Active, active);
+                animator.SetInteger(Mode, mode);
+                animator.SetInteger(ModeTick, modeTick);
+                animator.SetInteger(Health, health);
+                animator.SetBool(Active, active);
             }
-            if (telegraph)
-            {
-                var renderer = actor.GetComponentInChildren<Renderer>();
-                if (renderer != null && _telegraphMaterial != null && actor.Animator == null) renderer.sharedMaterial = _telegraphMaterial;
-            }
+            actor.SetTelegraph(telegraph, _telegraphMaterial);
         }
 
         private void CreateNeutralMaterials()
         {
-            if (_neutralPlayerMaterial != null && _neutralEnemyMaterial != null && _telegraphMaterial != null) return;
+            if (_neutralPlayerMaterial == null) _neutralPlayerMaterial = CreateMaterial("RODOH Neutral Player", new Color(0.22f, 0.72f, 0.85f));
+            if (_neutralEnemyMaterial == null) _neutralEnemyMaterial = CreateMaterial("RODOH Neutral Enemy", new Color(0.62f, 0.45f, 0.82f));
+            if (_telegraphMaterial == null) _telegraphMaterial = CreateMaterial("RODOH Telegraph", new Color(1f, 0.34f, 0.12f));
+        }
+
+        private static Material CreateMaterial(string name, Color color)
+        {
             var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-            if (shader == null) return;
-            _neutralPlayerMaterial = new Material(shader) { color = new Color(0.20f, 0.75f, 0.88f), hideFlags = HideFlags.DontSave };
-            _neutralEnemyMaterial = new Material(shader) { color = new Color(0.22f, 0.48f, 0.20f), hideFlags = HideFlags.DontSave };
-            _telegraphMaterial = new Material(shader) { color = new Color(0.95f, 0.42f, 0.12f), hideFlags = HideFlags.DontSave };
+            if (shader == null) return null;
+            var material = new Material(shader) { name = name, color = color };
+            return material;
         }
 
         private static float NeutralEnemyScale(string kit)
         {
-            if (kit == "swarm") return 0.5f;
-            if (kit == "breaker") return 1.35f;
-            if (kit == "duelist" || kit == "hexer") return 0.9f;
-            return 0.8f;
+            if (kit == "breaker") return 1.4f;
+            if (kit == "swarm") return 0.65f;
+            if (kit == "hexer") return 1.1f;
+            return 0.9f;
         }
 
-        private static void SetInteger(Animator animator, int hash, int value)
+        private static void Trigger(Animator animator, int parameter)
         {
-            if (HasParameter(animator, hash, AnimatorControllerParameterType.Int)) animator.SetInteger(hash, value);
+            if (animator != null) animator.SetTrigger(parameter);
         }
 
-        private static void SetBool(Animator animator, int hash, bool value)
+        private static void SetInteger(Animator animator, int parameter, int value)
         {
-            if (HasParameter(animator, hash, AnimatorControllerParameterType.Bool)) animator.SetBool(hash, value);
+            if (animator != null) animator.SetInteger(parameter, value);
         }
 
-        private static void Trigger(Animator animator, int hash)
+        private static void SetBool(Animator animator, int parameter, bool value)
         {
-            if (animator != null && HasParameter(animator, hash, AnimatorControllerParameterType.Trigger)) animator.SetTrigger(hash);
-        }
-
-        private static bool HasParameter(Animator animator, int hash, AnimatorControllerParameterType type)
-        {
-            if (animator == null) return false;
-            foreach (var parameter in animator.parameters)
-            {
-                if (parameter.nameHash == hash && parameter.type == type) return true;
-            }
-            return false;
+            if (animator != null) animator.SetBool(parameter, value);
         }
     }
 }

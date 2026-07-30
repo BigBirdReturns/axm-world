@@ -15,6 +15,8 @@ namespace Axm.Rodoh.Action.Editor
     /// Builds one generated action estate for Windows or Android/Quest and writes an
     /// exact product receipt. Project-owned XR, signing, graphics, and package
     /// settings remain in Embodied-AR-Lab; this batch does not invent a second project.
+    /// A production player build may require the serialized player-product identity
+    /// installed by ActionPlayerProductBatch.
     /// </summary>
     public static class ActionBuildBatch
     {
@@ -38,7 +40,7 @@ namespace Axm.Rodoh.Action.Editor
         [Serializable]
         private sealed class Receipt
         {
-            public string format = "rodoh-unity-action-build/1";
+            public string format = "rodoh-unity-action-build/2";
             public string status = "fail";
             public string generatedAt = DateTime.UtcNow.ToString("O");
             public string unityVersion = Application.unityVersion;
@@ -51,6 +53,14 @@ namespace Axm.Rodoh.Action.Editor
             public string actionSpecDigest;
             public string arcDigest;
             public string presentationManifestId;
+            public bool playerProductRequired;
+            public string playerProductId;
+            public string playerProductProfileSha256;
+            public string playerProductQualification;
+            public string playerProductWorldCommit;
+            public string playerProductArcCommit;
+            public string playerProductTimingProfileId;
+            public string[] productionAssetIds = Array.Empty<string>();
             public ulong totalBytes;
             public string productSha256;
             public int productFiles;
@@ -60,6 +70,8 @@ namespace Axm.Rodoh.Action.Editor
             public string buildResult;
             public bool strictMode = true;
             public bool developmentBuild;
+            public string comprehensionReceipt = "not-issued-by-build";
+            public string productAcceptance = "not-issued-by-build";
             public string actionAuthority = "Arc replay and axm-action-receipt/1";
             public string buildAuthority = "Unity BuildPipeline over the exact generated scene";
             public string error;
@@ -78,6 +90,7 @@ namespace Axm.Rodoh.Action.Editor
                 if (sceneJob == null || sceneJob.format != "rodoh-action-scene-job/1") throw new InvalidOperationException("Unknown action scene-job format.");
                 var targetToken = (GetArgument("-target") ?? "windows").Trim().ToLowerInvariant();
                 var development = ParseBoolean(GetArgument("-development"), false);
+                var requirePlayerProduct = ParseBoolean(GetArgument("-requirePlayerProduct"), false);
                 var configuration = ResolveTarget(targetToken);
                 var outputPath = GetArgument("-outputPath");
                 if (string.IsNullOrWhiteSpace(outputPath)) outputPath = DefaultOutput(sceneJob.jobId, targetToken);
@@ -91,6 +104,40 @@ namespace Axm.Rodoh.Action.Editor
                 if (runtime.GetComponent<ActionSessionSpoolRuntime>() == null) throw new InvalidOperationException("Action build scene lacks the production offline session spool.");
                 if (runtime.GetComponent<ActionQualityGovernor>() == null) throw new InvalidOperationException("Action build scene lacks the adaptive quality governor.");
                 if (runtime.GetComponent<ActionPerformanceRecorder>() == null) throw new InvalidOperationException("Action build scene lacks the performance receipt recorder.");
+                if (requirePlayerProduct)
+                {
+                    var identity = FindExactlyOne<ActionPlayerProductIdentity>(scene);
+                    var errors = identity.Validate();
+                    if (errors.Count > 0) throw new InvalidOperationException("Player-product identity is invalid: " + string.Join(" ", errors));
+                    if (identity.ActionSpecDigest != sceneJob.source.actionSpecDigest
+                        || identity.ArcDigest != sceneJob.source.arcDigest
+                        || identity.PresentationManifestId != sceneJob.source.presentationManifestId
+                        || identity.SceneJobDigest != sceneJob.jobDigest)
+                    {
+                        throw new InvalidOperationException("Player-product identity differs from the exact scene job.");
+                    }
+                    if (runtime.PresentationAdapterId != "production.prefab/v1" || runtime.UsesDiagnosticPresentation || runtime.AllowsDiagnosticPresentation)
+                    {
+                        throw new InvalidOperationException("Player-product build lost the production presentation boundary.");
+                    }
+                    if (runtime.GetComponent<ActionInputBindings>() == null
+                        || runtime.GetComponent<ActionRebindOverlay>() == null
+                        || runtime.GetComponent<ActionCameraCollision>() == null
+                        || runtime.GetComponent<ActionPlayerSessionEvidence>() == null)
+                    {
+                        throw new InvalidOperationException("Player-product build lacks input, camera, or session evidence components.");
+                    }
+                    receipt.playerProductId = identity.ProductId;
+                    receipt.playerProductProfileSha256 = identity.ProductProfileSha256;
+                    receipt.playerProductQualification = identity.Qualification;
+                    receipt.playerProductWorldCommit = identity.WorldCommit;
+                    receipt.playerProductArcCommit = identity.ArcCommit;
+                    receipt.playerProductTimingProfileId = identity.TimingProfileId;
+                    var assets = new List<string>(identity.ProductionAssetIds);
+                    assets.Sort(StringComparer.Ordinal);
+                    receipt.productionAssetIds = assets.ToArray();
+                }
+                receipt.playerProductRequired = requirePlayerProduct;
                 if (!EditorSceneManager.SaveScene(scene, scenePath)) throw new InvalidOperationException("Unity refused to save the smoke-enabled action scene.");
                 AssetDatabase.SaveAssets();
 

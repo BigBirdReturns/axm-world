@@ -1,0 +1,83 @@
+{
+  "format": "rodoh-underdrain-resolved-representation-source/1",
+  "productId": "underdrain-bloom-below-unity6000-v1",
+  "themeId": "underdrain-bloom-below",
+  "unityVersion": "6000.0.66f2",
+  "extractionReceipt": "shine-extraction.json",
+  "extractionReceiptSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "assets": [
+    {
+      "assetId": "underdrain:rhea-venn-player",
+      "role": "player:rhea-venn",
+      "fileName": "rhea-venn.png",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pixelsPerUnit": 256,
+      "displayScale": 1.0,
+      "pivotX": 0.5,
+      "pivotY": 0.08
+    },
+    {
+      "assetId": "underdrain:capling-skirmisher",
+      "role": "enemy:skirmisher",
+      "fileName": "capling-skirmisher.png",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pixelsPerUnit": 256,
+      "displayScale": 0.8,
+      "pivotX": 0.5,
+      "pivotY": 0.08
+    },
+    {
+      "assetId": "underdrain:crown-duelist",
+      "role": "enemy:duelist",
+      "fileName": "crown-duelist.png",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pixelsPerUnit": 256,
+      "displayScale": 0.95,
+      "pivotX": 0.5,
+      "pivotY": 0.08
+    },
+    {
+      "assetId": "underdrain:signal-spore-swarm",
+      "role": "enemy:swarm",
+      "fileName": "signal-spore-swarm.png",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pixelsPerUnit": 256,
+      "displayScale": 0.7,
+      "pivotX": 0.5,
+      "pivotY": 0.12
+    },
+    {
+      "assetId": "underdrain:discharge-hexer",
+      "role": "enemy:hexer",
+      "fileName": "discharge-hexer.png",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pixelsPerUnit": 256,
+      "displayScale": 0.95,
+      "pivotX": 0.5,
+      "pivotY": 0.08
+    },
+    {
+      "assetId": "underdrain:root-breaker",
+      "role": "enemy:breaker",
+      "fileName": "root-breaker.png",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pixelsPerUnit": 256,
+      "displayScale": 1.35,
+      "pivotX": 0.5,
+      "pivotY": 0.06
+    },
+    {
+      "assetId": "underdrain:pump-seven-arena",
+      "role": "arena:pump-seven",
+      "fileName": "pump-seven-arena.png",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pixelsPerUnit": 128,
+      "displayScale": 1.0,
+      "pivotX": 0.5,
+      "pivotY": 0.5
+    }
+  ],
+  "templateOnly": true,
+  "approvalIssued": false,
+  "productAcceptance": "not-issued"
+}

@@ -10,6 +10,7 @@ namespace Axm.Rodoh.Action
     public sealed class ActionMinimalHud : MonoBehaviour
     {
         [SerializeField] private ActionRuntimeBehaviour runtime;
+        [SerializeField] private ActionInputBindings bindings;
         [SerializeField] private bool enabledByPreference = true;
         [SerializeField] private bool showControls = true;
         [SerializeField, Range(0f, 30f)] private float controlsSeconds = 12f;
@@ -25,6 +26,7 @@ namespace Axm.Rodoh.Action
         private void Awake()
         {
             if (runtime == null) runtime = GetComponentInParent<ActionRuntimeBehaviour>();
+            if (bindings == null) bindings = GetComponent<ActionInputBindings>();
         }
 
         private void OnEnable()
@@ -34,7 +36,13 @@ namespace Axm.Rodoh.Action
 
         public void Configure(ActionRuntimeBehaviour actionRuntime)
         {
+            Configure(actionRuntime, bindings);
+        }
+
+        public void Configure(ActionRuntimeBehaviour actionRuntime, ActionInputBindings inputBindings)
+        {
             runtime = actionRuntime;
+            bindings = inputBindings;
         }
 
         private void OnGUI()
@@ -90,8 +98,11 @@ namespace Axm.Rodoh.Action
             var dx = (long)target.x - state.player.x;
             var dy = (long)target.y - state.player.y;
             if (dx * dx + dy * dy > (long)target.radius * target.radius) return;
-            var text = spec.objectives[state.activeObjectiveIndex].semanticCompletion.kind == "hold_ticks" ? "HOLD E  ·  WORK" : "E  ·  WORK";
-            var width = 220f * scale;
+            var key = bindings?.Profile?.Primary(ActionPlayerAction.Interact) ?? "E";
+            var text = spec.objectives[state.activeObjectiveIndex].semanticCompletion.kind == "hold_ticks"
+                ? "HOLD " + key.ToUpperInvariant() + "  ·  WORK"
+                : key.ToUpperInvariant() + "  ·  WORK";
+            var width = 260f * scale;
             var rect = new Rect((Screen.width - width) * 0.5f, Screen.height - 120f * scale, width, 40f * scale);
             DrawRect(rect, new Color(0.02f, 0.06f, 0.04f, 0.78f));
             GUI.Label(rect, text, _prompt);
@@ -99,8 +110,11 @@ namespace Axm.Rodoh.Action
 
         private void DrawControls(float margin, float scale)
         {
-            var text = "WASD move   MOUSE look   LMB sweep   RMB crush   SPACE dodge   Q parry   E work";
-            var width = Mathf.Min(Screen.width - margin * 2f, 760f * scale);
+            const string rebind = "F10 rebind";
+            var text = bindings?.Profile == null
+                ? "WASD move   MOUSE look   LMB sweep   RMB crush   SPACE dodge   Q parry   E work   " + rebind
+                : "WASD move   MOUSE look   " + bindings.Profile.ControlSummary() + "   " + rebind;
+            var width = Mathf.Min(Screen.width - margin * 2f, 940f * scale);
             GUI.Label(new Rect(Screen.width - margin - width, Screen.height - margin - 28f * scale, width, 28f * scale), text, _small);
         }
 
