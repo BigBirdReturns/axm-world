@@ -1,0 +1,176 @@
+name: UNDERDRAIN representation materializer source
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/underdrain-representation-materializer-source.yml'
+      - 'docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md'
+      - 'scripts/extract-underdrain-shine-assets.mjs'
+      - 'scripts/resolve-underdrain-shine-representation.mjs'
+      - 'scripts/materialize-underdrain-production-representation.ps1'
+      - 'tests/world/underdrain-representation-materializer.test.ts'
+      - 'tests/world/underdrain-powershell-contract.test.ts'
+      - 'unity/Fixtures/underdrain.shine-source.json'
+      - 'unity/Fixtures/underdrain.shine-role-map.template.json'
+      - 'unity/Fixtures/underdrain.representation-source.template.json'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainRepresentationMaterializerBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionCameraFacingSprite.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionFeedbackPulse.cs'
+      - 'unity/Conformance/ActionUnderdrainRepresentationUnityStubs.cs'
+      - 'unity/Conformance/Axm.Rodoh.Action.UnderdrainRepresentation.Source.csproj'
+  push:
+    branches:
+      - feature/underdrain-unity6000-player-train-v1
+      - feature/underdrain-production-representation-materializer-v1
+    paths:
+      - '.github/workflows/underdrain-representation-materializer-source.yml'
+      - 'docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md'
+      - 'scripts/extract-underdrain-shine-assets.mjs'
+      - 'scripts/resolve-underdrain-shine-representation.mjs'
+      - 'scripts/materialize-underdrain-production-representation.ps1'
+      - 'tests/world/underdrain-representation-materializer.test.ts'
+      - 'tests/world/underdrain-powershell-contract.test.ts'
+      - 'unity/Fixtures/underdrain.shine-source.json'
+      - 'unity/Fixtures/underdrain.shine-role-map.template.json'
+      - 'unity/Fixtures/underdrain.representation-source.template.json'
+      - 'unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainRepresentationMaterializerBatch.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionCameraFacingSprite.cs'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionFeedbackPulse.cs'
+      - 'unity/Conformance/ActionUnderdrainRepresentationUnityStubs.cs'
+      - 'unity/Conformance/Axm.Rodoh.Action.UnderdrainRepresentation.Source.csproj'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: underdrain-representation-materializer-source-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARC_ACTION_PLAYER_SHA: aaa5685903a348b3c1ba875622fbe99d90c1da35
+  FLOOR_SHA: 9693cb99694338e72c15d0ffbb87b5a1c5bbf16a
+  SHINE_SHA256: ab9e1a542f89d66733d0b9946fd9f2b724e5e09395a74611fa760d336c209311
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Qualify extraction, resolution, Unity materializer, and PowerShell source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/extract-underdrain-shine-assets.mjs
+          node --check scripts/resolve-underdrain-shine-representation.mjs
+          npm run typecheck
+          npm test -- \
+            tests/world/underdrain-representation-materializer.test.ts \
+            tests/world/underdrain-powershell-contract.test.ts \
+            tests/world/underdrain-player-product-acceptance.test.ts \
+            tests/world/underdrain-unity6000-player-train.test.ts
+          dotnet build unity/Conformance/Axm.Rodoh.Action.UnderdrainRepresentation.Source.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj --configuration Release
+
+      - name: Run complete World regression and production build
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          find unity/Conformance -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
+
+      - name: Assemble exact materializer-source custody
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/underdrain-representation-materializer-source"
+          mkdir -p "$root/source"
+          cp docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md "$root/source/"
+          cp scripts/extract-underdrain-shine-assets.mjs "$root/source/"
+          cp scripts/resolve-underdrain-shine-representation.mjs "$root/source/"
+          cp scripts/materialize-underdrain-production-representation.ps1 "$root/source/"
+          cp unity/Fixtures/underdrain.shine-source.json "$root/source/"
+          cp unity/Fixtures/underdrain.shine-role-map.template.json "$root/source/"
+          cp unity/Fixtures/underdrain.representation-source.template.json "$root/source/"
+          cp unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainRepresentationMaterializerBatch.cs "$root/source/"
+          cp unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionCameraFacingSprite.cs "$root/source/"
+          cp unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionFeedbackPulse.cs "$root/source/"
+          cp unity/Conformance/ActionUnderdrainRepresentationUnityStubs.cs "$root/source/"
+          cp unity/Conformance/Axm.Rodoh.Action.UnderdrainRepresentation.Source.csproj "$root/source/"
+          WORLD_SHA="$(git rev-parse HEAD)" ROOT="$root" node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const shine = JSON.parse(readFileSync('unity/Fixtures/underdrain.shine-source.json', 'utf8'));
+          const template = JSON.parse(readFileSync('unity/Fixtures/underdrain.representation-source.template.json', 'utf8'));
+          writeFileSync(process.env.ROOT + '/source-qualification.json', JSON.stringify({
+            format: 'rodoh-underdrain-representation-materializer-source-qualification/1',
+            status: 'pass',
+            worldCommit: process.env.WORLD_SHA,
+            arcActionPlayerCommit: process.env.ARC_ACTION_PLAYER_SHA,
+            actionPlayerFloorCommit: process.env.FLOOR_SHA,
+            productId: template.productId,
+            themeId: template.themeId,
+            unityVersion: template.unityVersion,
+            shineStandaloneFileName: shine.standaloneFileName,
+            shineStandaloneSha256: shine.standaloneSha256,
+            preparedRoleCount: template.assets.length,
+            requiredCorePrefabCount: 7,
+            requiredDeclaredBindingCount: 27,
+            requiredUniqueTopLevelAssetCount: 23,
+            requiredFeedbackPrefabCount: 7,
+            requiredAudioClipCount: 7,
+            controllerParameterCount: 14,
+            sourceCompilation: 'pass',
+            extractionFixture: 'pass',
+            completeWorldRegression: 'pass',
+            productionBuild: 'pass',
+            nonClaims: [
+              'availability of the exact Shine standalone on this hosted runner',
+              'seven resolved production-role PNGs',
+              'real Unity import or materialization',
+              'rendered representation review',
+              'named production-asset approval',
+              'Windows player build or session',
+              'independent comprehension',
+              'named Windows product acceptance',
+              'Quest or physical Quest acceptance'
+            ],
+            approvalIssued: false,
+            productAcceptance: 'not-issued'
+          }, null, 2) + '\n');
+          NODE
+          (
+            cd "$root"
+            find . -type f ! -name SHA256SUMS -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS
+          )
+          git diff --check
+          test -z "$(git status --porcelain)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-representation-materializer-source
+          path: ${{ runner.temp }}/underdrain-representation-materializer-source
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
