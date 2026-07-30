@@ -1,0 +1,69 @@
+name: UNDERDRAIN materializer repair archaeology
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - feature/underdrain-unity6000-player-train-v1
+    paths:
+      - '.github/workflows/underdrain-materializer-repair-archaeology.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: underdrain-materializer-repair-archaeology
+  cancel-in-progress: true
+
+jobs:
+  retain:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'recovery/underdrain-materializer-repair-export-v1'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact archaeology carrier
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Retain the complete repair branch history and carrier generations
+        shell: bash
+        env:
+          EXPECTED_PARENT: efab237853c23540d52f367867107ae3865016c7
+          DONOR_BRANCH: repair/underdrain-materializer-unity-import-closure-v1
+          DONOR_CARRIER: .github/workflows/underdrain-materializer-unity-import-closure-carrier.yml
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "3b48185dc122de970a9b18b30fe7b9c25b5a2693"
+          git fetch --no-tags origin "+refs/heads/$DONOR_BRANCH:refs/heads/underdrain-materializer-repair-donor"
+          root="$RUNNER_TEMP/underdrain-materializer-repair-archaeology"
+          mkdir -p "$root/carriers"
+          git bundle create "$root/UNDERDRAIN_Materializer_Repair_History.bundle" underdrain-materializer-repair-donor
+          git bundle verify "$root/UNDERDRAIN_Materializer_Repair_History.bundle" > "$root/bundle-verify.txt" 2>&1
+          git log --reverse --format='%H %P %T %aI %s' "$EXPECTED_PARENT"..underdrain-materializer-repair-donor > "$root/repair-commits.txt"
+          while read -r commit rest; do
+            test -n "$commit" || continue
+            git show --stat --oneline --decorate=short "$commit" > "$root/carriers/$commit.stat.txt"
+            if git cat-file -e "$commit:$DONOR_CARRIER" 2>/dev/null; then
+              git show "$commit:$DONOR_CARRIER" > "$root/carriers/$commit.carrier.yml"
+            fi
+            git diff-tree --no-commit-id --name-status -r "$commit" > "$root/carriers/$commit.paths.txt"
+          done < "$root/repair-commits.txt"
+          {
+            printf 'recoveryCarrier=%s\n' "$GITHUB_SHA"
+            printf 'expectedParent=%s\n' "$EXPECTED_PARENT"
+            printf 'donorHead=%s\n' "$(git rev-parse underdrain-materializer-repair-donor)"
+            printf 'donorCommitCount=%s\n' "$(wc -l < "$root/repair-commits.txt")"
+          } > "$root/identity.txt"
+          find "$root" -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum | sed "s#  $root/#  #" > "$root/SHA256SUMS"
+
+      - name: Upload complete repair archaeology
+        uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-materializer-repair-archaeology-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/underdrain-materializer-repair-archaeology
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
