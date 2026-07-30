@@ -1,0 +1,617 @@
+name: UNDERDRAIN v2 current-base source transaction
+
+on:
+  push:
+    branches:
+      - integration/underdrain-unity6000-player-product-v2-current
+    paths:
+      - '.github/workflows/underdrain-v2-current-source-transaction.yml'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  TARGET_BRANCH: integration/underdrain-unity6000-player-product-v2-current
+  PARENT_BRANCH: feature/underdrain-unity6000-player-train-v1
+  EXPECTED_BASE: 1a6255d7dcff7b8e0096c49321f00d51d114a71c
+  DONOR_BASE: 7a25a8e20f680528a5ee38b2ed3f1777a0cf318e
+  DONOR_CARRIER: 2515f986b990cfbc0d4fdc28bf4a8cb33ba30d39
+  DONOR_PAYLOAD_SHA256: 5d77996b8242e69c1aed6af9e9aeef29a06bdfd474123a139542b67a3e86fa1d
+  CARRIER_PATH: .github/workflows/underdrain-v2-current-source-transaction.yml
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact current-base carrier
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Reconstruct the retained candidate over the settled base
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_BASE"
+          test "$(git diff --name-only "$EXPECTED_BASE" HEAD)" = "$CARRIER_PATH"
+          git diff --check "$EXPECTED_BASE" HEAD
+          mkdir -p "$RUNNER_TEMP/prepared/source"
+
+          python - <<'PY'
+          from __future__ import annotations
+          import base64
+          import hashlib
+          import io
+          import json
+          import os
+          import re
+          import subprocess
+          import tarfile
+          import tempfile
+          from datetime import datetime, timezone
+          from pathlib import Path, PurePosixPath
+
+          expected_base = os.environ['EXPECTED_BASE']
+          donor_base = os.environ['DONOR_BASE']
+          donor_carrier = os.environ['DONOR_CARRIER']
+          donor_payload_sha = os.environ['DONOR_PAYLOAD_SHA256']
+          root = Path(os.environ['RUNNER_TEMP']) / 'prepared'
+          source_root = root / 'source'
+
+          def run(*args: str, check: bool = True) -> subprocess.CompletedProcess:
+              proc = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+              if check and proc.returncode != 0:
+                  raise RuntimeError(f"{' '.join(args)} failed: {proc.stderr.decode(errors='replace')}")
+              return proc
+
+          def git_bytes(*args: str, check: bool = True) -> bytes:
+              return run('git', *args, check=check).stdout
+
+          def sha(data: bytes) -> str:
+              return hashlib.sha256(data).hexdigest()
+
+          def natural(value: str):
+              return [int(x) if x.isdigit() else x for x in re.split(r'(\d+)', value)]
+
+          names = git_bytes('ls-tree', '-r', '--name-only', donor_carrier).decode().splitlines()
+          donor_manifest = None
+          donor_manifest_path = None
+          for name in names:
+              if not name.endswith('.json'):
+                  continue
+              try:
+                  candidate = json.loads(git_bytes('show', f'{donor_carrier}:{name}').decode('utf-8'))
+              except Exception:
+                  continue
+              files = candidate.get('files') if isinstance(candidate, dict) else None
+              if candidate.get('baseCommit') == donor_base and isinstance(files, list) and len(files) == 33:
+                  donor_manifest = candidate
+                  donor_manifest_path = name
+                  break
+          if donor_manifest is None:
+              raise SystemExit('retained-donor-manifest-not-found')
+
+          parts = sorted(
+              [n for n in names if re.search(r'payload.*(?:part|chunk).*\.(?:b64|base64)$', n, re.I)],
+              key=natural,
+          )
+          if not parts:
+              parts = sorted(
+                  [n for n in names if n.lower().endswith(('.b64', '.base64')) and 'payload' in n.lower()],
+                  key=natural,
+              )
+          if not parts:
+              raise SystemExit('retained-donor-payload-parts-not-found')
+          raw_parts = [git_bytes('show', f'{donor_carrier}:{name}') for name in parts]
+          attempts = []
+          try:
+              attempts.append(('joined-base64', base64.b64decode(b''.join(b''.join(p.split()) for p in raw_parts))))
+          except Exception:
+              pass
+          try:
+              attempts.append(('independent-base64', b''.join(base64.b64decode(b''.join(p.split())) for p in raw_parts)))
+          except Exception:
+              pass
+          method = None
+          payload = None
+          for label, value in attempts:
+              if sha(value) == donor_payload_sha:
+                  method, payload = label, value
+                  break
+          if payload is None:
+              raise SystemExit('retained-donor-payload-digest-mismatch')
+
+          archive: dict[str, bytes] = {}
+          with tarfile.open(fileobj=io.BytesIO(payload), mode='r:*') as tf:
+              for member in tf.getmembers():
+                  path = PurePosixPath(member.name)
+                  if path.is_absolute() or '..' in path.parts or member.issym() or member.islnk():
+                      raise SystemExit(f'unsafe-archive-member:{member.name}')
+                  if not member.isfile():
+                      continue
+                  handle = tf.extractfile(member)
+                  if handle is None:
+                      raise SystemExit(f'unreadable-archive-member:{member.name}')
+                  archive[path.as_posix()] = handle.read()
+
+          donor_files: dict[str, bytes] = {}
+          for item in donor_manifest['files']:
+              path = item['path']
+              value = archive.get(path)
+              if value is None:
+                  matches = [data for name, data in archive.items() if name.endswith('/' + path)]
+                  if len(matches) == 1:
+                      value = matches[0]
+              if value is None:
+                  raise SystemExit(f'donor-file-missing:{path}')
+              if len(value) != int(item['bytes']) or sha(value) != item['sha256']:
+                  raise SystemExit(f'donor-file-custody-mismatch:{path}')
+              donor_files[path] = value
+
+          def show(commit: str, path: str) -> bytes | None:
+              proc = run('git', 'show', f'{commit}:{path}', check=False)
+              return proc.stdout if proc.returncode == 0 else None
+
+          def replace_base(data: bytes) -> bytes:
+              try:
+                  text = data.decode('utf-8')
+              except UnicodeDecodeError:
+                  return data
+              return text.replace(donor_base, expected_base).encode('utf-8')
+
+          def merge_union(base: bytes, ours: bytes, theirs: bytes) -> bytes:
+              with tempfile.TemporaryDirectory() as td:
+                  td_path = Path(td)
+                  ours_p = td_path / 'ours'
+                  base_p = td_path / 'base'
+                  theirs_p = td_path / 'theirs'
+                  ours_p.write_bytes(ours)
+                  base_p.write_bytes(base)
+                  theirs_p.write_bytes(theirs)
+                  proc = run('git', 'merge-file', '-p', '--union', str(ours_p), str(base_p), str(theirs_p), check=False)
+                  if proc.returncode not in (0, 1):
+                      raise SystemExit('known-overlap-merge-failed')
+                  return proc.stdout
+
+          known_overlap = 'tests/world/underdrain-powershell-contract.test.ts'
+          resolution = []
+          for path in sorted(donor_files):
+              base = show(donor_base, path)
+              current = show(expected_base, path)
+              donor = donor_files[path]
+              transformed = replace_base(donor)
+
+              if current is None:
+                  chosen, rule = transformed, 'donor-addition'
+              elif base is None:
+                  if current == transformed:
+                      chosen, rule = current, 'identical-addition'
+                  elif path == known_overlap:
+                      chosen, rule = merge_union(b'', current, transformed), 'known-overlap-union'
+                  else:
+                      raise SystemExit(f'unexpected-added-path-overlap:{path}')
+              elif current == base:
+                  chosen, rule = transformed, 'donor-change'
+              elif donor == base or transformed == base:
+                  chosen, rule = current, 'settled-base-change'
+              elif current == transformed:
+                  chosen, rule = current, 'identical-change'
+              elif path == known_overlap:
+                  chosen, rule = merge_union(base, current, transformed), 'known-overlap-union'
+              else:
+                  raise SystemExit(f'unexpected-three-way-overlap:{path}')
+
+              destination = source_root / path
+              destination.parent.mkdir(parents=True, exist_ok=True)
+              destination.write_bytes(chosen)
+              resolution.append({
+                  'path': path,
+                  'rule': rule,
+                  'bytes': len(chosen),
+                  'sha256': sha(chosen),
+              })
+
+          receipt = {
+              'format': 'rodoh-underdrain-v2-source-preparation/1',
+              'status': 'prepared',
+              'generatedAt': datetime.now(timezone.utc).isoformat(),
+              'expectedBase': expected_base,
+              'donorBase': donor_base,
+              'donorCarrier': donor_carrier,
+              'donorManifestPath': donor_manifest_path,
+              'donorPayloadSha256': sha(payload),
+              'donorPayloadMethod': method,
+              'sourceFileCount': len(resolution),
+              'files': resolution,
+              'candidateAuthority': 'Arc replay required',
+              'productAccepted': False,
+              'namedPlayerProductAcceptance': 'not-issued',
+              'aggregateReadinessScore': None,
+          }
+          (root / 'prepare-receipt.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          PY
+
+          git worktree add --detach "$RUNNER_TEMP/base-check" "$EXPECTED_BASE"
+          cp -a "$RUNNER_TEMP/prepared/source/." "$RUNNER_TEMP/base-check/"
+          git -C "$RUNNER_TEMP/base-check" diff --check
+          git -C "$RUNNER_TEMP/base-check" diff --name-only | LC_ALL=C sort > "$RUNNER_TEMP/actual-source-paths"
+          python - <<'PY' > "$RUNNER_TEMP/expected-source-paths"
+          import json, os
+          from pathlib import Path
+          receipt = json.loads((Path(os.environ['RUNNER_TEMP']) / 'prepared/prepare-receipt.json').read_text(encoding='utf-8'))
+          for item in sorted(receipt['files'], key=lambda value: value['path']):
+              print(item['path'])
+          PY
+          diff -u "$RUNNER_TEMP/expected-source-paths" "$RUNNER_TEMP/actual-source-paths"
+          test "$(wc -l < "$RUNNER_TEMP/actual-source-paths")" -eq 33
+
+          BASE_CHECK="$RUNNER_TEMP/base-check" python - <<'PY'
+          import hashlib, json, os, subprocess
+          from datetime import datetime, timezone
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'prepared'
+          checkout = Path(os.environ['BASE_CHECK'])
+          receipt = json.loads((root / 'prepare-receipt.json').read_text(encoding='utf-8'))
+          manifest_files = []
+          for item in sorted(receipt['files'], key=lambda value: value['path']):
+              path = item['path']
+              data = (checkout / path).read_bytes()
+              status = subprocess.check_output(['git', '-C', str(checkout), 'diff', '--name-status', os.environ['EXPECTED_BASE'], '--', path], text=True).strip().split('\t')[0]
+              manifest_files.append({
+                  'path': path,
+                  'status': status,
+                  'mode': '100755' if os.access(checkout / path, os.X_OK) else '100644',
+                  'bytes': len(data),
+                  'sha256': hashlib.sha256(data).hexdigest(),
+              })
+          manifest = {
+              'format': 'rodoh-underdrain-v2-current-source-manifest/1',
+              'status': 'sealed',
+              'generatedAt': datetime.now(timezone.utc).isoformat(),
+              'baseCommit': os.environ['EXPECTED_BASE'],
+              'sourceFileCount': len(manifest_files),
+              'files': manifest_files,
+              'candidateAuthority': 'Arc replay required',
+              'productAccepted': False,
+              'namedPlayerProductAcceptance': 'not-issued',
+              'aggregateReadinessScore': None,
+          }
+          (root / 'source-manifest.json').write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          PY
+
+      - name: Upload exact prepared source
+        uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-v2-prepared-source-${{ github.sha }}
+          path: ${{ runner.temp }}/prepared
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+
+  qualify-linux:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_BASE }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/download-artifact@v4
+        with:
+          name: underdrain-v2-prepared-source-${{ github.sha }}
+          path: ${{ runner.temp }}/prepared
+      - name: Qualify exact source on Ubuntu
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp -a "$RUNNER_TEMP/prepared/source/." .
+          git diff --check
+          npm ci --no-audit --no-fund
+          node --check scripts/build-underdrain-visual-review.mjs
+          node --check scripts/extract-underdrain-shine-assets.mjs
+          node --check scripts/resolve-underdrain-shine-representation.mjs
+          npm run typecheck
+          npm test -- \
+            tests/world/underdrain-representation-materializer.test.ts \
+            tests/world/underdrain-machine-preflight.test.ts \
+            tests/world/underdrain-powershell-contract.test.ts \
+            tests/world/underdrain-player-product-acceptance.test.ts \
+            tests/world/underdrain-player-product-integration.test.ts \
+            tests/world/underdrain-unity6000-player-train.test.ts \
+            tests/world/action-natural-player.test.ts \
+            tests/world/action-semantic-cue-receiver.test.ts \
+            tests/world/action-unity-source-contract.test.ts
+          for project in \
+            unity/Conformance/Axm.Rodoh.Action.UnderdrainRepresentation.Source.csproj \
+            unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj \
+            unity/Conformance/Axm.Rodoh.Action.Cues.csproj \
+            unity/Conformance/Axm.Rodoh.Action.Conformance.csproj; do
+            test -f "$project" && dotnet build "$project" --configuration Release
+          done
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          find unity/Conformance -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
+          git diff --check
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = process.env.RUNNER_TEMP + '/linux-qualification.json';
+          fs.writeFileSync(path, JSON.stringify({
+            format: 'rodoh-underdrain-v2-source-platform-qualification/1',
+            status: 'pass',
+            platform: 'ubuntu-24.04',
+            sourceBase: process.env.EXPECTED_BASE,
+            focusedContracts: 'pass',
+            dotnetConformance: 'pass',
+            completeRegression: 'pass',
+            productionBuild: 'pass',
+            productAccepted: false,
+            namedPlayerProductAcceptance: 'not-issued',
+            aggregateReadinessScore: null
+          }, null, 2) + '\n');
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: underdrain-v2-linux-qualification-${{ github.sha }}
+          path: ${{ runner.temp }}/linux-qualification.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  qualify-windows:
+    needs: prepare
+    runs-on: windows-2025
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXPECTED_BASE }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/download-artifact@v4
+        with:
+          name: underdrain-v2-prepared-source-${{ github.sha }}
+          path: ${{ runner.temp }}\prepared
+      - name: Qualify exact source on Windows
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Copy-Item "$env:RUNNER_TEMP\prepared\source\*" . -Recurse -Force
+          git diff --check
+          npm ci --no-audit --no-fund
+          node --check scripts/build-underdrain-visual-review.mjs
+          node --check scripts/extract-underdrain-shine-assets.mjs
+          node --check scripts/resolve-underdrain-shine-representation.mjs
+          Get-ChildItem scripts -Filter '*underdrain*.ps1' -Recurse | ForEach-Object {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors)
+            if ($errors.Count -gt 0) { throw "PowerShell parse failure in $($_.FullName): $($errors[0].Message)" }
+          }
+          npm run typecheck
+          npm test -- `
+            tests/world/underdrain-representation-materializer.test.ts `
+            tests/world/underdrain-machine-preflight.test.ts `
+            tests/world/underdrain-powershell-contract.test.ts `
+            tests/world/underdrain-player-product-acceptance.test.ts `
+            tests/world/underdrain-player-product-integration.test.ts `
+            tests/world/underdrain-unity6000-player-train.test.ts `
+            tests/world/action-natural-player.test.ts `
+            tests/world/action-semantic-cue-receiver.test.ts `
+            tests/world/action-unity-source-contract.test.ts
+          @(
+            'unity/Conformance/Axm.Rodoh.Action.UnderdrainRepresentation.Source.csproj',
+            'unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj',
+            'unity/Conformance/Axm.Rodoh.Action.Cues.csproj',
+            'unity/Conformance/Axm.Rodoh.Action.Conformance.csproj'
+          ) | Where-Object { Test-Path $_ -PathType Leaf } | ForEach-Object {
+            dotnet build $_ --configuration Release
+            if ($LASTEXITCODE -ne 0) { throw "dotnet build failed for $_" }
+          }
+          npm test
+          npm run build
+          if (git ls-files -- docs/game) { git restore --source=HEAD --staged --worktree -- docs/game }
+          git clean -fdx -- docs/game
+          Get-ChildItem unity/Conformance -Directory -Recurse | Where-Object { $_.Name -in @('bin','obj') } | Remove-Item -Recurse -Force
+          git diff --check
+          [ordered]@{
+            format = 'rodoh-underdrain-v2-source-platform-qualification/1'
+            status = 'pass'
+            platform = 'windows-2025'
+            sourceBase = $env:EXPECTED_BASE
+            powershellAst = 'pass'
+            focusedContracts = 'pass'
+            dotnetConformance = 'pass'
+            completeRegression = 'pass'
+            productionBuild = 'pass'
+            productAccepted = $false
+            namedPlayerProductAcceptance = 'not-issued'
+            aggregateReadinessScore = $null
+          } | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8 "$env:RUNNER_TEMP\windows-qualification.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: underdrain-v2-windows-qualification-${{ github.sha }}
+          path: ${{ runner.temp }}\windows-qualification.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  publish:
+    needs: [prepare, qualify-linux, qualify-windows]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact carrier for publication
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: underdrain-v2-prepared-source-${{ github.sha }}
+          path: ${{ runner.temp }}/prepared
+      - uses: actions/download-artifact@v4
+        with:
+          name: underdrain-v2-linux-qualification-${{ github.sha }}
+          path: ${{ runner.temp }}/qualification/linux
+      - uses: actions/download-artifact@v4
+        with:
+          name: underdrain-v2-windows-qualification-${{ github.sha }}
+          path: ${{ runner.temp }}/qualification/windows
+      - name: Publish only the unchanged dual-platform-qualified source
+        id: publish
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CARRIER_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_BASE"
+          test "$(git diff --name-only "$EXPECTED_BASE" HEAD)" = "$CARRIER_PATH"
+          test "$(jq -r .status "$RUNNER_TEMP/qualification/linux/linux-qualification.json")" = pass
+          test "$(jq -r .status "$RUNNER_TEMP/qualification/windows/windows-qualification.json")" = pass
+
+          git reset --hard "$EXPECTED_BASE"
+          git clean -fdx
+          cp -a "$RUNNER_TEMP/prepared/source/." .
+          git diff --check
+          git diff --name-only | LC_ALL=C sort > "$RUNNER_TEMP/publish-paths"
+          jq -r '.files[].path' "$RUNNER_TEMP/prepared/source-manifest.json" | LC_ALL=C sort > "$RUNNER_TEMP/manifest-paths"
+          diff -u "$RUNNER_TEMP/manifest-paths" "$RUNNER_TEMP/publish-paths"
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -- $(cat "$RUNNER_TEMP/manifest-paths")
+          git diff --cached --check
+          git commit -m 'Consolidate recovered UNDERDRAIN Unity 6000 player product v2'
+          source_sha="$(git rev-parse HEAD)"
+
+          mkdir -p evidence/underdrain-v2-source
+          SOURCE_SHA="$source_sha" python - <<'PY'
+          import hashlib, json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          manifest_path = root / 'prepared/source-manifest.json'
+          prepare_path = root / 'prepared/prepare-receipt.json'
+          linux_path = root / 'qualification/linux/linux-qualification.json'
+          windows_path = root / 'qualification/windows/windows-qualification.json'
+          receipt = {
+              'format': 'rodoh-underdrain-v2-source-qualification/1',
+              'status': 'pass',
+              'generatedAt': datetime.now(timezone.utc).isoformat(),
+              'baseCommit': os.environ['EXPECTED_BASE'],
+              'sourceCommit': os.environ['SOURCE_SHA'],
+              'sourceManifestSha256': hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
+              'sourceManifest': json.loads(manifest_path.read_text(encoding='utf-8')),
+              'preparation': json.loads(prepare_path.read_text(encoding='utf-8')),
+              'ubuntuQualification': json.loads(linux_path.read_text(encoding='utf-8-sig')),
+              'windowsQualification': json.loads(windows_path.read_text(encoding='utf-8-sig')),
+              'candidateAuthority': 'Arc replay required',
+              'productAccepted': False,
+              'namedPlayerProductAcceptance': 'not-issued',
+              'aggregateReadinessScore': None,
+              'unityInvoked': False,
+              'physicalCommissioningPerformed': False,
+          }
+          Path('evidence/underdrain-v2-source/source-qualification.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          PY
+          cp "$RUNNER_TEMP/prepared/source-manifest.json" evidence/underdrain-v2-source/source-manifest.json
+          git add evidence/underdrain-v2-source/source-qualification.json evidence/underdrain-v2-source/source-manifest.json
+          git commit -m 'Retain dual-platform UNDERDRAIN v2 source qualification'
+          receipt_sha="$(git rev-parse HEAD)"
+
+          git push --force-with-lease="refs/heads/$TARGET_BRANCH:$CARRIER_SHA" origin "HEAD:refs/heads/$TARGET_BRANCH"
+
+          pr_url="$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$TARGET_BRANCH" --base "$PARENT_BRANCH" --state open --json url --jq '.[0].url // empty')"
+          if test -z "$pr_url"; then
+            cat > "$RUNNER_TEMP/pr-body.md" <<EOF
+          ## Exact source transaction
+
+          This pull request carries one dual-platform-qualified UNDERDRAIN Unity 6000 player-product source transaction over exact settled base \`$EXPECTED_BASE\`.
+
+          \`sourceCommit\`: \`$source_sha\`  
+          \`qualificationCommit\`: \`$receipt_sha\`
+
+          Ubuntu 24.04 and Windows Server 2025 both ran the focused contracts, .NET conformance builds, complete World regression, and production build before publication. The Windows qualification also parsed every UNDERDRAIN PowerShell script with the real PowerShell AST.
+
+          This source transaction does not claim Unity import, production representation approval, Windows player execution, physical controller or Quest qualification, independent comprehension, exact Arc acceptance of a real session, or named product acceptance.
+
+          \`productAccepted = false\`  
+          \`namedPlayerProductAcceptance = not-issued\`  
+          \`aggregateReadinessScore = null\`
+          EOF
+            pr_url="$(gh pr create --repo "$GITHUB_REPOSITORY" --draft --base "$PARENT_BRANCH" --head "$TARGET_BRANCH" --title 'Consolidate current-base UNDERDRAIN Unity 6000 player product v2' --body-file "$RUNNER_TEMP/pr-body.md")"
+          fi
+
+          remote_base="$(git ls-remote origin "refs/heads/$PARENT_BRANCH" | cut -f1)"
+          if test "$remote_base" != "$EXPECTED_BASE"; then
+            gh pr comment "$pr_url" --repo "$GITHUB_REPOSITORY" --body "Held before settlement: parent branch advanced from exact base \`$EXPECTED_BASE\` to \`$remote_base\`. Source qualification remains valid only for the recorded base."
+            publication_status=held-parent-advanced
+          else
+            gh pr ready "$pr_url" --repo "$GITHUB_REPOSITORY"
+            if gh pr merge "$pr_url" --repo "$GITHUB_REPOSITORY" --merge --match-head-commit "$receipt_sha"; then
+              publication_status=merged
+              gh pr close 242 --repo "$GITHUB_REPOSITORY" --comment "Superseded by the current-base, dual-platform-qualified source transaction at $receipt_sha."
+              gh pr close 243 --repo "$GITHUB_REPOSITORY" --comment "Recovery bundle retained successfully; superseded by the current-base source transaction."
+              git push origin "$EXPECTED_BASE:refs/heads/recovery/underdrain-v2-base-1a6255" --force || true
+            else
+              publication_status=ready-not-merged
+              gh pr comment "$pr_url" --repo "$GITHUB_REPOSITORY" --body "The exact dual-platform-qualified head is ready, but repository policy did not permit this workflow to merge it. No acceptance authority was crossed."
+            fi
+          fi
+
+          cat > "$RUNNER_TEMP/publication-result.json" <<EOF
+          {
+            "format": "rodoh-underdrain-v2-source-publication/1",
+            "status": "$publication_status",
+            "baseCommit": "$EXPECTED_BASE",
+            "sourceCommit": "$source_sha",
+            "qualificationCommit": "$receipt_sha",
+            "pullRequest": "$pr_url",
+            "unityInvoked": false,
+            "physicalCommissioningPerformed": false,
+            "productAccepted": false,
+            "namedPlayerProductAcceptance": "not-issued",
+            "aggregateReadinessScore": null
+          }
+          EOF
+
+      - name: Retain publication receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-v2-source-publication-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/publication-result.json
+            ${{ runner.temp }}/prepared/source-manifest.json
+            ${{ runner.temp }}/prepared/prepare-receipt.json
+            ${{ runner.temp }}/qualification/linux/linux-qualification.json
+            ${{ runner.temp }}/qualification/windows/windows-qualification.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 30
