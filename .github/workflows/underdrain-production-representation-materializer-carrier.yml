@@ -1,6 +1,9 @@
 name: UNDERDRAIN representation materializer carrier
 
 on:
+  pull_request:
+    branches:
+      - feature/underdrain-unity6000-player-train-v1
   push:
     branches:
       - feature/underdrain-production-representation-materializer-v1
