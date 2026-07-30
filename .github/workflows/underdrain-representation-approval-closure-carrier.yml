@@ -1,6 +1,12 @@
 name: UNDERDRAIN representation approval closure carrier
 
 on:
+  pull_request:
+    branches:
+      - feature/underdrain-unity6000-player-train-v1
+    paths:
+      - '.github/carriers/underdrain-representation-approval-closure-v1.part-*'
+      - '.github/workflows/underdrain-representation-approval-closure-carrier.yml'
   push:
     branches:
       - repair/underdrain-representation-approval-closure-v1
