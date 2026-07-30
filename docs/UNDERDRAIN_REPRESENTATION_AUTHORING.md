@@ -36,7 +36,7 @@ enemy:breaker
 arena:pump-seven
 ```
 
-A single concept sheet may supply more than one role when the operator chooses different crops. Final prepared PNG bytes must nevertheless be distinct. Reusing the same source key and the same final bytes is refused.
+A single concept sheet may supply more than one role when the operator chooses different crops. Final prepared PNG bytes must nevertheless be distinct. Duplicate final bytes are refused even when they came from different source keys.
 
 ## Run the authoring console
 
