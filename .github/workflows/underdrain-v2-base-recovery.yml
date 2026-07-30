@@ -1,6 +1,11 @@
 name: UNDERDRAIN v2 settled-base recovery
 
 on:
+  push:
+    branches:
+      - recovery/underdrain-v2-base-1a6255
+    paths:
+      - '.github/workflows/underdrain-v2-base-recovery.yml'
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
@@ -9,16 +14,19 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: underdrain-v2-settled-base-recovery
+  cancel-in-progress: false
+
 jobs:
   bundle:
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'recovery/underdrain-v2-base-1a6255'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - name: Check out recovery carrier
+      - name: Check out exact recovery carrier
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           show-progress: false
 
@@ -26,9 +34,12 @@ jobs:
         shell: bash
         env:
           EXPECTED_BASE: 1a6255d7dcff7b8e0096c49321f00d51d114a71c
+          CARRIER: .github/workflows/underdrain-v2-base-recovery.yml
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "$EXPECTED_BASE"
+          git merge-base --is-ancestor "$EXPECTED_BASE" HEAD
+          test "$(git diff --name-only "$EXPECTED_BASE" HEAD)" = "$CARRIER"
+          git diff --check "$EXPECTED_BASE" HEAD
           git branch underdrain-v2-settled-base "$EXPECTED_BASE"
           bundle="$RUNNER_TEMP/UNDERDRAIN_v2_Settled_Base_1a6255d7.bundle"
           git bundle create "$bundle" underdrain-v2-settled-base
