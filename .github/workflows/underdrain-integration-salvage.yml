@@ -1,0 +1,262 @@
+name: UNDERDRAIN carrier salvage
+
+on:
+  push:
+    branches:
+      - integration/underdrain-unity6000-player-product-v1
+    paths:
+      - '.github/workflows/underdrain-integration-salvage.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: underdrain-integration-salvage
+  cancel-in-progress: false
+
+env:
+  EXPECTED_BRANCH: integration/underdrain-unity6000-player-product-v1
+  BASELINE_SHA: 7a3fb2e32702b4e8e2621d4fce2abb8336da231f
+  EXPECTED_SEAL_LEDGER_BLOB_SHA: 1053e7a57c1cd06c8056cf6c9030106f46fb3e92
+
+jobs:
+  salvage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact carrier commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Stream damaged XZ and admit only exact recovered members
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_REF_NAME" = "$EXPECTED_BRANCH"
+          test "$(git hash-object .underdrain/bootstrap-diagnostic.json)" = "$EXPECTED_SEAL_LEDGER_BLOB_SHA"
+
+          payload="$RUNNER_TEMP/underdrain-integration-payload.tar.xz"
+          partial_tar="$RUNNER_TEMP/underdrain-integration-partial.tar"
+          recovered="$RUNNER_TEMP/underdrain-recovered"
+          audit=".underdrain/salvage-audit.json"
+          : > "$payload"
+          for index in 01 02 03 04 05 06 07; do
+            part=".underdrain/payload.part${index}.b64"
+            test -f "$part"
+            base64 --decode "$part" >> "$payload"
+          done
+
+          set +e
+          xz --decompress --stdout "$payload" > "$partial_tar" 2> "$RUNNER_TEMP/underdrain-xz-stderr.txt"
+          xz_exit=$?
+          set -e
+
+          rm -rf "$recovered"
+          mkdir -p "$recovered"
+          PAYLOAD="$payload" PARTIAL_TAR="$partial_tar" RECOVERED="$recovered" \
+          LEDGER=".underdrain/bootstrap-diagnostic.json" AUDIT="$audit" XZ_EXIT="$xz_exit" \
+          XZ_STDERR="$RUNNER_TEMP/underdrain-xz-stderr.txt" GITHUB_SHA="$GITHUB_SHA" \
+          python - <<'PY'
+          from __future__ import annotations
+
+          import hashlib
+          import json
+          import os
+          import tarfile
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          payload = Path(os.environ["PAYLOAD"])
+          partial_tar = Path(os.environ["PARTIAL_TAR"])
+          recovered_root = Path(os.environ["RECOVERED"])
+          ledger = json.loads(Path(os.environ["LEDGER"]).read_text(encoding="utf-8"))
+          audit_path = Path(os.environ["AUDIT"])
+          expected_files = ledger.get("files", [])
+          errors: list[str] = []
+          recovered_content: dict[str, bytes] = {}
+          member_modes: dict[str, int] = {}
+          stream_error = None
+
+          try:
+              with partial_tar.open("rb") as stream:
+                  with tarfile.open(fileobj=stream, mode="r|") as archive:
+                      while True:
+                          try:
+                              member = archive.next()
+                          except Exception as exc:
+                              stream_error = f"{type(exc).__name__}:{exc}"
+                              break
+                          if member is None:
+                              break
+                          name = member.name.removeprefix("./")
+                          if not member.isfile():
+                              errors.append(f"non-regular-member:{name}")
+                              continue
+                          if name.startswith("/") or ".." in Path(name).parts:
+                              errors.append(f"unsafe-member:{name}")
+                              continue
+                          try:
+                              source = archive.extractfile(member)
+                              if source is None:
+                                  errors.append(f"unreadable-member:{name}")
+                                  continue
+                              recovered_content[name] = source.read()
+                              member_modes[name] = member.mode
+                          except Exception as exc:
+                              errors.append(f"member-read:{name}:{type(exc).__name__}:{exc}")
+                              break
+          except Exception as exc:
+              stream_error = f"{type(exc).__name__}:{exc}"
+
+          expected_payload = {
+              item["path"]: item for item in expected_files if item.get("source") == "payload"
+          }
+          expected_checkout = {
+              item["path"]: item for item in expected_files if item.get("source") == "checkout"
+          }
+          observations = []
+
+          for path, item in sorted(expected_payload.items()):
+              content = recovered_content.get(path)
+              actual_sha = hashlib.sha256(content).hexdigest() if content is not None else None
+              actual_bytes = len(content) if content is not None else None
+              match = (
+                  content is not None
+                  and actual_sha == item["expectedSha256"]
+                  and actual_bytes == item["expectedBytes"]
+              )
+              observations.append({
+                  "path": path,
+                  "source": "payload",
+                  "expectedSha256": item["expectedSha256"],
+                  "actualSha256": actual_sha,
+                  "expectedBytes": item["expectedBytes"],
+                  "actualBytes": actual_bytes,
+                  "match": match,
+              })
+              if not match:
+                  errors.append(f"sealed-file-mismatch:{path}")
+              else:
+                  target = recovered_root / path
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  target.write_bytes(content)
+                  target.chmod(member_modes.get(path, 0o644) & 0o777)
+
+          for path, item in sorted(expected_checkout.items()):
+              candidate = Path(path)
+              content = candidate.read_bytes() if candidate.is_file() else None
+              actual_sha = hashlib.sha256(content).hexdigest() if content is not None else None
+              actual_bytes = len(content) if content is not None else None
+              match = (
+                  content is not None
+                  and actual_sha == item["expectedSha256"]
+                  and actual_bytes == item["expectedBytes"]
+              )
+              observations.append({
+                  "path": path,
+                  "source": "checkout",
+                  "expectedSha256": item["expectedSha256"],
+                  "actualSha256": actual_sha,
+                  "expectedBytes": item["expectedBytes"],
+                  "actualBytes": actual_bytes,
+                  "match": match,
+              })
+              if not match:
+                  errors.append(f"sealed-file-mismatch:{path}")
+
+          unexpected = sorted(set(recovered_content) - set(expected_payload))
+          if unexpected:
+              errors.extend(f"unexpected-member:{path}" for path in unexpected)
+
+          all_match = (
+              len(expected_files) == 34
+              and len(expected_payload) == 32
+              and len(expected_checkout) == 2
+              and len(observations) == 34
+              and all(item["match"] for item in observations)
+              and not unexpected
+          )
+          receipt = {
+              "format": "rodoh-underdrain-integration-carrier-salvage/1",
+              "generatedAt": datetime.now(timezone.utc).isoformat(),
+              "status": "pass" if all_match else "held",
+              "carrierCommit": os.environ["GITHUB_SHA"],
+              "decodedPayloadSha256": hashlib.sha256(payload.read_bytes()).hexdigest(),
+              "decodedPayloadBytes": payload.stat().st_size,
+              "xzExitCode": int(os.environ["XZ_EXIT"]),
+              "xzStderr": Path(os.environ["XZ_STDERR"]).read_text(encoding="utf-8", errors="replace"),
+              "partialTarBytes": partial_tar.stat().st_size,
+              "tarStreamError": stream_error,
+              "recoveredMemberCount": len(recovered_content),
+              "expectedPayloadFileCount": len(expected_payload),
+              "exactRecoveredPayloadFileCount": sum(
+                  1 for item in observations if item["source"] == "payload" and item["match"]
+              ),
+              "allSealedFilesMatch": all_match,
+              "files": observations,
+              "unexpectedMembers": unexpected,
+              "errors": sorted(set(errors)),
+              "materializationPerformed": False,
+              "productAccepted": False,
+              "namedPlayerProductAcceptance": "not-issued",
+              "aggregateReadinessScore": None,
+          }
+          audit_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print(json.dumps({
+              "status": receipt["status"],
+              "xzExitCode": receipt["xzExitCode"],
+              "partialTarBytes": receipt["partialTarBytes"],
+              "recoveredMemberCount": receipt["recoveredMemberCount"],
+              "exactRecoveredPayloadFileCount": receipt["exactRecoveredPayloadFileCount"],
+              "errors": receipt["errors"],
+          }, sort_keys=True))
+          PY
+
+          status="$(python -c 'import json; print(json.load(open(".underdrain/salvage-audit.json", encoding="utf-8"))["status"])')"
+          if [[ "$status" != "pass" ]]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add .underdrain/salvage-audit.json
+            git diff --cached --check
+            if ! git diff --cached --quiet; then
+              git commit -m 'Retain UNDERDRAIN carrier salvage audit'
+              git push origin HEAD:"$EXPECTED_BRANCH"
+            fi
+            echo "::error title=UNDERDRAIN salvage held::The damaged XZ stream did not yield all 32 exact payload files."
+            exit 1
+          fi
+
+          cp -a "$recovered"/. .
+          rm -rf .underdrain
+          rm -f .github/workflows/underdrain-integration-materialize.yml
+          rm -f .github/workflows/underdrain-integration-recover.yml
+          rm -f .github/workflows/underdrain-integration-salvage.yml
+          git checkout "$BASELINE_SHA" -- .github/workflows/underdrain-player-product-acceptance-source.yml
+
+          node --check scripts/build-underdrain-visual-review.mjs
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for relative in (
+              'unity/Fixtures/underdrain.arc-execution-authority.json',
+              'unity/Fixtures/underdrain.comprehension-contract.json',
+              'unity/Fixtures/underdrain.player-product.integration-lock.json',
+          ):
+              json.loads(Path(relative).read_text(encoding='utf-8'))
+          PY
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          test ! -e .underdrain
+          test ! -e .github/workflows/underdrain-integration-materialize.yml
+          test ! -e .github/workflows/underdrain-integration-recover.yml
+          test ! -e .github/workflows/underdrain-integration-salvage.yml
+          test "$(git show "$BASELINE_SHA":.github/workflows/underdrain-player-product-acceptance-source.yml | sha256sum | cut -d' ' -f1)" = "$(sha256sum .github/workflows/underdrain-player-product-acceptance-source.yml | cut -d' ' -f1)"
+          git commit -m 'Consolidate exact UNDERDRAIN Unity 6000 player product'
+          git push origin HEAD:"$EXPECTED_BRANCH"
