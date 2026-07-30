@@ -12,7 +12,7 @@ const sha256 = (value: string | Buffer) => createHash("sha256").update(value).di
 
 const EXTRACTOR = resolve(ROOT, "scripts/extract-underdrain-shine-assets.mjs");
 const RESOLVER = resolve(ROOT, "scripts/resolve-underdrain-shine-representation.mjs");
-const ONE_PIXEL_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z4fQAAAAASUVORK5CYII=";
+const ONE_PIXEL_PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z4fQAAAAASUVORK5CYII=", "base64");
 
 const roles = [
   ["player:rhea-venn", "rhea"],
@@ -23,6 +23,33 @@ const roles = [
   ["enemy:breaker", "breaker"],
   ["arena:pump-seven", "pumpSeven"],
 ] as const;
+
+function pngDataUri(key: string, unique: boolean) {
+  const bytes = unique ? Buffer.concat([ONE_PIXEL_PNG, Buffer.from(`underdrain:${key}`, "utf8")]) : ONE_PIXEL_PNG;
+  return `data:image/png;base64,${bytes.toString("base64")}`;
+}
+
+function writeFixture(directory: string, unique: boolean) {
+  const htmlPath = join(directory, "shine.html");
+  const extractionRoot = join(directory, "extraction");
+  const roleMapPath = join(directory, "role-map.json");
+  const assetData = Object.fromEntries(roles.map(([, key]) => [key, pngDataUri(key, unique)]));
+  const html = `<!doctype html><script>const ASSET_DATA=${JSON.stringify(assetData)};const W=1600,H=900;</script>`;
+  writeFileSync(htmlPath, html);
+  writeFileSync(roleMapPath, `${JSON.stringify({
+    format: "rodoh-underdrain-shine-role-map/1",
+    productId: "underdrain-bloom-below-unity6000-v1",
+    roles: roles.map(([role, sourceKey]) => ({ role, sourceKey })),
+  }, null, 2)}\n`);
+  const extracted = spawnSync(process.execPath, [
+    EXTRACTOR,
+    "--input", htmlPath,
+    "--output", extractionRoot,
+    "--expected-sha256", sha256(html),
+  ], { cwd: ROOT, encoding: "utf8" });
+  expect(extracted.status, extracted.stderr || extracted.stdout).toBe(0);
+  return { html, extractionRoot, roleMapPath };
+}
 
 describe("UNDERDRAIN representation materialization source", () => {
   it("locks the exact project-owned Shine source and six upstream visual-source names", () => {
@@ -46,33 +73,17 @@ describe("UNDERDRAIN representation materialization source", () => {
     ]);
   });
 
-  it("extracts a bounded ASSET_DATA object and resolves seven distinct semantic roles without network access", () => {
+  it("extracts a bounded ASSET_DATA object and resolves seven byte-distinct semantic roles without network access", () => {
     const directory = mkdtempSync(join(tmpdir(), "underdrain-shine-extractor-"));
-    const htmlPath = join(directory, "shine.html");
-    const extractionRoot = join(directory, "extraction");
     const resolvedRoot = join(directory, "resolved");
-    const roleMapPath = join(directory, "role-map.json");
-    const assetData = Object.fromEntries(roles.map(([, key]) => [key, `data:image/png;base64,${ONE_PIXEL_PNG}`]));
-    const html = `<!doctype html><script>const ASSET_DATA=${JSON.stringify(assetData)};const W=1600,H=900;</script>`;
-    writeFileSync(htmlPath, html);
-    writeFileSync(roleMapPath, `${JSON.stringify({
-      format: "rodoh-underdrain-shine-role-map/1",
-      productId: "underdrain-bloom-below-unity6000-v1",
-      roles: roles.map(([role, sourceKey]) => ({ role, sourceKey })),
-    }, null, 2)}\n`);
-
-    const extracted = spawnSync(process.execPath, [
-      EXTRACTOR,
-      "--input", htmlPath,
-      "--output", extractionRoot,
-      "--expected-sha256", sha256(html),
-    ], { cwd: ROOT, encoding: "utf8" });
-    expect(extracted.status, extracted.stderr || extracted.stdout).toBe(0);
-    const extraction = JSON.parse(readFileSync(join(extractionRoot, "shine-extraction.json"), "utf8"));
+    const fixture = writeFixture(directory, true);
+    const extraction = JSON.parse(readFileSync(join(fixture.extractionRoot, "shine-extraction.json"), "utf8"));
     expect(extraction).toMatchObject({
       format: "rodoh-underdrain-shine-extraction/1",
       status: "pass",
-      sourceSha256: sha256(html),
+      sourceSha256: sha256(fixture.html),
+      expectedSourceSha256: sha256(fixture.html),
+      assetObject: "ASSET_DATA",
       assetCount: 7,
       unityInvoked: false,
       approvalIssued: false,
@@ -82,8 +93,8 @@ describe("UNDERDRAIN representation materialization source", () => {
 
     const resolved = spawnSync(process.execPath, [
       RESOLVER,
-      "--extraction", join(extractionRoot, "shine-extraction.json"),
-      "--role-map", roleMapPath,
+      "--extraction", join(fixture.extractionRoot, "shine-extraction.json"),
+      "--role-map", fixture.roleMapPath,
       "--output", resolvedRoot,
     ], { cwd: ROOT, encoding: "utf8" });
     expect(resolved.status, resolved.stderr || resolved.stdout).toBe(0);
@@ -93,6 +104,9 @@ describe("UNDERDRAIN representation materialization source", () => {
       productId: "underdrain-bloom-below-unity6000-v1",
       themeId: "underdrain-bloom-below",
       unityVersion: "6000.0.66f2",
+      sourceStandaloneSha256: sha256(fixture.html),
+      sourceAssetObject: "ASSET_DATA",
+      distinctPreparedProducts: true,
       templateOnly: false,
       reviewRequired: true,
       approvalIssued: false,
@@ -101,6 +115,56 @@ describe("UNDERDRAIN representation materialization source", () => {
     expect(manifest.assets).toHaveLength(7);
     expect(new Set(manifest.assets.map((asset: { role: string }) => asset.role))).toEqual(new Set(roles.map(([role]) => role)));
     expect(new Set(manifest.assets.map((asset: { sourceKey: string }) => asset.sourceKey)).size).toBe(7);
+    expect(new Set(manifest.assets.map((asset: { sha256: string }) => asset.sha256)).size).toBe(7);
+
+    const retained = spawnSync(process.execPath, [
+      RESOLVER,
+      "--extraction", join(fixture.extractionRoot, "shine-extraction.json"),
+      "--role-map", fixture.roleMapPath,
+      "--output", resolvedRoot,
+    ], { cwd: ROOT, encoding: "utf8" });
+    expect(retained.status).toBe(1);
+    expect(retained.stderr).toContain("Output directory is not empty");
+
+    const replaced = spawnSync(process.execPath, [
+      RESOLVER,
+      "--extraction", join(fixture.extractionRoot, "shine-extraction.json"),
+      "--role-map", fixture.roleMapPath,
+      "--output", resolvedRoot,
+      "--replace",
+    ], { cwd: ROOT, encoding: "utf8" });
+    expect(replaced.status, replaced.stderr || replaced.stdout).toBe(0);
+  });
+
+  it("refuses alias-distinct roles backed by the same prepared PNG bytes and extraction path escape", () => {
+    const directory = mkdtempSync(join(tmpdir(), "underdrain-shine-refusal-"));
+    const fixture = writeFixture(directory, false);
+    const duplicate = spawnSync(process.execPath, [
+      RESOLVER,
+      "--extraction", join(fixture.extractionRoot, "shine-extraction.json"),
+      "--role-map", fixture.roleMapPath,
+      "--output", join(directory, "duplicate-resolved"),
+    ], { cwd: ROOT, encoding: "utf8" });
+    expect(duplicate.status).toBe(1);
+    expect(duplicate.stderr).toContain("may not share prepared PNG bytes");
+
+    const uniqueDirectory = mkdtempSync(join(tmpdir(), "underdrain-shine-path-"));
+    const unique = writeFixture(uniqueDirectory, true);
+    const receiptPath = join(unique.extractionRoot, "shine-extraction.json");
+    const receipt = JSON.parse(readFileSync(receiptPath, "utf8"));
+    const outside = join(uniqueDirectory, "outside.png");
+    writeFileSync(outside, Buffer.concat([ONE_PIXEL_PNG, Buffer.from("outside", "utf8")]));
+    receipt.assets[0].pngFile = "../outside.png";
+    receipt.assets[0].pngSha256 = sha256(readFileSync(outside));
+    writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`);
+    const escaped = spawnSync(process.execPath, [
+      RESOLVER,
+      "--extraction", receiptPath,
+      "--role-map", unique.roleMapPath,
+      "--output", join(uniqueDirectory, "escaped-resolved"),
+    ], { cwd: ROOT, encoding: "utf8" });
+    expect(escaped.status).toBe(1);
+    expect(escaped.stderr).toContain("escapes its extraction root");
   });
 
   it("materializes exact production paths while retaining Arc, approval, and physics boundaries", () => {
@@ -126,6 +190,8 @@ describe("UNDERDRAIN representation materialization source", () => {
     expect(batch).toContain("ActionProductionAssetDigest.ComputeDeclaredBindingClosure");
     expect(batch).toContain("closure.declaredBindingCount != 27");
     expect(batch).toContain("closure.uniqueDeclaredAssetCount != 23");
+    expect(batch).toContain("sourceDigests.Add(asset.sha256)");
+    expect(batch).toContain("IsPathWithinRoot(sourceRoot, path)");
     expect(batch).toContain("actorColliderCount != 0");
     expect(batch).toContain("activeRigidBodies != 0");
     expect(batch).toContain("RefuseApprovedPrefab");
