@@ -111,8 +111,9 @@ jobs:
             exit 1
           fi
           tar -xzf "$RUNNER_TEMP/payload.tar.gz" -C .
-          # Retained CI failure showed a case-sensitive prose assertion, not a materializer defect.
+          # Retained CI failures repair only their demonstrated source assertions.
           sed -i 's/presentation-only billboard/Presentation-only billboard/' tests/world/underdrain-representation-materializer.test.ts
+          sed -i 's/private sealed class AssetRequirement/private class AssetRequirement/' unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainRepresentationMaterializerBatch.cs
           git diff --check
 
       - name: Qualify the materializer source transaction
