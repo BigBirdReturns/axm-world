@@ -8,6 +8,7 @@ const scripts = [
   "scripts/approve-underdrain-production-assets.ps1",
   "scripts/audit-underdrain-production-assets.ps1",
   "scripts/build-unity-action-player.ps1",
+  "scripts/materialize-underdrain-production-representation.ps1",
   "scripts/preflight-underdrain-unity6000-player-product.ps1",
   "scripts/prepare-underdrain-production-assets.ps1",
   "scripts/qualify-unity-action-player-product.ps1",

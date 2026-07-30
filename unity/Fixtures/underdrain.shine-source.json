@@ -1,0 +1,18 @@
+{
+  "format": "rodoh-underdrain-shine-source/1",
+  "productId": "underdrain-bloom-below-unity6000-v1",
+  "themeId": "underdrain-bloom-below",
+  "standaloneFileName": "UNDERDRAIN_The_Bloom_Below_Shine_v0.4.html",
+  "standaloneSha256": "ab9e1a542f89d66733d0b9946fd9f2b724e5e09395a74611fa760d336c209311",
+  "assetObject": "ASSET_DATA",
+  "projectOwned": true,
+  "upstreamVisualSources": [
+    "metalworker_character_turnaround.png",
+    "worker_mercenary_concept_sheet.png",
+    "fungal_toads_swamp_creature_lineup.png",
+    "swamp_fungus_monster_concept_sheet.png",
+    "sewer_asset_kit_pipes_grates_and_machinery.png",
+    "subterranean_sewer_concept_art_board.png"
+  ],
+  "authority": "visual-source custody only; no Unity, approval, action, or product authority"
+}

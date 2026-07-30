@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="ActionUnderdrainRepresentationUnityStubs.cs" />
+    <Compile Include="../Packages/com.axm.rodoh-action/Runtime/Unity/ActionCameraFacingSprite.cs" Link="Package/ActionCameraFacingSprite.cs" />
+    <Compile Include="../Packages/com.axm.rodoh-action/Runtime/Unity/ActionFeedbackPulse.cs" Link="Package/ActionFeedbackPulse.cs" />
+    <Compile Include="../Packages/com.axm.rodoh-action/Editor/ActionUnderdrainRepresentationMaterializerBatch.cs" Link="Package/ActionUnderdrainRepresentationMaterializerBatch.cs" />
+  </ItemGroup>
+</Project>
