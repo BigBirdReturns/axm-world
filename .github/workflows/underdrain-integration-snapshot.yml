@@ -1,0 +1,83 @@
+name: UNDERDRAIN integration source snapshot
+
+on:
+  push:
+    branches:
+      - integration/underdrain-unity6000-player-product-v1
+    paths:
+      - '.github/workflows/underdrain-integration-snapshot.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: underdrain-integration-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact snapshot commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Build exact tracked-source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_REF_NAME" = "integration/underdrain-unity6000-player-product-v1"
+          archive="$RUNNER_TEMP/axm-world-underdrain-integration-$GITHUB_SHA.zip"
+          git archive --format=zip --output="$archive" HEAD
+          sha256sum "$archive" | tee "$RUNNER_TEMP/source-snapshot.sha256"
+          printf '%s\n' "$archive" > "$RUNNER_TEMP/source-snapshot-path.txt"
+
+      - name: Retain exact source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-integration-source-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/axm-world-underdrain-integration-${{ github.sha }}.zip
+            ${{ runner.temp }}/source-snapshot.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish snapshot locator receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .underdrain
+          python - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          receipt = {
+              "format": "rodoh-underdrain-integration-source-snapshot/1",
+              "generatedAt": datetime.now(timezone.utc).isoformat(),
+              "sourceCommit": os.environ["GITHUB_SHA"],
+              "workflowRunId": int(os.environ["GITHUB_RUN_ID"]),
+              "workflowRunAttempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
+              "artifactName": f"underdrain-integration-source-{os.environ['GITHUB_SHA']}",
+              "publicationPurpose": "bounded source recovery only",
+              "materializationPerformed": False,
+              "productAccepted": False,
+              "namedPlayerProductAcceptance": "not-issued",
+          }
+          Path(".underdrain/source-snapshot.json").write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .underdrain/source-snapshot.json
+          git diff --cached --check
+          git commit -m 'Retain UNDERDRAIN integration source snapshot locator'
+          git push origin HEAD:integration/underdrain-unity6000-player-product-v1
