@@ -5,8 +5,9 @@ namespace Axm.Rodoh.Action
     /// <summary>
     /// Presentation-only billboard for camera-facing 2.5D bodies. Arc state still owns
     /// actor position, facing, mode, damage, objectives, and outcome. This component
-    /// only rotates the authored Visual child toward the active camera and optionally
-    /// mirrors its sprite from the Arc-driven actor facing.
+    /// rotates a dedicated Facing pivot toward the active camera while preserving
+    /// authored animation on its Visual child, then optionally mirrors the sprite from
+    /// the Arc-driven actor facing.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class ActionCameraFacingSprite : MonoBehaviour
@@ -31,7 +32,7 @@ namespace Axm.Rodoh.Action
 
         private void Awake()
         {
-            if (visualRoot == null) visualRoot = transform.Find("Visual") ?? transform;
+            if (visualRoot == null) visualRoot = transform.Find("Facing") ?? transform.Find("Visual") ?? transform;
             if (spriteRenderer == null) spriteRenderer = visualRoot.GetComponentInChildren<SpriteRenderer>(true);
         }
 

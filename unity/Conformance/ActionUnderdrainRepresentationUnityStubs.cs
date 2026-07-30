@@ -112,6 +112,7 @@ namespace UnityEngine
     public enum TextureFormat { RGBA32 }
     public enum FilterMode { Bilinear }
     public enum TextureWrapMode { Clamp }
+    public enum SpriteAlignment { Custom = 9 }
     public class Texture2D : Texture
     {
         public Texture2D(int width, int height, TextureFormat format, bool mipChain) { }
@@ -182,6 +183,7 @@ namespace UnityEditor
         public TextureImporterType textureType;
         public SpriteImportMode spriteImportMode;
         public float spritePixelsPerUnit;
+        public int spriteAlignment;
         public UnityEngine.Vector2 spritePivot;
         public bool alphaIsTransparency;
         public bool mipmapEnabled;
