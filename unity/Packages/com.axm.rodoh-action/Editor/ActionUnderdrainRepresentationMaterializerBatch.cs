@@ -371,6 +371,7 @@ namespace Axm.Rodoh.Action.Editor
             }
             var roles = new HashSet<string>(StringComparer.Ordinal);
             var ids = new HashSet<string>(StringComparer.Ordinal);
+            var sourceDigests = new HashSet<string>(StringComparer.Ordinal);
             foreach (var asset in source.assets)
             {
                 if (asset == null || string.IsNullOrWhiteSpace(asset.assetId) || string.IsNullOrWhiteSpace(asset.role) || string.IsNullOrWhiteSpace(asset.fileName)) throw new InvalidOperationException("Resolved representation source entry is incomplete.");
@@ -378,10 +379,11 @@ namespace Axm.Rodoh.Action.Editor
                 if (!ids.Add(asset.assetId)) throw new InvalidOperationException("Resolved representation source repeats asset id " + asset.assetId + ".");
                 if (!RequiredRoles.Contains(asset.role, StringComparer.Ordinal)) throw new InvalidOperationException("Resolved representation source contains unknown role " + asset.role + ".");
                 if (!IsSha(asset.sha256)) throw new InvalidOperationException("Resolved representation source SHA-256 is malformed for " + asset.role + ".");
+                if (!sourceDigests.Add(asset.sha256)) throw new InvalidOperationException("Distinct UNDERDRAIN production roles may not share prepared PNG bytes: " + asset.sha256 + ".");
                 if (!asset.fileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Resolved representation source must use prepared PNG products: " + asset.fileName + ".");
                 if (asset.pixelsPerUnit <= 0f || asset.displayScale <= 0f || asset.pivotX < 0f || asset.pivotX > 1f || asset.pivotY < 0f || asset.pivotY > 1f) throw new InvalidOperationException("Resolved representation import settings are invalid for " + asset.role + ".");
                 var path = Path.GetFullPath(Path.Combine(sourceRoot, asset.fileName));
-                if (!path.StartsWith(sourceRoot, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Resolved representation source escapes its source root: " + asset.fileName + ".");
+                if (!IsPathWithinRoot(sourceRoot, path)) throw new InvalidOperationException("Resolved representation source escapes its source root: " + asset.fileName + ".");
                 if (!File.Exists(path) || Sha256File(path) != asset.sha256) throw new InvalidOperationException("Resolved representation source file is absent or stale: " + asset.fileName + ".");
             }
             if (!roles.SetEquals(RequiredRoles)) throw new InvalidOperationException("Resolved representation source does not cover the exact seven-role floor.");
@@ -398,6 +400,13 @@ namespace Axm.Rodoh.Action.Editor
                 var normalized = (root ?? string.Empty).Replace('\\', '/').TrimEnd('/');
                 if (assetRoot == normalized || assetRoot.StartsWith(normalized + "/", StringComparison.Ordinal)) throw new InvalidOperationException("Representation materializer selected a forbidden generated root: " + assetRoot + ".");
             }
+        }
+
+        private static bool IsPathWithinRoot(string root, string candidate)
+        {
+            var normalizedRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            var normalizedCandidate = Path.GetFullPath(candidate);
+            return normalizedCandidate.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase);
         }
 
         private static MaterializedSource ImportSource(SourceAsset source, string sourceRoot, string importedRoot, string materialRoot)
