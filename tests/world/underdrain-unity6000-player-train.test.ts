@@ -119,19 +119,25 @@ describe("UNDERDRAIN Unity 6000 player train", () => {
     expect(refused.result.stderr).toContain("forbidden generated asset root");
   });
 
-  it("requires exact production markers, named approval custody, imported visuals, static arena collision, and no Unity combat physics", () => {
+  it("requires exact production markers, complete dependency closure, static arena collision, and no Unity combat physics", () => {
     const marker = read("unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionAssetMarker.cs");
+    const digest = read("unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetDigest.cs");
     const identity = read("unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerProductIdentity.cs");
     const batch = read("unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs");
-    expect(marker).toContain('Format = "rodoh-action-production-asset/2"');
+    expect(marker).toContain('Format = "rodoh-action-production-asset/3"');
+    expect(marker).toContain('ApprovalFormat = "rodoh-action-production-asset-approval/2"');
+    expect(marker).toContain("visualSourceSha256");
+    expect(marker).toContain("dependencyClosureSha256");
+    expect(marker).toContain("dependencyCount");
     expect(marker).toContain("productionApproved");
-    expect(marker).toContain("approvalRecordFormat");
     expect(marker).toContain("approvalAuthorityId");
-    expect(marker).toContain("approvalAttestation");
-    expect(marker).toContain("approvedAt");
     expect(marker).toContain("generatedPrimitive");
-    expect(marker).toContain("Production asset source SHA-256 is absent or malformed");
-    expect(marker).toContain("Production asset approval authority is absent");
+    expect(marker).toContain("Production asset dependency-closure SHA-256 is absent or malformed");
+    expect(digest).toContain("AssetDatabase.GetDependencies");
+    expect(digest).toContain("AssetMetaSha256");
+    expect(digest).toContain("ComputeDeclaredBindingClosure");
+    expect(digest).toContain("exactly 27 production bindings");
+    expect(digest).toContain("exactly 23 unique top-level assets");
     expect(identity).toContain('Format = "rodoh-action-player-product-identity/1"');
     expect(identity).toContain('qualification = "source-and-scene-qualified"');
     expect(identity).toContain("runtimeMayIssueComprehensionReceipt = false");
@@ -189,7 +195,7 @@ describe("UNDERDRAIN Unity 6000 player train", () => {
     expect(session).toContain('namedPlayerProductAcceptance = "not-issued"');
   });
 
-  it("extends the real project train through named asset approval, read-only intake and audit, independent comprehension, and named acceptance", () => {
+  it("extends the real project train through named closure approval, read-only intake and audit, independent comprehension, and named acceptance", () => {
     const productTrain = read("scripts/run-underdrain-unity6000-player-product.ps1");
     const approval = read("scripts/approve-underdrain-production-assets.ps1");
     const intake = read("scripts/prepare-underdrain-production-assets.ps1");
@@ -199,18 +205,23 @@ describe("UNDERDRAIN Unity 6000 player train", () => {
     expect(productTrain).toContain("AssetApprovalReceipt");
     expect(productTrain).toContain("prepare-underdrain-production-assets.ps1");
     expect(productTrain).toContain("audit-underdrain-production-assets.ps1");
-    expect(productTrain).toContain("Production asset $id changed between intake, player-product qualification, and read-only audit");
+    expect(productTrain).toContain("dependency closure changed after named approval");
+    expect(productTrain).toContain("27-role representation binding closure changed");
     expect(productTrain).toContain('format = "rodoh-underdrain-unity6000-player-product-train/1"');
-    expect(productTrain).toContain("Read-only production-asset audit lost named approval custody");
+    expect(productTrain).toContain("exactRepresentationCustody = $true");
     expect(approval).toContain("ActionProductionAssetApprovalBatch.Run");
     expect(approval).toContain("ConfirmAllAssets");
+    expect(approval).toContain('rodoh-action-production-asset-approval/2');
     expect(intake).toContain("ActionProductionAssetIntakeBatch.Run");
-    expect(intake).toContain("AssetApprovalReceipt");
+    expect(intake).toContain('rodoh-underdrain-production-asset-intake-run/3');
     expect(audit).toContain("ActionProductionAssetAuditBatch.Run");
+    expect(audit).toContain("AssetApprovalReceipt");
+    expect(audit).toContain('rodoh-underdrain-production-asset-audit-run/2');
     expect(comprehension).toContain('format = "rodoh-underdrain-independent-comprehension/1"');
     expect(comprehension).toContain("The independent player may not receive a walkthrough before adjudication");
     expect(comprehension).toContain('runtimeIssued = $false');
     expect(acceptance).toContain('format = "rodoh-underdrain-player-product-acceptance/1"');
+    expect(acceptance).toContain('rodoh-action-production-asset-approval/2');
     expect(acceptance).toContain("Gamepad acceptance must include a persisted runtime rebind");
     expect(acceptance).toContain("voluntarilyContinuedAfterConsequence -ne $true");
     expect(acceptance).toContain("assetApproval.approvalAuthorityId -eq $AcceptorId");

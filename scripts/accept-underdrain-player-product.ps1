@@ -74,17 +74,17 @@ $keyboard = Get-Content $keyboardPath -Raw | ConvertFrom-Json
 $gamepad = Get-Content $gamepadPath -Raw | ConvertFrom-Json
 $comprehension = Get-Content $comprehensionPath -Raw | ConvertFrom-Json
 if ($train.format -ne "rodoh-underdrain-unity6000-player-product-train/1" -or $train.status -ne "pass") { throw "Player-product train receipt is not accepted." }
-if ($train.windowsBuild -ne "pass" -or $train.exactSourceCustody -ne $true -or $train.exactCueParity -ne $true) { throw "Player-product train lacks Windows build, source custody, or exact cue parity." }
+if ($train.windowsBuild -ne "pass" -or $train.exactSourceCustody -ne $true -or $train.exactDependencyCustody -ne $true -or $train.exactPrefabCustody -ne $true -or $train.exactBindingCustody -ne $true -or $train.exactRepresentationCustody -ne $true -or $train.exactCueParity -ne $true) { throw "Player-product train lacks Windows build, exact representation custody, or exact cue parity." }
 if ($train.primitiveFallback -ne $false -or $train.diagnosticPresentation -ne $false -or $train.activePhysicsAuthority -ne $false) { throw "Player-product train crossed the primitive, diagnostic, or physics-authority boundary." }
-if ($train.productionAssetCount -ne 7 -or @($train.productionAssetSourceDigests).Count -ne 7) { throw "Player-product train lacks the complete seven-asset production floor." }
+if ($train.productionAssetCount -ne 7 -or @($train.productionAssetSourceDigests).Count -ne 7 -or $train.declaredBindingCount -ne 27 -or $train.uniqueDeclaredAssetCount -ne 23 -or $train.declaredBindingClosureSha256 -notmatch '^[0-9a-f]{64}$') { throw "Player-product train lacks the complete seven-asset and 27-binding production floor." }
 if ($train.presentationAdapterId -ne "production.prefab/v1" -or $train.cameraCollision -ne $true -or $train.runtimeRebinding -ne $true) { throw "Player-product train lacks the production adapter, camera collision, or runtime rebinding." }
 
 $assetApprovalPath = Resolve-FullPath ([string]$train.assetApprovalReceipt) ([System.IO.Path]::GetDirectoryName($trainPath))
 Require-File $assetApprovalPath "Named production-asset approval receipt"
 $assetApproval = Get-Content $assetApprovalPath -Raw | ConvertFrom-Json
-if ($assetApproval.format -ne "rodoh-action-production-asset-approval/1" -or $assetApproval.status -ne "approved") { throw "Named production-asset approval receipt is unsupported or not approved." }
-if ($assetApproval.productId -ne $train.productId -or $assetApproval.presentationManifestId -ne $train.presentationManifestId) { throw "Named production-asset approval differs from the accepted player product." }
-if ($assetApproval.assetCount -ne 7 -or $assetApproval.confirmedAllAssets -ne $true -or $assetApproval.productionApproved -ne $true -or $assetApproval.generatedPrimitive -ne $false -or $assetApproval.activePhysicsAuthority -ne $false) { throw "Named production-asset approval does not cover the complete safe seven-asset floor." }
+if ($assetApproval.format -ne "rodoh-action-production-asset-approval/2" -or $assetApproval.status -ne "approved") { throw "Named production-asset approval receipt is unsupported or not approved." }
+if ($assetApproval.productId -ne $train.productId -or $assetApproval.declaredBindingClosureSha256 -ne $train.declaredBindingClosureSha256) { throw "Named production-asset approval differs from the accepted player product representation closure." }
+if ($assetApproval.assetCount -ne 7 -or $assetApproval.declaredBindingCount -ne 27 -or $assetApproval.uniqueDeclaredAssetCount -ne 23 -or $assetApproval.confirmedAllAssets -ne $true -or $assetApproval.productionApproved -ne $true -or $assetApproval.generatedPrimitive -ne $false -or $assetApproval.activePhysicsAuthority -ne $false) { throw "Named production-asset approval does not cover the complete safe seven-asset and 27-binding floor." }
 if ($assetApproval.playerProductAcceptance -ne "not-issued" -or $assetApproval.authorityAuthentication -ne "not-performed") { throw "Named asset approval crossed product-acceptance authority or misrepresented authentication." }
 if ($train.assetApprovalId -ne $assetApproval.approvalId -or $train.assetApprovalAuthorityId -ne $assetApproval.approvalAuthorityId -or $train.assetApprovalName -ne $assetApproval.approvalName) { throw "Player-product train lost named asset-approval custody." }
 $assetApprovalSha = (Get-FileHash $assetApprovalPath -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -162,6 +162,13 @@ $receipt = [ordered]@{
     presentationAdapterId = $train.presentationAdapterId
     productionAssetCount = $train.productionAssetCount
     exactSourceCustody = $train.exactSourceCustody
+    exactDependencyCustody = $train.exactDependencyCustody
+    exactPrefabCustody = $train.exactPrefabCustody
+    exactBindingCustody = $train.exactBindingCustody
+    exactRepresentationCustody = $train.exactRepresentationCustody
+    declaredBindingCount = $train.declaredBindingCount
+    uniqueDeclaredAssetCount = $train.uniqueDeclaredAssetCount
+    declaredBindingClosureSha256 = $train.declaredBindingClosureSha256
     exactCueParity = $train.exactCueParity
     namedAssetApproval = [ordered]@{
         receipt = $assetApprovalPath
@@ -170,6 +177,9 @@ $receipt = [ordered]@{
         approvalAuthorityId = $assetApproval.approvalAuthorityId
         approvalName = $assetApproval.approvalName
         approvedAt = $assetApproval.approvedAt
+        declaredBindingClosureSha256 = $assetApproval.declaredBindingClosureSha256
+        declaredBindingCount = $assetApproval.declaredBindingCount
+        uniqueDeclaredAssetCount = $assetApproval.uniqueDeclaredAssetCount
         authorityAuthentication = $assetApproval.authorityAuthentication
     }
     keyboardMouseSession = [ordered]@{

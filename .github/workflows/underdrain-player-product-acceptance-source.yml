@@ -16,6 +16,8 @@ on:
       - 'tests/world/underdrain-powershell-contract.test.ts'
       - 'tests/world/underdrain-unity6000-player-train.test.ts'
       - 'unity/Fixtures/underdrain.comprehension-contract.json'
+      - 'unity/Conformance/ActionProductionAssetUnityStubs.cs'
+      - 'unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetApprovalBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetAuditBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetDigest.cs'
@@ -26,6 +28,7 @@ on:
     branches:
       - feature/underdrain-unity6000-player-train-v1
       - repair/action-production-asset-approval-v2
+      - repair/underdrain-representation-approval-closure-v1
     paths:
       - '.github/workflows/underdrain-player-product-acceptance-source.yml'
       - 'docs/UNDERDRAIN_PRODUCTION_ASSET_APPROVAL.md'
@@ -40,6 +43,8 @@ on:
       - 'tests/world/underdrain-powershell-contract.test.ts'
       - 'tests/world/underdrain-unity6000-player-train.test.ts'
       - 'unity/Fixtures/underdrain.comprehension-contract.json'
+      - 'unity/Conformance/ActionProductionAssetUnityStubs.cs'
+      - 'unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetApprovalBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetAuditBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetDigest.cs'
@@ -92,6 +97,7 @@ jobs:
             tests/world/underdrain-unity6000-player-train.test.ts \
             tests/world/action-natural-player.test.ts
           dotnet build unity/Conformance/Axm.Rodoh.Action.Cues.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj --configuration Release
           dotnet build unity/Conformance/Axm.Rodoh.Action.Conformance.csproj --configuration Release
 
       - name: Run complete World regression and production build
@@ -122,6 +128,8 @@ jobs:
           cp scripts/run-underdrain-player-session.ps1 "$root/source/"
           cp scripts/record-underdrain-independent-comprehension.ps1 "$root/source/"
           cp scripts/accept-underdrain-player-product.ps1 "$root/source/"
+          cp unity/Conformance/ActionProductionAssetUnityStubs.cs "$root/source/"
+          cp unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj "$root/source/"
           cp unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetApprovalBatch.cs "$root/source/"
           cp unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetDigest.cs "$root/source/"
           cp unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetIntakeBatch.cs "$root/source/"
@@ -133,7 +141,7 @@ jobs:
           const profile = JSON.parse(readFileSync('unity/Fixtures/underdrain.player-product.json', 'utf8'));
           const contract = JSON.parse(readFileSync('unity/Fixtures/underdrain.comprehension-contract.json', 'utf8'));
           writeFileSync(process.env.ROOT + '/source-qualification.json', JSON.stringify({
-            format: 'rodoh-underdrain-player-product-acceptance-source-qualification/2',
+            format: 'rodoh-underdrain-player-product-acceptance-source-qualification/3',
             status: 'pass',
             worldCommit: process.env.WORLD_SHA,
             arcActionPlayerCommit: process.env.ARC_ACTION_PLAYER_SHA,
@@ -141,11 +149,18 @@ jobs:
             productId: profile.productId,
             challengeId: profile.challengeId,
             timingProfileId: profile.timingProfileId,
-            productionAssetCount: 7,
+            coreProductionAssetCount: 7,
+            declaredBindingCount: 27,
+            uniqueDeclaredAssetCount: 23,
             assetApproval: {
-              format: 'rodoh-action-production-asset-approval/1',
+              format: 'rodoh-action-production-asset-approval/2',
               namedAuthorityRequired: true,
               explicitSevenAssetConfirmationRequired: true,
+              recursiveProjectDependencyCustody: true,
+              finalPrefabByteCustody: true,
+              unityMetaAndGuidCustody: true,
+              completeDeclaredBindingClosure: true,
+              effectiveManifestMayChangeIdentityOnlyWhenBindingClosureIsExact: true,
               authorityAuthentication: 'not-performed',
               playerProductAcceptance: 'not-issued'
             },

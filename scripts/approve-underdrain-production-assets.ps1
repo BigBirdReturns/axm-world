@@ -88,24 +88,24 @@ $arguments = @(
     "-outputRoot", $output,
     "-logFile", $logPath
 )
-Write-Host "Recording named approval over the exact imported visual sources of all seven UNDERDRAIN prefabs..."
+Write-Host "Recording named approval over all seven UNDERDRAIN prefabs, their recursive project dependencies, and the complete 27-role manifest closure..."
 $process = Start-Process -FilePath $unityPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow
 if ($process.ExitCode -ne 0) { throw "UNDERDRAIN production-asset approval failed with exit $($process.ExitCode). See $logPath" }
 $receiptPath = Join-Path $output "production-asset-approval.json"
 if (-not (Test-Path $receiptPath)) { throw "Unity did not write the production-asset approval receipt: $receiptPath" }
 $receipt = Get-Content $receiptPath -Raw | ConvertFrom-Json
-if ($receipt.format -ne "rodoh-action-production-asset-approval/1" -or $receipt.status -ne "approved") { throw "Production-asset approval did not complete: $($receipt.error)" }
+if ($receipt.format -ne "rodoh-action-production-asset-approval/2" -or $receipt.status -ne "approved") { throw "Production-asset approval did not complete: $($receipt.error)" }
 if ($receipt.productId -ne (Get-Content $profilePath -Raw | ConvertFrom-Json).productId) { throw "Production-asset approval product identity differs from the product profile." }
 if ($receipt.approvalId -ne $ApprovalId -or $receipt.approvalAuthorityId -ne $ApprovalAuthorityId -or $receipt.approvalName -ne $ApprovalName) { throw "Production-asset approval lost the named authority assertion." }
-if ($receipt.assetCount -ne 7 -or $receipt.confirmedAllAssets -ne $true -or $receipt.productionApproved -ne $true -or $receipt.generatedPrimitive -ne $false -or $receipt.activePhysicsAuthority -ne $false) { throw "Production-asset approval did not establish the complete seven-asset floor." }
+if ($receipt.assetCount -ne 7 -or $receipt.declaredBindingCount -ne 27 -or $receipt.uniqueDeclaredAssetCount -ne 23 -or $receipt.declaredBindingClosureSha256 -notmatch '^[0-9a-f]{64}$' -or $receipt.confirmedAllAssets -ne $true -or $receipt.productionApproved -ne $true -or $receipt.generatedPrimitive -ne $false -or $receipt.activePhysicsAuthority -ne $false) { throw "Production-asset approval did not establish the complete seven-asset and 27-binding floor." }
 foreach ($asset in @($receipt.assets)) {
     if ($asset.approved -ne $true -or $asset.approvalId -ne $ApprovalId -or $asset.approvalAuthorityId -ne $ApprovalAuthorityId) { throw "Production asset $($asset.assetId) lost named approval custody." }
-    if ($asset.sourceSha256 -notmatch '^[0-9a-f]{64}$' -or @($asset.visualSourcePaths).Count -lt 1) { throw "Production asset $($asset.assetId) lacks exact imported-source custody." }
+    if ($asset.sourceSha256 -ne $asset.visualSourceSha256 -or $asset.visualSourceSha256 -notmatch '^[0-9a-f]{64}$' -or $asset.dependencyClosureSha256 -notmatch '^[0-9a-f]{64}$' -or $asset.prefabSha256 -notmatch '^[0-9a-f]{64}$' -or $asset.prefabMetaSha256 -notmatch '^[0-9a-f]{64}$' -or $asset.prefabGuid -notmatch '^[0-9a-f]{32}$' -or @($asset.visualSourcePaths).Count -lt 1 -or [int]$asset.dependencyCount -lt 1) { throw "Production asset $($asset.assetId) lacks exact visual, dependency, prefab, meta, or GUID custody." }
 }
 
 $worldCommit = (& git -C $worldRoot rev-parse HEAD).Trim()
 $run = [ordered]@{
-    format = "rodoh-underdrain-production-asset-approval-run/1"
+    format = "rodoh-underdrain-production-asset-approval-run/2"
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
     status = "approved"
     worldCommit = $worldCommit
@@ -120,7 +120,10 @@ $run = [ordered]@{
     approvalAttestation = $receipt.approvalAttestation
     approvedAt = $receipt.approvedAt
     assetCount = $receipt.assetCount
-    sourceDigests = @($receipt.assets | ForEach-Object { [ordered]@{ assetId = $_.assetId; role = $_.role; sourceSha256 = $_.sourceSha256; visualSourcePaths = $_.visualSourcePaths } })
+    declaredBindingCount = $receipt.declaredBindingCount
+    uniqueDeclaredAssetCount = $receipt.uniqueDeclaredAssetCount
+    declaredBindingClosureSha256 = $receipt.declaredBindingClosureSha256
+    representationClosures = @($receipt.assets | ForEach-Object { [ordered]@{ assetId = $_.assetId; role = $_.role; prefabGuid = $_.prefabGuid; prefabSha256 = $_.prefabSha256; prefabMetaSha256 = $_.prefabMetaSha256; visualSourceSha256 = $_.visualSourceSha256; visualSourcePaths = $_.visualSourcePaths; dependencyClosureSha256 = $_.dependencyClosureSha256; dependencyCount = $_.dependencyCount } })
     authorityAuthentication = "not-performed"
     playerProductAcceptance = "not-issued"
     approvalReceipt = $receiptPath
@@ -131,6 +134,6 @@ $run | ConvertTo-Json -Depth 24 | Set-Content -Encoding utf8 $runPath
 $shaPath = $receiptPath + ".sha256"
 $hash = (Get-FileHash $receiptPath -Algorithm SHA256).Hash.ToLowerInvariant()
 "$hash  $([System.IO.Path]::GetFileName($receiptPath))" | Set-Content -Encoding ascii $shaPath
-Write-Host "UNDERDRAIN production assets received named presentation-asset approval."
+Write-Host "UNDERDRAIN production assets received named approval over exact visual, dependency, prefab, meta, GUID, and manifest-binding custody."
 Write-Host "The approval assertion is preserved but not authenticated, and it does not accept the player product."
 Write-Host $runPath

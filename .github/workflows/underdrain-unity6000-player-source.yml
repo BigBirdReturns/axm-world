@@ -19,6 +19,8 @@ on:
       - 'tests/world/underdrain-player-product-acceptance.test.ts'
       - 'tests/world/underdrain-unity6000-player-train.test.ts'
       - 'unity/Conformance/project-authored-action-presentation.mjs'
+      - 'unity/Conformance/ActionProductionAssetUnityStubs.cs'
+      - 'unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj'
       - 'unity/Fixtures/underdrain.authored-presentation.template.json'
       - 'unity/Fixtures/underdrain.comprehension-contract.json'
       - 'unity/Fixtures/underdrain.player-product.json'
@@ -34,6 +36,7 @@ on:
     branches:
       - feature/underdrain-unity6000-player-train-v1
       - repair/action-production-asset-approval-v2
+      - repair/underdrain-representation-approval-closure-v1
     paths:
       - '.github/workflows/underdrain-unity6000-player-source.yml'
       - 'docs/UNDERDRAIN_PRODUCTION_ASSET_APPROVAL.md'
@@ -51,9 +54,11 @@ on:
       - 'tests/world/underdrain-player-product-acceptance.test.ts'
       - 'tests/world/underdrain-unity6000-player-train.test.ts'
       - 'unity/Conformance/project-authored-action-presentation.mjs'
+      - 'unity/Conformance/ActionProductionAssetUnityStubs.cs'
+      - 'unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj'
       - 'unity/Fixtures/underdrain.authored-presentation.template.json'
       - 'unity/Fixtures/underdrain.comprehension-contract.json'
-      - 'unity/Fixtures/underdrain.player-product.json'
+      - 'unity/Fixtuures/underdrain.player-product.json'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionBuildBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionPolishAugmentBatch.cs'
@@ -115,6 +120,7 @@ jobs:
             tests/world/action-semantic-cue-receiver.test.ts \
             tests/world/action-unity-source-contract.test.ts
           dotnet build axm-world/unity/Conformance/Axm.Rodoh.Action.Cues.csproj --configuration Release
+          dotnet build axm-world/unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj --configuration Release
           dotnet build axm-world/unity/Conformance/Axm.Rodoh.Action.Conformance.csproj --configuration Release
 
       - name: Run complete World regression and production build
@@ -149,6 +155,8 @@ jobs:
           cp axm-world/scripts/run-underdrain-player-session.ps1 "$root/source/"
           cp axm-world/scripts/record-underdrain-independent-comprehension.ps1 "$root/source/"
           cp axm-world/scripts/accept-underdrain-player-product.ps1 "$root/source/"
+          cp axm-world/unity/Conformance/ActionProductionAssetUnityStubs.cs "$root/source/"
+          cp axm-world/unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj "$root/source/"
           cp axm-world/unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetApprovalBatch.cs "$root/source/"
           cp axm-world/unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetIntakeBatch.cs "$root/source/"
           cp axm-world/unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetAuditBatch.cs "$root/source/"
@@ -166,7 +174,7 @@ jobs:
           const profile = JSON.parse(readFileSync('axm-world/unity/Fixtures/underdrain.player-product.json', 'utf8'));
           const manifest = JSON.parse(readFileSync('axm-world/unity/Fixtures/underdrain.authored-presentation.template.json', 'utf8'));
           const receipt = {
-            format: 'rodoh-underdrain-unity6000-player-source-qualification/2',
+            format: 'rodoh-underdrain-unity6000-player-source-qualification/3',
             status: 'pass',
             worldCommit: process.env.WORLD_SHA,
             floorCommit: process.env.FLOOR_SHA,
@@ -188,9 +196,15 @@ jobs:
             playerFollowCamera: profile.camera.playerFollow,
             cameraCollision: profile.camera.collision,
             assetApprovalBoundary: {
-              format: 'rodoh-action-production-asset-approval/1',
+              format: 'rodoh-action-production-asset-approval/2',
               namedAuthorityRequired: true,
               explicitSevenAssetConfirmationRequired: true,
+              coreAssetCount: 7,
+              declaredBindingCount: 27,
+              uniqueDeclaredAssetCount: 23,
+              recursiveProjectDependencyCustody: true,
+              prefabByteCustody: true,
+              unityMetaAndGuidCustody: true,
               sourceIntakeCreatesApproval: false,
               sourceAuditCreatesApproval: false,
               authorityAuthentication: 'not-performed',
@@ -201,6 +215,7 @@ jobs:
               typecheck: 'pass',
               focusedSourceContracts: 'pass',
               csharpCueMirrorBuild: 'pass',
+              csharpAssetCustodySourceBuild: 'pass',
               csharpConformanceBuild: 'pass',
               completeWorldRegression: 'pass',
               productionBuild: 'pass'

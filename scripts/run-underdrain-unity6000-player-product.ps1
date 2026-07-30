@@ -86,7 +86,7 @@ if ([string]::IsNullOrWhiteSpace($AssetApprovalReceipt)) { $AssetApprovalReceipt
 $approvalPath = Resolve-FullPath $AssetApprovalReceipt (Get-Location).Path
 foreach ($path in @($templatePath, $profilePath, $approvalPath)) { if (-not (Test-Path $path)) { throw "UNDERDRAIN player-product input is absent: $path" } }
 $approval = Get-Content $approvalPath -Raw | ConvertFrom-Json
-if ($approval.format -ne "rodoh-action-production-asset-approval/1" -or $approval.status -ne "approved" -or $approval.assetCount -ne 7 -or $approval.productionApproved -ne $true) { throw "UNDERDRAIN production assets lack a complete named approval receipt." }
+if ($approval.format -ne "rodoh-action-production-asset-approval/2" -or $approval.status -ne "approved" -or $approval.assetCount -ne 7 -or $approval.declaredBindingCount -ne 27 -or $approval.uniqueDeclaredAssetCount -ne 23 -or $approval.declaredBindingClosureSha256 -notmatch '^[0-9a-f]{64}$' -or $approval.productionApproved -ne $true) { throw "UNDERDRAIN production assets lack a complete named representation-closure approval receipt." }
 if ($approval.playerProductAcceptance -ne "not-issued") { throw "Asset approval receipt falsely claims player-product acceptance." }
 New-Item -ItemType Directory -Force $intakeRoot, $auditRoot | Out-Null
 
@@ -104,11 +104,11 @@ Invoke-CheckedPowerShell $intakeScript @{
     UnityVersion = $UnityVersion
     UnityEditor = $unityPath
     ForceCloseUnity = $ForceCloseUnity
-} "Admitting the seven named-approved UNDERDRAIN production prefabs through imported-source custody..."
+} "Admitting the seven named-approved UNDERDRAIN production prefabs through exact representation custody..."
 $intakeRunPath = Join-Path $intakeRoot "production-asset-intake-run.json"
 if (-not (Test-Path $intakeRunPath)) { throw "UNDERDRAIN production-asset intake run is absent: $intakeRunPath" }
 $intake = Get-Content $intakeRunPath -Raw | ConvertFrom-Json
-if ($intake.format -ne "rodoh-underdrain-production-asset-intake-run/2" -or $intake.status -ne "pass" -or $intake.assetCount -ne 7 -or $intake.generatedPrimitive -ne $false -or $intake.activePhysicsAuthority -ne $false) { throw "UNDERDRAIN production-asset intake did not pass." }
+if ($intake.format -ne "rodoh-underdrain-production-asset-intake-run/3" -or $intake.status -ne "pass" -or $intake.assetCount -ne 7 -or $intake.declaredBindingCount -ne 27 -or $intake.uniqueDeclaredAssetCount -ne 23 -or $intake.exactRepresentationCustody -ne $true -or $intake.generatedPrimitive -ne $false -or $intake.activePhysicsAuthority -ne $false) { throw "UNDERDRAIN production-asset intake did not pass." }
 if ($intake.approvalId -ne $approval.approvalId -or $intake.approvalAuthorityId -ne $approval.approvalAuthorityId) { throw "UNDERDRAIN production-asset intake lost named approval custody." }
 
 Invoke-CheckedPowerShell $sourceTrainScript @{
@@ -146,21 +146,22 @@ Invoke-CheckedPowerShell $auditScript @{
     EmbodiedArLabRoot = $projectRoot
     PresentationManifest = $effectivePresentationPath
     ProductProfile = $profilePath
+    AssetApprovalReceipt = $approvalPath
     OutputRoot = $auditRoot
     UnityVersion = $UnityVersion
     UnityEditor = $unityPath
     ForceCloseUnity = $ForceCloseUnity
-} "Recomputing production-prefab source custody after serialized-scene qualification..."
+} "Recomputing exact production representation custody after serialized-scene qualification..."
 $auditRunPath = Join-Path $auditRoot "production-asset-audit-run.json"
 if (-not (Test-Path $auditRunPath)) { throw "UNDERDRAIN production-asset audit run is absent: $auditRunPath" }
 $audit = Get-Content $auditRunPath -Raw | ConvertFrom-Json
-if ($audit.status -ne "pass" -or $audit.assetCount -ne 7 -or $audit.exactSourceCustody -ne $true -or $audit.generatedPrimitive -ne $false -or $audit.activePhysicsAuthority -ne $false) { throw "UNDERDRAIN production-asset audit did not pass." }
+if ($audit.format -ne "rodoh-underdrain-production-asset-audit-run/2" -or $audit.status -ne "pass" -or $audit.assetCount -ne 7 -or $audit.declaredBindingCount -ne 27 -or $audit.uniqueDeclaredAssetCount -ne 23 -or $audit.exactRepresentationCustody -ne $true -or $audit.generatedPrimitive -ne $false -or $audit.activePhysicsAuthority -ne $false) { throw "UNDERDRAIN production-asset audit did not pass exact representation custody." }
 if ($audit.approvalId -ne $intake.approvalId -or $audit.approvalAuthorityId -ne $intake.approvalAuthorityId) { throw "Read-only production-asset audit lost named approval custody." }
 
 $qualificationPath = [System.IO.Path]::GetFullPath([string]$productRun.qualificationReceipt)
 if (-not (Test-Path $qualificationPath)) { throw "Player-product qualification receipt is absent: $qualificationPath" }
 $qualification = Get-Content $qualificationPath -Raw | ConvertFrom-Json
-$intakeById = Index-ByAssetId @($intake.sourceDigests) "Production-asset intake"
+$intakeById = Index-ByAssetId @($intake.representationClosures) "Production-asset intake"
 $auditById = Index-ByAssetId @($audit.assetReceipts) "Production-asset audit"
 $productById = Index-ByAssetId @($qualification.assets) "Player-product qualification"
 if ($intakeById.Count -ne 7 -or $auditById.Count -ne 7 -or $productById.Count -ne 7) { throw "Production-asset evidence planes do not each contain seven assets." }
@@ -169,10 +170,16 @@ foreach ($id in $auditById.Keys) {
     $intakeAsset = $intakeById[$id]
     $auditAsset = $auditById[$id]
     $productAsset = $productById[$id]
-    if ($intakeAsset.sourceSha256 -ne $auditAsset.computedSourceSha256 -or $productAsset.sourceSha256 -ne $auditAsset.computedSourceSha256) {
-        throw "Production asset $id changed between intake, player-product qualification, and read-only audit."
+    if ($intakeAsset.visualSourceSha256 -ne $auditAsset.computedSourceSha256 -or $productAsset.sourceSha256 -ne $auditAsset.computedSourceSha256) {
+        throw "Production asset $id visual source changed between intake, player-product qualification, and read-only audit."
     }
+    if ($intakeAsset.dependencyClosureSha256 -ne $auditAsset.computedDependencyClosureSha256 -or [int]$intakeAsset.dependencyCount -ne [int]$auditAsset.computedDependencyCount) { throw "Production asset $id dependency closure changed after named approval." }
+    if ($intakeAsset.prefabGuid -ne $auditAsset.prefabGuid -or $intakeAsset.prefabSha256 -ne $auditAsset.prefabSha256 -or $intakeAsset.prefabMetaSha256 -ne $auditAsset.prefabMetaSha256) { throw "Production prefab $id bytes, meta bytes, or GUID changed after named approval." }
     if ($productAsset.prefabSha256 -ne $auditAsset.prefabSha256) { throw "Production prefab $id changed after player-product qualification." }
+}
+
+if ($approval.declaredBindingClosureSha256 -ne $intake.declaredBindingClosureSha256 -or $intake.declaredBindingClosureSha256 -ne $audit.declaredBindingClosureSha256) {
+    throw "The 27-role representation binding closure changed between named approval, intake, and read-only audit."
 }
 
 $buildRunPath = Join-Path $jobRoot "build\receipts\build-run-windows.json"
@@ -208,8 +215,15 @@ $receipt = [ordered]@{
     activePhysicsAuthority = $false
     productionAssetCount = 7
     productionAssetIds = @($productRun.productionAssetIds)
-    productionAssetSourceDigests = @($audit.assetReceipts | ForEach-Object { [ordered]@{ assetId = $_.assetId; sourceSha256 = $_.computedSourceSha256; prefabSha256 = $_.prefabSha256; visualSourcePaths = $_.visualSourcePaths } })
+    productionAssetSourceDigests = @($audit.assetReceipts | ForEach-Object { [ordered]@{ assetId = $_.assetId; visualSourceSha256 = $_.computedSourceSha256; dependencyClosureSha256 = $_.computedDependencyClosureSha256; dependencyCount = $_.computedDependencyCount; prefabGuid = $_.prefabGuid; prefabSha256 = $_.prefabSha256; prefabMetaSha256 = $_.prefabMetaSha256; visualSourcePaths = $_.visualSourcePaths } })
+    declaredBindingCount = $audit.declaredBindingCount
+    uniqueDeclaredAssetCount = $audit.uniqueDeclaredAssetCount
+    declaredBindingClosureSha256 = $audit.declaredBindingClosureSha256
     exactSourceCustody = $true
+    exactDependencyCustody = $true
+    exactPrefabCustody = $true
+    exactBindingCustody = $true
+    exactRepresentationCustody = $true
     assetApprovalReceipt = $approvalPath
     assetApprovalReceiptSha256 = $intake.approvalReceiptSha256
     assetApprovalId = $intake.approvalId
@@ -248,6 +262,6 @@ Get-ChildItem $trainRoot -File -Recurse |
         "$hash  $relative"
     } | Set-Content -Encoding ascii $checksumPath
 
-Write-Host "UNDERDRAIN Unity 6000 player product passed named asset approval, exact source intake, Arc/C# law, serialized-scene qualification, read-only audit, and the requested Windows build boundary."
+Write-Host "UNDERDRAIN Unity 6000 player product passed named representation-closure approval, exact representation intake, Arc/C# law, serialized-scene qualification, read-only representation audit, and the requested Windows build boundary."
 Write-Host "Keyboard/mouse, gamepad, independent comprehension, named acceptance, and Quest remain separate evidence gates."
 Write-Host $receiptPath
