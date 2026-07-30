@@ -1,0 +1,169 @@
+name: UNDERDRAIN integration seal archaeology
+
+on:
+  push:
+    branches:
+      - integration/underdrain-unity6000-player-product-v1
+    paths:
+      - '.github/workflows/underdrain-integration-archaeology.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: underdrain-integration-archaeology
+  cancel-in-progress: false
+
+env:
+  EXPECTED_BRANCH: integration/underdrain-unity6000-player-product-v1
+  EXPECTED_SEAL_LEDGER_BLOB_SHA: 1053e7a57c1cd06c8056cf6c9030106f46fb3e92
+
+jobs:
+  archaeology:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact archaeology commit with complete history
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Find exact sealed bytes in every reachable ref
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_REF_NAME" = "$EXPECTED_BRANCH"
+          test "$(git hash-object .underdrain/bootstrap-diagnostic.json)" = "$EXPECTED_SEAL_LEDGER_BLOB_SHA"
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune --no-tags
+
+          LEDGER=".underdrain/bootstrap-diagnostic.json" \
+          SALVAGE=".underdrain/salvage-audit.json" \
+          OUTPUT=".underdrain/history-seal-audit.json" \
+          GITHUB_SHA="$GITHUB_SHA" python - <<'PY'
+          from __future__ import annotations
+
+          import hashlib
+          import json
+          import os
+          import subprocess
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          def run(*args: str, check: bool = True) -> subprocess.CompletedProcess[bytes]:
+              return subprocess.run(args, check=check, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+          ledger = json.loads(Path(os.environ["LEDGER"]).read_text(encoding="utf-8"))
+          salvage_path = Path(os.environ["SALVAGE"])
+          salvage = json.loads(salvage_path.read_text(encoding="utf-8")) if salvage_path.is_file() else {}
+          output = Path(os.environ["OUTPUT"])
+          expected_files = ledger.get("files", [])
+          salvage_matches = {
+              item["path"]: item
+              for item in salvage.get("files", [])
+              if item.get("source") == "payload" and item.get("match") is True
+          }
+
+          results = []
+          exact_history_count = 0
+          exact_salvage_only_count = 0
+          missing = []
+
+          for item in expected_files:
+              path = item["path"]
+              expected_sha = item["expectedSha256"]
+              expected_bytes = item["expectedBytes"]
+              commits_raw = run(
+                  "git", "log", "--all", "--format=%H", "--", path,
+                  check=False,
+              ).stdout.decode("ascii", errors="ignore")
+              commits = []
+              seen = set()
+              for commit in commits_raw.splitlines():
+                  if commit and commit not in seen:
+                      seen.add(commit)
+                      commits.append(commit)
+
+              match = None
+              examined = 0
+              for commit in commits:
+                  probe = run("git", "cat-file", "-e", f"{commit}:{path}", check=False)
+                  if probe.returncode != 0:
+                      continue
+                  content = run("git", "show", f"{commit}:{path}").stdout
+                  examined += 1
+                  actual_sha = hashlib.sha256(content).hexdigest()
+                  actual_bytes = len(content)
+                  if actual_sha == expected_sha and actual_bytes == expected_bytes:
+                      blob = run("git", "rev-parse", f"{commit}:{path}").stdout.decode("ascii").strip()
+                      branches = run(
+                          "git", "branch", "-r", "--contains", commit,
+                          check=False,
+                      ).stdout.decode("utf-8", errors="replace").splitlines()
+                      match = {
+                          "commit": commit,
+                          "blob": blob,
+                          "sha256": actual_sha,
+                          "bytes": actual_bytes,
+                          "containingRemoteBranches": sorted(
+                              branch.strip() for branch in branches if branch.strip()
+                          ),
+                      }
+                      exact_history_count += 1
+                      break
+
+              salvage_match = salvage_matches.get(path)
+              source = "history" if match else ("carrier-salvage" if salvage_match else "missing")
+              if source == "carrier-salvage":
+                  exact_salvage_only_count += 1
+              if source == "missing":
+                  missing.append(path)
+
+              results.append({
+                  "path": path,
+                  "expectedSha256": expected_sha,
+                  "expectedBytes": expected_bytes,
+                  "historyCommitsExamined": examined,
+                  "historyMatch": match,
+                  "carrierSalvageMatch": bool(salvage_match),
+                  "recoverableSource": source,
+              })
+
+          receipt = {
+              "format": "rodoh-underdrain-integration-history-seal-audit/1",
+              "generatedAt": datetime.now(timezone.utc).isoformat(),
+              "status": "pass" if not missing else "partial",
+              "archaeologyCommit": os.environ["GITHUB_SHA"],
+              "sealedFileCount": len(expected_files),
+              "exactHistoryMatchCount": exact_history_count,
+              "exactCarrierSalvageOnlyCount": exact_salvage_only_count,
+              "recoverableExactCount": exact_history_count + exact_salvage_only_count,
+              "missingExactCount": len(missing),
+              "missingExactPaths": missing,
+              "files": results,
+              "materializationPerformed": False,
+              "productAccepted": False,
+              "namedPlayerProductAcceptance": "not-issued",
+              "aggregateReadinessScore": None,
+          }
+          output.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print(json.dumps({
+              "status": receipt["status"],
+              "exactHistoryMatchCount": exact_history_count,
+              "exactCarrierSalvageOnlyCount": exact_salvage_only_count,
+              "recoverableExactCount": receipt["recoverableExactCount"],
+              "missingExactCount": receipt["missingExactCount"],
+              "missingExactPaths": missing,
+          }, sort_keys=True))
+          PY
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .underdrain/history-seal-audit.json
+          git diff --cached --check
+          if ! git diff --cached --quiet; then
+            git commit -m 'Retain UNDERDRAIN history seal archaeology'
+            git push origin HEAD:"$EXPECTED_BRANCH"
+          fi
