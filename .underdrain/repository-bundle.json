@@ -1,0 +1,12 @@
+{
+  "artifactName": "underdrain-repository-recovery-3395857aee4db1bdacc4015c201cf57c2b5f4664",
+  "format": "rodoh-underdrain-repository-recovery-bundle/1",
+  "generatedAt": "2026-07-30T06:18:31.232204+00:00",
+  "materializationPerformed": false,
+  "namedPlayerProductAcceptance": "not-issued",
+  "productAccepted": false,
+  "scope": "all fetched heads, tags, and available pull refs",
+  "sourceCommit": "3395857aee4db1bdacc4015c201cf57c2b5f4664",
+  "workflowRunAttempt": 1,
+  "workflowRunId": 30519156541
+}
