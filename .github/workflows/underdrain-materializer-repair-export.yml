@@ -1,0 +1,171 @@
+name: UNDERDRAIN materializer repair export
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - feature/underdrain-unity6000-player-train-v1
+    paths:
+      - '.github/workflows/underdrain-materializer-repair-export.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: underdrain-materializer-repair-export
+  cancel-in-progress: true
+
+jobs:
+  export:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'recovery/underdrain-materializer-repair-export-v1'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - name: Check out exact recovery carrier
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Recover and apply the exact content-addressed repair
+        shell: bash
+        env:
+          EXPECTED_PARENT: efab237853c23540d52f367867107ae3865016c7
+          DONOR_BRANCH: repair/underdrain-materializer-unity-import-closure-v1
+          DONOR_CARRIER: .github/workflows/underdrain-materializer-unity-import-closure-carrier.yml
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT"
+          git fetch --no-tags origin "+refs/heads/$DONOR_BRANCH:refs/remotes/origin/$DONOR_BRANCH"
+          donor_head="$(git rev-parse "refs/remotes/origin/$DONOR_BRANCH")"
+          carrier="$RUNNER_TEMP/underdrain-materializer-repair-carrier.yml"
+          git show "refs/remotes/origin/$DONOR_BRANCH:$DONOR_CARRIER" > "$carrier"
+          payload="$(sed -n 's/^[[:space:]]*PATCH_GZIP_BASE64:[[:space:]]*//p' "$carrier")"
+          test -n "$payload"
+          test "$(printf '%s' "$payload" | wc -l)" -eq 0
+          printf '%s' "$payload" | base64 --decode | gzip --decompress > "$RUNNER_TEMP/underdrain-materializer-repair.py"
+          python "$RUNNER_TEMP/underdrain-materializer-repair.py"
+          printf '%s\n' "$donor_head" > "$RUNNER_TEMP/donor-head.txt"
+          git diff --check
+
+          python - <<'PY'
+          from pathlib import Path
+          batch = Path('unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainRepresentationMaterializerBatch.cs').read_text()
+          runner = Path('scripts/materialize-underdrain-production-representation.ps1').read_text()
+          stubs = Path('unity/Conformance/ActionUnderdrainRepresentationUnityStubs.cs').read_text()
+          billboard = Path('unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionCameraFacingSprite.cs').read_text()
+          witnesses = {
+              'custom sprite alignment': 'spriteAlignment = (int)SpriteAlignment.Custom' in batch,
+              'separate facing pivot': 'var facing = Child(root.transform, "Facing")' in batch,
+              'nested visual curves': 'clip.SetCurve("Facing/Visual"' in batch,
+              'no old visual curves': 'clip.SetCurve("Visual"' not in batch,
+              'up-front approval refusal': batch.index('RefuseApprovedRepresentation(presentation)') < batch.index('EnsureFolders(assetRoot'),
+              'sprite alignment stub': 'enum SpriteAlignment { Custom = 9 }' in stubs and 'public int spriteAlignment;' in stubs,
+              'billboard facing fallback': 'transform.Find("Facing")' in billboard,
+              'machine lock': 'MACHINE_LOCK.json' in runner,
+              'exact World commit': 'ExpectedWorldCommit' in runner and 'Resolve-CleanGitCommit' in runner,
+              'exact Arc commit': 'ExpectedArcCommit' in runner and 'arcCommit = $arcCommit' in runner,
+              'Unity before package mutation': runner.index('Get-Process Unity') < runner.index('robocopy.exe'),
+          }
+          missing = [name for name, present in witnesses.items() if not present]
+          if missing:
+              raise SystemExit('Recovered repair lost required witnesses: ' + ', '.join(missing))
+          PY
+
+      - name: Qualify the recovered repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm test -- \
+            tests/world/underdrain-representation-materializer.test.ts \
+            tests/world/underdrain-powershell-contract.test.ts \
+            tests/world/underdrain-machine-preflight.test.ts \
+            tests/world/underdrain-player-product-acceptance.test.ts \
+            tests/world/underdrain-unity6000-player-train.test.ts
+          dotnet build unity/Conformance/Axm.Rodoh.Action.UnderdrainRepresentation.Source.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.Cues.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.Conformance.csproj --configuration Release
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          find unity/Conformance -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
+          git diff --check
+
+      - name: Retain the exact repaired source and custody manifest
+        shell: bash
+        env:
+          EXPECTED_PARENT: efab237853c23540d52f367867107ae3865016c7
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/underdrain-materializer-repair-export"
+          mkdir -p "$root/source"
+          paths=(
+            docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md
+            scripts/materialize-underdrain-production-representation.ps1
+            tests/world/underdrain-representation-materializer.test.ts
+            unity/Conformance/ActionUnderdrainRepresentationUnityStubs.cs
+            unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainRepresentationMaterializerBatch.cs
+            unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionCameraFacingSprite.cs
+          )
+          for path in "${paths[@]}"; do
+            mkdir -p "$root/source/$(dirname "$path")"
+            cp "$path" "$root/source/$path"
+          done
+          cp "$RUNNER_TEMP/underdrain-materializer-repair.py" "$root/repair-payload.py"
+          cp "$RUNNER_TEMP/donor-head.txt" "$root/donor-head.txt"
+          EXPECTED_PARENT="$EXPECTED_PARENT" ROOT="$root" python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          root = Path(os.environ['ROOT'])
+          rows = []
+          for path in sorted((root / 'source').rglob('*')):
+              if path.is_file():
+                  data = path.read_bytes()
+                  rows.append({
+                      'path': path.relative_to(root / 'source').as_posix(),
+                      'bytes': len(data),
+                      'sha256': hashlib.sha256(data).hexdigest(),
+                  })
+          receipt = {
+              'format': 'rodoh-underdrain-materializer-repair-export/1',
+              'status': 'pass',
+              'recoveryCarrierCommit': os.environ['GITHUB_SHA'],
+              'expectedParentCommit': os.environ['EXPECTED_PARENT'],
+              'donorCommit': (root / 'donor-head.txt').read_text().strip(),
+              'sourceFileCount': len(rows),
+              'files': rows,
+              'unityInvoked': False,
+              'productAccepted': False,
+              'namedPlayerProductAcceptance': 'not-issued',
+              'aggregateReadinessScore': None,
+          }
+          (root / 'repair-export.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
+          PY
+          find "$root" -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > "$root/SHA256SUMS.absolute"
+          sed "s#  $root/#  #" "$root/SHA256SUMS.absolute" > "$root/SHA256SUMS"
+          rm "$root/SHA256SUMS.absolute"
+
+      - name: Upload qualified repair export
+        uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-materializer-repair-export-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/underdrain-materializer-repair-export
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
