@@ -110,10 +110,9 @@ if (& git -C $worldPath status --porcelain) { throw "World fixture checkout must
 if (& git -C $arcPath status --porcelain) { throw "Arc fixture checkout must begin clean." }
 
 $projectRoot = Join-Path $OutputRoot "synthetic-unity-project"
-New-Item -ItemType Directory -Force \
-    (Join-Path $projectRoot "Assets"), \
-    (Join-Path $projectRoot "Packages"), \
-    (Join-Path $projectRoot "ProjectSettings") | Out-Null
+foreach ($directory in @("Assets", "Packages", "ProjectSettings")) {
+    New-Item -ItemType Directory -Force (Join-Path $projectRoot $directory) | Out-Null
+}
 "m_EditorVersion: 6000.0.66f2" | Set-Content -Encoding ascii (Join-Path $projectRoot "ProjectSettings\ProjectVersion.txt")
 
 $unityEditor = Join-Path $OutputRoot "Unity\Hub\Editor\6000.0.66f2\Editor\Unity.exe"
@@ -139,14 +138,16 @@ foreach ($feedback in @($template.feedback)) {
 foreach ($assetPath in $assetPaths) { [void](Write-UnityFixtureAsset $projectRoot $assetPath) }
 
 $cases = @()
-$pass = Invoke-PreflightCase \
-    "pass-complete-fixture" \
-    $projectRoot \
-    $unityEditor \
-    $worldCommit \
-    $templatePath \
-    0 \
-    "pass"
+$passParameters = @{
+    Name = "pass-complete-fixture"
+    ProjectRoot = $projectRoot
+    UnityEditor = $unityEditor
+    ExpectedWorldCommit = $worldCommit
+    TemplatePath = $templatePath
+    ExpectedExitCode = 0
+    ExpectedStatus = "pass"
+}
+$pass = Invoke-PreflightCase @passParameters
 if ($pass.value.machineReadyForNamedAssetReview -ne $true) { throw "Complete synthetic fixture was not declared ready for named asset review." }
 if ($pass.value.summary.blockingFailures -ne 0 -or @($pass.value.summary.coreProductionAssetIds).Count -ne 7) { throw "Complete synthetic fixture lost its seven-asset or zero-blocker contract." }
 if (@($pass.value.assets).Count -lt 20) { throw "Complete synthetic fixture did not exercise the full manifest asset inventory." }
@@ -155,28 +156,32 @@ $cases += $pass
 $missingAssetPath = Join-Path $projectRoot ([string]$template.player.bodyPrefab).Replace('/', '\')
 Remove-Item $missingAssetPath -Force
 Remove-Item ($missingAssetPath + ".meta") -Force
-$missing = Invoke-PreflightCase \
-    "held-missing-core-asset" \
-    $projectRoot \
-    $unityEditor \
-    $worldCommit \
-    $templatePath \
-    2 \
-    "held"
-if ((Find-Check $missing.value "assets.files").status -eq "pass") { throw "Missing core asset did not fail the assets.files gate." }
+$missingParameters = @{
+    Name = "held-missing-core-asset"
+    ProjectRoot = $projectRoot
+    UnityEditor = $unityEditor
+    ExpectedWorldCommit = $worldCommit
+    TemplatePath = $templatePath
+    ExpectedExitCode = 2
+    ExpectedStatus = "held"
+}
+$missing = Invoke-PreflightCase @missingParameters
+if ((Find-Check -Receipt $missing.value -Id "assets.files").status -eq "pass") { throw "Missing core asset did not fail the assets.files gate." }
 if ($missing.value.machineReadyForNamedAssetReview -ne $false) { throw "Missing core asset incorrectly permitted named review." }
 $cases += $missing
 [void](Write-UnityFixtureAsset $projectRoot ([string]$template.player.bodyPrefab))
 
-$wrongCommit = Invoke-PreflightCase \
-    "held-wrong-world-commit" \
-    $projectRoot \
-    $unityEditor \
-    ("0" * 40) \
-    $templatePath \
-    2 \
-    "held"
-if ((Find-Check $wrongCommit.value "world.commit").status -eq "pass") { throw "Wrong World commit did not fail the source-custody gate." }
+$wrongCommitParameters = @{
+    Name = "held-wrong-world-commit"
+    ProjectRoot = $projectRoot
+    UnityEditor = $unityEditor
+    ExpectedWorldCommit = ("0" * 40)
+    TemplatePath = $templatePath
+    ExpectedExitCode = 2
+    ExpectedStatus = "held"
+}
+$wrongCommit = Invoke-PreflightCase @wrongCommitParameters
+if ((Find-Check -Receipt $wrongCommit.value -Id "world.commit").status -eq "pass") { throw "Wrong World commit did not fail the source-custody gate." }
 $cases += $wrongCommit
 
 $forbiddenTemplatePath = Join-Path $OutputRoot "forbidden-template.json"
@@ -184,15 +189,17 @@ $forbiddenTemplate = Get-Content $templatePath -Raw | ConvertFrom-Json
 $forbiddenTemplate.player.bodyPrefab = "Assets/AXM/Generated/ActionEstate/Rhea.prefab"
 $forbiddenTemplate | ConvertTo-Json -Depth 30 | Set-Content -Encoding utf8 $forbiddenTemplatePath
 [void](Write-UnityFixtureAsset $projectRoot ([string]$forbiddenTemplate.player.bodyPrefab))
-$forbidden = Invoke-PreflightCase \
-    "held-forbidden-generated-root" \
-    $projectRoot \
-    $unityEditor \
-    $worldCommit \
-    $forbiddenTemplatePath \
-    2 \
-    "held"
-if ((Find-Check $forbidden.value "assets.roots").status -eq "pass") { throw "Forbidden generated root did not fail the asset-root gate." }
+$forbiddenParameters = @{
+    Name = "held-forbidden-generated-root"
+    ProjectRoot = $projectRoot
+    UnityEditor = $unityEditor
+    ExpectedWorldCommit = $worldCommit
+    TemplatePath = $forbiddenTemplatePath
+    ExpectedExitCode = 2
+    ExpectedStatus = "held"
+}
+$forbidden = Invoke-PreflightCase @forbiddenParameters
+if ((Find-Check -Receipt $forbidden.value -Id "assets.roots").status -eq "pass") { throw "Forbidden generated root did not fail the asset-root gate." }
 $cases += $forbidden
 
 if (& git -C $worldPath status --porcelain) { throw "Preflight execution fixtures dirtied the World checkout." }
