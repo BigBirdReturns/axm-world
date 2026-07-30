@@ -32,6 +32,20 @@ sha256:ab9e1a542f89d66733d0b9946fd9f2b724e5e09395a74611fa760d336c209311
 
 The six upstream visual-source names retained by project custody are recorded in `unity/Fixtures/underdrain.shine-source.json`.
 
+## Turnkey local staging path
+
+The machine kit includes a local authoring console and a one-step staging runner. Use them when the Shine inventory contains concept sheets, lineups, or environmental boards rather than seven already isolated PNG products:
+
+```text
+shine extraction
+→ local crop and edge-cutout authoring
+→ seven byte-distinct semantic products
+→ Unity materialization
+→ real post-materialization preflight
+```
+
+See `UNDERDRAIN_REPRESENTATION_AUTHORING.md`. The authoring transaction may reuse one project-owned sheet for different crops, but it refuses duplicate final PNG bytes and cannot issue named approval.
+
 ## 1. Extract the embedded Shine assets
 
 The extractor reads only the local standalone, parses its flat `ASSET_DATA` object, preserves the original embedded bytes, and uses local Playwright Chromium to decode non-PNG browser image formats into PNG. It makes no network request.

@@ -1,0 +1,119 @@
+name: UNDERDRAIN local representation authoring carrier
+
+on:
+  push:
+    branches:
+      - feature/underdrain-local-representation-authoring-v1
+    paths:
+      - '.github/workflows/underdrain-local-representation-authoring-carrier.yml'
+      - '.github/carriers/underdrain-authoring-payload-*.b64'
+      - 'docs/UNDERDRAIN_REPRESENTATION_AUTHORING.md'
+      - 'tests/world/underdrain-representation-authoring.test.ts'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: underdrain-local-representation-authoring-carrier
+  cancel-in-progress: false
+
+jobs:
+  qualify-and-publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/underdrain-local-representation-authoring-v1
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Reconstruct the content-addressed authoring payload
+        shell: bash
+        env:
+          EXPECTED_ARCHIVE_SHA256: 251ce659c99b9c8e5234ef2b96f84711644dd47bde2195304861a665df40b714
+        run: |
+          set -euo pipefail
+          payload="$RUNNER_TEMP/underdrain-local-representation-authoring.tar.gz"
+          cat .github/carriers/underdrain-authoring-payload-*.b64 | base64 --decode > "$payload"
+          observed="$(sha256sum "$payload" | awk '{print $1}')"
+          test "$observed" = "$EXPECTED_ARCHIVE_SHA256"
+          extract="$RUNNER_TEMP/underdrain-local-representation-authoring"
+          mkdir -p "$extract"
+          tar -xzf "$payload" -C "$extract"
+          install -m 0644 "$extract/scripts/author-underdrain-production-representation.mjs" scripts/author-underdrain-production-representation.mjs
+          install -m 0644 "$extract/scripts/stage-underdrain-production-representation.ps1" scripts/stage-underdrain-production-representation.ps1
+          install -m 0644 "$extract/underdrain-representation-materializer-source.yml" .github/workflows/underdrain-representation-materializer-source.yml
+          install -m 0644 "$extract/underdrain-unity6000-machine-kit.yml" .github/workflows/underdrain-unity6000-machine-kit.yml
+          git diff --check
+
+      - name: Qualify local authoring, Windows staging, and the complete source estate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          node --check scripts/author-underdrain-production-representation.mjs
+          npm run typecheck
+          npm test -- \
+            tests/world/underdrain-representation-authoring.test.ts \
+            tests/world/underdrain-representation-materializer.test.ts \
+            tests/world/underdrain-powershell-contract.test.ts \
+            tests/world/underdrain-machine-preflight.test.ts \
+            tests/world/underdrain-player-product-acceptance.test.ts \
+            tests/world/underdrain-unity6000-player-train.test.ts
+          dotnet build unity/Conformance/Axm.Rodoh.Action.UnderdrainRepresentation.Source.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.Cues.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.Conformance.csproj --configuration Release
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          find unity/Conformance -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
+          git diff --check
+
+      - name: Publish only the admitted authoring and staging source
+        shell: bash
+        run: |
+          set -euo pipefail
+          carrier='.github/workflows/underdrain-local-representation-authoring-carrier.yml'
+          git rm -- "$carrier" .github/carriers/underdrain-authoring-payload-*.b64
+          git add -- \
+            .github/workflows/underdrain-representation-materializer-source.yml \
+            .github/workflows/underdrain-unity6000-machine-kit.yml \
+            docs/UNDERDRAIN_REPRESENTATION_AUTHORING.md \
+            docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md \
+            docs/UNDERDRAIN_UNITY6000_MACHINE_RUNBOOK.md \
+            scripts/author-underdrain-production-representation.mjs \
+            scripts/stage-underdrain-production-representation.ps1 \
+            tests/world/underdrain-powershell-contract.test.ts \
+            tests/world/underdrain-representation-authoring.test.ts
+          cat > "$RUNNER_TEMP/expected-paths" <<'PATHS'
+          .github/carriers/underdrain-authoring-payload-00.b64
+          .github/carriers/underdrain-authoring-payload-01.b64
+          .github/carriers/underdrain-authoring-payload-02.b64
+          .github/carriers/underdrain-authoring-payload-03.b64
+          .github/carriers/underdrain-authoring-payload-04.b64
+          .github/workflows/underdrain-local-representation-authoring-carrier.yml
+          .github/workflows/underdrain-representation-materializer-source.yml
+          .github/workflows/underdrain-unity6000-machine-kit.yml
+          scripts/author-underdrain-production-representation.mjs
+          scripts/stage-underdrain-production-representation.ps1
+          PATHS
+          git diff --cached --name-only | LC_ALL=C sort > "$RUNNER_TEMP/observed-paths"
+          diff -u "$RUNNER_TEMP/expected-paths" "$RUNNER_TEMP/observed-paths"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m 'Author and stage the UNDERDRAIN production representation locally'
+          git push origin HEAD:feature/underdrain-local-representation-authoring-v1

@@ -62,6 +62,23 @@ if (& git -C $Arc status --porcelain) { throw "Arc is dirty." }
 
 Keep Unity Editor closed unless a step explicitly asks for visual inspection. The automated runners refuse or deliberately close a live editor rather than racing it.
 
+## Turnkey representation staging
+
+When the seven production prefabs do not yet exist, use the machine kit's one-step staging transaction instead of manually editing a role-map JSON. It preserves the untouched-project baseline, opens a local crop and cutout console, materializes the selected role products, and reruns the real machine preflight.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File ".\scripts\stage-underdrain-production-representation.ps1" `
+  -WorldRoot $World `
+  -ArcRoot $Arc `
+  -EmbodiedArLabRoot $Embodied `
+  -ShineStandalone "D:\Evidence\UNDERDRAIN_The_Bloom_Below_Shine_v0.4.html" `
+  -OperatorId "<local-operator>" `
+  -InstallDependencies
+```
+
+The console listens on loopback only and may reuse one project-owned concept sheet for multiple crops. It refuses duplicate final PNG bytes. A pass means the seven-role pack exists, Unity materialization completed, and named asset review is open. It does not approve the art. See `AUTHORING.md` and inspect the generated review scene before step 4.
+
 ## 2. Run the read-only machine preflight
 
 ```powershell
