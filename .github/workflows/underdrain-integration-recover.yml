@@ -1,0 +1,223 @@
+name: UNDERDRAIN carrier recovery
+
+on:
+  push:
+    branches:
+      - integration/underdrain-unity6000-player-product-v1
+    paths:
+      - '.github/workflows/underdrain-integration-recover.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: underdrain-integration-recover
+  cancel-in-progress: false
+
+env:
+  EXPECTED_BRANCH: integration/underdrain-unity6000-player-product-v1
+  BASELINE_SHA: 7a3fb2e32702b4e8e2621d4fce2abb8336da231f
+  EXPECTED_PAYLOAD_SHA256: 1879c7f200abbabe61a0a2db9a35e9d0d6af6044296b130a650a97a35d9b7ca8
+  EXPECTED_SEAL_LEDGER_BLOB_SHA: 1053e7a57c1cd06c8056cf6c9030106f46fb3e92
+
+jobs:
+  recover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact carrier commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Decode each retained stream and require the complete sealed source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_REF_NAME" = "$EXPECTED_BRANCH"
+          test "$(git hash-object .underdrain/bootstrap-diagnostic.json)" = "$EXPECTED_SEAL_LEDGER_BLOB_SHA"
+
+          mapfile -t parts < <(find .underdrain -maxdepth 1 -type f -name 'payload.part*.b64' -printf '%f\n' | sort)
+          test "${#parts[@]}" -eq 7
+          payload="$RUNNER_TEMP/underdrain-integration-payload.tar.xz"
+          : > "$payload"
+          for index in 01 02 03 04 05 06 07; do
+            part=".underdrain/payload.part${index}.b64"
+            test -f "$part"
+            base64 --decode "$part" >> "$payload"
+          done
+
+          actual_payload_sha="$(sha256sum "$payload" | cut -d' ' -f1)"
+          audit=".underdrain/recovery-audit.json"
+          PAYLOAD="$payload" LEDGER=".underdrain/bootstrap-diagnostic.json" AUDIT="$audit" \
+          EXPECTED_PAYLOAD_SHA256="$EXPECTED_PAYLOAD_SHA256" ACTUAL_PAYLOAD_SHA256="$actual_payload_sha" \
+          GITHUB_SHA="$GITHUB_SHA" python - <<'PY'
+          from __future__ import annotations
+
+          import hashlib
+          import json
+          import os
+          import tarfile
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          payload = Path(os.environ["PAYLOAD"])
+          ledger = json.loads(Path(os.environ["LEDGER"]).read_text(encoding="utf-8"))
+          audit_path = Path(os.environ["AUDIT"])
+          expected_payload_sha = os.environ["EXPECTED_PAYLOAD_SHA256"]
+          actual_payload_sha = os.environ["ACTUAL_PAYLOAD_SHA256"]
+          expected_files = ledger.get("files", [])
+          errors: list[str] = []
+          observations: list[dict] = []
+          payload_content: dict[str, bytes] = {}
+          payload_names: list[str] = []
+
+          if len(expected_files) != 34:
+              errors.append(f"seal-ledger-count:{len(expected_files)}")
+
+          try:
+              with tarfile.open(payload, mode="r:xz") as archive:
+                  for member in archive.getmembers():
+                      name = member.name.removeprefix("./")
+                      if not member.isfile():
+                          errors.append(f"non-regular-member:{name}")
+                          continue
+                      if name.startswith("/") or ".." in Path(name).parts:
+                          errors.append(f"unsafe-member:{name}")
+                          continue
+                      stream = archive.extractfile(member)
+                      if stream is None:
+                          errors.append(f"unreadable-member:{name}")
+                          continue
+                      payload_names.append(name)
+                      payload_content[name] = stream.read()
+          except Exception as exc:
+              errors.append(f"payload-open:{type(exc).__name__}:{exc}")
+
+          expected_payload_names = sorted(
+              item["path"] for item in expected_files if item.get("source") == "payload"
+          )
+          actual_payload_names = sorted(payload_names)
+          if actual_payload_names != expected_payload_names:
+              errors.append("payload-path-set-mismatch")
+
+          for item in expected_files:
+              path = item["path"]
+              source = item["source"]
+              if source == "payload":
+                  content = payload_content.get(path)
+              elif source == "checkout":
+                  candidate = Path(path)
+                  content = candidate.read_bytes() if candidate.is_file() else None
+              else:
+                  content = None
+                  errors.append(f"unknown-source:{source}:{path}")
+
+              actual_sha = hashlib.sha256(content).hexdigest() if content is not None else None
+              actual_bytes = len(content) if content is not None else None
+              match = (
+                  content is not None
+                  and actual_sha == item["expectedSha256"]
+                  and actual_bytes == item["expectedBytes"]
+              )
+              observations.append({
+                  "path": path,
+                  "source": source,
+                  "expectedSha256": item["expectedSha256"],
+                  "actualSha256": actual_sha,
+                  "expectedBytes": item["expectedBytes"],
+                  "actualBytes": actual_bytes,
+                  "match": match,
+              })
+              if not match:
+                  errors.append(f"sealed-file-mismatch:{path}")
+
+          payload_digest_match = actual_payload_sha == expected_payload_sha
+          if not payload_digest_match:
+              errors.append("payload-digest-mismatch")
+
+          passed = (
+              not errors
+              and len(observations) == 34
+              and len(expected_payload_names) == 32
+              and len(actual_payload_names) == 32
+              and all(item["match"] for item in observations)
+              and payload_digest_match
+          )
+          receipt = {
+              "format": "rodoh-underdrain-integration-carrier-recovery/1",
+              "generatedAt": datetime.now(timezone.utc).isoformat(),
+              "status": "pass" if passed else "held",
+              "carrierCommit": os.environ["GITHUB_SHA"],
+              "decoder": "independent-base64-streams-in-ordinal-order",
+              "expectedPayloadSha256": expected_payload_sha,
+              "actualPayloadSha256": actual_payload_sha,
+              "payloadDigestMatch": payload_digest_match,
+              "expectedPayloadPathCount": len(expected_payload_names),
+              "actualPayloadPathCount": len(actual_payload_names),
+              "payloadPathSetMatch": actual_payload_names == expected_payload_names,
+              "sealedFileCount": len(observations),
+              "allSealedFilesMatch": len(observations) == 34 and all(item["match"] for item in observations),
+              "files": observations,
+              "errors": sorted(set(errors)),
+              "materializationPerformed": False,
+              "productAccepted": False,
+              "namedPlayerProductAcceptance": "not-issued",
+              "aggregateReadinessScore": None,
+          }
+          audit_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print(json.dumps({
+              "status": receipt["status"],
+              "actualPayloadSha256": actual_payload_sha,
+              "payloadDigestMatch": payload_digest_match,
+              "payloadPathSetMatch": receipt["payloadPathSetMatch"],
+              "allSealedFilesMatch": receipt["allSealedFilesMatch"],
+              "errors": receipt["errors"],
+          }, sort_keys=True))
+          PY
+
+          status="$(python -c 'import json; print(json.load(open(".underdrain/recovery-audit.json", encoding="utf-8"))["status"])')"
+          if [[ "$status" != "pass" ]]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add .underdrain/recovery-audit.json
+            git diff --cached --check
+            if ! git diff --cached --quiet; then
+              git commit -m 'Retain UNDERDRAIN carrier recovery audit'
+              git push origin HEAD:"$EXPECTED_BRANCH"
+            fi
+            echo "::error title=UNDERDRAIN recovery held::Independent stream decoding did not reproduce the exact sealed source."
+            exit 1
+          fi
+
+          tar --no-same-owner --no-same-permissions -xJf "$payload" -C .
+          rm -rf .underdrain
+          rm -f .github/workflows/underdrain-integration-materialize.yml
+          rm -f .github/workflows/underdrain-integration-recover.yml
+          git checkout "$BASELINE_SHA" -- .github/workflows/underdrain-player-product-acceptance-source.yml
+
+          node --check scripts/build-underdrain-visual-review.mjs
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for relative in (
+              'unity/Fixtures/underdrain.arc-execution-authority.json',
+              'unity/Fixtures/underdrain.comprehension-contract.json',
+              'unity/Fixtures/underdrain.player-product.integration-lock.json',
+          ):
+              json.loads(Path(relative).read_text(encoding='utf-8'))
+          PY
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          test ! -e .underdrain
+          test ! -e .github/workflows/underdrain-integration-materialize.yml
+          test ! -e .github/workflows/underdrain-integration-recover.yml
+          test "$(git show "$BASELINE_SHA":.github/workflows/underdrain-player-product-acceptance-source.yml | sha256sum | cut -d' ' -f1)" = "$(sha256sum .github/workflows/underdrain-player-product-acceptance-source.yml | cut -d' ' -f1)"
+          git commit -m 'Consolidate exact UNDERDRAIN Unity 6000 player product'
+          git push origin HEAD:"$EXPECTED_BRANCH"
