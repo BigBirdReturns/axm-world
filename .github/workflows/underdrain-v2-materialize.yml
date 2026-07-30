@@ -1,0 +1,56 @@
+name: UNDERDRAIN v2 source materialization
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/underdrain-v2-materialize.yml'
+      - '.underdrain-v2/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: underdrain-v2-source-materialization
+  cancel-in-progress: false
+
+env:
+  EXPECTED_BRANCH: integration/underdrain-unity6000-player-product-v2
+  EXPECTED_BASE_COMMIT: 7a25a8e20f680528a5ee38b2ed3f1777a0cf318e
+  EXPECTED_MATERIALIZER_SHA256: 2a150cae6cb9536c667a77fc69b69ef078b80d8c48f2da82dac3547a711c2228
+
+jobs:
+  materialize:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'integration/underdrain-unity6000-player-product-v2'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact carrier
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Verify, materialize, seal, and publish exact source
+        shell: bash
+        env:
+          CARRIER_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          mapfile -t parts < <(find .underdrain-v2 -maxdepth 1 -type f -name 'materializer.part*.b64' -printf '%f\n' | LC_ALL=C sort)
+          test "${#parts[@]}" -eq 4
+          materializer="$RUNNER_TEMP/underdrain-v2-materialize.py"
+          cat .underdrain-v2/materializer.part*.b64 | base64 --decode > "$materializer"
+          echo "$EXPECTED_MATERIALIZER_SHA256  $materializer" | sha256sum --check --strict
+          python3 "$materializer"
+
+      - name: Retain materialization diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-v2-materialization-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/underdrain-v2-materialization/diagnostics
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 30
