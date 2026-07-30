@@ -60,6 +60,24 @@ describe("UNDERDRAIN Unity 6000 machine preflight", () => {
     expect(source).toContain("Quest and physical Quest acceptance");
   });
 
+  it("executes one complete fixture and three fail-closed boundary cases on Windows", () => {
+    const source = read("scripts/test-underdrain-unity6000-machine-preflight.ps1");
+    expect(source).toContain('format = "rodoh-underdrain-unity6000-machine-preflight-fixture-qualification/1"');
+    expect(source).toContain('Name = "pass-complete-fixture"');
+    expect(source).toContain('Name = "held-missing-core-asset"');
+    expect(source).toContain('Name = "held-wrong-world-commit"');
+    expect(source).toContain('Name = "held-forbidden-generated-root"');
+    expect(source).toContain('ExpectedExitCode = 2');
+    expect(source).toContain('productAcceptance = "not-issued"');
+    expect(source).toContain('unityInvoked = $false');
+    expect(source).toContain('approvalIssued = $false');
+
+    const workflow = read(".github/workflows/underdrain-unity6000-machine-preflight-execution.yml");
+    expect(workflow).toContain("runs-on: windows-2025");
+    expect(workflow).toContain("test-underdrain-unity6000-machine-preflight.ps1");
+    expect(workflow).toContain("underdrain-unity6000-machine-preflight-execution");
+  });
+
   it("gives a cold operator the complete evidence order and first-divergence procedure", () => {
     const runbook = read("docs/UNDERDRAIN_UNITY6000_MACHINE_RUNBOOK.md");
     expect(runbook).toContain("read-only machine preflight");

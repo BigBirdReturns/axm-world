@@ -15,6 +15,7 @@ const scripts = [
   "scripts/run-underdrain-player-session.ps1",
   "scripts/run-underdrain-unity6000-player-product.ps1",
   "scripts/run-underdrain-unity6000-player-train.ps1",
+  "scripts/test-underdrain-unity6000-machine-preflight.ps1",
 ];
 
 const parser = String.raw`

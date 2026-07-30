@@ -1,0 +1,126 @@
+name: UNDERDRAIN Unity 6000 machine preflight execution
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/underdrain-unity6000-machine-preflight-execution.yml'
+      - 'scripts/preflight-underdrain-unity6000-player-product.ps1'
+      - 'scripts/test-underdrain-unity6000-machine-preflight.ps1'
+      - 'tests/world/underdrain-machine-preflight.test.ts'
+      - 'tests/world/underdrain-powershell-contract.test.ts'
+      - 'unity/Fixtures/underdrain.authored-presentation.template.json'
+      - 'unity/Fixtures/underdrain.player-product.json'
+      - 'unity/Fixtures/underdrain.comprehension-contract.json'
+  push:
+    branches:
+      - feature/underdrain-unity6000-player-train-v1
+      - repair/underdrain-machine-preflight-execution-v1
+    paths:
+      - '.github/workflows/underdrain-unity6000-machine-preflight-execution.yml'
+      - 'scripts/preflight-underdrain-unity6000-player-product.ps1'
+      - 'scripts/test-underdrain-unity6000-machine-preflight.ps1'
+      - 'tests/world/underdrain-machine-preflight.test.ts'
+      - 'tests/world/underdrain-powershell-contract.test.ts'
+      - 'unity/Fixtures/underdrain.authored-presentation.template.json'
+      - 'unity/Fixtures/underdrain.player-product.json'
+      - 'unity/Fixtures/underdrain.comprehension-contract.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: underdrain-unity6000-machine-preflight-execution-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARC_ACTION_PLAYER_SHA: aaa5685903a348b3c1ba875622fbe99d90c1da35
+
+jobs:
+  windows-fixtures:
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact World candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Check out exact Arc authority
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_ACTION_PLAYER_SHA }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Execute pass and refusal fixtures against the real preflight
+        id: fixtures
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $output = Join-Path $env:RUNNER_TEMP 'underdrain-machine-preflight-execution'
+          & .\axm-world\scripts\test-underdrain-unity6000-machine-preflight.ps1 `
+            -WorldRoot .\axm-world `
+            -ArcRoot .\axm-arc `
+            -OutputRoot $output
+          if ($LASTEXITCODE -ne 0) { throw "Machine-preflight fixture execution failed with exit $LASTEXITCODE." }
+
+      - name: Retain all exact fixture receipts and diagnostics
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = Join-Path $env:RUNNER_TEMP 'underdrain-machine-preflight-execution'
+          $retained = Join-Path $env:RUNNER_TEMP 'underdrain-machine-preflight-execution-evidence'
+          New-Item -ItemType Directory -Force $retained | Out-Null
+          if (Test-Path $source -PathType Container) {
+            Get-ChildItem $source -File -Recurse |
+              Where-Object {
+                $_.Name -in @(
+                  'machine-preflight-fixture-qualification.json',
+                  'machine-preflight-fixture-qualification.json.sha256',
+                  'underdrain-unity6000-machine-preflight.json',
+                  'underdrain-unity6000-machine-preflight.json.sha256',
+                  'underdrain-unity6000-machine-preflight.txt'
+                )
+              } |
+              ForEach-Object {
+                $relative = [IO.Path]::GetRelativePath($source, $_.FullName)
+                $target = Join-Path $retained $relative
+                New-Item -ItemType Directory -Force ([IO.Path]::GetDirectoryName($target)) | Out-Null
+                Copy-Item $_.FullName $target -Force
+              }
+          }
+          if (-not (Get-ChildItem $retained -File -Recurse -ErrorAction SilentlyContinue)) {
+            'No receipt was written before the fixture harness failed.' | Set-Content -Encoding utf8 (Join-Path $retained 'NO_RECEIPT.txt')
+          }
+          $lines = Get-ChildItem $retained -File -Recurse |
+            Where-Object { $_.Name -ne 'SHA256SUMS' } |
+            Sort-Object FullName |
+            ForEach-Object {
+              $relative = [IO.Path]::GetRelativePath($retained, $_.FullName).Replace('\','/')
+              $sha = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              "$sha  $relative"
+            }
+          $lines | Set-Content -Encoding ascii (Join-Path $retained 'SHA256SUMS')
+          if (git -C axm-world status --porcelain) { throw 'Fixture execution dirtied the World checkout.' }
+          if (git -C axm-arc status --porcelain) { throw 'Fixture execution dirtied the Arc checkout.' }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: underdrain-unity6000-machine-preflight-execution
+          path: ${{ runner.temp }}/underdrain-machine-preflight-execution-evidence
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Preserve the fixture execution result
+        if: steps.fixtures.outcome != 'success'
+        run: exit 1
