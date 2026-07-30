@@ -240,3 +240,4 @@ $qualificationSha = (Get-FileHash $qualificationPath -Algorithm SHA256).Hash.ToL
 "$qualificationSha  $([System.IO.Path]::GetFileName($qualificationPath))" | Set-Content -Encoding ascii ($qualificationPath + ".sha256")
 Write-Host "UNDERDRAIN machine preflight execution fixtures passed."
 Write-Host $qualificationPath
+exit 0
