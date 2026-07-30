@@ -99,31 +99,14 @@ jobs:
           find unity/Conformance -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
           git diff --check
 
-      - name: Publish only the admitted authoring and staging source
+      - name: Publish the admitted non-workflow authoring source
         shell: bash
         run: |
           set -euo pipefail
-          carrier='.github/workflows/underdrain-local-representation-authoring-carrier.yml'
-          git rm -- "$carrier" .github/carriers/underdrain-authoring-payload-*.b64
           git add -- \
-            .github/workflows/underdrain-representation-materializer-source.yml \
-            .github/workflows/underdrain-unity6000-machine-kit.yml \
-            docs/UNDERDRAIN_REPRESENTATION_AUTHORING.md \
-            docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md \
-            docs/UNDERDRAIN_UNITY6000_MACHINE_RUNBOOK.md \
             scripts/author-underdrain-production-representation.mjs \
-            scripts/stage-underdrain-production-representation.ps1 \
-            tests/world/underdrain-powershell-contract.test.ts \
-            tests/world/underdrain-representation-authoring.test.ts
+            scripts/stage-underdrain-production-representation.ps1
           cat > "$RUNNER_TEMP/expected-paths" <<'PATHS'
-          .github/carriers/underdrain-authoring-payload-00.b64
-          .github/carriers/underdrain-authoring-payload-01.b64
-          .github/carriers/underdrain-authoring-payload-02.b64
-          .github/carriers/underdrain-authoring-payload-03.b64
-          .github/carriers/underdrain-authoring-payload-04.b64
-          .github/workflows/underdrain-local-representation-authoring-carrier.yml
-          .github/workflows/underdrain-representation-materializer-source.yml
-          .github/workflows/underdrain-unity6000-machine-kit.yml
           scripts/author-underdrain-production-representation.mjs
           scripts/stage-underdrain-production-representation.ps1
           PATHS
@@ -131,5 +114,5 @@ jobs:
           diff -u "$RUNNER_TEMP/expected-paths" "$RUNNER_TEMP/observed-paths"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git commit -m 'Author and stage the UNDERDRAIN production representation locally'
+          git commit -m 'Publish qualified UNDERDRAIN authoring and staging scripts'
           git push origin HEAD:feature/underdrain-local-representation-authoring-v1
