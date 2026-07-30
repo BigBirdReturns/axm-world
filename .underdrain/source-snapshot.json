@@ -1,0 +1,12 @@
+{
+  "artifactName": "underdrain-integration-source-c0af3d16dc172decb1e0966b20e338ea78b67805",
+  "format": "rodoh-underdrain-integration-source-snapshot/1",
+  "generatedAt": "2026-07-30T06:11:17.542320+00:00",
+  "materializationPerformed": false,
+  "namedPlayerProductAcceptance": "not-issued",
+  "productAccepted": false,
+  "publicationPurpose": "bounded source recovery only",
+  "sourceCommit": "c0af3d16dc172decb1e0966b20e338ea78b67805",
+  "workflowRunAttempt": 1,
+  "workflowRunId": 30518796298
+}
