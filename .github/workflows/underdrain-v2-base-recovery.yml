@@ -1,0 +1,49 @@
+name: UNDERDRAIN v2 settled-base recovery
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/underdrain-v2-base-recovery.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  bundle:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'recovery/underdrain-v2-base-1a6255'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out recovery carrier
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Retain exact settled base as a Git bundle
+        shell: bash
+        env:
+          EXPECTED_BASE: 1a6255d7dcff7b8e0096c49321f00d51d114a71c
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_BASE"
+          git branch underdrain-v2-settled-base "$EXPECTED_BASE"
+          bundle="$RUNNER_TEMP/UNDERDRAIN_v2_Settled_Base_1a6255d7.bundle"
+          git bundle create "$bundle" underdrain-v2-settled-base
+          git bundle verify "$bundle" | tee "$RUNNER_TEMP/bundle-verify.txt"
+          sha256sum "$bundle" | tee "$RUNNER_TEMP/bundle.sha256"
+          git show -s --format='%H %P %T %s' "$EXPECTED_BASE" | tee "$RUNNER_TEMP/base-identity.txt"
+
+      - name: Upload exact settled-base bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-v2-settled-base-1a6255d7
+          path: |
+            ${{ runner.temp }}/UNDERDRAIN_v2_Settled_Base_1a6255d7.bundle
+            ${{ runner.temp }}/bundle-verify.txt
+            ${{ runner.temp }}/bundle.sha256
+            ${{ runner.temp }}/base-identity.txt
+          if-no-files-found: error
+          retention-days: 30
