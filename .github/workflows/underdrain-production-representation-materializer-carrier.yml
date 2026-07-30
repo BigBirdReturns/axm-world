@@ -30,8 +30,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: underdrain-production-representation-materializer-carrier
-  cancel-in-progress: false
+  group: underdrain-production-representation-materializer-carrier-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   materialize:
