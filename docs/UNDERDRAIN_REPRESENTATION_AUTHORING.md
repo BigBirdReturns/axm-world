@@ -22,7 +22,7 @@ production-asset approval
 player-product acceptance
 ```
 
-The local console listens on loopback only, uses a random session token, serves no remote resource, and writes nothing unless all seven required roles submit one valid final PNG each.
+The local console listens on loopback only, uses a random session token, serves no remote resource, and writes nothing unless every required role appears exactly once with one valid final PNG.
 
 ## Required roles
 
