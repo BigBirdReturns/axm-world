@@ -15,6 +15,9 @@ concurrency:
   group: underdrain-integration-materialize
   cancel-in-progress: false
 
+env:
+  EXPECTED_PAYLOAD_SHA256: 1879c7f200abbabe61a0a2db9a35e9d0d6af6044296b130a650a97a35d9b7ca8
+
 jobs:
   materialize:
     runs-on: ubuntu-24.04
@@ -42,7 +45,19 @@ jobs:
 
           payload="$RUNNER_TEMP/underdrain-integration-payload.tar.xz"
           cat .underdrain/payload.part*.b64 | base64 --decode > "$payload"
-          echo "1879c7f200abbabe61a0a2db9a35e9d0d6af6044296b130a650a97a35d9b7ca8  $payload" | sha256sum --check --strict
+          actual_sha="$(sha256sum "$payload" | cut -d' ' -f1)"
+          {
+            printf 'carrierCommit=%s\n' "$GITHUB_SHA"
+            printf 'expectedPayloadSha256=%s\n' "$EXPECTED_PAYLOAD_SHA256"
+            printf 'actualPayloadSha256=%s\n' "$actual_sha"
+            printf 'payloadBytes=%s\n' "$(stat -c '%s' "$payload")"
+          } | tee "$RUNNER_TEMP/underdrain-bootstrap-sha.txt"
+          sha256sum .underdrain/payload.part*.b64 > "$RUNNER_TEMP/underdrain-bootstrap-parts.sha256"
+
+          if [[ "$actual_sha" != "$EXPECTED_PAYLOAD_SHA256" ]]; then
+            echo "::error title=UNDERDRAIN payload checksum mismatch::Expected $EXPECTED_PAYLOAD_SHA256 but reconstructed $actual_sha. The carrier remains unmaterialized."
+            exit 1
+          fi
 
           tar -tJf "$payload" | LC_ALL=C sort > "$RUNNER_TEMP/actual-paths"
           cat > "$RUNNER_TEMP/expected-paths" <<'PATHS'
@@ -108,4 +123,15 @@ jobs:
           git commit -m 'Consolidate exact UNDERDRAIN Unity 6000 player product'
           git push origin HEAD:integration/underdrain-unity6000-player-product-v1
 
-# trigger-after-workflow-admission
+      - name: Retain reconstructed payload and checksum diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-integration-bootstrap-diagnostic-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/underdrain-integration-payload.tar.xz
+            ${{ runner.temp }}/underdrain-bootstrap-sha.txt
+            ${{ runner.temp }}/underdrain-bootstrap-parts.sha256
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 30
