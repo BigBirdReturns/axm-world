@@ -83,7 +83,8 @@ async function main() {
     if (!ROLE_OUTPUTS.has(entry?.role)) throw new Error(`Role map contains unknown role ${entry?.role}.`);
     if (map.has(entry.role)) throw new Error(`Role map repeats ${entry.role}.`);
     if (typeof entry.sourceKey !== 'string' || entry.sourceKey.startsWith('<')) throw new Error(`Role ${entry.role} has not received a concrete Shine source key.`);
-    if (!sourceKeys.add(entry.sourceKey)) throw new Error(`Distinct production roles may not share Shine source key ${entry.sourceKey}.`);
+    if (sourceKeys.has(entry.sourceKey)) throw new Error(`Distinct production roles may not share Shine source key ${entry.sourceKey}.`);
+    sourceKeys.add(entry.sourceKey);
     map.set(entry.role, entry.sourceKey);
   }
   if (map.size !== ROLE_OUTPUTS.size || [...ROLE_OUTPUTS.keys()].some((role) => !map.has(role))) throw new Error('Role map does not cover the exact seven-role production floor.');
@@ -108,7 +109,8 @@ async function main() {
     const sourceBytes = await readFile(sourcePng);
     const digest = sha256(sourceBytes);
     if (digest !== asset.pngSha256) throw new Error(`Extracted PNG digest is stale for ${key}.`);
-    if (!preparedDigests.add(digest)) throw new Error(`Distinct production roles may not share prepared PNG bytes; duplicate digest ${digest}.`);
+    if (preparedDigests.has(digest)) throw new Error(`Distinct production roles may not share prepared PNG bytes; duplicate digest ${digest}.`);
+    preparedDigests.add(digest);
     const target = join(options.output, output.fileName);
     await copyFile(sourcePng, target);
     assets.push({
