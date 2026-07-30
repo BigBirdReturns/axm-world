@@ -80,7 +80,7 @@ This mode exercises the same server-side validation and output writer. It is not
 
 ## One-step Windows staging
 
-The machine kit also carries `stage-underdrain-production-representation.ps1`. It performs the complete pre-review machine transaction:
+The one-step staging runner, `stage-underdrain-production-representation.ps1`, is carried by the machine kit. It performs the complete pre-review machine transaction:
 
 ```text
 exact clean World and Arc custody
