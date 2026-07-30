@@ -1,0 +1,193 @@
+name: UNDERDRAIN integration blob archaeology
+
+on:
+  push:
+    branches:
+      - integration/underdrain-unity6000-player-product-v1
+    paths:
+      - '.github/workflows/underdrain-integration-blob-archaeology.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: underdrain-integration-blob-archaeology
+  cancel-in-progress: false
+
+env:
+  EXPECTED_BRANCH: integration/underdrain-unity6000-player-product-v1
+  EXPECTED_SEAL_LEDGER_BLOB_SHA: 1053e7a57c1cd06c8056cf6c9030106f46fb3e92
+
+jobs:
+  archaeology:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out exact archaeology commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+          show-progress: false
+
+      - name: Fetch every recoverable repository ref
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_REF_NAME" = "$EXPECTED_BRANCH"
+          test "$(git hash-object .underdrain/bootstrap-diagnostic.json)" = "$EXPECTED_SEAL_LEDGER_BLOB_SHA"
+          git fetch origin \
+            '+refs/heads/*:refs/remotes/origin/*' \
+            '+refs/tags/*:refs/tags/*' \
+            '+refs/pull/*/head:refs/remotes/pull/*/head' \
+            '+refs/pull/*/merge:refs/remotes/pull/*/merge' \
+            --prune --force
+
+      - name: Hash every reachable blob against the sealed inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          LEDGER=".underdrain/bootstrap-diagnostic.json" \
+          OUTPUT=".underdrain/blob-seal-audit.json" \
+          GITHUB_SHA="$GITHUB_SHA" python - <<'PY'
+          from __future__ import annotations
+
+          import hashlib
+          import json
+          import os
+          import subprocess
+          from collections import defaultdict
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          ledger = json.loads(Path(os.environ["LEDGER"]).read_text(encoding="utf-8"))
+          expected_files = ledger.get("files", [])
+          expected_by_sha = {
+              item["expectedSha256"]: {
+                  "path": item["path"],
+                  "bytes": item["expectedBytes"],
+                  "source": item.get("source"),
+              }
+              for item in expected_files
+          }
+
+          object_lines = subprocess.run(
+              ["git", "rev-list", "--objects", "--all"],
+              check=True,
+              stdout=subprocess.PIPE,
+              text=True,
+          ).stdout.splitlines()
+          paths_by_oid: dict[str, set[str]] = defaultdict(set)
+          oids: list[str] = []
+          seen: set[str] = set()
+          for line in object_lines:
+              oid, *rest = line.split(" ", 1)
+              if oid not in seen:
+                  seen.add(oid)
+                  oids.append(oid)
+              if rest and rest[0]:
+                  paths_by_oid[oid].add(rest[0])
+
+          proc = subprocess.Popen(
+              ["git", "cat-file", "--batch"],
+              stdin=subprocess.PIPE,
+              stdout=subprocess.PIPE,
+          )
+          assert proc.stdin is not None and proc.stdout is not None
+          for oid in oids:
+              proc.stdin.write((oid + "\n").encode("ascii"))
+          proc.stdin.close()
+
+          matches: dict[str, list[dict]] = defaultdict(list)
+          blob_count = 0
+          blob_bytes = 0
+          for requested_oid in oids:
+              header = proc.stdout.readline()
+              if not header:
+                  raise RuntimeError(f"cat-file ended before {requested_oid}")
+              fields = header.decode("ascii", errors="strict").rstrip("\n").split()
+              if len(fields) >= 2 and fields[1] == "missing":
+                  continue
+              if len(fields) != 3:
+                  raise RuntimeError(f"unexpected cat-file header: {header!r}")
+              oid, kind, size_text = fields
+              size = int(size_text)
+              content = proc.stdout.read(size)
+              delimiter = proc.stdout.read(1)
+              if delimiter != b"\n":
+                  raise RuntimeError(f"missing batch delimiter after {oid}")
+              if kind != "blob":
+                  continue
+              blob_count += 1
+              blob_bytes += size
+              digest = hashlib.sha256(content).hexdigest()
+              expected = expected_by_sha.get(digest)
+              if expected and size == expected["bytes"]:
+                  matches[digest].append({
+                      "gitBlob": oid,
+                      "bytes": size,
+                      "reachablePaths": sorted(paths_by_oid.get(oid, set())),
+                  })
+
+          rc = proc.wait()
+          if rc != 0:
+              raise RuntimeError(f"git cat-file exited {rc}")
+
+          records = []
+          missing = []
+          for item in expected_files:
+              candidates = matches.get(item["expectedSha256"], [])
+              record = {
+                  "path": item["path"],
+                  "source": item.get("source"),
+                  "expectedSha256": item["expectedSha256"],
+                  "expectedBytes": item["expectedBytes"],
+                  "matchCount": len(candidates),
+                  "matches": candidates,
+              }
+              records.append(record)
+              if not candidates:
+                  missing.append(item["path"])
+
+          receipt = {
+              "format": "rodoh-underdrain-integration-blob-seal-audit/1",
+              "generatedAt": datetime.now(timezone.utc).isoformat(),
+              "status": "pass" if not missing else "partial",
+              "archaeologyCommit": os.environ["GITHUB_SHA"],
+              "reachableObjectCount": len(oids),
+              "reachableBlobCount": blob_count,
+              "reachableBlobBytes": blob_bytes,
+              "sealedFileCount": len(expected_files),
+              "exactBlobMatchCount": len(expected_files) - len(missing),
+              "missingExactCount": len(missing),
+              "missingExactPaths": missing,
+              "files": records,
+              "materializationPerformed": False,
+              "productAccepted": False,
+              "namedPlayerProductAcceptance": "not-issued",
+              "aggregateReadinessScore": None,
+          }
+          Path(os.environ["OUTPUT"]).write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps({
+              "status": receipt["status"],
+              "reachableObjectCount": receipt["reachableObjectCount"],
+              "reachableBlobCount": blob_count,
+              "exactBlobMatchCount": receipt["exactBlobMatchCount"],
+              "missingExactCount": receipt["missingExactCount"],
+              "missingExactPaths": missing,
+          }, sort_keys=True))
+          PY
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .underdrain/blob-seal-audit.json
+          git diff --cached --check
+          if ! git diff --cached --quiet; then
+            git commit -m 'Retain UNDERDRAIN all-ref blob archaeology'
+            git push origin HEAD:"$EXPECTED_BRANCH"
+          fi
