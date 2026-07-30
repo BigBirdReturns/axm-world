@@ -59,6 +59,8 @@ jobs:
           show-progress: false
 
       - name: Execute pass and refusal fixtures against the real preflight
+        id: fixtures
+        continue-on-error: true
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -69,21 +71,34 @@ jobs:
             -OutputRoot $output
           if ($LASTEXITCODE -ne 0) { throw "Machine-preflight fixture execution failed with exit $LASTEXITCODE." }
 
-      - name: Retain only exact fixture receipts
+      - name: Retain all exact fixture receipts and diagnostics
+        if: always()
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $source = Join-Path $env:RUNNER_TEMP 'underdrain-machine-preflight-execution'
           $retained = Join-Path $env:RUNNER_TEMP 'underdrain-machine-preflight-execution-evidence'
           New-Item -ItemType Directory -Force $retained | Out-Null
-          Copy-Item (Join-Path $source 'machine-preflight-fixture-qualification.json') $retained
-          Copy-Item (Join-Path $source 'machine-preflight-fixture-qualification.json.sha256') $retained
-          foreach ($case in @('pass-complete-fixture', 'held-missing-core-asset', 'held-wrong-world-commit', 'held-forbidden-generated-root')) {
-            $target = Join-Path $retained $case
-            New-Item -ItemType Directory -Force $target | Out-Null
-            Copy-Item (Join-Path $source "$case\underdrain-unity6000-machine-preflight.json") $target
-            Copy-Item (Join-Path $source "$case\underdrain-unity6000-machine-preflight.json.sha256") $target
-            Copy-Item (Join-Path $source "$case\underdrain-unity6000-machine-preflight.txt") $target
+          if (Test-Path $source -PathType Container) {
+            Get-ChildItem $source -File -Recurse |
+              Where-Object {
+                $_.Name -in @(
+                  'machine-preflight-fixture-qualification.json',
+                  'machine-preflight-fixture-qualification.json.sha256',
+                  'underdrain-unity6000-machine-preflight.json',
+                  'underdrain-unity6000-machine-preflight.json.sha256',
+                  'underdrain-unity6000-machine-preflight.txt'
+                )
+              } |
+              ForEach-Object {
+                $relative = [IO.Path]::GetRelativePath($source, $_.FullName)
+                $target = Join-Path $retained $relative
+                New-Item -ItemType Directory -Force ([IO.Path]::GetDirectoryName($target)) | Out-Null
+                Copy-Item $_.FullName $target -Force
+              }
+          }
+          if (-not (Get-ChildItem $retained -File -Recurse -ErrorAction SilentlyContinue)) {
+            'No receipt was written before the fixture harness failed.' | Set-Content -Encoding utf8 (Join-Path $retained 'NO_RECEIPT.txt')
           }
           $lines = Get-ChildItem $retained -File -Recurse |
             Where-Object { $_.Name -ne 'SHA256SUMS' } |
@@ -98,9 +113,14 @@ jobs:
           if (git -C axm-arc status --porcelain) { throw 'Fixture execution dirtied the Arc checkout.' }
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: underdrain-unity6000-machine-preflight-execution
           path: ${{ runner.temp }}/underdrain-machine-preflight-execution-evidence
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
+
+      - name: Preserve the fixture execution result
+        if: steps.fixtures.outcome != 'success'
+        run: exit 1
