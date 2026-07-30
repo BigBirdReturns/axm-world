@@ -98,6 +98,8 @@ function Invoke-PreflightCase(
 
 $worldPath = Resolve-FullPath $WorldRoot (Get-Location).Path
 $arcPath = Resolve-FullPath $ArcRoot (Get-Location).Path
+$WorldRoot = $worldPath
+$ArcRoot = $arcPath
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) { $OutputRoot = Join-Path $env:RUNNER_TEMP "underdrain-machine-preflight-execution" }
 $OutputRoot = Resolve-FullPath $OutputRoot (Get-Location).Path
 New-Item -ItemType Directory -Force $OutputRoot | Out-Null
