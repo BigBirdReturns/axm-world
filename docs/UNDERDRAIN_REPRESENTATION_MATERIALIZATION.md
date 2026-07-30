@@ -95,6 +95,8 @@ Actor PNGs must already be suitable camera-facing products with transparent or i
 
 ## 3. Materialize the Unity representation
 
+The packaged machine kit supplies `MACHINE_LOCK.json`. The materialization runner loads that lock automatically and refuses a wrong or dirty World or Arc checkout **before** copying the Unity package or launching Unity.
+
 Close Unity and run:
 
 ```powershell
@@ -105,6 +107,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -SourceRoot D:\Projects\Embodied-AR-Lab\local\underdrain-resolved-representation `
   -ArcRoot D:\Projects\axm-arc\main
 ```
+
+Prepared role sprites use explicit custom pivots. Actor bodies are authored as `root → Facing → Visual`: camera billboarding rotates `Facing`, animation curves target `Facing/Visual`, and role scale remains on `Facing`. This prevents camera-facing logic from erasing attack rotation and prevents animation from collapsing the five enemy scale reads.
 
 The Unity batch creates:
 
@@ -144,6 +148,7 @@ The materializer refuses:
 
 ```text
 wrong Unity version
+wrong or dirty exact World or Arc custody
 wrong product or theme
 missing or stale source digest
 source path escape, including sibling-prefix escape
