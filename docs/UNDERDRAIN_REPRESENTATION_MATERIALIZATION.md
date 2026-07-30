@@ -89,6 +89,8 @@ The output directory must be absent or empty. Use `--replace` only for an explic
 
 The resolver writes seven named PNG files, exact hashes, `resolved-representation-source.json`, and `SHA256SUMS`.
 
+The resolver and Unity materializer enforce distinct-byte and path-containment rules independently. A malformed resolved manifest therefore cannot bypass the resolver and rely on the Unity batch to accept duplicate role bytes or a sibling-prefix source path.
+
 Actor PNGs must already be suitable camera-facing products with transparent or intentionally bounded backgrounds. The resolver does not pretend that renaming a concept sheet performs art direction. If the embedded Shine inventory does not contain seven acceptable products, prepare the missing transparent role PNGs from the six retained project-owned visual sources and write the same resolved-source format directly.
 
 ## 3. Materialize the Unity representation
