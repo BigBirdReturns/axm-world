@@ -7,7 +7,7 @@ on:
     paths:
       - '.github/workflows/underdrain-materializer-unity-import-closure-runner.yml'
       - '.github/triggers/underdrain-materializer-unity-import-closure-v1'
-  pull_request:
+  pull_request_target:
     branches:
       - feature/underdrain-unity6000-player-train-v1
     paths:
@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   repair:
-    if: github.event_name == 'push' || github.head_ref == 'repair/underdrain-materializer-unity-import-closure-v1'
+    if: github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'repair/underdrain-materializer-unity-import-closure-v1')
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     steps:
