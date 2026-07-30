@@ -78,7 +78,7 @@ function writeSelection(directory: string, options: { duplicateOutput?: boolean;
         : { x: 0, y: 0, width: 1, height: 1 },
       background: { mode: role === "arena:pump-seven" ? "none" : "edge", tolerance: 48, feather: 18, trim: true },
       output: {
-        pngBase64: outputBytes[index].toString("base64"),
+        pngBase64: outputBytes[index]!.toString("base64"),
         width: 1,
         height: 1,
         transparentPixelFraction: role === "arena:pump-seven" ? 0 : 0.5,
