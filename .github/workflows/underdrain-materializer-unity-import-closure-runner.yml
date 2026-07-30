@@ -7,16 +7,24 @@ on:
     paths:
       - '.github/workflows/underdrain-materializer-unity-import-closure-runner.yml'
       - '.github/triggers/underdrain-materializer-unity-import-closure-v1'
+  pull_request:
+    branches:
+      - feature/underdrain-unity6000-player-train-v1
+    paths:
+      - '.github/workflows/underdrain-materializer-unity-import-closure-carrier.yml'
+      - '.github/workflows/underdrain-materializer-unity-import-closure-runner.yml'
+      - '.github/triggers/underdrain-materializer-unity-import-closure-v1'
 
 permissions:
   contents: write
 
 concurrency:
   group: underdrain-materializer-unity-import-closure-runner
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   repair:
+    if: github.event_name == 'push' || github.head_ref == 'repair/underdrain-materializer-unity-import-closure-v1'
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     steps:
