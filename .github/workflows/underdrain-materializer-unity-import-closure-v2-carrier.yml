@@ -1,0 +1,147 @@
+name: UNDERDRAIN materializer Unity import closure v2 carrier
+
+on:
+  push:
+    branches:
+      - repair/underdrain-materializer-unity-import-closure-v2
+    paths:
+      - '.github/workflows/underdrain-materializer-unity-import-closure-v2-carrier.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: underdrain-materializer-unity-import-closure-v2-carrier
+  cancel-in-progress: false
+
+env:
+  EXPECTED_PARENT: efab237853c23540d52f367867107ae3865016c7
+  TARGET_BRANCH: repair/underdrain-materializer-unity-import-closure-v2
+  CARRIER: .github/workflows/underdrain-materializer-unity-import-closure-v2-carrier.yml
+  SUPERSEDED_RUNNER: .github/workflows/underdrain-materializer-unity-import-closure-runner.yml
+  PATCH_SHA256: 080edb4439ae2f65595e099e33970bfb934cb271e0bd24612c8ff96b31c41699
+  PATCH_GZIP_BASE64: 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
+  EXPECTED_FILES_JSON: '[{"path":"docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md","bytes":10801,"sha256":"22bb890a4acc5725de9146fe54668eb8a1f1f13c339dbdc0685370ac13e35207"},{"path":"scripts/materialize-underdrain-production-representation.ps1","bytes":11215,"sha256":"4248e0a39e22331c3f37f1ea61b7faf434543954d0c1a2873f1f013eaa06c491"},{"path":"tests/world/underdrain-representation-materializer.test.ts","bytes":25623,"sha256":"aa1342a7e4bd47a28485c8c241445ac2017d838e3aad70d254985ca8b25a2fe3"},{"path":"unity/Conformance/ActionUnderdrainRepresentationUnityStubs.cs","bytes":17383,"sha256":"da5be97459be32aa3e7c22e53ebdd72414d58b30912696519fd323cc0147c8d0"},{"path":"unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainRepresentationMaterializerBatch.cs","bytes":52412,"sha256":"f063f8b1908c34147bccb422411038c456cc4505ae6f294b76c15d0b594386c3"},{"path":"unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionCameraFacingSprite.cs","bytes":2917,"sha256":"57160e0746be4f026492165a69218db64674b91bb01b9cb26982eb1e3c5e4f7"}]'
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - name: Check out exact carrier head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Admit the exact parent and apply the recovered repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT"
+          test "$(git diff --name-only "$EXPECTED_PARENT" HEAD)" = "$CARRIER"
+          git diff --check "$EXPECTED_PARENT" HEAD
+          PATCH_GZIP_BASE64="$PATCH_GZIP_BASE64" PATCH_SHA256="$PATCH_SHA256" python - <<'PY'
+          import base64, gzip, hashlib, os
+          payload = gzip.decompress(base64.b64decode(os.environ['PATCH_GZIP_BASE64'], validate=True))
+          actual = hashlib.sha256(payload).hexdigest()
+          if actual != os.environ['PATCH_SHA256']:
+              raise SystemExit(f'patch-sha-mismatch:{actual}')
+          exec(compile(payload, '<underdrain-materializer-unity-import-closure-v2>', 'exec'))
+          PY
+          EXPECTED_FILES_JSON="$EXPECTED_FILES_JSON" python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          files = json.loads(os.environ['EXPECTED_FILES_JSON'])
+          for item in files:
+              path = Path(item['path'])
+              data = path.read_bytes()
+              actual = hashlib.sha256(data).hexdigest()
+              if len(data) != item['bytes'] or actual != item['sha256']:
+                  raise SystemExit(f"source-custody-mismatch:{path}:{len(data)}:{actual}")
+          batch = Path('unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainRepresentationMaterializerBatch.cs').read_text()
+          runner = Path('scripts/materialize-underdrain-production-representation.ps1').read_text()
+          stubs = Path('unity/Conformance/ActionUnderdrainRepresentationUnityStubs.cs').read_text()
+          billboard = Path('unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionCameraFacingSprite.cs').read_text()
+          witnesses = {
+              'custom sprite alignment': 'spriteAlignment = (int)SpriteAlignment.Custom' in batch,
+              'separate facing pivot': 'var facing = Child(root.transform, "Facing")' in batch,
+              'nested visual curves': 'clip.SetCurve("Facing/Visual"' in batch,
+              'no old visual curves': 'clip.SetCurve("Visual"' not in batch,
+              'up-front approval refusal': batch.index('RefuseApprovedRepresentation(presentation)') < batch.index('EnsureFolders(assetRoot'),
+              'sprite alignment stub': 'enum SpriteAlignment { Custom = 9 }' in stubs and 'public int spriteAlignment;' in stubs,
+              'billboard facing fallback': 'transform.Find("Facing")' in billboard,
+              'machine lock': 'MACHINE_LOCK.json' in runner,
+              'exact World commit': 'ExpectedWorldCommit' in runner and 'Resolve-CleanGitCommit' in runner,
+              'exact Arc commit': 'ExpectedArcCommit' in runner and 'arcCommit = $arcCommit' in runner,
+              'Unity before package mutation': runner.index('Get-Process Unity') < runner.index('robocopy.exe'),
+          }
+          missing = [name for name, present in witnesses.items() if not present]
+          if missing:
+              raise SystemExit('repair-witness-missing:' + ','.join(missing))
+          PY
+          git diff --check
+
+      - name: Qualify the repaired source estate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm test -- \
+            tests/world/underdrain-representation-materializer.test.ts \
+            tests/world/underdrain-powershell-contract.test.ts \
+            tests/world/underdrain-machine-preflight.test.ts \
+            tests/world/underdrain-player-product-acceptance.test.ts \
+            tests/world/underdrain-unity6000-player-train.test.ts
+          dotnet build unity/Conformance/Axm.Rodoh.Action.UnderdrainRepresentation.Source.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.Cues.csproj --configuration Release
+          dotnet build unity/Conformance/Axm.Rodoh.Action.Conformance.csproj --configuration Release
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+          find unity/Conformance -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
+          git diff --check
+
+      - name: Publish only the qualified carrier-free repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm -- "$CARRIER" "$SUPERSEDED_RUNNER"
+          EXPECTED_FILES_JSON="$EXPECTED_FILES_JSON" python - <<'PY'
+          import json, os, subprocess
+          paths = [item['path'] for item in json.loads(os.environ['EXPECTED_FILES_JSON'])]
+          subprocess.run(['git', 'add', '--', *paths], check=True)
+          PY
+          cat > "$RUNNER_TEMP/expected-paths" <<'PATHS'
+          .github/workflows/underdrain-materializer-unity-import-closure-v2-carrier.yml
+          .github/workflows/underdrain-materializer-unity-import-closure-runner.yml
+          docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md
+          scripts/materialize-underdrain-production-representation.ps1
+          tests/world/underdrain-representation-materializer.test.ts
+          unity/Conformance/ActionUnderdrainRepresentationUnityStubs.cs
+          unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainRepresentationMaterializerBatch.cs
+          unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionCameraFacingSprite.cs
+          PATHS
+          LC_ALL=C sort -o "$RUNNER_TEMP/expected-paths" "$RUNNER_TEMP/expected-paths"
+          git diff --cached --name-only | LC_ALL=C sort > "$RUNNER_TEMP/observed-paths"
+          diff -u "$RUNNER_TEMP/expected-paths" "$RUNNER_TEMP/observed-paths"
+          git diff --cached --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m 'Close UNDERDRAIN materializer Unity import custody'
+          git push origin HEAD:"$TARGET_BRANCH"
