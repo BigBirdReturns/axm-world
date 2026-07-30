@@ -64,14 +64,14 @@ function writeExtraction(directory: string, sourceCount = 3) {
   return receiptPath;
 }
 
-function writeSelection(directory: string, options: { duplicateOutput?: boolean; invalidCrop?: boolean } = {}) {
+function writeSelection(directory: string, options: { duplicateOutput?: boolean; duplicateRole?: boolean; invalidCrop?: boolean } = {}) {
   const outputBytes = roles.map((role, index) => options.duplicateOutput ? png("same-output") : png(`prepared-${index}-${role}`));
   const selectionPath = join(directory, "authoring-selection.json");
   writeFileSync(selectionPath, `${JSON.stringify({
     format: "rodoh-underdrain-representation-authoring-selection/1",
     operatorId: "source-test-operator",
     roles: roles.map((role, index) => ({
-      role,
+      role: options.duplicateRole && index === 1 ? roles[0] : role,
       sourceKey: `source-${index % 3}`,
       crop: options.invalidCrop
         ? { x: 0, y: 0, width: 2, height: 1 }
@@ -150,13 +150,20 @@ describe("UNDERDRAIN local representation authoring", () => {
     expect(replaced.status, replaced.stderr || replaced.stdout).toBe(0);
   });
 
-  it("refuses duplicate final role bytes, crop escape, and extraction path escape", () => {
+  it("refuses duplicate final role bytes, repeated roles, crop escape, and extraction path escape", () => {
     const duplicateDirectory = mkdtempSync(join(tmpdir(), "underdrain-authoring-duplicate-"));
     const duplicateExtraction = writeExtraction(duplicateDirectory, 3);
     const duplicateSelection = writeSelection(duplicateDirectory, { duplicateOutput: true });
     const duplicate = runAuthor(duplicateExtraction, duplicateSelection, join(duplicateDirectory, "output"));
     expect(duplicate.status).toBe(1);
     expect(duplicate.stderr).toContain("may not share prepared PNG bytes");
+
+    const repeatedRoleDirectory = mkdtempSync(join(tmpdir(), "underdrain-authoring-repeated-role-"));
+    const repeatedRoleExtraction = writeExtraction(repeatedRoleDirectory, 3);
+    const repeatedRoleSelection = writeSelection(repeatedRoleDirectory, { duplicateRole: true });
+    const repeatedRole = runAuthor(repeatedRoleExtraction, repeatedRoleSelection, join(repeatedRoleDirectory, "output"));
+    expect(repeatedRole.status).toBe(1);
+    expect(repeatedRole.stderr).toContain("Selection repeats role");
 
     const cropDirectory = mkdtempSync(join(tmpdir(), "underdrain-authoring-crop-"));
     const cropExtraction = writeExtraction(cropDirectory, 3);
