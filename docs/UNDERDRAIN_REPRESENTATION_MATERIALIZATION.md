@@ -76,7 +76,7 @@ enemy:breaker
 arena:pump-seven
 ```
 
-Each role must use a distinct Shine product. The resolver refuses duplicate keys. This prevents one generic frog image or one concept board from being renamed into five nominally different enemy products.
+Each role must use a distinct Shine product. The resolver refuses duplicate keys **and duplicate prepared PNG bytes**. This prevents different aliases for one generic frog image or one concept board from becoming five nominally different enemy products.
 
 ```powershell
 node .\scripts\resolve-underdrain-shine-representation.mjs `
@@ -84,6 +84,8 @@ node .\scripts\resolve-underdrain-shine-representation.mjs `
   --role-map D:\Projects\Embodied-AR-Lab\local\underdrain-shine-extraction\underdrain.shine-role-map.json `
   --output D:\Projects\Embodied-AR-Lab\local\underdrain-resolved-representation
 ```
+
+The output directory must be absent or empty. Use `--replace` only for an explicit, reviewable replacement; the resolver will not silently mix a new seven-role set with stale files.
 
 The resolver writes seven named PNG files, exact hashes, `resolved-representation-source.json`, and `SHA256SUMS`.
 
@@ -142,8 +144,9 @@ The materializer refuses:
 wrong Unity version
 wrong product or theme
 missing or stale source digest
-source path escape
+source path escape, including sibling-prefix escape
 missing or duplicate role
+duplicate prepared PNG bytes
 forbidden generated root
 an overwrite of a named-approved prefab
 enabled actor collider or CharacterController
