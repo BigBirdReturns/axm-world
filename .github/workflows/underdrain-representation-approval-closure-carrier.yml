@@ -7,12 +7,6 @@ on:
     paths:
       - '.github/carriers/underdrain-representation-approval-closure-v1.part-*'
       - '.github/workflows/underdrain-representation-approval-closure-carrier.yml'
-  push:
-    branches:
-      - repair/underdrain-representation-approval-closure-v1
-    paths:
-      - '.github/carriers/underdrain-representation-approval-closure-v1.part-*'
-      - '.github/workflows/underdrain-representation-approval-closure-carrier.yml'
 
 permissions:
   contents: write
@@ -98,7 +92,6 @@ jobs:
           fi
 
           tar -xzf "$RUNNER_TEMP/payload.tar.gz" -C .
-          rm -f "${PAYLOAD_PREFIX}00" "${PAYLOAD_PREFIX}01" "${PAYLOAD_PREFIX}02" "${PAYLOAD_PREFIX}03" "${PAYLOAD_PREFIX}04" "${PAYLOAD_PREFIX}05" "${PAYLOAD_PREFIX}06" "${PAYLOAD_PREFIX}07" "$CARRIER"
           git diff --check
 
       - name: Qualify the materialized source transaction
@@ -132,9 +125,10 @@ jobs:
           BASE_SHA: 05db5401e055e74eecb28533ba2708f422479cc3
         run: |
           set -euo pipefail
+          git restore --source=HEAD --worktree -- \
+            .github/workflows/underdrain-player-product-acceptance-source.yml \
+            .github/workflows/underdrain-unity6000-player-source.yml
           cat > "$RUNNER_TEMP/expected-final-paths" <<'PATHS'
-          .github/workflows/underdrain-player-product-acceptance-source.yml
-          .github/workflows/underdrain-unity6000-player-source.yml
           docs/UNDERDRAIN_PRODUCTION_ASSET_APPROVAL.md
           scripts/accept-underdrain-player-product.ps1
           scripts/approve-underdrain-production-assets.ps1
@@ -151,8 +145,23 @@ jobs:
           unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetIntakeBatch.cs
           unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionAssetMarker.cs
           PATHS
-          git add -A
-          git diff --cached --name-only "$BASE_SHA" | LC_ALL=C sort > "$RUNNER_TEMP/observed-final-paths"
+          git add -- \
+            docs/UNDERDRAIN_PRODUCTION_ASSET_APPROVAL.md \
+            scripts/accept-underdrain-player-product.ps1 \
+            scripts/approve-underdrain-production-assets.ps1 \
+            scripts/audit-underdrain-production-assets.ps1 \
+            scripts/prepare-underdrain-production-assets.ps1 \
+            scripts/run-underdrain-unity6000-player-product.ps1 \
+            tests/world/underdrain-player-product-acceptance.test.ts \
+            tests/world/underdrain-unity6000-player-train.test.ts \
+            unity/Conformance/ActionProductionAssetUnityStubs.cs \
+            unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj \
+            unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetApprovalBatch.cs \
+            unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetAuditBatch.cs \
+            unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetDigest.cs \
+            unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetIntakeBatch.cs \
+            unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionAssetMarker.cs
+          git diff --cached --name-only HEAD | LC_ALL=C sort > "$RUNNER_TEMP/observed-final-paths"
           diff -u "$RUNNER_TEMP/expected-final-paths" "$RUNNER_TEMP/observed-final-paths"
 
           git config user.name github-actions[bot]
