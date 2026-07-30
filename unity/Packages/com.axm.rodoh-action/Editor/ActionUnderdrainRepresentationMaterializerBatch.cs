@@ -423,6 +423,7 @@ namespace Axm.Rodoh.Action.Editor
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
             importer.spritePixelsPerUnit = source.pixelsPerUnit;
+            importer.spriteAlignment = (int)SpriteAlignment.Custom;
             importer.spritePivot = new Vector2(source.pivotX, source.pivotY);
             importer.alphaIsTransparency = true;
             importer.mipmapEnabled = false;
@@ -500,16 +501,16 @@ namespace Axm.Rodoh.Action.Editor
             clip.wrapMode = loop ? WrapMode.Loop : WrapMode.Once;
             clip.ClearCurves();
             var duration = loop ? 0.8f : 0.46f;
-            clip.SetCurve("Visual", typeof(Transform), "localEulerAnglesRaw.z", new AnimationCurve(
+            clip.SetCurve("Facing/Visual", typeof(Transform), "localEulerAnglesRaw.z", new AnimationCurve(
                 new Keyframe(0f, startRotation),
                 new Keyframe(duration * 0.5f, endRotation),
                 new Keyframe(duration, loop ? startRotation : endRotation)));
-            clip.SetCurve("Visual", typeof(Transform), "localPosition.y", new AnimationCurve(
+            clip.SetCurve("Facing/Visual", typeof(Transform), "localPosition.y", new AnimationCurve(
                 new Keyframe(0f, 0f),
                 new Keyframe(duration * 0.5f, verticalOffset),
                 new Keyframe(duration, loop ? 0f : verticalOffset)));
-            clip.SetCurve("Visual", typeof(Transform), "localScale.x", new AnimationCurve(new Keyframe(0f, startScale), new Keyframe(duration * 0.5f, endScale), new Keyframe(duration, loop ? startScale : endScale)));
-            clip.SetCurve("Visual", typeof(Transform), "localScale.y", new AnimationCurve(new Keyframe(0f, startScale), new Keyframe(duration * 0.5f, endScale), new Keyframe(duration, loop ? startScale : endScale)));
+            clip.SetCurve("Facing/Visual", typeof(Transform), "localScale.x", new AnimationCurve(new Keyframe(0f, startScale), new Keyframe(duration * 0.5f, endScale), new Keyframe(duration, loop ? startScale : endScale)));
+            clip.SetCurve("Facing/Visual", typeof(Transform), "localScale.y", new AnimationCurve(new Keyframe(0f, startScale), new Keyframe(duration * 0.5f, endScale), new Keyframe(duration, loop ? startScale : endScale)));
             EditorUtility.SetDirty(clip);
             return path;
         }
@@ -570,8 +571,9 @@ namespace Axm.Rodoh.Action.Editor
             var root = new GameObject(Path.GetFileNameWithoutExtension(path));
             try
             {
-                var visual = Child(root.transform, "Visual");
-                visual.localScale = Vector3.one * source.source.displayScale;
+                var facing = Child(root.transform, "Facing");
+                facing.localScale = Vector3.one * source.source.displayScale;
+                var visual = Child(facing, "Visual");
                 var renderer = visual.gameObject.AddComponent<SpriteRenderer>();
                 renderer.sprite = source.sprite;
                 renderer.sharedMaterial = source.material;
@@ -583,7 +585,7 @@ namespace Axm.Rodoh.Action.Editor
                 var binding = root.AddComponent<ActionActorBinding>();
                 binding.Configure(actorId, animator, visual);
                 var billboard = root.AddComponent<ActionCameraFacingSprite>();
-                billboard.Configure(visual, renderer, true, true);
+                billboard.Configure(facing, renderer, true, true);
                 root.AddComponent<ActionPhysicsQuarantine>();
                 SavePrefab(root, path);
             }
@@ -599,15 +601,16 @@ namespace Axm.Rodoh.Action.Editor
             try
             {
                 root.isStatic = true;
-                var visual = Child(root.transform, "Visual");
+                var facing = Child(root.transform, "Facing");
+                facing.localScale = Vector3.one * source.source.displayScale;
+                var visual = Child(facing, "Visual");
                 visual.localPosition = new Vector3(0f, 3.4f, 5.5f);
-                visual.localScale = Vector3.one * source.source.displayScale;
                 var renderer = visual.gameObject.AddComponent<SpriteRenderer>();
                 renderer.sprite = source.sprite;
                 renderer.sharedMaterial = source.material;
                 renderer.sortingOrder = -20;
                 var billboard = root.AddComponent<ActionCameraFacingSprite>();
-                billboard.Configure(visual, renderer, false, true);
+                billboard.Configure(facing, renderer, false, true);
                 AddStaticCollider(root.transform, "Rear Camera Wall", new Vector3(0f, 2.8f, 5.9f), new Vector3(14f, 5.6f, 0.35f));
                 AddStaticCollider(root.transform, "Left Camera Wall", new Vector3(-6.8f, 2.3f, 0f), new Vector3(0.35f, 4.6f, 12f));
                 AddStaticCollider(root.transform, "Right Camera Wall", new Vector3(6.8f, 2.3f, 0f), new Vector3(0.35f, 4.6f, 12f));
@@ -661,6 +664,7 @@ namespace Axm.Rodoh.Action.Editor
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
             importer.spritePixelsPerUnit = 64f;
+            importer.spriteAlignment = (int)SpriteAlignment.Custom;
             importer.spritePivot = new Vector2(0.5f, 0.5f);
             importer.alphaIsTransparency = true;
             importer.mipmapEnabled = false;

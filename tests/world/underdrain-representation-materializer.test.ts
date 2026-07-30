@@ -171,6 +171,7 @@ describe("UNDERDRAIN representation materialization source", () => {
     const batch = read("unity/Packages/com.axm.rodoh-action/Editor/ActionUnderdrainRepresentationMaterializerBatch.cs");
     const billboard = read("unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionCameraFacingSprite.cs");
     const pulse = read("unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionFeedbackPulse.cs");
+    const stubs = read("unity/Conformance/ActionUnderdrainRepresentationUnityStubs.cs");
     const runner = read("scripts/materialize-underdrain-production-representation.ps1");
     const template = json("unity/Fixtures/underdrain.representation-source.template.json");
 
@@ -195,6 +196,12 @@ describe("UNDERDRAIN representation materialization source", () => {
     expect(batch).toContain("actorColliderCount != 0");
     expect(batch).toContain("activeRigidBodies != 0");
     expect(batch).toContain("RefuseApprovedPrefab");
+    expect(batch).toContain("spriteAlignment = (int)SpriteAlignment.Custom");
+    expect(batch).toContain('var facing = Child(root.transform, "Facing")');
+    expect(batch).toContain('clip.SetCurve("Facing/Visual"');
+    expect(batch).toContain("facing.localScale = Vector3.one * source.source.displayScale");
+    expect(batch).not.toContain('clip.SetCurve("Visual"');
+    expect(batch).not.toContain("visual.localScale = Vector3.one * source.source.displayScale");
     expect(batch).toContain("approvalIssued = false");
     expect(batch).toContain('productAcceptance = "not-issued"');
     expect(batch).not.toContain("GameObject.CreatePrimitive");
@@ -205,10 +212,21 @@ describe("UNDERDRAIN representation materialization source", () => {
     ]) expect(batch).toContain(`"${parameter}"`);
 
     expect(billboard).toContain("Presentation-only billboard");
+    expect(billboard).toContain('transform.Find("Facing")');
     expect(billboard).toContain("Camera.main");
+    expect(stubs).toContain("enum SpriteAlignment { Custom = 9 }");
+    expect(stubs).toContain("public int spriteAlignment;");
     expect(pulse).toContain("presentation-only pulse");
     expect(pulse).toContain("gameObject.SetActive(false)");
     expect(runner).toContain("ActionUnderdrainRepresentationMaterializerBatch.Run");
+    expect(runner).toContain("Resolve-CleanGitCommit");
+    expect(runner).toContain("MACHINE_LOCK.json");
+    expect(runner).toContain("ExpectedWorldCommit");
+    expect(runner).toContain("ExpectedArcCommit");
+    expect(runner.indexOf("Resolve-CleanGitCommit")).toBeLessThan(runner.indexOf("Get-Process Unity"));
+    expect(runner.indexOf("Get-Process Unity")).toBeLessThan(runner.indexOf("robocopy.exe"));
+    expect(runner).toContain("worldCommit = $worldCommit");
+    expect(runner).toContain("arcCommit = $arcCommit");
     expect(runner).toContain("postMaterializationPreflight");
     expect(runner).toContain('namedAssetReview = "open"');
     expect(runner).toContain('productAcceptance = "not-issued"');

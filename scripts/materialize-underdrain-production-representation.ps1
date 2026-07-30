@@ -11,6 +11,8 @@ param(
 
     [string]$WorldRoot,
     [string]$ArcRoot,
+    [string]$ExpectedWorldCommit,
+    [string]$ExpectedArcCommit,
     [string]$PresentationManifest,
     [string]$ProductProfile,
     [string]$OutputRoot,
@@ -32,6 +34,23 @@ function Require-File([string]$Path, [string]$Label) {
     if (-not (Test-Path $Path -PathType Leaf)) { throw "$Label is absent: $Path" }
 }
 
+function Resolve-CleanGitCommit([string]$Root, [string]$Label, [string]$ExpectedCommit) {
+    if (-not (Test-Path $Root -PathType Container)) { throw "$Label checkout root is absent: $Root" }
+    $commitOutput = @(& git -C $Root rev-parse HEAD 2>$null)
+    if ($LASTEXITCODE -ne 0 -or $commitOutput.Count -ne 1) { throw "$Label checkout commit could not be resolved: $Root" }
+    $commit = ([string]$commitOutput[0]).Trim().ToLowerInvariant()
+    if ($commit -notmatch '^[0-9a-f]{40}$') { throw "$Label checkout commit is malformed: $commit" }
+    $dirty = @(& git -C $Root status --porcelain)
+    if ($LASTEXITCODE -ne 0) { throw "$Label checkout status could not be read: $Root" }
+    if ($dirty.Count -gt 0) { throw "$Label checkout must be clean before representation materialization." }
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedCommit)) {
+        $expected = $ExpectedCommit.Trim().ToLowerInvariant()
+        if ($expected -notmatch '^[0-9a-f]{40}$') { throw "Expected $Label commit is malformed: $ExpectedCommit" }
+        if ($commit -ne $expected) { throw "$Label checkout is $commit, expected $expected." }
+    }
+    return $commit
+}
+
 if ([string]::IsNullOrWhiteSpace($WorldRoot)) { $WorldRoot = Join-Path $PSScriptRoot ".." }
 $worldRoot = Resolve-FullPath $WorldRoot (Get-Location).Path
 $projectRoot = Resolve-FullPath $EmbodiedArLabRoot (Get-Location).Path
@@ -46,6 +65,22 @@ $output = Resolve-FullPath $OutputRoot $projectRoot
 if ([string]::IsNullOrWhiteSpace($UnityEditor)) { $UnityEditor = "C:\Program Files\Unity\Hub\Editor\$UnityVersion\Editor\Unity.exe" }
 $unityPath = Resolve-FullPath $UnityEditor (Get-Location).Path
 
+$kitLockPath = Join-Path (Split-Path $PSScriptRoot -Parent) "MACHINE_LOCK.json"
+if (Test-Path $kitLockPath -PathType Leaf) {
+    $kitLock = Get-Content $kitLockPath -Raw | ConvertFrom-Json
+    if ([string]::IsNullOrWhiteSpace($ExpectedWorldCommit)) { $ExpectedWorldCommit = [string]$kitLock.world.commit }
+    if ([string]::IsNullOrWhiteSpace($ExpectedArcCommit)) { $ExpectedArcCommit = [string]$kitLock.arc.commit }
+}
+$worldCommit = Resolve-CleanGitCommit $worldRoot "World" $ExpectedWorldCommit
+$arcPath = $null
+$arcCommit = $null
+if (-not [string]::IsNullOrWhiteSpace($ArcRoot)) {
+    $arcPath = Resolve-FullPath $ArcRoot (Get-Location).Path
+    $arcCommit = Resolve-CleanGitCommit $arcPath "Arc" $ExpectedArcCommit
+} elseif (-not [string]::IsNullOrWhiteSpace($ExpectedArcCommit)) {
+    throw "ArcRoot is required when an expected Arc commit is supplied."
+}
+
 foreach ($directory in @("Assets", "Packages", "ProjectSettings")) {
     if (-not (Test-Path (Join-Path $projectRoot $directory) -PathType Container)) { throw "Embodied-AR-Lab $directory directory is absent: $projectRoot" }
 }
@@ -57,14 +92,6 @@ $projectVersionPath = Join-Path $projectRoot "ProjectSettings\ProjectVersion.txt
 Require-File $projectVersionPath "Unity project-version file"
 $projectVersion = [regex]::Match((Get-Content $projectVersionPath -Raw), '(?m)^m_EditorVersion:\s*(\S+)\s*$').Groups[1].Value
 if ($projectVersion -ne $UnityVersion) { throw "Embodied-AR-Lab uses Unity '$projectVersion', expected '$UnityVersion'." }
-if (& git -C $worldRoot status --porcelain) { throw "World checkout must be clean before representation materialization." }
-
-$sourcePackage = Join-Path $worldRoot "unity\Packages\com.axm.rodoh-action"
-$embeddedPackage = Join-Path $projectRoot "Packages\com.axm.rodoh-action"
-Require-File (Join-Path $sourcePackage "package.json") "World Unity action package"
-New-Item -ItemType Directory -Force $embeddedPackage, $output | Out-Null
-& robocopy.exe $sourcePackage $embeddedPackage /MIR /NFL /NDL /NJH /NJS /NP | Out-Null
-if ($LASTEXITCODE -gt 7) { throw "RODOH Unity package copy failed with robocopy exit $LASTEXITCODE." }
 
 $unityProcesses = Get-Process Unity -ErrorAction SilentlyContinue
 if ($unityProcesses) {
@@ -72,6 +99,13 @@ if ($unityProcesses) {
     $unityProcesses | Stop-Process -Force
     Start-Sleep -Seconds 2
 }
+
+$sourcePackage = Join-Path $worldRoot "unity\Packages\com.axm.rodoh-action"
+$embeddedPackage = Join-Path $projectRoot "Packages\com.axm.rodoh-action"
+Require-File (Join-Path $sourcePackage "package.json") "World Unity action package"
+New-Item -ItemType Directory -Force $embeddedPackage, $output | Out-Null
+& robocopy.exe $sourcePackage $embeddedPackage /MIR /NFL /NDL /NJH /NJS /NP | Out-Null
+if ($LASTEXITCODE -gt 7) { throw "RODOH Unity package copy failed with robocopy exit $LASTEXITCODE." }
 
 $logPath = Join-Path $output "unity-underdrain-representation-materialization.log"
 $arguments = @(
@@ -103,10 +137,7 @@ if ($receipt.approvalIssued -ne $false -or $receipt.productAcceptance -ne "not-i
 
 $preflightPath = $null
 $preflightStatus = "not-run"
-if (-not [string]::IsNullOrWhiteSpace($ArcRoot)) {
-    $arcPath = Resolve-FullPath $ArcRoot (Get-Location).Path
-    if (& git -C $arcPath status --porcelain) { throw "Arc checkout must be clean before real machine preflight." }
-    $worldCommit = (& git -C $worldRoot rev-parse HEAD).Trim()
+if ($null -ne $arcPath) {
     $preflightRoot = Join-Path $output "preflight"
     & powershell.exe -NoProfile -ExecutionPolicy Bypass `
         -File (Join-Path $worldRoot "scripts\preflight-underdrain-unity6000-player-product.ps1") `
@@ -123,12 +154,12 @@ if (-not [string]::IsNullOrWhiteSpace($ArcRoot)) {
     $preflightStatus = "pass"
 }
 
-$worldSha = (& git -C $worldRoot rev-parse HEAD).Trim()
 $run = [ordered]@{
     format = "rodoh-underdrain-representation-materialization-run/1"
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
     status = "pass"
-    worldCommit = $worldSha
+    worldCommit = $worldCommit
+    arcCommit = $arcCommit
     unityVersion = $UnityVersion
     projectRoot = $projectRoot
     sourceManifest = $sourceManifestPath

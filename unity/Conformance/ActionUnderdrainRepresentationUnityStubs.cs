@@ -171,6 +171,7 @@ namespace UnityEditor
     public enum TextureImporterType { Sprite }
     public enum SpriteImportMode { Single }
     public enum TextureImporterCompression { Uncompressed }
+    public enum SpriteAlignment { Custom = 9 }
 
     public class AssetImporter
     {
@@ -182,6 +183,7 @@ namespace UnityEditor
         public TextureImporterType textureType;
         public SpriteImportMode spriteImportMode;
         public float spritePixelsPerUnit;
+        public int spriteAlignment;
         public UnityEngine.Vector2 spritePivot;
         public bool alphaIsTransparency;
         public bool mipmapEnabled;
