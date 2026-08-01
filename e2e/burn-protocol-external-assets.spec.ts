@@ -1,10 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
-import { EXTERNAL_ASSET_JSON_MAX_BYTES } from "../src/world/external-assets.js";
 import { resolvePendingDecisions } from "./helpers";
 
 const FIXTURE_DIR = process.env["BURN_EXTERNAL_ASSET_FIXTURE_DIR"];
 const ARC_PATH = process.env["BURN_PROTOCOL_ARC_PATH"];
+const EXTERNAL_ASSET_JSON_MAX_BYTES = 16 * 1024 * 1024;
 
 const custodyFiles = [
   "burn-protocol-handoff-publication-overlay.json",
