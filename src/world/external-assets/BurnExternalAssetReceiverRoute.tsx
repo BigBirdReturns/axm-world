@@ -5,6 +5,7 @@ import {
   BURN_PROTOCOL_AUTHORED_DIGEST,
   BURN_PROTOCOL_CARTRIDGE_ID,
   BURN_PROTOCOL_PUBLICATION_HEAD,
+  EXTERNAL_ASSET_JSON_MAX_BYTES,
   clearExternalAssetSession,
   getExternalAssetSession,
   installExternalAssetSession,
@@ -49,6 +50,7 @@ const visuallyHidden: CSSProperties = {
 const FORMAT_OVERLAY = "burn-protocol-handoff-publication-overlay/1";
 const FORMAT_RECEIPT = "burn-protocol-handoff-publication-activation-receipt/1";
 const FORMAT_INDEX = "burn-protocol-corpus-asset-index/1";
+const CUSTODY_FORMATS = new Set([FORMAT_OVERLAY, FORMAT_RECEIPT, FORMAT_INDEX]);
 
 function errorLines(error: unknown): string[] {
   return (error instanceof Error ? error.message : String(error))
@@ -110,9 +112,17 @@ export function BurnExternalAssetReceiverRoute(): JSX.Element {
     try {
       const records = new Map<string, string>();
       for (const file of files) {
+        if (file.size > EXTERNAL_ASSET_JSON_MAX_BYTES) {
+          throw new Error(
+            `${file.name} exceeds the ${formatBytes(EXTERNAL_ASSET_JSON_MAX_BYTES)} custody-record ceiling and was refused before reading.`,
+          );
+        }
         const text = await file.text();
         const format = jsonFormat(text);
         if (!format) throw new Error(`${file.name} is not a recognized bounded JSON custody record.`);
+        if (!CUSTODY_FORMATS.has(format)) {
+          throw new Error(`${file.name} declares unrelated custody format ${format}.`);
+        }
         if (records.has(format)) throw new Error(`More than one selected file declares ${format}.`);
         records.set(format, text);
       }
