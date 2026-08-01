@@ -7,7 +7,7 @@ This transaction is an unbundled, metadata-only Arc-to-World receiver probe. It 
 The Arc authority is the exact `axm-arc` publication head:
 
 ```text
-da996659074382e64c9b983eb3559cbf8485d592
+4b076089f9b7ae1949ba8fac45f2373aeeb5b344
 ```
 
 That authority publishes `The Burn Protocol: Disclosure and Repair` as a `common-ship-pocket/1` source and Engine 1.3 Arc. Its inherited parent claim remains the supplied v0.58.0 SHA-256:
@@ -16,11 +16,26 @@ That authority publishes `The Burn Protocol: Disclosure and Repair` as a `common
 b3b299e14d8c22cde88629eb6bc4d197b8f8015eec7bf46b95f0de2a31b5f0df
 ```
 
-The cartridge content identity expected by this receiver is:
+The calibrated cartridge content identity expected by this receiver is:
 
 ```text
-cart1_c53f00a2d11568377793a898d298df1dd5b2e35bf8c89f081489c9796808820d
+cart1_870f3dfcab909fc9aace115e2c46cd30268339f80bc87a14f0eebcc4e2c28c3e
 ```
+
+## Live-resolver calibration
+
+The first exact browser transaction correctly imported and entered the original publication, but its initial hearing resolved `partial` on both desktop and mobile even though the static preview classified the party as reliable. The preview used the deterministic aggregate contribution of 56.8 against a threshold of 50. The historical Engine 1.3 resolver then performed one aggregate roll for each assigned actor, and one of the six accepted rolls landed at 48.24. Because access law requires a success record, the partial hearing could not open the next watch.
+
+Arc now carries that finding as publication law rather than hiding it in the receiver test. Version 0.1.1 calibrates the four check thresholds to:
+
+```text
+open-the-six-repository-hearing           45
+assign-the-six-withdrawal-mandates        50
+repair-the-first-public-corridor          30
+publish-the-read-only-reconstruction      40
+```
+
+The calibration changes no actor, role, embodiment profile, composition constraint, decision horizon, evidence boundary, outcome text, state effect, custody fact, or canon relation. Its dedicated Arc gate uses default founding, all six named founders, one authored Watch token per operation, ordinary `runCycle`, and requires four ordered accepted successes. The World receiver independently recomputes the new cartridge digest and verifies the same source thresholds before browser play.
 
 ## Receiver transaction
 
