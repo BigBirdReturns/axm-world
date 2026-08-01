@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
 
 const FIXTURE_DIR = process.env["BURN_EXTERNAL_ASSET_FIXTURE_DIR"];
@@ -8,6 +8,21 @@ const custodyFiles = [
   "handoff-publication-activation-receipt.json",
   "corpus-asset-index.json",
 ];
+
+async function expectNoHorizontalOverflow(page: Page): Promise<void> {
+  await expect.poll(() => page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }))).toEqual(expect.objectContaining({
+    clientWidth: expect.any(Number),
+    scrollWidth: expect.any(Number),
+  }));
+  const dimensions = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(dimensions.scrollWidth, JSON.stringify(dimensions)).toBeLessThanOrEqual(dimensions.clientWidth);
+}
 
 test.describe("Burn Protocol holder-controlled external asset receiver", () => {
   test.skip(!FIXTURE_DIR, "Requires the content-bound external asset fixture.");
@@ -26,6 +41,7 @@ test.describe("Burn Protocol holder-controlled external asset receiver", () => {
     await page.goto("/axm-world/game/?surface=burn-assets");
     await expect(page.getByTestId("burn-external-asset-receiver")).toBeVisible();
     await expect(page.getByText("The Burn Protocol corpus browser", { exact: true })).toBeVisible();
+    await expectNoHorizontalOverflow(page);
 
     await page.getByTestId("external-custody-input").setInputFiles(
       custodyFiles.map((name) => path.join(root, name)),
@@ -34,6 +50,7 @@ test.describe("Burn Protocol holder-controlled external asset receiver", () => {
     await expect(preflight).toHaveAttribute("data-standing", "mechanism-fixture");
     await expect(preflight).toHaveAttribute("data-assets", "1");
     await expect(preflight.getByText(/cannot acquire production standing/i)).toBeVisible();
+    await expectNoHorizontalOverflow(page);
 
     await page.getByTestId("external-assets-input").setInputFiles(
       path.join(root, "assets", "E12-C3-P01.png"),
@@ -48,6 +65,7 @@ test.describe("Burn Protocol holder-controlled external asset receiver", () => {
       const element = node as HTMLImageElement;
       return { complete: element.complete, width: element.naturalWidth, height: element.naturalHeight };
     })).toEqual({ complete: true, width: 1, height: 1 });
+    await expectNoHorizontalOverflow(page);
     await page.screenshot({
       path: testInfo.outputPath(`burn-external-asset-verified-${testInfo.project.name}.png`),
       fullPage: true,
@@ -67,6 +85,7 @@ test.describe("Burn Protocol holder-controlled external asset receiver", () => {
     await expect(page.getByTestId("burn-external-asset-receiver")).toBeVisible();
     await expect(page.getByTestId("external-custody-preflight")).toHaveCount(0);
     await expect(page.getByTestId("external-asset-session")).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
     expect(externalRequests).toEqual([]);
   });
 });
