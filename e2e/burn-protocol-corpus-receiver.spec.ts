@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
+import { parsePortableRun } from "../src/engine/portable-run.js";
 import { openMobileContractSheet, resolvePendingDecisions } from "./helpers";
 
 const ARC_PATH = process.env["BURN_PROTOCOL_ARC_PATH"];
@@ -237,7 +238,8 @@ test.describe("Burn Protocol corpus publication receiver", () => {
       storyChanges: "none",
       panelPayloads: "not-present",
     });
-    const state = (exported["org"] as { cartridgeState?: Record<string, unknown> }).cartridgeState ?? {};
+    const parsedRun = parsePortableRun(exported);
+    const state = parsedRun.org.cartridgeState ?? {};
     for (const key of CONSEQUENCE_KEYS) expect(state[key]).toBe(true);
 
     await page.evaluate(() => localStorage.clear());
