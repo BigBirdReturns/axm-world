@@ -131,6 +131,11 @@ test.describe("Burn Protocol verified evidence projection", () => {
       fullPage: true,
     });
     await page.getByTestId("close-live-external-evidence").click();
+    // Closing is the authority boundary between evidence presentation and the
+    // live shell. Wait for the pointer-active veil to unmount before any World
+    // action, rather than relying on React scheduling speed at one viewport.
+    await expect(drawer).toHaveCount(0);
+    await expect(page.getByTestId("cartridge-object-button")).toBeVisible();
 
     const after = await exportRun(page, testInfo.outputPath(`after-evidence-${testInfo.project.name}.run.json`));
     expect(durableRunState(after)).toEqual(durableRunState(before));
