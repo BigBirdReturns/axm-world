@@ -2,6 +2,7 @@ import React, { useEffect, useSyncExternalStore } from "react";
 import ReactDOM from "react-dom/client";
 import { Player } from "../world/Player.js";
 import { BurnExternalAssetReceiverRoute } from "../world/external-assets/BurnExternalAssetReceiverRoute.js";
+import { ExternalCorpusCatalogCapture } from "../world/external-assets/ExternalCorpusCatalogCapture.js";
 import { ExternalEvidenceProjection } from "../world/external-assets/ExternalEvidenceProjection.js";
 import {
   BURN_EXTERNAL_ASSET_SURFACE,
@@ -51,7 +52,9 @@ function App(): JSX.Element {
           data-testid="rodoh-surface-overlay"
           style={{ position: "fixed", inset: 0, zIndex: 2_000, overflow: "auto", background: "#0b0a08" }}
         >
-          <BurnExternalAssetReceiverRoute />
+          <ExternalCorpusCatalogCapture>
+            <BurnExternalAssetReceiverRoute />
+          </ExternalCorpusCatalogCapture>
         </div>
       )}
     </>
