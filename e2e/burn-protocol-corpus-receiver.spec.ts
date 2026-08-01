@@ -153,6 +153,10 @@ async function ensureRosterSurface(page: Page): Promise<void> {
   await expect(page.getByTestId("mobile-step-party")).toBeVisible();
 }
 
+async function expectVisibleText(page: Page, text: string): Promise<void> {
+  await expect(page.getByText(text, { exact: true }).first()).toBeVisible();
+}
+
 test.describe("Burn Protocol corpus publication receiver", () => {
   test.skip(!ARC_PATH || !CORPUS_PATH || !RECEIPT_PATH, "Requires the exact axm-arc publication output.");
   test.describe.configure({ mode: "serial" });
@@ -205,14 +209,14 @@ test.describe("Burn Protocol corpus publication receiver", () => {
     await enterBurn(page);
     await expect(page.locator("html")).not.toHaveAttribute("data-cartridge", /.+/);
     await expect(page.getByTestId("cartridge-title")).toContainText("The Burn Protocol: Disclosure and Repair");
-    await expect(page.getByText("Common Standing", { exact: true })).toBeVisible();
-    await expect(page.getByText("Stores", { exact: true })).toBeVisible();
-    await expect(page.getByText("Watch", { exact: true })).toBeVisible();
-    await expect(page.getByText("Trust", { exact: true })).toBeVisible();
+    await expectVisibleText(page, "Common Standing");
+    await expectVisibleText(page, "Stores");
+    await expectVisibleText(page, "Watch");
+    await expectVisibleText(page, "Trust");
     await ensureRosterSurface(page);
-    await expect(page.getByText("Admiral Vance", { exact: true })).toBeVisible();
-    await expect(page.getByText("Osyraa", { exact: true })).toBeVisible();
-    await expect(page.getByText("Su'Kal", { exact: true })).toBeVisible();
+    await expectVisibleText(page, "Admiral Vance");
+    await expectVisibleText(page, "Osyraa");
+    await expectVisibleText(page, "Su'Kal");
     await page.screenshot({ path: testInfo.outputPath(`burn-world-entry-${testInfo.project.name}.png`), fullPage: true });
 
     await chooseRepresentation(page, "view-run-graph", "contract-board");
