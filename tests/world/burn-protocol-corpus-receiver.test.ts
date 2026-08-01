@@ -23,7 +23,7 @@ const SOURCE_PATH = process.env["BURN_PROTOCOL_SOURCE_PATH"];
 const CORPUS_PATH = process.env["BURN_PROTOCOL_CORPUS_PATH"];
 const RECEIPT_PATH = process.env["BURN_PROTOCOL_PUBLICATION_RECEIPT_PATH"];
 
-const EXPECTED_DIGEST = "cart1_c53f00a2d11568377793a898d298df1dd5b2e35bf8c89f081489c9796808820d";
+const EXPECTED_DIGEST = "cart1_870f3dfcab909fc9aace115e2c46cd30268339f80bc87a14f0eebcc4e2c28c3e";
 const EXPECTED_PARENT = "b3b299e14d8c22cde88629eb6bc4d197b8f8015eec7bf46b95f0de2a31b5f0df";
 const EXPECTED_CATEGORIES = [
   "role-coverage",
@@ -114,6 +114,7 @@ describe.skipIf(!ARC_PATH || !SOURCE_PATH || !CORPUS_PATH || !RECEIPT_PATH)(
       expect(arc.meta).toMatchObject({
         id: "burn-protocol-disclosure-probe",
         name: "The Burn Protocol: Disclosure and Repair",
+        version: "0.1.1",
         engineVersion: "1.3.0",
         domain: "godscar-common-ship",
       });
@@ -122,6 +123,12 @@ describe.skipIf(!ARC_PATH || !SOURCE_PATH || !CORPUS_PATH || !RECEIPT_PATH)(
         "assign-the-six-withdrawal-mandates",
         "repair-the-first-public-corridor",
         "publish-the-read-only-reconstruction",
+      ]);
+      expect(arc.challenges.map((challenge) => challenge.mechanicChecks[0]?.difficultyThreshold)).toEqual([
+        45,
+        50,
+        30,
+        40,
       ]);
     });
 
