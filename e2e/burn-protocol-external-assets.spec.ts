@@ -33,7 +33,7 @@ test.describe("Burn Protocol holder-controlled external asset receiver", () => {
     const preflight = page.getByTestId("external-custody-preflight");
     await expect(preflight).toHaveAttribute("data-standing", "mechanism-fixture");
     await expect(preflight).toHaveAttribute("data-assets", "1");
-    await expect(page.getByText(/cannot acquire production standing/i)).toBeVisible();
+    await expect(preflight.getByText(/cannot acquire production standing/i)).toBeVisible();
 
     await page.getByTestId("external-assets-input").setInputFiles(
       path.join(root, "assets", "E12-C3-P01.png"),
