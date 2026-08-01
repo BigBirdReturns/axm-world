@@ -46,9 +46,16 @@ async function enterBurn(page: Page): Promise<void> {
 }
 
 async function exportRun(page: Page, destination: string): Promise<Record<string, unknown>> {
-  await page.getByTestId("cartridge-object-button").click();
+  const exportButton = page.getByRole("button", { name: /export run/i });
+  // The in-process corpus surface deliberately preserves the cartridge object
+  // panel beneath it. Reuse that panel when it is already open rather than
+  // clicking through its own pointer-blocking modal veil.
+  if (!(await exportButton.isVisible().catch(() => false))) {
+    await page.getByTestId("cartridge-object-button").click();
+  }
+  await expect(exportButton).toBeVisible();
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: /export run/i }).click();
+  await exportButton.click();
   const download: Download = await downloadPromise;
   await download.saveAs(destination);
   await page.getByRole("button", { name: /resume/i }).click();
@@ -131,11 +138,7 @@ test.describe("Burn Protocol verified evidence projection", () => {
       fullPage: true,
     });
     await page.getByTestId("close-live-external-evidence").click();
-    // Closing is the authority boundary between evidence presentation and the
-    // live shell. Wait for the pointer-active veil to unmount before any World
-    // action, rather than relying on React scheduling speed at one viewport.
     await expect(drawer).toHaveCount(0);
-    await expect(page.getByTestId("cartridge-object-button")).toBeVisible();
 
     const after = await exportRun(page, testInfo.outputPath(`after-evidence-${testInfo.project.name}.run.json`));
     expect(durableRunState(after)).toEqual(durableRunState(before));
