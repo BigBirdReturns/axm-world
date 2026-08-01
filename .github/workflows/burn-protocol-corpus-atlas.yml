@@ -1,0 +1,175 @@
+name: Burn Protocol corpus atlas
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/burn-protocol-corpus-atlas.yml'
+      - 'src/game/main.tsx'
+      - 'src/world/external-assets/corpus-atlas.ts'
+      - 'src/world/external-assets/ExternalCorpusCatalogCapture.tsx'
+      - 'src/world/external-assets/ExternalCorpusAtlas.tsx'
+      - 'src/world/external-assets/ExternalEvidenceProjection.tsx'
+      - 'tests/world/external-corpus-atlas.test.ts'
+      - 'tools/build-burn-protocol-corpus-atlas-fixture.mjs'
+      - 'e2e/burn-protocol-corpus-atlas.spec.ts'
+      - 'docs/BURN_PROTOCOL_CORPUS_ATLAS.md'
+  push:
+    branches: [probe/burn-protocol-corpus-atlas-v1]
+    paths:
+      - '.github/workflows/burn-protocol-corpus-atlas.yml'
+      - 'src/game/main.tsx'
+      - 'src/world/external-assets/corpus-atlas.ts'
+      - 'src/world/external-assets/ExternalCorpusCatalogCapture.tsx'
+      - 'src/world/external-assets/ExternalCorpusAtlas.tsx'
+      - 'src/world/external-assets/ExternalEvidenceProjection.tsx'
+      - 'tests/world/external-corpus-atlas.test.ts'
+      - 'tools/build-burn-protocol-corpus-atlas-fixture.mjs'
+      - 'e2e/burn-protocol-corpus-atlas.spec.ts'
+      - 'docs/BURN_PROTOCOL_CORPUS_ATLAS.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-corpus-atlas:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      CI: 'true'
+      PW_BASE_URL: http://127.0.0.1:5173
+      BURN_PROTOCOL_ARC_REPOSITORY: BigBirdReturns/axm-arc
+      BURN_PROTOCOL_ARC_HEAD: 9bcf2a1c65e75b7c414c0a74f73888cf2699be14
+      BURN_PROTOCOL_EXPECTED_DIGEST: cart1_870f3dfcab909fc9aace115e2c46cd30268339f80bc87a14f0eebcc4e2c28c3e
+    steps:
+      - name: Check out World atlas candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install World dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Check out exact Arc activation authority
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.BURN_PROTOCOL_ARC_REPOSITORY }}
+          ref: ${{ env.BURN_PROTOCOL_ARC_HEAD }}
+          path: upstream/axm-arc
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Install Arc dependencies
+        working-directory: upstream/axm-arc
+        run: npm ci --no-audit --no-fund
+
+      - name: Rebuild calibrated publication and atlas fixture
+        run: |
+          set -euo pipefail
+          test "$(git -C upstream/axm-arc rev-parse HEAD)" = "$BURN_PROTOCOL_ARC_HEAD"
+          publication="$RUNNER_TEMP/burn-protocol-publication"
+          fixture="$RUNNER_TEMP/burn-protocol-corpus-atlas"
+          mkdir -p "$publication"
+          (
+            cd upstream/axm-arc
+            npx vite-node tools/build-burn-protocol-disclosure-probe.ts "$publication"
+          ) | tee "$RUNNER_TEMP/publication.log"
+          node tools/build-burn-protocol-corpus-atlas-fixture.mjs "$fixture" \
+            | tee "$RUNNER_TEMP/atlas-fixture.log"
+          (cd "$fixture" && sha256sum -c SHA256SUMS)
+          printf 'BURN_PROTOCOL_ARC_PATH=%s\n' "$publication/burn-protocol-disclosure-probe.arc.json" >> "$GITHUB_ENV"
+          printf 'BURN_CORPUS_ATLAS_FIXTURE_DIR=%s\n' "$fixture" >> "$GITHUB_ENV"
+
+      - name: Strict TypeScript and focused atlas contracts
+        run: |
+          set -euo pipefail
+          npm run typecheck | tee "$RUNNER_TEMP/typecheck.log"
+          npm test -- \
+            tests/world/burn-protocol-corpus-receiver.test.ts \
+            tests/world/external-assets.test.ts \
+            tests/world/external-corpus-atlas.test.ts \
+            | tee "$RUNNER_TEMP/focused-tests.log"
+
+      - name: Build ordinary World product
+        run: npm run build | tee "$RUNNER_TEMP/build.log"
+
+      - name: Prove no fixture bytes or corpus paths entered the build
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const crypto = require('node:crypto');
+          const fixture = process.env.BURN_CORPUS_ATLAS_FIXTURE_DIR;
+          const index = JSON.parse(fs.readFileSync(path.join(fixture, 'corpus-asset-index.json'), 'utf8'));
+          const target = fs.readFileSync(path.join(fixture, index.assets[0].path));
+          const expected = crypto.createHash('sha256').update(target).digest('hex');
+          const byteMatches = [];
+          function walk(root) {
+            for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+              const absolute = path.join(root, entry.name);
+              if (entry.isDirectory()) walk(absolute);
+              else if (entry.isFile()) {
+                const bytes = fs.readFileSync(absolute);
+                const digest = crypto.createHash('sha256').update(bytes).digest('hex');
+                if (digest === expected) byteMatches.push(path.relative('docs/game', absolute));
+                const text = bytes.toString('utf8');
+                for (const asset of index.assets) {
+                  if (text.includes(asset.path)) {
+                    throw new Error(`Fixture atlas path entered build output: ${asset.path} in ${path.relative('docs/game', absolute)}`);
+                  }
+                }
+              }
+            }
+          }
+          walk('docs/game');
+          if (byteMatches.length > 0) throw new Error(`Fixture raster bytes were bundled: ${byteMatches.join(', ')}`);
+          NODE
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Desktop and mobile manifest-derived atlas
+        run: |
+          set -euo pipefail
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npx playwright test e2e/burn-protocol-corpus-atlas.spec.ts \
+            | tee "$RUNNER_TEMP/browser.log"
+
+      - name: Retain corpus atlas evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p burn-protocol-corpus-atlas-qualification
+          cp "$RUNNER_TEMP"/publication.log burn-protocol-corpus-atlas-qualification/ 2>/dev/null || true
+          cp "$RUNNER_TEMP"/atlas-fixture.log burn-protocol-corpus-atlas-qualification/ 2>/dev/null || true
+          cp "$RUNNER_TEMP"/typecheck.log burn-protocol-corpus-atlas-qualification/ 2>/dev/null || true
+          cp "$RUNNER_TEMP"/focused-tests.log burn-protocol-corpus-atlas-qualification/ 2>/dev/null || true
+          cp "$RUNNER_TEMP"/build.log burn-protocol-corpus-atlas-qualification/ 2>/dev/null || true
+          cp "$RUNNER_TEMP"/browser.log burn-protocol-corpus-atlas-qualification/ 2>/dev/null || true
+          printf '%s\n' "${{ github.event.pull_request.head.sha || github.sha }}" > burn-protocol-corpus-atlas-qualification/world-candidate-sha.txt
+          printf '%s\n' "$BURN_PROTOCOL_ARC_HEAD" > burn-protocol-corpus-atlas-qualification/arc-activation-sha.txt
+          (cd burn-protocol-corpus-atlas-qualification && sha256sum * > SHA256SUMS)
+
+      - name: Upload corpus atlas qualification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: burn-protocol-corpus-atlas-qualification
+          path: |
+            burn-protocol-corpus-atlas-qualification
+            test-results
+          if-no-files-found: error
+          retention-days: 30
