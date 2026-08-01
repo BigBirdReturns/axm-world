@@ -1,15 +1,43 @@
-import React from "react";
+import React, { useSyncExternalStore } from "react";
 import ReactDOM from "react-dom/client";
 import { Player } from "../world/Player.js";
 import { BurnExternalAssetReceiverRoute } from "../world/external-assets/BurnExternalAssetReceiverRoute.js";
+import {
+  BURN_EXTERNAL_ASSET_SURFACE,
+  currentRodohSurface,
+  setRodohSurface,
+  subscribeRodohSurface,
+} from "../world/surface-navigation.js";
+
+function App(): JSX.Element {
+  const surface = useSyncExternalStore(
+    subscribeRodohSurface,
+    currentRodohSurface,
+    () => null,
+  );
+  return (
+    <>
+      {/* Player remains mounted while a holder-owned presentation surface is
+          open. The live run and its process-local evidence session therefore do
+          not depend on a page reload or a second save authority. */}
+      <Player />
+      {surface === BURN_EXTERNAL_ASSET_SURFACE && (
+        <div
+          data-testid="rodoh-surface-overlay"
+          style={{ position: "fixed", inset: 0, zIndex: 2_000, overflow: "auto", background: "#0b0a08" }}
+        >
+          <BurnExternalAssetReceiverRoute onClose={() => setRodohSurface(null, "replace")} />
+        </div>
+      )}
+    </>
+  );
+}
 
 const root = document.getElementById("root");
 if (!root) throw new Error("No #root element");
-const surface = new URLSearchParams(window.location.search).get("surface");
-const application = surface === "burn-assets" ? <BurnExternalAssetReceiverRoute /> : <Player />;
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
-    {application}
+    <App />
   </React.StrictMode>,
 );
 
