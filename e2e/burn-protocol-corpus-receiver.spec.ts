@@ -197,7 +197,7 @@ test.describe("Burn Protocol corpus publication receiver", () => {
     await importFile(page, arcPath);
     await expect(page.getByTestId("import-success")).toContainText("The Burn Protocol: Disclosure and Repair");
     const preflightDigest = await page.getByTestId("bay-import-preflight-digest").getAttribute("title");
-    expect(preflightDigest).toBe("cart1_c53f00a2d11568377793a898d298df1dd5b2e35bf8c89f081489c9796808820d");
+    expect(preflightDigest).toBe("cart1_870f3dfcab909fc9aace115e2c46cd30268339f80bc87a14f0eebcc4e2c28c3e");
 
     const entry = page.getByTestId("cartridge-entry-burn-protocol-disclosure-probe");
     await expect(entry).toBeVisible();
