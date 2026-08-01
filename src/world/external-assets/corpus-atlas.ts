@@ -123,7 +123,7 @@ export function subscribeExternalCorpusCatalog(
 }
 
 const COMPACT_PANEL = /(?:^|[/_.-])E(\d{1,3})[-_]C(\d{1,2})[-_]P(\d{1,3})(?=$|[/_.-])/i;
-const COMPACT_PLATE = /(?:^|[/_.-])E(\d{1,3})[-_]C(\d{1,2})[-_](?:PLATE|PL)(\d{1,3})(?=$|[/_.-])/i;
+const COMPACT_PLATE = /(?:^|[/_.-])E(\d{1,3})[-_]C(\d{1,2})[-_](?:PLATE|PL)[-_]?(\d{1,3})(?=$|[/_.-])/i;
 const LONG_PANEL = /(?:^|[/_.-])(?:EPISODE|EP)[-_ ]?(\d{1,3})[/_.-]+(?:CHAPTER|CH)[-_ ]?(\d{1,2})[/_.-]+(?:PANEL|P)[-_ ]?(\d{1,3})(?=$|[/_.-])/i;
 const LONG_PLATE = /(?:^|[/_.-])(?:EPISODE|EP)[-_ ]?(\d{1,3})[/_.-]+(?:CHAPTER|CH)[-_ ]?(\d{1,2})[/_.-]+(?:PLATE|PL)[-_ ]?(\d{1,3})(?=$|[/_.-])/i;
 const EPISODE_TOKEN = /(?:^|[/_.-])(?:EPISODE|EP|E)[-_ ]?(\d{1,3})(?=$|[/_.-])/i;
