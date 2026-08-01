@@ -137,8 +137,10 @@ const receiptText = json({
 });
 const receipt = write("handoff-publication-activation-receipt.json", receiptText);
 
+// Standard sha256sum format is exactly two fields: digest and relative path.
+// Byte counts remain in the JSON receipt and are not smuggled into the filename.
 const ledgerRows = [asset, index, overlay, receipt].map((entry) =>
-  `${entry.sha256}  ${entry.bytes}  ${entry.path.slice(output.length + 1).replaceAll("\\", "/")}`,
+  `${entry.sha256}  ${entry.path.slice(output.length + 1).replaceAll("\\", "/")}`,
 );
 writeFileSync(resolve(output, "SHA256SUMS"), `${ledgerRows.join("\n")}\n`);
 
