@@ -8,13 +8,14 @@ import {
   type ExternalAssetSession,
   type ExternalAssetSessionEntry,
 } from "../external-assets.js";
+import { ExternalCorpusAtlas } from "./ExternalCorpusAtlas.js";
 
 const veil: CSSProperties = {
   position: "fixed",
   inset: 0,
   zIndex: 1_700,
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) minmax(280px, 460px)",
+  gridTemplateColumns: "minmax(0, 1fr) minmax(280px, 520px)",
   background: "rgba(4,4,3,0.58)",
   pointerEvents: "auto",
 };
@@ -65,12 +66,13 @@ function EvidenceFigure({ asset }: { asset: ExternalAssetSessionEntry }): JSX.El
 }
 
 /** Read-only projection of a verified process-local evidence session. It receives
- * no ArcWorld, interaction, outcome, save, or export callback. Closing or paging
- * this drawer can therefore change only presentation state. */
+ * no ArcWorld, interaction, outcome, save, or export callback. Closing, paging,
+ * or changing atlas view can therefore change only presentation state. */
 export function ExternalEvidenceProjection(): JSX.Element | null {
   const session = useBurnEvidenceSession();
   const [open, setOpen] = useState(false);
   const [cursor, setCursor] = useState(0);
+  const [mode, setMode] = useState<"evidence" | "atlas">("evidence");
   const renderable = useMemo(
     () => session?.assets.filter((asset) => asset.objectUrl !== null) ?? [],
     [session],
@@ -83,6 +85,7 @@ export function ExternalEvidenceProjection(): JSX.Element | null {
     if (!session) {
       setOpen(false);
       setCursor(0);
+      setMode("evidence");
     } else if (cursor >= Math.max(1, renderable.length)) {
       setCursor(0);
     }
@@ -118,6 +121,7 @@ export function ExternalEvidenceProjection(): JSX.Element | null {
           data-testid="live-external-evidence-drawer"
           data-standing={session.standing}
           data-assets={session.assets.length}
+          data-mode={mode}
           role="dialog"
           aria-modal="true"
           aria-label="Verified external evidence"
@@ -158,17 +162,45 @@ export function ExternalEvidenceProjection(): JSX.Element | null {
             </div>
 
             <p style={{ margin: "12px 0", color: "#bdb2a0", font: "13px/1.55 'Lora', Georgia, serif" }}>
-              This image is a holder-selected byte projection. It cannot satisfy a contract, alter a report, enter a portable run, or change the canonical Burn record.
+              Verified images may inform the holder's judgment. They cannot satisfy a contract, alter a report, enter a portable run, or change the canonical Burn record.
             </p>
 
-            {active && <EvidenceFigure asset={active} />}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }} role="tablist" aria-label="External evidence views">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === "evidence"}
+                data-testid="live-evidence-mode-evidence"
+                onClick={() => setMode("evidence")}
+                style={{ border: `1px solid ${mode === "evidence" ? "#c9a14a" : "#4a4238"}`, background: mode === "evidence" ? "#342d1c" : "#15130f", color: "#e7ddca", padding: 8, cursor: "pointer", font: "10px 'IBM Plex Mono', monospace" }}
+              >
+                Selected evidence
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === "atlas"}
+                data-testid="live-evidence-mode-atlas"
+                onClick={() => setMode("atlas")}
+                style={{ border: `1px solid ${mode === "atlas" ? "#c9a14a" : "#4a4238"}`, background: mode === "atlas" ? "#342d1c" : "#15130f", color: "#e7ddca", padding: 8, cursor: "pointer", font: "10px 'IBM Plex Mono', monospace" }}
+              >
+                Corpus atlas
+              </button>
+            </div>
 
-            {renderable.length > 1 && (
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 12 }}>
-                <PixelButton type="button" variant="ghost" data-testid="live-evidence-previous" onClick={() => setCursor((value) => (value - 1 + renderable.length) % renderable.length)}>Previous</PixelButton>
-                <span style={{ color: "#8b8172", fontSize: 10 }}>{cursor + 1} / {renderable.length}</span>
-                <PixelButton type="button" variant="ghost" data-testid="live-evidence-next" onClick={() => setCursor((value) => (value + 1) % renderable.length)}>Next</PixelButton>
-              </div>
+            {mode === "evidence" ? (
+              <>
+                {active && <EvidenceFigure asset={active} />}
+                {renderable.length > 1 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 12 }}>
+                    <PixelButton type="button" variant="ghost" data-testid="live-evidence-previous" onClick={() => setCursor((value) => (value - 1 + renderable.length) % renderable.length)}>Previous</PixelButton>
+                    <span style={{ color: "#8b8172", fontSize: 10 }}>{cursor + 1} / {renderable.length}</span>
+                    <PixelButton type="button" variant="ghost" data-testid="live-evidence-next" onClick={() => setCursor((value) => (value + 1) % renderable.length)}>Next</PixelButton>
+                  </div>
+                )}
+              </>
+            ) : (
+              <ExternalCorpusAtlas session={session} />
             )}
 
             <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid #2a2620", display: "grid", gap: 5, color: "#6f6659", fontSize: 9, wordBreak: "break-all" }}>
