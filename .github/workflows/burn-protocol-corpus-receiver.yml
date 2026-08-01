@@ -1,0 +1,138 @@
+name: Burn Protocol corpus receiver journey
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/burn-protocol-corpus-receiver.yml'
+      - 'tests/world/burn-protocol-corpus-receiver.test.ts'
+      - 'e2e/burn-protocol-corpus-receiver.spec.ts'
+      - 'docs/BURN_PROTOCOL_CORPUS_RECEIVER_PROBE.md'
+  push:
+    branches: [probe/burn-protocol-corpus-receiver-v1]
+    paths:
+      - '.github/workflows/burn-protocol-corpus-receiver.yml'
+      - 'tests/world/burn-protocol-corpus-receiver.test.ts'
+      - 'e2e/burn-protocol-corpus-receiver.spec.ts'
+      - 'docs/BURN_PROTOCOL_CORPUS_RECEIVER_PROBE.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish-import-play-resume:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      CI: 'true'
+      PW_BASE_URL: http://127.0.0.1:5173
+      BURN_PROTOCOL_ARC_REPOSITORY: BigBirdReturns/axm-arc
+      BURN_PROTOCOL_ARC_HEAD: da996659074382e64c9b983eb3559cbf8485d592
+      BURN_PROTOCOL_EXPECTED_DIGEST: cart1_c53f00a2d11568377793a898d298df1dd5b2e35bf8c89f081489c9796808820d
+      BURN_PROTOCOL_EXPECTED_PARENT: b3b299e14d8c22cde88629eb6bc4d197b8f8015eec7bf46b95f0de2a31b5f0df
+    steps:
+      - name: Check out World receiver
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install World dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Check out exact Arc publication authority
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.BURN_PROTOCOL_ARC_REPOSITORY }}
+          ref: ${{ env.BURN_PROTOCOL_ARC_HEAD }}
+          path: upstream/axm-arc
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Install Arc dependencies
+        working-directory: upstream/axm-arc
+        run: npm ci --no-audit --no-fund
+
+      - name: Publish exact Arc corpus artifacts
+        run: |
+          set -euo pipefail
+          test "$(git -C upstream/axm-arc rev-parse HEAD)" = "$BURN_PROTOCOL_ARC_HEAD"
+          output="$RUNNER_TEMP/burn-protocol-publication"
+          mkdir -p "$output"
+          (
+            cd upstream/axm-arc
+            npx vite-node tools/build-burn-protocol-disclosure-probe.ts "$output"
+          ) | tee "$RUNNER_TEMP/arc-publication.log"
+          printf 'BURN_PROTOCOL_ARC_PATH=%s\n' "$output/burn-protocol-disclosure-probe.arc.json" >> "$GITHUB_ENV"
+          printf 'BURN_PROTOCOL_SOURCE_PATH=%s\n' "$output/burn-protocol-disclosure-probe.ship.json" >> "$GITHUB_ENV"
+          printf 'BURN_PROTOCOL_CORPUS_PATH=%s\n' "$output/burn-protocol-v0.58.0.corpus.json" >> "$GITHUB_ENV"
+          printf 'BURN_PROTOCOL_PUBLICATION_RECEIPT_PATH=%s\n' "$output/publication-receipt.json" >> "$GITHUB_ENV"
+          printf 'BURN_PROTOCOL_PUBLICATION_DIR=%s\n' "$output" >> "$GITHUB_ENV"
+
+      - name: Verify publication custody and identity
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const path = require('node:path');
+          const root = process.env.BURN_PROTOCOL_PUBLICATION_DIR;
+          const receipt = JSON.parse(fs.readFileSync(path.join(root, 'publication-receipt.json'), 'utf8'));
+          if (receipt.status !== 'pass') throw new Error(`publication status ${receipt.status}`);
+          if (receipt.exactParentSha256 !== process.env.BURN_PROTOCOL_EXPECTED_PARENT) {
+            throw new Error(`parent ${receipt.exactParentSha256}`);
+          }
+          for (const [name, expected] of Object.entries(receipt.files)) {
+            const bytes = fs.readFileSync(path.join(root, name));
+            const actual = crypto.createHash('sha256').update(bytes).digest('hex');
+            if (actual !== expected.sha256 || bytes.length !== expected.bytes) {
+              throw new Error(`${name}: ${actual}/${bytes.length}`);
+            }
+          }
+          NODE
+          mkdir -p burn-protocol-receiver-receipt
+          printf '%s\n' "${{ github.event.pull_request.head.sha || github.sha }}" > burn-protocol-receiver-receipt/world-candidate-sha.txt
+          printf '%s\n' "$BURN_PROTOCOL_ARC_HEAD" > burn-protocol-receiver-receipt/arc-publication-sha.txt
+          cp "$RUNNER_TEMP/arc-publication.log" burn-protocol-receiver-receipt/
+          cp "$BURN_PROTOCOL_PUBLICATION_DIR"/*.json burn-protocol-receiver-receipt/
+          (cd burn-protocol-receiver-receipt && sha256sum *.json > SHA256SUMS)
+
+      - name: TypeScript
+        run: npm run typecheck | tee burn-protocol-receiver-receipt/typecheck.log
+
+      - name: Focused Arc-to-World receiver contract
+        run: npm test -- tests/world/burn-protocol-corpus-receiver.test.ts | tee burn-protocol-receiver-receipt/focused-tests.log
+
+      - name: Production World build
+        run: npm run build | tee burn-protocol-receiver-receipt/build.log
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Desktop and mobile import, play, export, and resume
+        run: |
+          set -euo pipefail
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npx playwright test e2e/burn-protocol-corpus-receiver.spec.ts | tee burn-protocol-receiver-receipt/browser.log
+
+      - name: Retain receiver evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: burn-protocol-corpus-receiver-journey
+          path: |
+            burn-protocol-receiver-receipt
+            test-results
+          if-no-files-found: warn
+          retention-days: 30
