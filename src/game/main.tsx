@@ -2,6 +2,7 @@ import React, { useEffect, useSyncExternalStore } from "react";
 import ReactDOM from "react-dom/client";
 import { Player } from "../world/Player.js";
 import { BurnExternalAssetReceiverRoute } from "../world/external-assets/BurnExternalAssetReceiverRoute.js";
+import { ExternalEvidenceProjection } from "../world/external-assets/ExternalEvidenceProjection.js";
 import {
   BURN_EXTERNAL_ASSET_SURFACE,
   currentRodohSurface,
@@ -44,6 +45,7 @@ function App(): JSX.Element {
           open. The live run and its process-local evidence session therefore do
           not depend on a page reload or a second save authority. */}
       <Player />
+      {surface === null && <ExternalEvidenceProjection />}
       {surface === BURN_EXTERNAL_ASSET_SURFACE && (
         <div
           data-testid="rodoh-surface-overlay"
