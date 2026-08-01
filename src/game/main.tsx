@@ -1,4 +1,4 @@
-import React, { useSyncExternalStore } from "react";
+import React, { useEffect, useSyncExternalStore } from "react";
 import ReactDOM from "react-dom/client";
 import { Player } from "../world/Player.js";
 import { BurnExternalAssetReceiverRoute } from "../world/external-assets/BurnExternalAssetReceiverRoute.js";
@@ -15,6 +15,29 @@ function App(): JSX.Element {
     currentRodohSurface,
     () => null,
   );
+
+  useEffect(() => {
+    // These controls predate the in-process surface host and still carry
+    // location.assign fallbacks. Capture their exact test-id controls before the
+    // target handler runs, so current and older cartridges open/close the surface
+    // without remounting the live world. No generic link interception occurs.
+    const intercept = (event: MouseEvent) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!target) return;
+      if (target.closest('[data-testid="open-external-corpus"]')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        setRodohSurface(BURN_EXTERNAL_ASSET_SURFACE);
+      } else if (target.closest('[data-testid="external-assets-return-bay"]')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        setRodohSurface(null, "replace");
+      }
+    };
+    document.addEventListener("click", intercept, true);
+    return () => document.removeEventListener("click", intercept, true);
+  }, []);
+
   return (
     <>
       {/* Player remains mounted while a holder-owned presentation surface is
@@ -26,7 +49,7 @@ function App(): JSX.Element {
           data-testid="rodoh-surface-overlay"
           style={{ position: "fixed", inset: 0, zIndex: 2_000, overflow: "auto", background: "#0b0a08" }}
         >
-          <BurnExternalAssetReceiverRoute onClose={() => setRodohSurface(null, "replace")} />
+          <BurnExternalAssetReceiverRoute />
         </div>
       )}
     </>
