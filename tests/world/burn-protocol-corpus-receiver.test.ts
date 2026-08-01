@@ -50,29 +50,33 @@ function sha256(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
+function loadPublicationFixture() {
+  const arcText = readFileSync(requiredPath(ARC_PATH, "BURN_PROTOCOL_ARC_PATH"), "utf8");
+  const sourceText = readFileSync(requiredPath(SOURCE_PATH, "BURN_PROTOCOL_SOURCE_PATH"), "utf8");
+  const corpusText = readFileSync(requiredPath(CORPUS_PATH, "BURN_PROTOCOL_CORPUS_PATH"), "utf8");
+  const receiptText = readFileSync(requiredPath(RECEIPT_PATH, "BURN_PROTOCOL_PUBLICATION_RECEIPT_PATH"), "utf8");
+  const arc = validateArc(JSON.parse(arcText));
+  const source = JSON.parse(sourceText);
+  const corpus = JSON.parse(corpusText) as {
+    classification: string;
+    exactParent: { sha256: string; nextTransaction: string };
+    corpus: { scriptedPanels: number; illustratedPanels: number };
+    publication: { inheritedHistory: string; liveRunAuthority: string; assetPolicy: string };
+  };
+  const receipt = JSON.parse(receiptText) as {
+    status: string;
+    cartridgeId: string;
+    exactParentSha256: string;
+    files: Record<string, { sha256: string; bytes: number }>;
+  };
+  return { arcText, sourceText, corpusText, arc, source, corpus, receipt };
+}
+
 describe.skipIf(!ARC_PATH || !SOURCE_PATH || !CORPUS_PATH || !RECEIPT_PATH)(
   "Burn Protocol axm-arc publication in the World receiver",
   () => {
-    const arcText = readFileSync(requiredPath(ARC_PATH, "BURN_PROTOCOL_ARC_PATH"), "utf8");
-    const sourceText = readFileSync(requiredPath(SOURCE_PATH, "BURN_PROTOCOL_SOURCE_PATH"), "utf8");
-    const corpusText = readFileSync(requiredPath(CORPUS_PATH, "BURN_PROTOCOL_CORPUS_PATH"), "utf8");
-    const receiptText = readFileSync(requiredPath(RECEIPT_PATH, "BURN_PROTOCOL_PUBLICATION_RECEIPT_PATH"), "utf8");
-    const arc = validateArc(JSON.parse(arcText));
-    const source = JSON.parse(sourceText);
-    const corpus = JSON.parse(corpusText) as {
-      classification: string;
-      exactParent: { sha256: string; nextTransaction: string };
-      corpus: { scriptedPanels: number; illustratedPanels: number };
-      publication: { inheritedHistory: string; liveRunAuthority: string; assetPolicy: string };
-    };
-    const receipt = JSON.parse(receiptText) as {
-      status: string;
-      cartridgeId: string;
-      exactParentSha256: string;
-      files: Record<string, { sha256: string; bytes: number }>;
-    };
-
     it("binds the exact metadata receipt while refusing absent estate payloads", () => {
+      const { arcText, sourceText, corpusText, corpus, receipt } = loadPublicationFixture();
       expect(corpus).toMatchObject({
         classification: "metadata-only-private-branch-probe",
         exactParent: { sha256: EXPECTED_PARENT, nextTransaction: "A13C1" },
@@ -103,6 +107,7 @@ describe.skipIf(!ARC_PATH || !SOURCE_PATH || !CORPUS_PATH || !RECEIPT_PATH)(
     });
 
     it("recovers the exact Common Ship source and content identity", () => {
+      const { arc, source } = loadPublicationFixture();
       expect(validateCommonShipPocket(source)).toEqual({ ok: true, source });
       expect(readCommonShipPocketExtension(arc)).toEqual(source);
       expect(cartridgeDigest(arc)).toBe(EXPECTED_DIGEST);
@@ -121,6 +126,7 @@ describe.skipIf(!ARC_PATH || !SOURCE_PATH || !CORPUS_PATH || !RECEIPT_PATH)(
     });
 
     it("imports as holder-owned neutral content rather than a bundled program", () => {
+      const { arcText } = loadPublicationFixture();
       const storage = new MemoryStorage();
       expect(bayImportPreflight(arcText, [])).toEqual(expect.objectContaining({
         ok: true,
@@ -143,6 +149,7 @@ describe.skipIf(!ARC_PATH || !SOURCE_PATH || !CORPUS_PATH || !RECEIPT_PATH)(
     });
 
     it("founds six named actors and makes every governance watch composition-feasible", () => {
+      const { arc } = loadPublicationFixture();
       const first = foundOrganization(arc, { format: "axm-founding-input/1", seed: 58_001_301 });
       const second = foundOrganization(arc, { format: "axm-founding-input/1", seed: 58_001_301 });
       expect(second).toEqual(first);
