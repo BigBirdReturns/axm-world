@@ -1,0 +1,163 @@
+name: Burn Protocol live evidence projection
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/burn-protocol-live-evidence-projection.yml'
+      - 'src/game/main.tsx'
+      - 'src/world/surface-navigation.ts'
+      - 'src/world/external-assets/ExternalEvidenceProjection.tsx'
+      - 'e2e/burn-protocol-live-evidence-projection.spec.ts'
+      - 'docs/BURN_PROTOCOL_LIVE_EVIDENCE_PROJECTION.md'
+  push:
+    branches: [probe/burn-protocol-live-evidence-projection-v1]
+    paths:
+      - '.github/workflows/burn-protocol-live-evidence-projection.yml'
+      - 'src/game/main.tsx'
+      - 'src/world/surface-navigation.ts'
+      - 'src/world/external-assets/ExternalEvidenceProjection.tsx'
+      - 'e2e/burn-protocol-live-evidence-projection.spec.ts'
+      - 'docs/BURN_PROTOCOL_LIVE_EVIDENCE_PROJECTION.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-read-only-projection:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      CI: 'true'
+      PW_BASE_URL: http://127.0.0.1:5173
+      BURN_PROTOCOL_ARC_REPOSITORY: BigBirdReturns/axm-arc
+      BURN_PROTOCOL_ARC_HEAD: 9bcf2a1c65e75b7c414c0a74f73888cf2699be14
+      BURN_PROTOCOL_EXPECTED_DIGEST: cart1_870f3dfcab909fc9aace115e2c46cd30268339f80bc87a14f0eebcc4e2c28c3e
+    steps:
+      - name: Check out World projection candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install World dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Check out exact Arc activation authority
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.BURN_PROTOCOL_ARC_REPOSITORY }}
+          ref: ${{ env.BURN_PROTOCOL_ARC_HEAD }}
+          path: upstream/axm-arc
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Install Arc dependencies
+        working-directory: upstream/axm-arc
+        run: npm ci --no-audit --no-fund
+
+      - name: Rebuild calibrated publication and browser fixture
+        run: |
+          set -euo pipefail
+          test "$(git -C upstream/axm-arc rev-parse HEAD)" = "$BURN_PROTOCOL_ARC_HEAD"
+          publication="$RUNNER_TEMP/burn-protocol-publication"
+          fixture="$RUNNER_TEMP/burn-protocol-external-assets"
+          mkdir -p "$publication"
+          (
+            cd upstream/axm-arc
+            npx vite-node tools/build-burn-protocol-disclosure-probe.ts "$publication"
+          ) | tee "$RUNNER_TEMP/publication.log"
+          node tools/build-burn-protocol-external-asset-fixture.mjs "$fixture" \
+            | tee "$RUNNER_TEMP/external-fixture.log"
+          (cd "$fixture" && sha256sum -c SHA256SUMS)
+          printf 'BURN_PROTOCOL_ARC_PATH=%s\n' "$publication/burn-protocol-disclosure-probe.arc.json" >> "$GITHUB_ENV"
+          printf 'BURN_EXTERNAL_ASSET_FIXTURE_DIR=%s\n' "$fixture" >> "$GITHUB_ENV"
+
+      - name: Strict TypeScript and focused custody contracts
+        run: |
+          set -euo pipefail
+          npm run typecheck | tee "$RUNNER_TEMP/typecheck.log"
+          npm test -- \
+            tests/world/burn-protocol-corpus-receiver.test.ts \
+            tests/world/external-assets.test.ts \
+            | tee "$RUNNER_TEMP/focused-tests.log"
+
+      - name: Build ordinary World product
+        run: npm run build | tee "$RUNNER_TEMP/build.log"
+
+      - name: Prove no fixture or evidence session entered the build
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const crypto = require('node:crypto');
+          const fixture = process.env.BURN_EXTERNAL_ASSET_FIXTURE_DIR;
+          const target = fs.readFileSync(path.join(fixture, 'assets', 'E12-C3-P01.png'));
+          const expected = crypto.createHash('sha256').update(target).digest('hex');
+          const matches = [];
+          function walk(root) {
+            for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+              const absolute = path.join(root, entry.name);
+              if (entry.isDirectory()) walk(absolute);
+              else if (entry.isFile()) {
+                const bytes = fs.readFileSync(absolute);
+                const digest = crypto.createHash('sha256').update(bytes).digest('hex');
+                if (digest === expected) matches.push(path.relative('docs/game', absolute));
+                const text = bytes.toString('utf8');
+                if (text.includes('assets/E12-C3-P01.png')) {
+                  throw new Error(`Fixture asset path entered build output: ${path.relative('docs/game', absolute)}`);
+                }
+              }
+            }
+          }
+          walk('docs/game');
+          if (matches.length > 0) throw new Error(`Fixture asset bytes were bundled: ${matches.join(', ')}`);
+          NODE
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Desktop and mobile continuing-world evidence projection
+        run: |
+          set -euo pipefail
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npx playwright test e2e/burn-protocol-live-evidence-projection.spec.ts \
+            | tee "$RUNNER_TEMP/browser.log"
+
+      - name: Retain projection evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p burn-protocol-live-evidence-projection-qualification
+          cp "$RUNNER_TEMP"/publication.log burn-protocol-live-evidence-projection-qualification/ 2>/dev/null || true
+          cp "$RUNNER_TEMP"/external-fixture.log burn-protocol-live-evidence-projection-qualification/ 2>/dev/null || true
+          cp "$RUNNER_TEMP"/typecheck.log burn-protocol-live-evidence-projection-qualification/ 2>/dev/null || true
+          cp "$RUNNER_TEMP"/focused-tests.log burn-protocol-live-evidence-projection-qualification/ 2>/dev/null || true
+          cp "$RUNNER_TEMP"/build.log burn-protocol-live-evidence-projection-qualification/ 2>/dev/null || true
+          cp "$RUNNER_TEMP"/browser.log burn-protocol-live-evidence-projection-qualification/ 2>/dev/null || true
+          printf '%s\n' "${{ github.event.pull_request.head.sha || github.sha }}" > burn-protocol-live-evidence-projection-qualification/world-candidate-sha.txt
+          printf '%s\n' "$BURN_PROTOCOL_ARC_HEAD" > burn-protocol-live-evidence-projection-qualification/arc-activation-sha.txt
+          (cd burn-protocol-live-evidence-projection-qualification && sha256sum * > SHA256SUMS)
+
+      - name: Upload projection qualification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: burn-protocol-live-evidence-projection-qualification
+          path: |
+            burn-protocol-live-evidence-projection-qualification
+            test-results
+          if-no-files-found: error
+          retention-days: 30
