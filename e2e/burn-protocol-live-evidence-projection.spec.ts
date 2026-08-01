@@ -39,6 +39,12 @@ async function finishEntryTransition(page: Page): Promise<void> {
   await expect(page.getByTestId("engine-shell")).toBeVisible();
 }
 
+async function enterBurn(page: Page): Promise<void> {
+  await page.getByTestId("play-cartridge-burn-protocol-disclosure-probe").click();
+  await finishEntryTransition(page);
+  await resolvePendingDecisions(page);
+}
+
 async function exportRun(page: Page, destination: string): Promise<Record<string, unknown>> {
   await page.getByTestId("cartridge-object-button").click();
   const downloadPromise = page.waitForEvent("download");
@@ -85,9 +91,7 @@ test.describe("Burn Protocol verified evidence projection", () => {
     await coldBay(page);
     await page.getByTestId("open-cartridge").setInputFiles(path.resolve(ARC_PATH!));
     await expect(page.getByTestId("import-success")).toContainText("The Burn Protocol: Disclosure and Repair");
-    await page.getByTestId("play-cartridge-burn-protocol-disclosure-probe").click();
-    await finishEntryTransition(page);
-    await resolvePendingDecisions(page);
+    await enterBurn(page);
     const before = await exportRun(page, testInfo.outputPath(`before-evidence-${testInfo.project.name}.run.json`));
 
     await page.getByTestId("cartridge-object-button").click();
@@ -136,7 +140,8 @@ test.describe("Burn Protocol verified evidence projection", () => {
     expect(exportedText).not.toContain("burn-protocol-corpus-asset-index/1");
 
     await page.reload();
-    await expect(page.getByTestId("engine-shell")).toBeVisible();
+    await expect(page.getByTestId("rodoh-cartridge-bay")).toBeVisible();
+    await enterBurn(page);
     await expect(page.getByTestId("live-external-evidence-button")).toHaveCount(0);
     expect(externalRequests).toEqual([]);
   });
