@@ -10,6 +10,8 @@ The receiver is available from the normal World build at:
 ?surface=burn-assets
 ```
 
+The exact Burn cartridge object also exposes **Open verified external corpus** when both the cartridge ID and computed Arc digest match the calibrated publication. A relabelled cartridge, a same-ID revision with different authored bytes, or another cartridge cannot acquire that affordance.
+
 Its authored publication binding is fixed to:
 
 ```text
@@ -33,7 +35,7 @@ burn-protocol-handoff-publication-activation-receipt/1
 burn-protocol-corpus-asset-index/1
 ```
 
-It refuses duplicate JSON keys, oversized or deeply nested records, changed overlay bytes, changed index bytes, a different cartridge digest, a different publication authority, a changed canon boundary, runtime bundling, unsafe asset paths, duplicated index paths, inconsistent classification counts, and a production label whose handoff or nested parent differs from the exact A13C1 contract.
+Each selected record is size-checked against the 16 MiB custody ceiling before `File.text()` is called. The browser then refuses unrelated format identifiers, duplicate JSON keys, oversized or deeply nested records, changed overlay bytes, changed index bytes, a different cartridge digest, a different publication authority, a changed canon boundary, runtime bundling, unsafe asset paths, duplicated index paths, inconsistent classification counts, and a production label whose handoff or nested parent differs from the exact A13C1 contract.
 
 A mechanism fixture may exercise the receiver, but it remains visibly classified as a fixture. Production standing requires all of the following external custody values:
 
@@ -91,12 +93,16 @@ The dedicated workflow rebuilds the calibrated Burn publication from the exact A
 The browser journey requires:
 
 ```text
+exact live cartridge object opens the receiver
 fixture custody preflight remains non-production
 exact raster verifies and decodes
 verified session reports 1 / 1 complete
 object URL is explicitly released
 changed raster bytes are refused by SHA-256
+oversized custody is refused before reading
+unrelated custody format is refused
 reload contains no custody preflight or asset session
+no horizontal overflow occurs
 no external HTTP or HTTPS request occurs
 ```
 
