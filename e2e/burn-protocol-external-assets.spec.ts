@@ -1,8 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
 import { EXTERNAL_ASSET_JSON_MAX_BYTES } from "../src/world/external-assets.js";
+import { resolvePendingDecisions } from "./helpers";
 
 const FIXTURE_DIR = process.env["BURN_EXTERNAL_ASSET_FIXTURE_DIR"];
+const ARC_PATH = process.env["BURN_PROTOCOL_ARC_PATH"];
 
 const custodyFiles = [
   "burn-protocol-handoff-publication-overlay.json",
@@ -25,8 +27,51 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   expect(dimensions.scrollWidth, JSON.stringify(dimensions)).toBeLessThanOrEqual(dimensions.clientWidth);
 }
 
+async function coldBay(page: Page): Promise<void> {
+  await page.goto("/axm-world/game/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await expect(page.getByTestId("rodoh-cartridge-bay")).toBeVisible();
+}
+
+async function finishEntryTransition(page: Page): Promise<void> {
+  const transition = page.getByTestId("cartridge-enter-transition");
+  for (let attempt = 0; attempt < 80; attempt += 1) {
+    if (await page.getByTestId("pending-decision-card").isVisible().catch(() => false)) break;
+    if (await page.getByTestId("engine-shell").isVisible().catch(() => false)) return;
+    const skip = transition.getByRole("button", { name: /skip entry/i });
+    if (await skip.isVisible().catch(() => false)) {
+      await Promise.race([
+        skip.click({ timeout: 250 }).catch(() => undefined),
+        transition.waitFor({ state: "hidden", timeout: 250 }).catch(() => undefined),
+      ]);
+    }
+    await page.waitForTimeout(25);
+  }
+  if (await page.getByTestId("pending-decision-card").isVisible().catch(() => false)) {
+    await resolvePendingDecisions(page);
+  }
+  await expect(page.getByTestId("engine-shell")).toBeVisible();
+}
+
 test.describe("Burn Protocol holder-controlled external asset receiver", () => {
-  test.skip(!FIXTURE_DIR, "Requires the content-bound external asset fixture.");
+  test.skip(!FIXTURE_DIR || !ARC_PATH, "Requires the exact Arc publication and content-bound external asset fixture.");
+
+  test("opens the receiver from the exact live Burn cartridge object", async ({ page }) => {
+    await coldBay(page);
+    await page.getByTestId("open-cartridge").setInputFiles(path.resolve(ARC_PATH!));
+    await expect(page.getByTestId("import-success")).toContainText("The Burn Protocol: Disclosure and Repair");
+    await page.getByTestId("play-cartridge-burn-protocol-disclosure-probe").click();
+    await finishEntryTransition(page);
+    await resolvePendingDecisions(page);
+    await page.getByTestId("cartridge-object-button").click();
+    const open = page.getByTestId("open-external-corpus");
+    await expect(open).toBeVisible();
+    await open.click();
+    await expect(page).toHaveURL(/surface=burn-assets/);
+    await expect(page.getByTestId("burn-external-asset-receiver")).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  });
 
   test("binds custody, verifies one raster, renders it, refuses tampering, and forgets bytes on reload", async ({ page }, testInfo) => {
     const root = path.resolve(FIXTURE_DIR!);
