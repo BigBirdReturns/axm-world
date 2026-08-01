@@ -1,0 +1,172 @@
+name: Burn Protocol holder-controlled external assets
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/burn-protocol-external-assets.yml'
+      - 'src/game/main.tsx'
+      - 'src/world/external-assets.ts'
+      - 'src/world/external-assets/**'
+      - 'tests/world/external-assets.test.ts'
+      - 'e2e/burn-protocol-external-assets.spec.ts'
+      - 'tools/build-burn-protocol-external-asset-fixture.mjs'
+      - 'docs/BURN_PROTOCOL_EXTERNAL_ASSET_RECEIVER.md'
+  push:
+    branches: [probe/burn-protocol-external-asset-receiver-v1]
+    paths:
+      - '.github/workflows/burn-protocol-external-assets.yml'
+      - 'src/game/main.tsx'
+      - 'src/world/external-assets.ts'
+      - 'src/world/external-assets/**'
+      - 'tests/world/external-assets.test.ts'
+      - 'e2e/burn-protocol-external-assets.spec.ts'
+      - 'tools/build-burn-protocol-external-asset-fixture.mjs'
+      - 'docs/BURN_PROTOCOL_EXTERNAL_ASSET_RECEIVER.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-holder-controlled-assets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      CI: 'true'
+      PW_BASE_URL: http://127.0.0.1:5173
+      BURN_PROTOCOL_ARC_REPOSITORY: BigBirdReturns/axm-arc
+      BURN_PROTOCOL_ARC_HEAD: 9bcf2a1c65e75b7c414c0a74f73888cf2699be14
+      BURN_PROTOCOL_EXPECTED_DIGEST: cart1_870f3dfcab909fc9aace115e2c46cd30268339f80bc87a14f0eebcc4e2c28c3e
+      BURN_PROTOCOL_EXPECTED_PARENT: b3b299e14d8c22cde88629eb6bc4d197b8f8015eec7bf46b95f0de2a31b5f0df
+    steps:
+      - name: Check out World receiver
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install World dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Check out exact Arc publication and activation authority
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.BURN_PROTOCOL_ARC_REPOSITORY }}
+          ref: ${{ env.BURN_PROTOCOL_ARC_HEAD }}
+          path: upstream/axm-arc
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Install Arc dependencies
+        working-directory: upstream/axm-arc
+        run: npm ci --no-audit --no-fund
+
+      - name: Rebuild the calibrated Burn publication
+        run: |
+          set -euo pipefail
+          test "$(git -C upstream/axm-arc rev-parse HEAD)" = "$BURN_PROTOCOL_ARC_HEAD"
+          output="$RUNNER_TEMP/burn-protocol-publication"
+          mkdir -p "$output"
+          (
+            cd upstream/axm-arc
+            npx vite-node tools/build-burn-protocol-disclosure-probe.ts "$output"
+          ) | tee "$RUNNER_TEMP/publication.log"
+          printf 'BURN_PROTOCOL_ARC_PATH=%s\n' "$output/burn-protocol-disclosure-probe.arc.json" >> "$GITHUB_ENV"
+          printf 'BURN_PROTOCOL_SOURCE_PATH=%s\n' "$output/burn-protocol-disclosure-probe.ship.json" >> "$GITHUB_ENV"
+          printf 'BURN_PROTOCOL_CORPUS_PATH=%s\n' "$output/burn-protocol-v0.58.0.corpus.json" >> "$GITHUB_ENV"
+          printf 'BURN_PROTOCOL_PUBLICATION_RECEIPT_PATH=%s\n' "$output/publication-receipt.json" >> "$GITHUB_ENV"
+
+      - name: Build the decodable external asset fixture
+        run: |
+          set -euo pipefail
+          fixture="$RUNNER_TEMP/burn-protocol-external-assets"
+          node tools/build-burn-protocol-external-asset-fixture.mjs "$fixture" \
+            | tee "$RUNNER_TEMP/external-fixture.log"
+          (cd "$fixture" && sha256sum -c SHA256SUMS)
+          printf 'BURN_EXTERNAL_ASSET_FIXTURE_DIR=%s\n' "$fixture" >> "$GITHUB_ENV"
+
+      - name: TypeScript
+        run: npm run typecheck | tee "$RUNNER_TEMP/typecheck.log"
+
+      - name: Focused publication and external custody contracts
+        run: |
+          npm test -- \
+            tests/world/burn-protocol-corpus-receiver.test.ts \
+            tests/world/external-assets.test.ts \
+            | tee "$RUNNER_TEMP/focused-tests.log"
+
+      - name: Production World build
+        run: npm run build | tee "$RUNNER_TEMP/build.log"
+
+      - name: Prove fixture bytes are not bundled into World
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const crypto = require('node:crypto');
+          const target = fs.readFileSync(path.join(process.env.BURN_EXTERNAL_ASSET_FIXTURE_DIR, 'assets', 'E12-C3-P01.png'));
+          const expected = crypto.createHash('sha256').update(target).digest('hex');
+          const matches = [];
+          function walk(root) {
+            for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+              const absolute = path.join(root, entry.name);
+              if (entry.isDirectory()) walk(absolute);
+              else if (entry.isFile()) {
+                const digest = crypto.createHash('sha256').update(fs.readFileSync(absolute)).digest('hex');
+                if (digest === expected) matches.push(path.relative('docs/game', absolute));
+              }
+            }
+          }
+          walk('docs/game');
+          if (matches.length > 0) throw new Error(`Fixture asset was bundled: ${matches.join(', ')}`);
+          NODE
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Desktop and mobile holder-controlled browser
+        run: |
+          set -euo pipefail
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npx playwright test e2e/burn-protocol-external-assets.spec.ts \
+            | tee "$RUNNER_TEMP/browser.log"
+
+      - name: Retain receiver evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p burn-protocol-external-asset-receiver-qualification
+          cp "$RUNNER_TEMP"/publication.log burn-protocol-external-asset-receiver-qualification/ 2>/dev/null || true
+          cp "$RUNNER_TEMP"/external-fixture.log burn-protocol-external-asset-receiver-qualification/ 2>/dev/null || true
+          cp "$RUNNER_TEMP"/typecheck.log burn-protocol-external-asset-receiver-qualification/ 2>/dev/null || true
+          cp "$RUNNER_TEMP"/focused-tests.log burn-protocol-external-asset-receiver-qualification/ 2>/dev/null || true
+          cp "$RUNNER_TEMP"/build.log burn-protocol-external-asset-receiver-qualification/ 2>/dev/null || true
+          cp "$RUNNER_TEMP"/browser.log burn-protocol-external-asset-receiver-qualification/ 2>/dev/null || true
+          cp "$BURN_EXTERNAL_ASSET_FIXTURE_DIR"/*.json burn-protocol-external-asset-receiver-qualification/ 2>/dev/null || true
+          cp "$BURN_EXTERNAL_ASSET_FIXTURE_DIR"/SHA256SUMS burn-protocol-external-asset-receiver-qualification/fixture-SHA256SUMS 2>/dev/null || true
+          printf '%s\n' "${{ github.event.pull_request.head.sha || github.sha }}" > burn-protocol-external-asset-receiver-qualification/world-candidate-sha.txt
+          printf '%s\n' "$BURN_PROTOCOL_ARC_HEAD" > burn-protocol-external-asset-receiver-qualification/arc-activation-sha.txt
+          (cd burn-protocol-external-asset-receiver-qualification && sha256sum * > SHA256SUMS)
+
+      - name: Upload receiver qualification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: burn-protocol-external-asset-receiver-qualification
+          path: |
+            burn-protocol-external-asset-receiver-qualification
+            test-results
+          if-no-files-found: error
+          retention-days: 30
