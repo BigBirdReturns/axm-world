@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { parseBoundedJson } from "../engine/bounded-json.js";
 
 export const BURN_PROTOCOL_CARTRIDGE_ID = "burn-protocol-disclosure-probe" as const;
@@ -16,22 +17,101 @@ export const EXTERNAL_ASSET_BATCH_MAX_BYTES = 1024 * 1024 * 1024;
 export const EXTERNAL_ASSET_INDEX_MAX_RECORDS = 5_000;
 
 const SHA256 = /^[0-9a-f]{64}$/;
+const GIT_SHA = /^[0-9a-f]{40}$/;
 const SAFE_CLASSIFICATION = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const RENDERABLE_RASTER = /\.(?:png|jpe?g|webp)$/i;
 
-const PRODUCTION_HANDOFF = {
-  sha256: BURN_PROTOCOL_HANDOFF_SHA256,
-  bytes: 363_384_929,
-  entries: 24,
-} as const;
+const sha256Schema = z.string().regex(SHA256);
+const gitShaSchema = z.string().regex(GIT_SHA);
+const countsSchema = z.record(z.number().int().nonnegative());
 
-const PRODUCTION_PARENT = {
-  sha256: BURN_PROTOCOL_PARENT_SHA256,
-  bytes: 353_717_668,
-  entries: 1_986,
-  manifestRecords: 1_985,
-  manifestUncompressedBytes: 383_401_783,
-} as const;
+const boundarySchema = z.object({
+  inheritedHistory: z.string().min(1),
+  liveRuns: z.string().min(1),
+  panelPayloads: z.string().min(1),
+  storyChanges: z.string().min(1),
+});
+
+const cartridgeSchema = z.object({
+  id: z.string().min(1),
+  version: z.string().min(1),
+  engineVersion: z.string().min(1),
+  sourcePlane: z.string().min(1),
+  authoredArcDigest: z.string().min(1),
+  exactParentSha256: sha256Schema,
+  publicationAuthorityHead: gitShaSchema,
+});
+
+const handoffSchema = z.object({
+  sha256: sha256Schema,
+  bytes: z.number().int().nonnegative(),
+  entries: z.number().int().nonnegative(),
+});
+
+const parentSchema = z.object({
+  sha256: sha256Schema,
+  bytes: z.number().int().nonnegative(),
+  entries: z.number().int().nonnegative(),
+  manifestRecords: z.number().int().nonnegative(),
+  manifestUncompressedBytes: z.number().int().nonnegative(),
+});
+
+const assetSummarySchema = z.object({
+  sha256: sha256Schema,
+  assets: z.number().int().nonnegative(),
+  bytes: z.number().int().nonnegative(),
+  counts: countsSchema,
+});
+
+const assetIndexSchema = z.object({
+  format: z.literal("burn-protocol-corpus-asset-index/1"),
+  generatedFrom: z.string().min(1),
+  counts: countsSchema,
+  assets: z.array(z.object({
+    path: z.string().min(1),
+    sha256: sha256Schema,
+    bytes: z.number().int().nonnegative(),
+    classification: z.string().min(1),
+  })).min(1).max(EXTERNAL_ASSET_INDEX_MAX_RECORDS),
+});
+
+const overlaySchema = z.object({
+  format: z.literal("burn-protocol-handoff-publication-overlay/1"),
+  status: z.literal("pass"),
+  classification: z.string().min(1),
+  evidenceTier: z.string().min(1),
+  controlQuestion: z.string().min(1),
+  authoredBoundary: boundarySchema,
+  cartridge: cartridgeSchema,
+  externalCustody: z.object({
+    relationship: z.string().min(1),
+    runtimeBundling: z.string().min(1),
+    handoff: handoffSchema,
+    parent: parentSchema,
+    assetIndex: assetSummarySchema,
+  }),
+});
+
+const activationReceiptSchema = z.object({
+  format: z.literal("burn-protocol-handoff-publication-activation-receipt/1"),
+  status: z.literal("pass"),
+  evidenceTier: z.string().min(1),
+  cartridge: cartridgeSchema,
+  authority: z.object({
+    runtimeBundling: z.string().min(1),
+    custodyRelation: z.string().min(1),
+    authoredBoundary: boundarySchema,
+  }),
+  externalAssets: assetSummarySchema,
+  overlay: z.object({
+    sha256: sha256Schema,
+    bytes: z.number().int().nonnegative(),
+    path: z.string().min(1),
+  }),
+});
+
+type ExternalCustodyOverlayV1 = z.infer<typeof overlaySchema>;
+type ExternalCustodyActivationReceiptV1 = z.infer<typeof activationReceiptSchema>;
 
 export type ExternalAssetStanding = "production-exact" | "mechanism-fixture";
 
@@ -47,70 +127,6 @@ export interface ExternalAssetIndexV1 {
   generatedFrom: string;
   counts: Record<string, number>;
   assets: ExternalAssetIndexEntry[];
-}
-
-interface ExternalCustodyOverlayV1 {
-  format: "burn-protocol-handoff-publication-overlay/1";
-  status: "pass";
-  classification: string;
-  evidenceTier: string;
-  controlQuestion: string;
-  authoredBoundary: {
-    inheritedHistory: string;
-    liveRuns: string;
-    panelPayloads: string;
-    storyChanges: string;
-  };
-  cartridge: {
-    id: string;
-    version: string;
-    engineVersion: string;
-    sourcePlane: string;
-    authoredArcDigest: string;
-    exactParentSha256: string;
-    publicationAuthorityHead: string;
-  };
-  externalCustody: {
-    relationship: string;
-    runtimeBundling: string;
-    handoff: { sha256: string; bytes: number; entries: number };
-    parent: {
-      sha256: string;
-      bytes: number;
-      entries: number;
-      manifestRecords: number;
-      manifestUncompressedBytes: number;
-    };
-    assetIndex: {
-      sha256: string;
-      assets: number;
-      bytes: number;
-      counts: Record<string, number>;
-    };
-  };
-}
-
-interface ExternalCustodyActivationReceiptV1 {
-  format: "burn-protocol-handoff-publication-activation-receipt/1";
-  status: "pass";
-  evidenceTier: string;
-  cartridge: ExternalCustodyOverlayV1["cartridge"];
-  authority: {
-    runtimeBundling: string;
-    custodyRelation: string;
-    authoredBoundary: ExternalCustodyOverlayV1["authoredBoundary"];
-  };
-  externalAssets: {
-    sha256: string;
-    assets: number;
-    bytes: number;
-    counts: Record<string, number>;
-  };
-  overlay: {
-    sha256: string;
-    bytes: number;
-    path: string;
-  };
 }
 
 export interface PreparedExternalAssetCustody {
@@ -177,83 +193,44 @@ export interface ExternalAssetSession {
   assets: ExternalAssetSessionEntry[];
 }
 
-type JsonRecord = Record<string, unknown>;
-
-function record(value: unknown, label: string): JsonRecord {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`${label} must be a JSON object.`);
-  }
-  return value as JsonRecord;
-}
-
-function array(value: unknown, label: string): unknown[] {
-  if (!Array.isArray(value)) throw new Error(`${label} must be an array.`);
-  return value;
-}
-
-function string(value: unknown, label: string): string {
-  if (typeof value !== "string" || value.length === 0) {
-    throw new Error(`${label} must be a non-empty string.`);
-  }
-  return value;
-}
-
-function integer(value: unknown, label: string): number {
-  if (!Number.isSafeInteger(value) || (value as number) < 0) {
-    throw new Error(`${label} must be a non-negative safe integer.`);
-  }
-  return value as number;
-}
-
-function sha256(value: unknown, label: string): string {
-  const digest = string(value, label).toLowerCase();
-  if (!SHA256.test(digest)) throw new Error(`${label} must be a lowercase SHA-256 digest.`);
-  return digest;
-}
-
-function counts(value: unknown, label: string): Record<string, number> {
-  const input = record(value, label);
-  const output: Record<string, number> = {};
-  for (const key of Object.keys(input).sort()) {
-    if (!SAFE_CLASSIFICATION.test(key)) throw new Error(`${label} has an unsafe classification ${JSON.stringify(key)}.`);
-    output[key] = integer(input[key], `${label}.${key}`);
-  }
-  return output;
-}
-
-function sameCounts(left: Record<string, number>, right: Record<string, number>): boolean {
-  const leftKeys = Object.keys(left).sort();
-  const rightKeys = Object.keys(right).sort();
-  return leftKeys.length === rightKeys.length
-    && leftKeys.every((key, index) => key === rightKeys[index] && left[key] === right[key]);
-}
-
-function assertCounts(actual: Record<string, number>, expected: Record<string, number>, label: string): void {
-  if (!sameCounts(actual, expected)) {
-    throw new Error(`${label} does not match the manifest-derived asset classifications.`);
-  }
-}
-
-function parseJson(text: string, label: string): unknown {
-  if (new TextEncoder().encode(text).byteLength > EXTERNAL_ASSET_JSON_MAX_BYTES) {
-    throw new Error(`${label} exceeds ${EXTERNAL_ASSET_JSON_MAX_BYTES} bytes.`);
-  }
+function boundedJson(text: string, label: string): unknown {
   try {
     return parseBoundedJson(text, {
       maxBytes: EXTERNAL_ASSET_JSON_MAX_BYTES,
       maxDepth: 64,
-      maxArrayLength: EXTERNAL_ASSET_INDEX_MAX_RECORDS + 100,
-      maxObjectKeys: EXTERNAL_ASSET_INDEX_MAX_RECORDS + 100,
+      maxNodes: 100_000,
+      maxArrayItems: EXTERNAL_ASSET_INDEX_MAX_RECORDS + 100,
+      maxObjectMembers: EXTERNAL_ASSET_INDEX_MAX_RECORDS + 100,
+      maxStringBytes: 8 * 1024 * 1024,
+      maxNumberCharacters: 128,
     });
   } catch (error) {
     throw new Error(`${label} is not valid bounded JSON: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
+function schemaError(label: string, error: unknown): Error {
+  if (error instanceof z.ZodError) {
+    const issues = error.issues.map((issue) => `${issue.path.join(".") || "root"}: ${issue.message}`);
+    return new Error(`${label} does not match its format:\n${issues.join("\n")}`);
+  }
+  return error instanceof Error ? error : new Error(String(error));
+}
+
+function parseWith<T>(text: string, label: string, schema: z.ZodType<T>): T {
+  try {
+    return schema.parse(boundedJson(text, label));
+  } catch (error) {
+    throw schemaError(label, error);
+  }
+}
+
 export function jsonFormat(text: string): string | null {
   try {
-    const parsed = record(parseJson(text, "External custody record"), "External custody record");
-    return typeof parsed["format"] === "string" ? parsed["format"] : null;
+    const value = boundedJson(text, "External custody record");
+    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+    const format = (value as Record<string, unknown>)["format"];
+    return typeof format === "string" ? format : null;
   } catch {
     return null;
   }
@@ -271,49 +248,53 @@ export function normalizeExternalAssetPath(pathValue: string): string {
   return parts.join("/");
 }
 
-function parseIndex(text: string): { index: ExternalAssetIndexV1; totalBytes: number } {
-  const root = record(parseJson(text, "Corpus asset index"), "Corpus asset index");
-  if (root["format"] !== "burn-protocol-corpus-asset-index/1") {
-    throw new Error(`Unsupported corpus asset index format ${JSON.stringify(root["format"])}.`);
-  }
-  const assetRows = array(root["assets"], "Corpus asset index assets");
-  if (assetRows.length === 0) throw new Error("Corpus asset index contains no assets.");
-  if (assetRows.length > EXTERNAL_ASSET_INDEX_MAX_RECORDS) {
-    throw new Error(`Corpus asset index exceeds ${EXTERNAL_ASSET_INDEX_MAX_RECORDS} assets.`);
-  }
-
-  const seen = new Set<string>();
-  const assets = assetRows.map((value, index): ExternalAssetIndexEntry => {
-    const item = record(value, `Corpus asset index asset ${index}`);
-    const path = normalizeExternalAssetPath(string(item["path"], `Asset ${index} path`));
-    if (seen.has(path)) throw new Error(`Corpus asset index duplicates ${path}.`);
-    seen.add(path);
-    const classification = string(item["classification"], `Asset ${index} classification`);
-    if (!SAFE_CLASSIFICATION.test(classification)) {
-      throw new Error(`Asset ${path} has an unsafe classification ${JSON.stringify(classification)}.`);
+function validateCounts(value: Record<string, number>, label: string): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const key of Object.keys(value).sort()) {
+    if (!SAFE_CLASSIFICATION.test(key)) {
+      throw new Error(`${label} has an unsafe classification ${JSON.stringify(key)}.`);
     }
-    return {
-      path,
-      sha256: sha256(item["sha256"], `Asset ${path} SHA-256`),
-      bytes: integer(item["bytes"], `Asset ${path} bytes`),
-      classification,
-    };
-  });
+    out[key] = value[key]!;
+  }
+  return out;
+}
 
-  const declaredCounts = counts(root["counts"], "Corpus asset index counts");
+function sameCounts(left: Record<string, number>, right: Record<string, number>): boolean {
+  const leftKeys = Object.keys(left).sort();
+  const rightKeys = Object.keys(right).sort();
+  return leftKeys.length === rightKeys.length
+    && leftKeys.every((key, index) => key === rightKeys[index] && left[key] === right[key]);
+}
+
+function assertCounts(actual: Record<string, number>, expected: Record<string, number>, label: string): void {
+  if (!sameCounts(actual, expected)) {
+    throw new Error(`${label} does not match the manifest-derived asset classifications.`);
+  }
+}
+
+function parseIndex(text: string): { index: ExternalAssetIndexV1; totalBytes: number } {
+  const parsed = parseWith(text, "Corpus asset index", assetIndexSchema);
+  const seen = new Set<string>();
   const computedCounts: Record<string, number> = {};
   let totalBytes = 0;
-  for (const asset of assets) {
+  const assets = parsed.assets.map((asset): ExternalAssetIndexEntry => {
+    const path = normalizeExternalAssetPath(asset.path);
+    if (seen.has(path)) throw new Error(`Corpus asset index duplicates ${path}.`);
+    seen.add(path);
+    if (!SAFE_CLASSIFICATION.test(asset.classification)) {
+      throw new Error(`Asset ${path} has an unsafe classification ${JSON.stringify(asset.classification)}.`);
+    }
     computedCounts[asset.classification] = (computedCounts[asset.classification] ?? 0) + 1;
     totalBytes += asset.bytes;
     if (!Number.isSafeInteger(totalBytes)) throw new Error("Corpus asset index byte total is not safe.");
-  }
+    return { ...asset, path };
+  });
+  const declaredCounts = validateCounts(parsed.counts, "Corpus asset index counts");
   assertCounts(declaredCounts, computedCounts, "Corpus asset index counts");
-
   return {
     index: {
       format: "burn-protocol-corpus-asset-index/1",
-      generatedFrom: string(root["generatedFrom"], "Corpus asset index generatedFrom"),
+      generatedFrom: parsed.generatedFrom,
       counts: declaredCounts,
       assets,
     },
@@ -321,125 +302,14 @@ function parseIndex(text: string): { index: ExternalAssetIndexV1; totalBytes: nu
   };
 }
 
-function parseCartridge(value: unknown, label: string): ExternalCustodyOverlayV1["cartridge"] {
-  const item = record(value, label);
-  return {
-    id: string(item["id"], `${label}.id`),
-    version: string(item["version"], `${label}.version`),
-    engineVersion: string(item["engineVersion"], `${label}.engineVersion`),
-    sourcePlane: string(item["sourcePlane"], `${label}.sourcePlane`),
-    authoredArcDigest: string(item["authoredArcDigest"], `${label}.authoredArcDigest`),
-    exactParentSha256: sha256(item["exactParentSha256"], `${label}.exactParentSha256`),
-    publicationAuthorityHead: sha256(item["publicationAuthorityHead"], `${label}.publicationAuthorityHead`),
-  };
-}
-
-function parseBoundary(value: unknown, label: string): ExternalCustodyOverlayV1["authoredBoundary"] {
-  const item = record(value, label);
-  return {
-    inheritedHistory: string(item["inheritedHistory"], `${label}.inheritedHistory`),
-    liveRuns: string(item["liveRuns"], `${label}.liveRuns`),
-    panelPayloads: string(item["panelPayloads"], `${label}.panelPayloads`),
-    storyChanges: string(item["storyChanges"], `${label}.storyChanges`),
-  };
-}
-
-function parseHandoff(value: unknown, label: string): ExternalCustodyOverlayV1["externalCustody"]["handoff"] {
-  const item = record(value, label);
-  return {
-    sha256: sha256(item["sha256"], `${label}.sha256`),
-    bytes: integer(item["bytes"], `${label}.bytes`),
-    entries: integer(item["entries"], `${label}.entries`),
-  };
-}
-
-function parseParent(value: unknown, label: string): ExternalCustodyOverlayV1["externalCustody"]["parent"] {
-  const item = record(value, label);
-  return {
-    sha256: sha256(item["sha256"], `${label}.sha256`),
-    bytes: integer(item["bytes"], `${label}.bytes`),
-    entries: integer(item["entries"], `${label}.entries`),
-    manifestRecords: integer(item["manifestRecords"], `${label}.manifestRecords`),
-    manifestUncompressedBytes: integer(item["manifestUncompressedBytes"], `${label}.manifestUncompressedBytes`),
-  };
-}
-
-function parseAssetSummary(value: unknown, label: string) {
-  const item = record(value, label);
-  return {
-    sha256: sha256(item["sha256"], `${label}.sha256`),
-    assets: integer(item["assets"], `${label}.assets`),
-    bytes: integer(item["bytes"], `${label}.bytes`),
-    counts: counts(item["counts"], `${label}.counts`),
-  };
-}
-
-function parseOverlay(text: string): ExternalCustodyOverlayV1 {
-  const root = record(parseJson(text, "External custody overlay"), "External custody overlay");
-  if (root["format"] !== "burn-protocol-handoff-publication-overlay/1") {
-    throw new Error(`Unsupported external custody overlay format ${JSON.stringify(root["format"])}.`);
-  }
-  if (root["status"] !== "pass") throw new Error("External custody overlay is not passing.");
-  const external = record(root["externalCustody"], "External custody overlay externalCustody");
-  return {
-    format: "burn-protocol-handoff-publication-overlay/1",
-    status: "pass",
-    classification: string(root["classification"], "External custody overlay classification"),
-    evidenceTier: string(root["evidenceTier"], "External custody overlay evidenceTier"),
-    controlQuestion: string(root["controlQuestion"], "External custody overlay controlQuestion"),
-    authoredBoundary: parseBoundary(root["authoredBoundary"], "External custody overlay authoredBoundary"),
-    cartridge: parseCartridge(root["cartridge"], "External custody overlay cartridge"),
-    externalCustody: {
-      relationship: string(external["relationship"], "External custody relationship"),
-      runtimeBundling: string(external["runtimeBundling"], "External custody runtimeBundling"),
-      handoff: parseHandoff(external["handoff"], "External custody handoff"),
-      parent: parseParent(external["parent"], "External custody parent"),
-      assetIndex: parseAssetSummary(external["assetIndex"], "External custody assetIndex"),
-    },
-  };
-}
-
-function parseReceipt(text: string): ExternalCustodyActivationReceiptV1 {
-  const root = record(parseJson(text, "External custody activation receipt"), "External custody activation receipt");
-  if (root["format"] !== "burn-protocol-handoff-publication-activation-receipt/1") {
-    throw new Error(`Unsupported activation receipt format ${JSON.stringify(root["format"])}.`);
-  }
-  if (root["status"] !== "pass") throw new Error("External custody activation receipt is not passing.");
-  const authority = record(root["authority"], "Activation receipt authority");
-  const overlay = record(root["overlay"], "Activation receipt overlay");
-  return {
-    format: "burn-protocol-handoff-publication-activation-receipt/1",
-    status: "pass",
-    evidenceTier: string(root["evidenceTier"], "Activation receipt evidenceTier"),
-    cartridge: parseCartridge(root["cartridge"], "Activation receipt cartridge"),
-    authority: {
-      runtimeBundling: string(authority["runtimeBundling"], "Activation receipt authority.runtimeBundling"),
-      custodyRelation: string(authority["custodyRelation"], "Activation receipt authority.custodyRelation"),
-      authoredBoundary: parseBoundary(authority["authoredBoundary"], "Activation receipt authority.authoredBoundary"),
-    },
-    externalAssets: parseAssetSummary(root["externalAssets"], "Activation receipt externalAssets"),
-    overlay: {
-      sha256: sha256(overlay["sha256"], "Activation receipt overlay.sha256"),
-      bytes: integer(overlay["bytes"], "Activation receipt overlay.bytes"),
-      path: normalizeExternalAssetPath(string(overlay["path"], "Activation receipt overlay.path")),
-    },
-  };
-}
-
-function sameBoundary(
-  left: ExternalCustodyOverlayV1["authoredBoundary"],
-  right: ExternalCustodyOverlayV1["authoredBoundary"],
-): boolean {
+function sameBoundary(left: z.infer<typeof boundarySchema>, right: z.infer<typeof boundarySchema>): boolean {
   return left.inheritedHistory === right.inheritedHistory
     && left.liveRuns === right.liveRuns
     && left.panelPayloads === right.panelPayloads
     && left.storyChanges === right.storyChanges;
 }
 
-function sameCartridge(
-  left: ExternalCustodyOverlayV1["cartridge"],
-  right: ExternalCustodyOverlayV1["cartridge"],
-): boolean {
+function sameCartridge(left: z.infer<typeof cartridgeSchema>, right: z.infer<typeof cartridgeSchema>): boolean {
   return left.id === right.id
     && left.version === right.version
     && left.engineVersion === right.engineVersion
@@ -449,15 +319,27 @@ function sameCartridge(
     && left.publicationAuthorityHead === right.publicationAuthorityHead;
 }
 
-function exactRecord(actual: Record<string, string | number>, expected: Record<string, string | number>): boolean {
-  return Object.entries(expected).every(([key, value]) => actual[key] === value);
+function exactProductionHandoff(value: z.infer<typeof handoffSchema>): boolean {
+  return value.sha256 === BURN_PROTOCOL_HANDOFF_SHA256
+    && value.bytes === 363_384_929
+    && value.entries === 24;
+}
+
+function exactProductionParent(value: z.infer<typeof parentSchema>): boolean {
+  return value.sha256 === BURN_PROTOCOL_PARENT_SHA256
+    && value.bytes === 353_717_668
+    && value.entries === 1_986
+    && value.manifestRecords === 1_985
+    && value.manifestUncompressedBytes === 383_401_783;
 }
 
 export async function sha256Bytes(value: ArrayBuffer | Uint8Array): Promise<string> {
   const subtle = globalThis.crypto?.subtle;
   if (!subtle) throw new Error("Web Crypto SHA-256 is unavailable in this browser.");
-  const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
-  const digest = await subtle.digest("SHA-256", bytes);
+  const source = value instanceof Uint8Array ? value : new Uint8Array(value);
+  const copy = new Uint8Array(source.byteLength);
+  copy.set(source);
+  const digest = await subtle.digest("SHA-256", copy);
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
@@ -472,8 +354,8 @@ export async function prepareExternalAssetCustody(input: {
   cartridgeId?: string;
   authoredArcDigest?: string;
 }): Promise<PreparedExternalAssetCustody> {
-  const overlay = parseOverlay(input.overlayText);
-  const receipt = parseReceipt(input.receiptText);
+  const overlay = parseWith(input.overlayText, "External custody overlay", overlaySchema);
+  const receipt = parseWith(input.receiptText, "External custody activation receipt", activationReceiptSchema);
   const parsedIndex = parseIndex(input.indexText);
   const overlaySha256 = await sha256Text(input.overlayText);
   const indexSha256 = await sha256Text(input.indexText);
@@ -534,7 +416,7 @@ export async function prepareExternalAssetCustody(input: {
     if (summary.assets !== parsedIndex.index.assets.length || summary.bytes !== parsedIndex.totalBytes) {
       throw new Error("Corpus asset index totals do not match the custody records.");
     }
-    assertCounts(summary.counts, parsedIndex.index.counts, "External custody asset counts");
+    assertCounts(validateCounts(summary.counts, "External custody asset counts"), parsedIndex.index.counts, "External custody asset counts");
   }
   if (overlay.evidenceTier !== receipt.evidenceTier) {
     throw new Error("Activation receipt and overlay disagree about evidence tier.");
@@ -542,8 +424,8 @@ export async function prepareExternalAssetCustody(input: {
 
   let standing: ExternalAssetStanding;
   if (overlay.evidenceTier === "production-exact-intake") {
-    if (!exactRecord(overlay.externalCustody.handoff, PRODUCTION_HANDOFF)
-        || !exactRecord(overlay.externalCustody.parent, PRODUCTION_PARENT)) {
+    if (!exactProductionHandoff(overlay.externalCustody.handoff)
+        || !exactProductionParent(overlay.externalCustody.parent)) {
       throw new Error("Production evidence tier does not carry the exact A13C1 handoff and v0.58.0 parent identities.");
     }
     standing = "production-exact";
@@ -571,23 +453,17 @@ export async function prepareExternalAssetCustody(input: {
 }
 
 function selectedPath(file: HolderAssetFile): string {
-  const value = file.webkitRelativePath?.trim() || file.name;
-  return normalizeExternalAssetPath(value);
+  return normalizeExternalAssetPath(file.webkitRelativePath?.trim() || file.name);
 }
 
 function basename(pathValue: string): string {
   return pathValue.slice(pathValue.lastIndexOf("/") + 1);
 }
 
-function matchAsset(
-  pathValue: string,
-  fileName: string,
-  assets: ExternalAssetIndexEntry[],
-): ExternalAssetIndexEntry | null {
+function matchAsset(pathValue: string, fileName: string, assets: ExternalAssetIndexEntry[]): ExternalAssetIndexEntry | null {
   const exact = assets.filter((asset) => pathValue === asset.path || pathValue.endsWith(`/${asset.path}`));
   if (exact.length > 1) throw new Error(`Selected path ${pathValue} matches more than one indexed asset.`);
   if (exact.length === 1) return exact[0]!;
-
   const byName = assets.filter((asset) => basename(asset.path) === fileName);
   if (byName.length > 1) {
     throw new Error(`Selected file ${fileName} is ambiguous; select its containing directory so the relative path is available.`);
@@ -636,11 +512,8 @@ export async function verifyExternalAssetFiles(
       errors.push(`${asset.path}: expected ${asset.bytes} bytes, received ${selection.file.size}.`);
     } else {
       const actual = await sha256Bytes(await selection.file.arrayBuffer());
-      if (actual !== asset.sha256) {
-        errors.push(`${asset.path}: SHA-256 does not match the verified manifest.`);
-      } else {
-        verified.push({ asset, file: selection.file, selectedPath: selection.selectedPath });
-      }
+      if (actual !== asset.sha256) errors.push(`${asset.path}: SHA-256 does not match the verified manifest.`);
+      else verified.push({ asset, file: selection.file, selectedPath: selection.selectedPath });
     }
     processed += 1;
     onProgress?.({ processed, total: matched.size, currentPath: asset.path });
@@ -649,7 +522,6 @@ export async function verifyExternalAssetFiles(
   if (errors.length > 0) {
     throw new Error(`External asset verification refused the selected batch:\n${errors.join("\n")}`);
   }
-
   const verifiedPaths = new Set(verified.map((item) => item.asset.path));
   const missing = custody.index.assets.filter((asset) => !verifiedPaths.has(asset.path));
   return {
@@ -670,9 +542,7 @@ function notify(authoredArcDigest: string): void {
 
 function revoke(session: ExternalAssetSession | undefined): void {
   if (!session || typeof URL === "undefined") return;
-  for (const asset of session.assets) {
-    if (asset.objectUrl) URL.revokeObjectURL(asset.objectUrl);
-  }
+  for (const asset of session.assets) if (asset.objectUrl) URL.revokeObjectURL(asset.objectUrl);
 }
 
 function browserObjectUrl(file: HolderAssetFile, pathValue: string): string | null {
@@ -715,8 +585,7 @@ export function getExternalAssetSession(authoredArcDigest: string): ExternalAsse
 }
 
 export function clearExternalAssetSession(authoredArcDigest: string): void {
-  const current = sessions.get(authoredArcDigest);
-  revoke(current);
+  revoke(sessions.get(authoredArcDigest));
   sessions.delete(authoredArcDigest);
   notify(authoredArcDigest);
 }
