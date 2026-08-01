@@ -1,12 +1,15 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { Player } from "../world/Player.js";
+import { BurnExternalAssetReceiverRoute } from "../world/external-assets/BurnExternalAssetReceiverRoute.js";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("No #root element");
+const surface = new URLSearchParams(window.location.search).get("surface");
+const application = surface === "burn-assets" ? <BurnExternalAssetReceiverRoute /> : <Player />;
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
-    <Player />
+    {application}
   </React.StrictMode>,
 );
 
