@@ -14,6 +14,10 @@ import type { MessageId } from "../i18n/messages.js";
 import type { CustodyObject } from "../useArcWorld.js";
 import type { Ledger } from "../ledger.js";
 import { playPresentationCue } from "../sensory-prefs.js";
+import {
+  BURN_PROTOCOL_AUTHORED_DIGEST,
+  BURN_PROTOCOL_CARTRIDGE_ID,
+} from "../external-assets.js";
 
 interface Props {
   manifest: CartridgeManifest;
@@ -81,6 +85,8 @@ function row(label: string, value: string): JSX.Element {
 
 export function CartridgeObjectPanel({ manifest, digest, ledger, openingChoice, cycle, clearedCount, totalNodes, onExport, onClose, onLeave }: Props): JSX.Element {
   const progressPct = totalNodes > 0 ? Math.round((clearedCount / totalNodes) * 100) : 0;
+  const hasBoundExternalCorpus = manifest.id === BURN_PROTOCOL_CARTRIDGE_ID
+    && digest === BURN_PROTOCOL_AUTHORED_DIGEST;
   // One ledger entry can be expanded at a time to read its full structured
   // consequence (Objectives / Rewards / World changes) — a simple detail over the
   // stored record, no tabs/filters/timestamps.
@@ -99,6 +105,11 @@ export function CartridgeObjectPanel({ manifest, digest, ledger, openingChoice, 
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+  };
+  const handleExternalCorpus = () => {
+    const url = new URL(document.baseURI);
+    url.searchParams.set("surface", "burn-assets");
+    window.location.assign(url);
   };
 
   return (
@@ -233,6 +244,17 @@ export function CartridgeObjectPanel({ manifest, digest, ledger, openingChoice, 
         >
           <PixelIcon name="lootAvailable" /> <span>{t("cartridgePanel.exportRun")}</span>
         </PixelButton>
+        {hasBoundExternalCorpus && (
+          <PixelButton
+            type="button"
+            variant="secondary"
+            onClick={handleExternalCorpus}
+            data-testid="open-external-corpus"
+            style={{ width: "100%", minHeight: 42, marginTop: 9, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}
+          >
+            <PixelIcon name="recorded" /> <span>Open verified external corpus</span>
+          </PixelButton>
+        )}
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
           <PixelButton type="button" variant="secondary" onClick={onClose} style={{ flex: 1, minHeight: 40, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
             <PixelIcon name="available" /> <span>{t("cartridgePanel.resume")}</span>
