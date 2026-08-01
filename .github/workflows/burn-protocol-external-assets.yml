@@ -147,6 +147,7 @@ jobs:
         if: always()
         run: |
           set -euo pipefail
+          fixture="${BURN_EXTERNAL_ASSET_FIXTURE_DIR:-$RUNNER_TEMP/burn-protocol-external-assets}"
           mkdir -p burn-protocol-external-asset-receiver-qualification
           cp "$RUNNER_TEMP"/publication.log burn-protocol-external-asset-receiver-qualification/ 2>/dev/null || true
           cp "$RUNNER_TEMP"/external-fixture.log burn-protocol-external-asset-receiver-qualification/ 2>/dev/null || true
@@ -154,8 +155,8 @@ jobs:
           cp "$RUNNER_TEMP"/focused-tests.log burn-protocol-external-asset-receiver-qualification/ 2>/dev/null || true
           cp "$RUNNER_TEMP"/build.log burn-protocol-external-asset-receiver-qualification/ 2>/dev/null || true
           cp "$RUNNER_TEMP"/browser.log burn-protocol-external-asset-receiver-qualification/ 2>/dev/null || true
-          cp "$BURN_EXTERNAL_ASSET_FIXTURE_DIR"/*.json burn-protocol-external-asset-receiver-qualification/ 2>/dev/null || true
-          cp "$BURN_EXTERNAL_ASSET_FIXTURE_DIR"/SHA256SUMS burn-protocol-external-asset-receiver-qualification/fixture-SHA256SUMS 2>/dev/null || true
+          cp "$fixture"/*.json burn-protocol-external-asset-receiver-qualification/ 2>/dev/null || true
+          cp "$fixture"/SHA256SUMS burn-protocol-external-asset-receiver-qualification/fixture-SHA256SUMS 2>/dev/null || true
           printf '%s\n' "${{ github.event.pull_request.head.sha || github.sha }}" > burn-protocol-external-asset-receiver-qualification/world-candidate-sha.txt
           printf '%s\n' "$BURN_PROTOCOL_ARC_HEAD" > burn-protocol-external-asset-receiver-qualification/arc-activation-sha.txt
           (cd burn-protocol-external-asset-receiver-qualification && sha256sum * > SHA256SUMS)
