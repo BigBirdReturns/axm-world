@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
+import { EXTERNAL_ASSET_JSON_MAX_BYTES } from "../src/world/external-assets.js";
 
 const FIXTURE_DIR = process.env["BURN_EXTERNAL_ASSET_FIXTURE_DIR"];
 
@@ -86,6 +87,22 @@ test.describe("Burn Protocol holder-controlled external asset receiver", () => {
     await expect(page.getByTestId("external-custody-preflight")).toHaveCount(0);
     await expect(page.getByTestId("external-asset-session")).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
+
+    await page.getByTestId("external-custody-input").setInputFiles({
+      name: "oversized-custody.json",
+      mimeType: "application/json",
+      buffer: Buffer.alloc(EXTERNAL_ASSET_JSON_MAX_BYTES + 1, 0x20),
+    });
+    await expect(page.getByTestId("external-assets-errors")).toContainText(/refused before reading/i);
+    await expect(page.getByTestId("external-custody-preflight")).toHaveCount(0);
+
+    await page.getByTestId("external-custody-input").setInputFiles({
+      name: "unrelated-custody.json",
+      mimeType: "application/json",
+      buffer: Buffer.from('{"format":"another-project-custody/1"}\n', "utf8"),
+    });
+    await expect(page.getByTestId("external-assets-errors")).toContainText(/unrelated custody format/i);
+    await expect(page.getByTestId("external-custody-preflight")).toHaveCount(0);
     expect(externalRequests).toEqual([]);
   });
 });
