@@ -2,79 +2,79 @@ TAP version 13
 # Subtest: admits a complete host-native graph and all four modes
 ok 1 - admits a complete host-native graph and all four modes
   ---
-  duration_ms: 26.318971
+  duration_ms: 32.851414
   type: 'test'
   ...
 # Subtest: keeps cabinet-tv blocked until a dedicated renderer adapter is present
 ok 2 - keeps cabinet-tv blocked until a dedicated renderer adapter is present
   ---
-  duration_ms: 6.558106
+  duration_ms: 13.811796
   type: 'test'
   ...
 # Subtest: refuses a missing required dependency but reports a missing optional dependency as info
 ok 3 - refuses a missing required dependency but reports a missing optional dependency as info
   ---
-  duration_ms: 5.039522
+  duration_ms: 4.766187
   type: 'test'
   ...
 # Subtest: refuses duplicate UniqueIDs and required dependency cycles
 ok 4 - refuses duplicate UniqueIDs and required dependency cycles
   ---
-  duration_ms: 8.884746
+  duration_ms: 9.777557
   type: 'test'
   ...
 # Subtest: refuses the known Stardew3DVR and Clear Glasses renderer collision
 ok 5 - refuses the known Stardew3DVR and Clear Glasses renderer collision
   ---
-  duration_ms: 8.452299
+  duration_ms: 8.157315
   type: 'test'
   ...
 # Subtest: admits native 2D without a renderer and blocks renderer-dependent modes
 ok 6 - admits native 2D without a renderer and blocks renderer-dependent modes
   ---
-  duration_ms: 7.454097
+  duration_ms: 6.919694
   type: 'test'
   ...
 # Subtest: refuses a manifest EntryDll path escape
 ok 7 - refuses a manifest EntryDll path escape
   ---
-  duration_ms: 2.485721
+  duration_ms: 1.939079
   type: 'test'
   ...
 # Subtest: stages an isolated verified-copy profile without mutating source mods
 ok 8 - stages an isolated verified-copy profile without mutating source mods
   ---
-  duration_ms: 37.070964
+  duration_ms: 21.944491
   type: 'test'
   ...
 # Subtest: creates a content-addressed save snapshot without changing the source save
 ok 9 - creates a content-addressed save snapshot without changing the source save
   ---
-  duration_ms: 6.491508
+  duration_ms: 10.796364
   type: 'test'
   ...
 # Subtest: receipt and object digests are deterministic for equal authority
 ok 10 - receipt and object digests are deterministic for equal authority
   ---
-  duration_ms: 0.476578
+  duration_ms: 0.512341
   type: 'test'
   ...
 # Subtest: refuses an installed dependency below the declared minimum version
 ok 11 - refuses an installed dependency below the declared minimum version
   ---
-  duration_ms: 4.27713
+  duration_ms: 4.628262
   type: 'test'
   ...
 # Subtest: refuses uninspected symlinks in the selected Mods custody graph
 ok 12 - refuses uninspected symlinks in the selected Mods custody graph
   ---
-  duration_ms: 5.237326
+  duration_ms: 4.417298
   type: 'test'
   ...
 # Subtest: ignores dot-prefixed disabled mod folders to match SMAPI active-graph behavior
 ok 13 - ignores dot-prefixed disabled mod folders to match SMAPI active-graph behavior
   ---
-  duration_ms: 5.802435
+  duration_ms: 5.366647
   type: 'test'
   ...
 1..13
@@ -85,4 +85,4 @@ ok 13 - ignores dot-prefixed disabled mod folders to match SMAPI active-graph be
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 171.203639
+# duration_ms 173.352063
