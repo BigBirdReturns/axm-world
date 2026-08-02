@@ -1,6 +1,12 @@
 name: Materialize Stardew host seam source
 
 on:
+  pull_request:
+    paths:
+      - 'labs/stardew-host-seam-v1/carrier/**'
+      - 'labs/stardew-host-seam-v1/materialize.mjs'
+      - 'labs/stardew-host-seam-v1/SOURCE_SHA256SUMS'
+      - '.github/workflows/materialize-stardew-host-seam.yml'
   push:
     branches:
       - 'agent/stardew-host-seam-commodity-v1'
@@ -15,17 +21,21 @@ permissions:
   contents: write
 
 concurrency:
-  group: materialize-stardew-host-seam-${{ github.ref }}
+  group: materialize-stardew-host-seam-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
   materialize:
-    if: github.repository == 'BigBirdReturns/axm-world'
+    if: >-
+      github.repository == 'BigBirdReturns/axm-world' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
+    env:
+      TARGET_BRANCH: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ env.TARGET_BRANCH }}
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -45,4 +55,4 @@ jobs:
             exit 0
           fi
           git commit -m 'Materialize Stardew host seam source'
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git push origin "HEAD:${TARGET_BRANCH}"
