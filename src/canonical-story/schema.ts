@@ -30,7 +30,12 @@ const AssetSchema = z.object({
   visualStanding: z.enum(["accepted", "q02-review-required", "missing"]),
 }).strict();
 
-const CaptionSchema = z.object({ id: NonEmpty, order: PositiveInteger, text: z.string() }).strict();
+const CaptionSchema = z.object({
+  id: NonEmpty,
+  order: PositiveInteger,
+  text: z.string(),
+}).strict();
+
 const UtteranceSchema = z.object({
   id: NonEmpty,
   order: PositiveInteger,
@@ -38,7 +43,12 @@ const UtteranceSchema = z.object({
   label: NonEmpty,
   text: z.string(),
 }).strict();
-const SoundEffectSchema = z.object({ id: NonEmpty, order: PositiveInteger, text: z.string() }).strict();
+
+const SoundEffectSchema = z.object({
+  id: NonEmpty,
+  order: PositiveInteger,
+  text: z.string(),
+}).strict();
 
 const TextLayerSchema = z.discriminatedUnion("status", [
   z.object({
@@ -181,17 +191,24 @@ function semanticErrors(source: CanonicalStorySource): string[] {
   for (const id of duplicateValues(source.sourceReceipts.map((receipt) => receipt.id))) {
     errors.push(`[sourceReceipts] Duplicate source receipt "${id}".`);
   }
-  for (const id of duplicateValues(source.episodes.map((episode) => episode.id))) {
-    errors.push(`[episodes] Duplicate episode "${id}".`);
-  }
+
+  const episodeIds = source.episodes.map((episode) => episode.id);
+  for (const id of duplicateValues(episodeIds)) errors.push(`[episodes] Duplicate episode "${id}".`);
   orderedObjectIds(source.episodes, (episode) => episode.number, "number", "episodes", errors);
 
   const globalChapterIds: string[] = [];
   const globalPanelIds: string[] = [];
   const globalPlateIds: string[] = [];
+
   for (const [episodeIndex, episode] of source.episodes.entries()) {
     const episodePath = `episodes.${episodeIndex}`;
-    orderedObjectIds(episode.chapters, (chapter) => chapter.number, "number", `${episodePath}.chapters`, errors);
+    orderedObjectIds(
+      episode.chapters,
+      (chapter) => chapter.number,
+      "number",
+      `${episodePath}.chapters`,
+      errors,
+    );
     if (episode.complete && episode.nextChapterId !== null) {
       errors.push(`[${episodePath}.nextChapterId] A complete episode cannot declare a next unpublished chapter.`);
     }
@@ -202,8 +219,21 @@ function semanticErrors(source: CanonicalStorySource): string[] {
     for (const [chapterIndex, chapter] of episode.chapters.entries()) {
       const chapterPath = `${episodePath}.chapters.${chapterIndex}`;
       globalChapterIds.push(chapter.id);
-      orderedObjectIds(chapter.panels, (panel) => panel.ordinal, "ordinal", `${chapterPath}.panels`, errors);
-      orderedObjectIds(chapter.plates, (plate) => plate.ordinal, "ordinal", `${chapterPath}.plates`, errors);
+      orderedObjectIds(
+        chapter.panels,
+        (panel) => panel.ordinal,
+        "ordinal",
+        `${chapterPath}.panels`,
+        errors,
+      );
+      orderedObjectIds(
+        chapter.plates,
+        (plate) => plate.ordinal,
+        "ordinal",
+        `${chapterPath}.plates`,
+        errors,
+      );
+
       if (chapter.panels[0]?.id !== chapter.openingPanelId) {
         errors.push(`[${chapterPath}.openingPanelId] Does not match the first panel.`);
       }
@@ -218,26 +248,45 @@ function semanticErrors(source: CanonicalStorySource): string[] {
         if (panel.chapterId !== chapter.id) {
           errors.push(`[${panelPath}.chapterId] Expected "${chapter.id}", received "${panel.chapterId}".`);
         }
-        const expectedPrevious = panelIndex === 0 ? chapter.previousPanelId : chapter.panels[panelIndex - 1]!.id;
-        const expectedNext = panelIndex === chapter.panels.length - 1 ? chapter.nextPanelId : chapter.panels[panelIndex + 1]!.id;
+        const expectedPrevious = panelIndex === 0
+          ? chapter.previousPanelId
+          : chapter.panels[panelIndex - 1]!.id;
+        const expectedNext = panelIndex === chapter.panels.length - 1
+          ? chapter.nextPanelId
+          : chapter.panels[panelIndex + 1]!.id;
         if (panel.previousPanelId !== expectedPrevious) {
           errors.push(`[${panelPath}.previousPanelId] Expected ${JSON.stringify(expectedPrevious)}.`);
         }
         if (panel.nextPanelId !== expectedNext) {
           errors.push(`[${panelPath}.nextPanelId] Expected ${JSON.stringify(expectedNext)}.`);
         }
-        const refs = panel.text.status === "resolved" ? panel.text.sourceReceiptIds : panel.text.expectedSourceReceiptIds;
+
+        const refs = panel.text.status === "resolved"
+          ? panel.text.sourceReceiptIds
+          : panel.text.expectedSourceReceiptIds;
         receiptReferences(refs, receiptIds, `${panelPath}.text`, errors);
         if (panel.auditProjection) {
-          receiptReferences(panel.auditProjection.sourceReceiptIds, receiptIds, `${panelPath}.auditProjection.sourceReceiptIds`, errors);
+          receiptReferences(
+            panel.auditProjection.sourceReceiptIds,
+            receiptIds,
+            `${panelPath}.auditProjection.sourceReceiptIds`,
+            errors,
+          );
         }
+
         if (panel.text.status === "resolved") {
           for (const [label, records] of [
             ["captions", panel.text.captions],
             ["dialogue", panel.text.dialogue],
             ["soundEffects", panel.text.soundEffects],
           ] as const) {
-            orderedObjectIds(records, (record) => record.order, "order", `${panelPath}.text.${label}`, errors);
+            orderedObjectIds(
+              records,
+              (record) => record.order,
+              "order",
+              `${panelPath}.text.${label}`,
+              errors,
+            );
             for (const id of duplicateValues(records.map((record) => record.id))) {
               errors.push(`[${panelPath}.text.${label}] Duplicate text id "${id}".`);
             }
@@ -265,6 +314,7 @@ function semanticErrors(source: CanonicalStorySource): string[] {
       }
     }
   }
+
   for (const id of duplicateValues(globalChapterIds)) errors.push(`[episodes] Duplicate chapter "${id}".`);
   for (const id of duplicateValues(globalPanelIds)) errors.push(`[episodes] Duplicate panel "${id}".`);
   for (const id of duplicateValues(globalPlateIds)) errors.push(`[episodes] Duplicate plate "${id}".`);
@@ -274,10 +324,16 @@ function semanticErrors(source: CanonicalStorySource): string[] {
 export function validateCanonicalStory(input: unknown): CanonicalStoryValidation {
   const parsed = CanonicalStorySchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, errors: parsed.error.issues.map((issue) => `[${issue.path.join(".") || "root"}] ${issue.message}`) };
+    return {
+      ok: false,
+      errors: parsed.error.issues.map((issue) =>
+        `[${issue.path.join(".") || "root"}] ${issue.message}`),
+    };
   }
   const errors = semanticErrors(parsed.data);
-  return errors.length > 0 ? { ok: false, errors } : { ok: true, source: structuredClone(parsed.data) };
+  return errors.length > 0
+    ? { ok: false, errors }
+    : { ok: true, source: structuredClone(parsed.data) };
 }
 
 export function parseCanonicalStory(input: unknown): CanonicalStorySource {
