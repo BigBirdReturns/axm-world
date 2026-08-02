@@ -184,6 +184,7 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
     <main
       style={page}
       data-testid="canonical-story-host"
+      data-episode-id={located.episodeId}
       data-panel-id={located.panel.id}
       data-chapter-id={located.chapter.id}
     >
@@ -213,8 +214,37 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
         </section>
 
         <div style={{ display: "grid", gridTemplateColumns: "minmax(190px, 280px) minmax(0, 1fr)", gap: 14, alignItems: "start" }}>
-          <aside style={{ ...card, display: "grid", gap: 7, maxHeight: "72dvh", overflowY: "auto" }} aria-label="Canonical chapter and panel index">
-            <strong style={{ font: "800 18px 'Barlow Condensed', sans-serif" }}>Episode {episode.number} chapters</strong>
+          <aside
+            key={located.chapter.id}
+            style={{ ...card, display: "grid", gap: 7, maxHeight: "72dvh", overflowY: "auto" }}
+            aria-label="Canonical episode, chapter, and panel index"
+          >
+            <strong style={{ font: "800 18px 'Barlow Condensed', sans-serif" }}>Episodes</strong>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(82px, 1fr))", gap: 5 }}>
+              {story.episodes.map((storyEpisode) => (
+                <button
+                  key={storyEpisode.id}
+                  type="button"
+                  data-testid={`canonical-episode-index-${storyEpisode.id}`}
+                  data-selected={storyEpisode.id === episode.id ? "true" : "false"}
+                  onClick={() => selectPanel(storyEpisode.chapters[0]!.openingPanelId)}
+                  style={{
+                    border: `1px solid ${storyEpisode.id === episode.id ? "#c9a14a" : "#40382e"}`,
+                    background: storyEpisode.id === episode.id ? "#332c1b" : "#15130f",
+                    color: "#ddd3c1",
+                    padding: "7px 8px",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    font: "10px 'IBM Plex Mono', monospace",
+                  }}
+                >
+                  Episode {storyEpisode.number}
+                </button>
+              ))}
+            </div>
+            <strong style={{ font: "800 18px 'Barlow Condensed', sans-serif", marginTop: 4 }}>
+              Episode {episode.number} chapters
+            </strong>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(94px, 1fr))", gap: 5 }}>
               {episode.chapters.map((chapter) => (
                 <button
@@ -245,7 +275,8 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
                 key={panel.id}
                 type="button"
                 data-testid={`canonical-panel-index-${panel.id}`}
-                data-selected={panel.id === located.panel.id ? "true" : "false"}
+                data-selected={panel.id === located.panel.id ? "true" : "false"
+                }
                 onClick={() => selectPanel(panel.id)}
                 style={{
                   border: `1px solid ${panel.id === located.panel.id ? "#c9a14a" : "#302b24"}`,
