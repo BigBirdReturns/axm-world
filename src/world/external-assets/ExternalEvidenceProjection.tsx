@@ -9,6 +9,8 @@ import {
   type ExternalAssetSessionEntry,
 } from "../external-assets.js";
 import { ExternalCorpusAtlas } from "./ExternalCorpusAtlas.js";
+import { ExternalWorldEvidenceCrosswalk } from "./ExternalWorldEvidenceCrosswalk.js";
+import { clearBurnWorldEvidenceCrosswalk } from "./world-evidence-crosswalk.js";
 
 const veil: CSSProperties = {
   position: "fixed",
@@ -67,12 +69,13 @@ function EvidenceFigure({ asset }: { asset: ExternalAssetSessionEntry }): JSX.El
 
 /** Read-only projection of a verified process-local evidence session. It receives
  * no ArcWorld, interaction, outcome, save, or export callback. Closing, paging,
- * or changing atlas view can therefore change only presentation state. */
+ * changing atlas view, or loading an explicit crosswalk can therefore change
+ * only process-local presentation state. */
 export function ExternalEvidenceProjection(): JSX.Element | null {
   const session = useBurnEvidenceSession();
   const [open, setOpen] = useState(false);
   const [cursor, setCursor] = useState(0);
-  const [mode, setMode] = useState<"evidence" | "atlas">("evidence");
+  const [mode, setMode] = useState<"evidence" | "atlas" | "crosswalk">("evidence");
   const renderable = useMemo(
     () => session?.assets.filter((asset) => asset.objectUrl !== null) ?? [],
     [session],
@@ -83,6 +86,7 @@ export function ExternalEvidenceProjection(): JSX.Element | null {
 
   useEffect(() => {
     if (!session) {
+      clearBurnWorldEvidenceCrosswalk(BURN_PROTOCOL_AUTHORED_DIGEST);
       setOpen(false);
       setCursor(0);
       setMode("evidence");
@@ -92,6 +96,11 @@ export function ExternalEvidenceProjection(): JSX.Element | null {
   }, [session, renderable.length, cursor]);
 
   if (!session) return null;
+
+  const releaseSession = (): void => {
+    clearBurnWorldEvidenceCrosswalk(BURN_PROTOCOL_AUTHORED_DIGEST);
+    clearExternalAssetSession(BURN_PROTOCOL_AUTHORED_DIGEST);
+  };
 
   return (
     <>
@@ -165,14 +174,14 @@ export function ExternalEvidenceProjection(): JSX.Element | null {
               Verified images may inform the holder's judgment. They cannot satisfy a contract, alter a report, enter a portable run, or change the canonical Burn record.
             </p>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }} role="tablist" aria-label="External evidence views">
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6, marginBottom: 12 }} role="tablist" aria-label="External evidence views">
               <button
                 type="button"
                 role="tab"
                 aria-selected={mode === "evidence"}
                 data-testid="live-evidence-mode-evidence"
                 onClick={() => setMode("evidence")}
-                style={{ border: `1px solid ${mode === "evidence" ? "#c9a14a" : "#4a4238"}`, background: mode === "evidence" ? "#342d1c" : "#15130f", color: "#e7ddca", padding: 8, cursor: "pointer", font: "10px 'IBM Plex Mono', monospace" }}
+                style={{ border: `1px solid ${mode === "evidence" ? "#c9a14a" : "#4a4238"}`, background: mode === "evidence" ? "#342d1c" : "#15130f", color: "#e7ddca", padding: 8, cursor: "pointer", font: "9px 'IBM Plex Mono', monospace" }}
               >
                 Selected evidence
               </button>
@@ -182,9 +191,19 @@ export function ExternalEvidenceProjection(): JSX.Element | null {
                 aria-selected={mode === "atlas"}
                 data-testid="live-evidence-mode-atlas"
                 onClick={() => setMode("atlas")}
-                style={{ border: `1px solid ${mode === "atlas" ? "#c9a14a" : "#4a4238"}`, background: mode === "atlas" ? "#342d1c" : "#15130f", color: "#e7ddca", padding: 8, cursor: "pointer", font: "10px 'IBM Plex Mono', monospace" }}
+                style={{ border: `1px solid ${mode === "atlas" ? "#c9a14a" : "#4a4238"}`, background: mode === "atlas" ? "#342d1c" : "#15130f", color: "#e7ddca", padding: 8, cursor: "pointer", font: "9px 'IBM Plex Mono', monospace" }}
               >
                 Corpus atlas
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === "crosswalk"}
+                data-testid="live-evidence-mode-crosswalk"
+                onClick={() => setMode("crosswalk")}
+                style={{ border: `1px solid ${mode === "crosswalk" ? "#c9a14a" : "#4a4238"}`, background: mode === "crosswalk" ? "#342d1c" : "#15130f", color: "#e7ddca", padding: 8, cursor: "pointer", font: "9px 'IBM Plex Mono', monospace" }}
+              >
+                World crosswalk
               </button>
             </div>
 
@@ -199,8 +218,10 @@ export function ExternalEvidenceProjection(): JSX.Element | null {
                   </div>
                 )}
               </>
-            ) : (
+            ) : mode === "atlas" ? (
               <ExternalCorpusAtlas session={session} />
+            ) : (
+              <ExternalWorldEvidenceCrosswalk session={session} />
             )}
 
             <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid #2a2620", display: "grid", gap: 5, color: "#6f6659", fontSize: 9, wordBreak: "break-all" }}>
@@ -213,7 +234,7 @@ export function ExternalEvidenceProjection(): JSX.Element | null {
               type="button"
               variant="danger"
               data-testid="release-live-external-evidence"
-              onClick={() => clearExternalAssetSession(BURN_PROTOCOL_AUTHORED_DIGEST)}
+              onClick={releaseSession}
               style={{ width: "100%", marginTop: 15, minHeight: 42 }}
             >
               Release verified session bytes
