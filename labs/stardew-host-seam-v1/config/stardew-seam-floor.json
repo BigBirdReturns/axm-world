@@ -1,0 +1,366 @@
+{
+  "format": "rodoh-stardew-seam-floor/1",
+  "version": "0.1.0",
+  "authority": {
+    "simulation": "Stardew Valley and selected save",
+    "host": "SMAPI and selected active mod graph",
+    "presentation": "host-native renderer or presentation adapter",
+    "semanticInput": "RODOH Stardew action vocabulary",
+    "machineCustody": "Stardew Host Seam and MotionDeck",
+    "physicalCustody": "QuestStage, OpenXR runtime, display, room, and named devices"
+  },
+  "upstream": [
+    {
+      "id": "smapi",
+      "name": "SMAPI",
+      "role": [
+        "in-process mod loader",
+        "events and APIs",
+        "compatibility rewriting",
+        "error containment",
+        "update and compatibility checks",
+        "save backup"
+      ],
+      "consumption": "external-user-installation",
+      "redistribute": false,
+      "source": "Pathoschild/SMAPI",
+      "license": "LGPL-3.0"
+    },
+    {
+      "id": "Pathoschild.ContentPatcher",
+      "name": "Content Patcher",
+      "role": [
+        "declarative content graph",
+        "conditional asset and data edits",
+        "community content interoperability"
+      ],
+      "consumption": "external-mod",
+      "redistribute": false,
+      "source": "Pathoschild/StardewMods",
+      "license": "MIT"
+    },
+    {
+      "id": "spacechase0.GenericModConfigMenu",
+      "name": "Generic Mod Config Menu",
+      "role": [
+        "ordinary in-game configuration surface",
+        "renderer and control tuning"
+      ],
+      "consumption": "external-mod",
+      "redistribute": false,
+      "license": "upstream-controlled"
+    },
+    {
+      "id": "GingasVR.Stardew3D",
+      "name": "Stardew 3DVR",
+      "role": [
+        "desktop perspective renderer",
+        "procedural voxel and billboard lift",
+        "OpenXR and SteamVR presentation",
+        "motion-tool semantics",
+        "world-space menu and wrist HUD",
+        "2D, 3D, and VR hot switching"
+      ],
+      "consumption": "external-user-acquisition-and-hash-pin",
+      "redistribute": false,
+      "sourceAvailable": false,
+      "license": "upstream-Nexus-permissions-control"
+    },
+    {
+      "id": "BigBirdReturns.RodohStardewBridge",
+      "name": "RODOH Stardew Host Bridge",
+      "role": [
+        "semantic action observation",
+        "session receipts",
+        "renderer-presence handshake",
+        "MotionDeck extension point"
+      ],
+      "consumption": "project-owned-source",
+      "redistribute": true,
+      "license": "MIT"
+    },
+    {
+      "id": "BigBirdReturns.RodohStardewCabinetAdapter",
+      "name": "RODOH Stardew Cabinet Adapter",
+      "role": [
+        "renderer-bound OpenXR tracking retention",
+        "authored monoscopic television camera",
+        "unworn-headset household presentation"
+      ],
+      "consumption": "project-owned-target-not-yet-implemented",
+      "redistribute": true,
+      "license": "MIT",
+      "requiredFor": [
+        "cabinet-tv"
+      ]
+    }
+  ],
+  "compatibilityPolicy": {
+    "hardConflicts": [
+      {
+        "all": [
+          "GingasVR.Stardew3D",
+          "aurpine.ClearGlasses"
+        ],
+        "code": "renderer-conflict.clear-glasses",
+        "resolution": "separate-profile"
+      }
+    ],
+    "recommendations": [
+      {
+        "whenPresent": "GingasVR.Stardew3D",
+        "whenAbsent": "spacechase0.GenericModConfigMenu",
+        "code": "renderer-config-surface-missing"
+      },
+      {
+        "whenPresent": "GingasVR.Stardew3D",
+        "whenAbsent": "BigBirdReturns.RodohStardewBridge",
+        "code": "rodoh-bridge-missing"
+      }
+    ]
+  },
+  "modes": {
+    "native-2d": {
+      "rendererRequired": false,
+      "openXrRequired": false,
+      "televisionCameraRequired": false,
+      "fallbackAuthority": "native-game"
+    },
+    "desktop-3d": {
+      "rendererRequired": true,
+      "openXrRequired": false,
+      "televisionCameraRequired": false,
+      "fallbackAuthority": "native-2d"
+    },
+    "hmd-vr": {
+      "rendererRequired": true,
+      "openXrRequired": true,
+      "televisionCameraRequired": false,
+      "fallbackAuthority": "desktop-3d-or-native-2d"
+    },
+    "cabinet-tv": {
+      "rendererRequired": true,
+      "openXrRequired": true,
+      "televisionCameraRequired": true,
+      "fallbackAuthority": "desktop-3d-or-native-2d",
+      "status": "contract-defined-adapter-not-yet-runtime-qualified",
+      "requiredTransaction": [
+        "keep OpenXR tracking and controller poses live",
+        "do not require an HMD-worn eye camera as the household player view",
+        "emit a stable monoscopic authored camera to the television",
+        "retain controller and ordinary input fallback",
+        "retain instantaneous 2D fallback for construction and edge cases",
+        "separate spectator framing from simulation authority"
+      ],
+      "requiredAdapterAnyOf": [
+        "BigBirdReturns.RodohStardewCabinetAdapter"
+      ]
+    }
+  },
+  "semanticActions": [
+    {
+      "id": "locomotion.move",
+      "hostMeaning": "move farmer",
+      "channels": [
+        "keyboard",
+        "gamepad",
+        "openxr-left-stick",
+        "gesture-derived-vector"
+      ]
+    },
+    {
+      "id": "view.turn",
+      "hostMeaning": "camera turn",
+      "channels": [
+        "mouse",
+        "gamepad-right-stick",
+        "openxr-turn"
+      ]
+    },
+    {
+      "id": "world.interact",
+      "hostMeaning": "talk, inspect, open door, confirm",
+      "channels": [
+        "native-action-button",
+        "left-trigger",
+        "point-and-trigger"
+      ]
+    },
+    {
+      "id": "tool.use",
+      "hostMeaning": "use selected tool or attack",
+      "channels": [
+        "native-use-tool-button",
+        "right-trigger",
+        "right-hand-swing"
+      ]
+    },
+    {
+      "id": "tool.charge",
+      "hostMeaning": "hold selected tool",
+      "channels": [
+        "held-native-use-tool-button",
+        "held-right-trigger"
+      ]
+    },
+    {
+      "id": "combat.melee-swing",
+      "hostMeaning": "perform melee swing",
+      "channels": [
+        "native-use-tool-button",
+        "right-hand-swing"
+      ]
+    },
+    {
+      "id": "inventory.previous-slot",
+      "hostMeaning": "previous toolbar slot",
+      "channels": [
+        "keyboard",
+        "gamepad",
+        "openxr-left-a"
+      ]
+    },
+    {
+      "id": "inventory.next-slot",
+      "hostMeaning": "next toolbar slot",
+      "channels": [
+        "keyboard",
+        "gamepad",
+        "openxr-right-a"
+      ]
+    },
+    {
+      "id": "inventory.shift-row",
+      "hostMeaning": "shift toolbar row",
+      "channels": [
+        "keyboard",
+        "gamepad",
+        "openxr-right-b"
+      ]
+    },
+    {
+      "id": "menu.toggle",
+      "hostMeaning": "open or close game menu",
+      "channels": [
+        "keyboard",
+        "gamepad",
+        "openxr-left-b"
+      ]
+    },
+    {
+      "id": "menu.pointer-primary",
+      "hostMeaning": "left click floating menu",
+      "channels": [
+        "mouse",
+        "openxr-ray-trigger"
+      ]
+    },
+    {
+      "id": "menu.pointer-secondary",
+      "hostMeaning": "right click floating menu",
+      "channels": [
+        "mouse",
+        "openxr-ray-grip"
+      ]
+    },
+    {
+      "id": "fishing.hook",
+      "hostMeaning": "hook fish",
+      "channels": [
+        "native-use-tool-button",
+        "rod-up-gesture"
+      ]
+    },
+    {
+      "id": "fishing.control",
+      "hostMeaning": "control fishing bar",
+      "channels": [
+        "native-use-tool-button",
+        "tracked-hand-height"
+      ]
+    },
+    {
+      "id": "presentation.toggle.desktop-3d",
+      "hostMeaning": "toggle desktop 3D presentation",
+      "defaultBinding": "F5"
+    },
+    {
+      "id": "presentation.toggle.vr",
+      "hostMeaning": "toggle VR presentation",
+      "defaultBinding": "F8"
+    },
+    {
+      "id": "presentation.recenter",
+      "hostMeaning": "recenter tracked presentation",
+      "defaultBinding": "F9"
+    },
+    {
+      "id": "presentation.toggle.wrist-hud",
+      "hostMeaning": "toggle wrist HUD",
+      "defaultBinding": "F10"
+    }
+  ],
+  "qualificationCorpus": [
+    {
+      "name": "vanilla-save-round-trip",
+      "required": true,
+      "proof": [
+        "load",
+        "play",
+        "sleep-save",
+        "reload",
+        "disable-seam",
+        "load-natively"
+      ]
+    },
+    {
+      "name": "content-patcher-pack",
+      "required": true,
+      "proof": [
+        "content remains authoritative",
+        "procedural presentation follows loaded assets"
+      ]
+    },
+    {
+      "name": "Stardew Valley Expanded",
+      "required": true,
+      "acquisition": "external-holder-controlled"
+    },
+    {
+      "name": "Ridgeside Village",
+      "required": true,
+      "acquisition": "external-holder-controlled"
+    },
+    {
+      "name": "East Scarp",
+      "required": true,
+      "acquisition": "external-holder-controlled"
+    },
+    {
+      "name": "Clear Glasses collision",
+      "required": true,
+      "expected": "fail-closed-before-launch"
+    }
+  ],
+  "acceptanceJourney": [
+    "discover exact installation",
+    "inventory active manifest graph",
+    "refuse duplicates, missing dependencies, path escape, and known conflicts",
+    "snapshot saves",
+    "stage isolated profile",
+    "launch SMAPI with exact --mods-path",
+    "load existing save",
+    "toggle 2D to 3D to target embodied mode and back",
+    "walk",
+    "interact",
+    "use and charge tools",
+    "combat",
+    "inventory and menus",
+    "fish",
+    "cross maps",
+    "play cutscene through selected fallback",
+    "sleep and save",
+    "reload exact profile",
+    "disable profile and prove native save recovery"
+  ]
+}

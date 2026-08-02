@@ -1,0 +1,16 @@
+{
+  "Name": "RODOH Stardew Host Bridge",
+  "Author": "BigBirdReturns",
+  "Version": "%ProjectVersion%",
+  "Description": "Records bounded Stardew lifecycle and presentation-action receipts for the RODOH and MotionDeck host seam without taking gameplay or save authority.",
+  "UniqueID": "BigBirdReturns.RodohStardewBridge",
+  "EntryDll": "Rodoh.StardewBridge.dll",
+  "MinimumApiVersion": "4.0.0",
+  "Dependencies": [
+    {
+      "UniqueID": "GingasVR.Stardew3D",
+      "IsRequired": false
+    }
+  ],
+  "UpdateKeys": []
+}

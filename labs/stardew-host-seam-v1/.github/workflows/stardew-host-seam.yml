@@ -1,0 +1,38 @@
+name: Stardew host seam
+
+on:
+  pull_request:
+    paths:
+      - 'labs/stardew-host-seam-v1/**'
+      - '.github/workflows/stardew-host-seam.yml'
+  push:
+    branches:
+      - 'agent/stardew-host-seam-commodity-v1'
+    paths:
+      - 'labs/stardew-host-seam-v1/**'
+      - '.github/workflows/stardew-host-seam.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    name: ${{ matrix.os }} / Node ${{ matrix.node }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [20, 22]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Run dependency-free seam contracts
+        working-directory: labs/stardew-host-seam-v1
+        run: npm test
+      - name: Run bounded synthetic installation transaction
+        working-directory: labs/stardew-host-seam-v1
+        run: npm run selftest
