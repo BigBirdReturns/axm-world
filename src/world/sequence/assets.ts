@@ -1,6 +1,8 @@
-import type {
-  CanonicalStoryAssetReference,
-  CanonicalStorySource,
+import {
+  canonicalStoryAssetIsManifested,
+  type CanonicalStoryAssetReference,
+  type CanonicalStoryManifestedAssetReference,
+  type CanonicalStorySource,
 } from "../../canonical-story/index.js";
 
 export const CANONICAL_STORY_ASSET_FILE_MAX_BYTES = 128 * 1024 * 1024;
@@ -15,7 +17,7 @@ export interface CanonicalStoryHolderFile {
 }
 
 export interface VerifiedCanonicalStoryAsset {
-  asset: CanonicalStoryAssetReference;
+  asset: CanonicalStoryManifestedAssetReference;
   file: CanonicalStoryHolderFile;
   selectedPath: string;
 }
@@ -86,7 +88,11 @@ export async function verifyCanonicalStoryAssetFiles(
 ): Promise<CanonicalStoryAssetVerification> {
   if (files.length === 0) throw new Error("Select at least one canonical story asset.");
   const assets = canonicalStoryAssets(story);
-  const matched = new Map<string, { file: CanonicalStoryHolderFile; selectedPath: string }>();
+  const matched = new Map<string, {
+    asset: CanonicalStoryManifestedAssetReference;
+    file: CanonicalStoryHolderFile;
+    selectedPath: string;
+  }>();
   const unmatchedPaths: string[] = [];
   let selectedBytes = 0;
 
@@ -97,6 +103,11 @@ export async function verifyCanonicalStoryAssetFiles(
       unmatchedPaths.push(selectedPath);
       continue;
     }
+    if (!canonicalStoryAssetIsManifested(asset)) {
+      throw new Error(
+        `${asset.path}: exact asset receipt is source-required and cannot be verified. ${asset.reason}`,
+      );
+    }
     if (matched.has(asset.path)) throw new Error(`More than one selected file claims ${asset.path}.`);
     if (file.size > CANONICAL_STORY_ASSET_FILE_MAX_BYTES) {
       throw new Error(`${selectedPath} exceeds the per-file verification ceiling.`);
@@ -105,16 +116,15 @@ export async function verifyCanonicalStoryAssetFiles(
     if (selectedBytes > CANONICAL_STORY_ASSET_BATCH_MAX_BYTES) {
       throw new Error("Selected canonical story assets exceed the batch verification ceiling.");
     }
-    matched.set(asset.path, { file, selectedPath });
+    matched.set(asset.path, { asset, file, selectedPath });
   }
 
   if (matched.size === 0) throw new Error("None of the selected files match the canonical story asset ledger.");
 
   const verified: VerifiedCanonicalStoryAsset[] = [];
   const failures: string[] = [];
-  for (const asset of assets) {
-    const selection = matched.get(asset.path);
-    if (!selection) continue;
+  for (const selection of matched.values()) {
+    const { asset } = selection;
     if (selection.file.size !== asset.bytes) {
       failures.push(`${asset.path}: expected ${asset.bytes} bytes, received ${selection.file.size}.`);
       continue;
