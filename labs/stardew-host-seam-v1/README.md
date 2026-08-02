@@ -23,9 +23,13 @@ This package does **not** remake Stardew Valley, vendor community mods, or seize
 
 - No Stardew, SMAPI, Nexus, or community-mod binary is redistributed.
 - The upstream Stardew3DVR DLL has not been patched or decompiled here.
-- `cabinet-tv` is a governed integration target, not a falsely claimed finished renderer split. It still requires an in-process adapter that keeps OpenXR tracking live while emitting an authored monoscopic television camera.
+- `cabinet-tv` is a governed integration target, not a falsely claimed finished renderer split. Static admission fails closed unless the dedicated `BigBirdReturns.RodohStardewCabinetAdapter` is installed; that adapter still must be implemented and physically qualified to keep OpenXR tracking live while emitting an authored monoscopic television camera.
 - The C# bridge source is structurally qualified here, but this environment has neither the Stardew assemblies nor .NET SDK needed to compile it.
 - No real save, installed mod set, Windows launch, headset, television, controller, or hand-tracking session is inferred from fixture tests.
+
+## Content-addressed source carrier
+
+The GitHub draft also carries this floor as deterministic Base64 parts because the connected publication seam is text-only. `node ./materialize.mjs` verifies the pinned compressed-source SHA-256, extracts the ordinary source tree, and then verifies `SOURCE_SHA256SUMS`. A normal downloaded ZIP already contains the materialized files, so this step is idempotent.
 
 ## Commands
 
