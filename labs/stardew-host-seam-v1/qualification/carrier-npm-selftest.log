@@ -4,22 +4,22 @@
 
 {
   "format": "rodoh-stardew-source-materialization/1",
-  "archiveSha256": "a6ca928b67dafc55bb9564b3e3b6983db1e83432dc2b7530dcaeebf88f3e3ae3",
+  "archiveSha256": "e3b350fcab8d00a9fe5ad69eab59705067cb2170a0572c8dcaafe4100b9437a5",
   "partCount": 4,
   "sourceLedgerVerified": true
 }
 {
   "format": "rodoh-stardew-seam-receipt/1",
   "kind": "selftest",
-  "receiptId": "stardewreceipt1_d742f08c7652a4eed822aa668de79fe9d3a67fca2157b3c395e6e2566719f3e0",
-  "contentSha256": "d742f08c7652a4eed822aa668de79fe9d3a67fca2157b3c395e6e2566719f3e0",
-  "generatedAt": "2026-08-02T16:18:04.554Z",
+  "receiptId": "stardewreceipt1_eb663c58da6e98fb8cdb2dc20aabbb36029b0794850d92412756b32cfe8f58a7",
+  "contentSha256": "eb663c58da6e98fb8cdb2dc20aabbb36029b0794850d92412756b32cfe8f58a7",
+  "generatedAt": "2026-08-02T16:42:03.264Z",
   "payload": {
     "rootWasTemporary": true,
     "inspectionStatus": "admitted",
     "launchStatus": "admitted",
     "profileStatus": "admitted",
     "graphDigest": "stardewgraph1_05f3af6ac6e4744ed0b5861667127a1f49e70bcb103d0b1210056c3413517a27",
-    "profileId": "stardewprofile1_44f9aa60b2ff65ef606da38706bcf7d256e64e4fa10010da93a4f47b7eb2dba5"
+    "profileId": "stardewprofile1_f87876ee7e3e6875881365f35f63bb576cca29a517fac2e9c87bfb88e6cfaffd"
   }
 }
