@@ -94,7 +94,7 @@ test.describe("The Burn Protocol Episode 4 Chapter 1", () => {
     await expect(host).toHaveAttribute("data-panel-id", "E01-C1-P01");
     await expect(page.getByText("200 panel slots", { exact: true })).toBeVisible();
     await expect(page.getByText("40 plate assets", { exact: true })).toBeVisible();
-    await expect(page.locator('[data-testid^="canonical-chapter-index-"]')).toHaveCount(10);
+    await expect(page.locator('[data-testid^="canonical-chapter-index-"]')).toHaveCount(3);
     await expect(page.getByTestId("engine-shell")).toHaveCount(0);
     await expect(page.getByTestId("axm-experience")).toHaveCount(0);
     await expect(page.getByTestId("roster-region")).toHaveCount(0);
@@ -110,6 +110,7 @@ test.describe("The Burn Protocol Episode 4 Chapter 1", () => {
       "Episode 4: Fractured Allegiances · Chapter 1: Osyraa's Offer",
       { exact: true },
     )).toBeVisible();
+    await expect(page.locator('[data-testid^="canonical-chapter-index-"]')).toHaveCount(1);
     await expect(page.locator('[data-testid^="canonical-panel-index-E04-C1-"]')).toHaveCount(20);
     await expect(page.getByTestId("canonical-chapter-index-E04-C1")).toHaveAttribute(
       "data-selected",
