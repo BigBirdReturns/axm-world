@@ -97,6 +97,9 @@ jobs:
             | tee "$RUNNER_TEMP/crosswalk-fixture.log"
           (cd "$crosswalk" && sha256sum -c SHA256SUMS)
           printf 'BURN_PROTOCOL_ARC_PATH=%s\n' "$publication/burn-protocol-disclosure-probe.arc.json" >> "$GITHUB_ENV"
+          printf 'BURN_PROTOCOL_SOURCE_PATH=%s\n' "$publication/burn-protocol-disclosure-probe.ship.json" >> "$GITHUB_ENV"
+          printf 'BURN_PROTOCOL_CORPUS_PATH=%s\n' "$publication/burn-protocol-v0.58.0.corpus.json" >> "$GITHUB_ENV"
+          printf 'BURN_PROTOCOL_PUBLICATION_RECEIPT_PATH=%s\n' "$publication/publication-receipt.json" >> "$GITHUB_ENV"
           printf 'BURN_CORPUS_ATLAS_FIXTURE_DIR=%s\n' "$corpus" >> "$GITHUB_ENV"
           printf 'BURN_WORLD_CROSSWALK_FIXTURE_DIR=%s\n' "$crosswalk" >> "$GITHUB_ENV"
 
