@@ -7,7 +7,7 @@
   "description": "Dependency-free Stardew Valley SMAPI host-seam custody and qualification floor for AXM, RODOH, and MotionDeck.",
   "scripts": {
     "materialize": "node ./materialize.mjs",
-    "test": "node ./materialize.mjs && node --test test/*.test.mjs",
+    "test": "node ./materialize.mjs && node --test test/seam.test.mjs",
     "selftest": "node ./materialize.mjs && node ./bin/stardew-seam.mjs selftest",
     "catalog": "node ./materialize.mjs && node ./bin/stardew-seam.mjs catalog"
   },
