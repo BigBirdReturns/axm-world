@@ -1,4 +1,4 @@
-name: Burn Protocol canonical through Episode 3 receiver
+name: Burn Protocol canonical through Episode 4 Chapter 1 receiver
 
 on:
   pull_request:
@@ -12,7 +12,7 @@ on:
       - 'e2e/burn-protocol-canonical-*.spec.ts'
       - 'docs/BURN_PROTOCOL_CANONICAL_*.md'
   push:
-    branches: [feature/burn-protocol-canonical-story-episode-3-v1]
+    branches: [feature/burn-protocol-canonical-story-episode-4-chapter-1-v1]
     paths:
       - '.github/workflows/burn-protocol-canonical-chapter-1.yml'
       - 'src/canonical-story/**'
@@ -32,14 +32,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  qualify-through-episode-3-receiver:
+  qualify-through-episode-4-chapter-1-receiver:
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     env:
       CI: 'true'
       PW_BASE_URL: http://127.0.0.1:5173
       BURN_PROTOCOL_ARC_REPOSITORY: BigBirdReturns/axm-arc
-      BURN_PROTOCOL_ARC_HEAD: 3fcae6dbc5cdd2e435c68f25443f58b47111ab3c
+      BURN_PROTOCOL_ARC_HEAD: 952ee8a024979792f9b29cfda7d5ed0adb5d9bf0
     steps:
       - name: Check out exact World candidate
         uses: actions/checkout@v4
@@ -78,7 +78,7 @@ jobs:
             cmp "upstream/axm-arc/src/canonical-story/$file" "src/canonical-story/$file"
           done
 
-      - name: Build exact Arc compatibility publications and complete Episode 3
+      - name: Build exact Arc compatibility publications and Episode 4 Chapter 1
         run: |
           set -euo pipefail
           chapter_1="$RUNNER_TEMP/burn-chapter-1-publication"
@@ -88,6 +88,7 @@ jobs:
           through_episode_3_chapter_1="$RUNNER_TEMP/burn-through-episode-3-chapter-1-publication"
           through_episode_3_chapter_2="$RUNNER_TEMP/burn-through-episode-3-chapter-2-publication"
           through_episode_3="$RUNNER_TEMP/burn-through-episode-3-publication"
+          through_episode_4_chapter_1="$RUNNER_TEMP/burn-through-episode-4-chapter-1-publication"
           (
             cd upstream/axm-arc
             npx vite-node tools/build-burn-protocol-chapter-1.ts "$chapter_1"
@@ -97,6 +98,7 @@ jobs:
             npx vite-node tools/build-burn-protocol-episode-3-chapter-1.ts "$through_episode_3_chapter_1"
             npx vite-node tools/build-burn-protocol-episode-3-chapter-2.ts "$through_episode_3_chapter_2"
             npx vite-node tools/build-burn-protocol-episode-3.ts "$through_episode_3"
+            npx vite-node tools/build-burn-protocol-episode-4-chapter-1.ts "$through_episode_4_chapter_1"
           ) | tee "$RUNNER_TEMP/arc-publication.log"
           (cd "$chapter_1" && sha256sum -c SHA256SUMS)
           (cd "$through_chapter_2" && sha256sum -c SHA256SUMS)
@@ -105,6 +107,7 @@ jobs:
           (cd "$through_episode_3_chapter_1" && sha256sum -c SHA256SUMS)
           (cd "$through_episode_3_chapter_2" && sha256sum -c SHA256SUMS)
           (cd "$through_episode_3" && sha256sum -c SHA256SUMS)
+          (cd "$through_episode_4_chapter_1" && sha256sum -c SHA256SUMS)
           printf 'BURN_PROTOCOL_CHAPTER_1_ARC_PATH=%s\n' \
             "$chapter_1/burn-protocol-episode-01-chapter-01.arc.json" \
             >> "$GITHUB_ENV"
@@ -126,8 +129,11 @@ jobs:
           printf 'BURN_PROTOCOL_THROUGH_EPISODE_3_ARC_PATH=%s\n' \
             "$through_episode_3/burn-protocol-through-episode-03.arc.json" \
             >> "$GITHUB_ENV"
-          printf 'BURN_PROTOCOL_THROUGH_EPISODE_3_PUBLICATION=%s\n' \
-            "$through_episode_3" >> "$GITHUB_ENV"
+          printf 'BURN_PROTOCOL_THROUGH_EPISODE_4_CHAPTER_1_ARC_PATH=%s\n' \
+            "$through_episode_4_chapter_1/burn-protocol-through-episode-04-chapter-01.arc.json" \
+            >> "$GITHUB_ENV"
+          printf 'BURN_PROTOCOL_THROUGH_EPISODE_4_CHAPTER_1_PUBLICATION=%s\n' \
+            "$through_episode_4_chapter_1" >> "$GITHUB_ENV"
 
       - name: Typecheck and focused receiver contracts
         run: |
@@ -141,6 +147,7 @@ jobs:
             tests/world/canonical-story-episode-3-chapter-1.test.ts \
             tests/world/canonical-story-episode-3-chapter-2.test.ts \
             tests/world/canonical-story-episode-3.test.ts \
+            tests/world/canonical-story-episode-4-chapter-1.test.ts \
             tests/world/canonical-story-source-required-asset.test.ts \
             | tee "$RUNNER_TEMP/focused-tests.log"
 
@@ -163,17 +170,16 @@ jobs:
             'site/assets/art/A03C1' \
             'site/assets/art/A03C2' \
             'site/assets/art/A03C3' \
+            'site/assets/art/A04C1' \
             'E01-C1-P01' \
             'E01-C3-P60' \
             'E02-C1-P01' \
             'E02-C3-P60' \
             'E03-C1-P01' \
-            'E03-C1-P20' \
-            'E03-C2-P21' \
             'E03-C2-P31' \
-            'E03-C2-P40' \
-            'E03-C3-P41' \
-            'E03-C3-P60'; do
+            'E03-C3-P60' \
+            'E04-C1-P01' \
+            'E04-C1-P20'; do
             if grep -R -a -F "$token" docs/game; then
               echo "Burn canonical content entered the static World product: $token" >&2
               exit 1
@@ -183,7 +189,7 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Desktop and mobile compatibility and complete Episode 3 journeys
+      - name: Desktop and mobile compatibility and Episode 4 Chapter 1 journeys
         run: |
           set -euo pipefail
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
@@ -195,15 +201,16 @@ jobs:
             e2e/burn-protocol-canonical-episode-3-chapter-1.spec.ts \
             e2e/burn-protocol-canonical-episode-3-chapter-2.spec.ts \
             e2e/burn-protocol-canonical-episode-3.spec.ts \
+            e2e/burn-protocol-canonical-episode-4-chapter-1.spec.ts \
             | tee "$RUNNER_TEMP/browser.log"
 
-      - name: Retain complete Episode 3 receiver qualification
+      - name: Retain Episode 4 Chapter 1 receiver qualification
         if: always()
         run: |
           set -euo pipefail
-          root="burn-protocol-canonical-through-episode-3-receiver-qualification"
+          root="burn-protocol-canonical-through-episode-4-chapter-1-receiver-qualification"
           mkdir -p "$root"
-          cp -R "${BURN_PROTOCOL_THROUGH_EPISODE_3_PUBLICATION:-$RUNNER_TEMP/burn-through-episode-3-publication}" "$root/arc-publication" 2>/dev/null || true
+          cp -R "${BURN_PROTOCOL_THROUGH_EPISODE_4_CHAPTER_1_PUBLICATION:-$RUNNER_TEMP/burn-through-episode-4-chapter-1-publication}" "$root/arc-publication" 2>/dev/null || true
           cp "$RUNNER_TEMP"/arc-publication.log "$root/" 2>/dev/null || true
           cp "$RUNNER_TEMP"/typecheck.log "$root/" 2>/dev/null || true
           cp "$RUNNER_TEMP"/focused-tests.log "$root/" 2>/dev/null || true
@@ -218,13 +225,13 @@ jobs:
             | sed "s#  $root/#  #" \
             > "$root/SHA256SUMS"
 
-      - name: Upload complete Episode 3 receiver qualification
+      - name: Upload Episode 4 Chapter 1 receiver qualification
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: burn-protocol-canonical-through-episode-3-receiver-qualification
+          name: burn-protocol-canonical-through-episode-4-chapter-1-receiver-qualification
           path: |
-            burn-protocol-canonical-through-episode-3-receiver-qualification
+            burn-protocol-canonical-through-episode-4-chapter-1-receiver-qualification
             test-results
           if-no-files-found: error
           retention-days: 30
