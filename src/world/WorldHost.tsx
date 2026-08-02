@@ -4,6 +4,7 @@
 import type { Cartridge } from "./cartridge.js";
 import { useArcWorld } from "./useArcWorld.js";
 import { RuntimeRouter } from "./runtime/RuntimeRouter.js";
+import { WorldEvidenceTargetCatalogCapture } from "./external-assets/WorldEvidenceTargetCatalogCapture.js";
 
 export interface WorldHostProps {
   cartridge: Cartridge;
@@ -12,5 +13,9 @@ export interface WorldHostProps {
 
 export function WorldHost({ cartridge, onExit }: WorldHostProps): JSX.Element {
   const world = useArcWorld(cartridge);
-  return <RuntimeRouter world={world} onExit={onExit} />;
+  return (
+    <WorldEvidenceTargetCatalogCapture arc={cartridge.arc}>
+      <RuntimeRouter world={world} onExit={onExit} />
+    </WorldEvidenceTargetCatalogCapture>
+  );
 }
