@@ -69,6 +69,9 @@ test.describe("Burn Protocol holder-controlled external asset receiver", () => {
     const external: string[] = [];
     page.on("request", (request) => {
       const url = new URL(request.url());
+      // Blob and data URLs are local browser objects, not network traffic. The
+      // gate remains strict for every HTTP(S) request leaving the local host.
+      if (url.protocol !== "http:" && url.protocol !== "https:") return;
       if (!["127.0.0.1", "localhost"].includes(url.hostname)) external.push(request.url());
     });
 
