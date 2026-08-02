@@ -8,6 +8,7 @@ import {
 } from "react";
 import {
   advanceCanonicalStory,
+  canonicalStoryAssetIsManifested,
   canonicalStoryCoverage,
   canonicalStoryCursorForPanel,
   canonicalStoryPanel,
@@ -111,7 +112,11 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
   );
   const panelIndex = chapterPanels.findIndex((panel) => panel.id === located.panel.id);
   const globalPanelIndex = allPanels.findIndex((panel) => panel.id === located.panel.id);
-  const currentAssetUrl = assetUrls[located.panel.asset.path] ?? null;
+  const currentAsset = located.panel.asset;
+  const currentAssetIsManifested = canonicalStoryAssetIsManifested(currentAsset);
+  const currentAssetUrl = currentAssetIsManifested
+    ? assetUrls[currentAsset.path] ?? null
+    : null;
   const verifiedCount = Object.keys(assetUrls).length;
   const plateReceiptIds = [...new Set(located.chapter.plates.flatMap((plate) =>
     plate.panelMapping.status === "resolved"
@@ -275,13 +280,36 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
                   </span>
                   <h2 style={{ margin: "3px 0 0", font: "800 25px 'Barlow Condensed', sans-serif" }}>{located.panel.id}</h2>
                 </div>
-                <span style={{ color: "#8d816f", fontSize: 9 }} title={located.panel.asset.sha256}>
-                  {formatBytes(located.panel.asset.bytes)} · {shortDigest(located.panel.asset.sha256)}
-                </span>
+                {currentAssetIsManifested ? (
+                  <span style={{ color: "#8d816f", fontSize: 9 }} title={currentAsset.sha256}>
+                    {formatBytes(currentAsset.bytes)} · {shortDigest(currentAsset.sha256)}
+                  </span>
+                ) : (
+                  <span
+                    data-testid="canonical-panel-asset-source-required-status"
+                    style={{ color: "#d2ad61", fontSize: 9 }}
+                  >
+                    SOURCE-REQUIRED ASSET
+                    {currentAsset.expectedBytes ? ` · expected ${formatBytes(currentAsset.expectedBytes)}` : ""}
+                  </span>
+                )}
               </div>
 
               <div style={{ minHeight: 340, maxHeight: "64dvh", display: "grid", placeItems: "center", overflow: "hidden", background: "#030303", border: "1px solid #2a2620" }}>
-                {currentAssetUrl ? (
+                {!currentAssetIsManifested ? (
+                  <div
+                    data-testid="canonical-panel-asset-source-required"
+                    style={{ padding: 24, maxWidth: 650, textAlign: "center", color: "#c5a66a", fontSize: 11, lineHeight: 1.6 }}
+                  >
+                    <PixelIcon name="recorded" />
+                    <p><strong>Exact asset receipt required.</strong></p>
+                    <p>{currentAsset.reason}</p>
+                    <code style={{ wordBreak: "break-all" }}>{currentAsset.path}</code>
+                    <p style={{ color: "#817665", fontSize: 9 }}>
+                      Required receipts: {currentAsset.expectedSourceReceiptIds.join(" · ")}
+                    </p>
+                  </div>
+                ) : currentAssetUrl ? (
                   <img
                     data-testid="canonical-panel-image"
                     src={currentAssetUrl}
@@ -293,7 +321,7 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
                   <div data-testid="canonical-panel-asset-placeholder" style={{ padding: 24, maxWidth: 650, textAlign: "center", color: "#918675", fontSize: 11, lineHeight: 1.6 }}>
                     <PixelIcon name="recorded" />
                     <p>Panel bytes are held outside World. Select the exact estate file or directory to verify and display this asset.</p>
-                    <code style={{ wordBreak: "break-all" }}>{located.panel.asset.path}</code>
+                    <code style={{ wordBreak: "break-all" }}>{currentAsset.path}</code>
                   </div>
                 )}
               </div>
