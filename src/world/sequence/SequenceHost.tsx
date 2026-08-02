@@ -19,9 +19,7 @@ import type { Cartridge } from "../cartridge.js";
 import { cartridgeIdentity } from "../cartridge-identity.js";
 import { RodohRuntimeMark } from "../brand/RodohRuntimeMark.js";
 import { PixelButton, PixelIcon } from "../pixel-ui/index.js";
-import {
-  verifyCanonicalStoryAssetFiles,
-} from "./assets.js";
+import { verifyCanonicalStoryAssetFiles } from "./assets.js";
 import {
   CANONICAL_STORY_SESSION_FORMAT,
   loadCanonicalStorySession,
@@ -100,11 +98,25 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
   }, []);
 
   const coverage = useMemo(() => canonicalStoryCoverage(story), [story]);
-  const located = useMemo(() => canonicalStoryPanel(story, cursor.panelId), [story, cursor.panelId]);
+  const located = useMemo(
+    () => canonicalStoryPanel(story, cursor.panelId),
+    [story, cursor.panelId],
+  );
+  const episode = story.episodes.find((candidate) => candidate.id === located.episodeId)!;
   const chapterPanels = located.chapter.panels;
+  const allPanels = useMemo(
+    () => story.episodes.flatMap((entry) =>
+      entry.chapters.flatMap((chapter) => chapter.panels)),
+    [story],
+  );
   const panelIndex = chapterPanels.findIndex((panel) => panel.id === located.panel.id);
+  const globalPanelIndex = allPanels.findIndex((panel) => panel.id === located.panel.id);
   const currentAssetUrl = assetUrls[located.panel.asset.path] ?? null;
   const verifiedCount = Object.keys(assetUrls).length;
+  const plateReceiptIds = [...new Set(located.chapter.plates.flatMap((plate) =>
+    plate.panelMapping.status === "resolved"
+      ? plate.panelMapping.sourceReceiptIds
+      : plate.panelMapping.expectedSourceReceiptIds))];
 
   const replaceObjectUrls = (next: Record<string, string>) => {
     for (const url of objectUrls.current) URL.revokeObjectURL(url);
@@ -133,7 +145,9 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
         + "Their object URLs exist only in this page session.",
       );
       if (result.unmatchedPaths.length > 0) {
-        setAssetErrors([`${result.unmatchedPaths.length} selected files were outside the Chapter 1 asset ledger and were ignored.`]);
+        setAssetErrors([
+          `${result.unmatchedPaths.length} selected files were outside the canonical story asset ledger and were ignored.`,
+        ]);
       }
     } catch (error) {
       replaceObjectUrls({});
@@ -167,7 +181,12 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
   };
 
   return (
-    <main style={page} data-testid="canonical-story-host" data-panel-id={located.panel.id}>
+    <main
+      style={page}
+      data-testid="canonical-story-host"
+      data-panel-id={located.panel.id}
+      data-chapter-id={located.chapter.id}
+    >
       <div style={{ width: "min(1180px, 100%)", margin: "0 auto", display: "grid", gap: 14 }}>
         <header style={{ display: "flex", justifyContent: "space-between", gap: 14, flexWrap: "wrap", alignItems: "flex-start" }}>
           <div style={{ maxWidth: 760 }}>
@@ -176,7 +195,7 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
               {story.identity.title}
             </h1>
             <p style={{ margin: 0, color: "#b4aa99", font: "15px/1.55 'Lora', Georgia, serif" }}>
-              Episode {story.episodes[0]!.number}: {story.episodes[0]!.title} · Chapter {located.chapter.number}: {located.chapter.title}
+              Episode {episode.number}: {episode.title} · Chapter {located.chapter.number}: {located.chapter.title}
             </p>
           </div>
           <PixelButton type="button" variant="ghost" onClick={onExit} data-testid="canonical-story-exit">
@@ -184,7 +203,8 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
           </PixelButton>
         </header>
 
-        <section style={{ ...card, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 8 }} aria-label="Canonical story coverage">
+        <section style={{ ...card, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: 8 }} aria-label="Canonical story coverage">
+          <span><b>{coverage.chapters}</b> chapters</span>
           <span><b>{coverage.panels}</b> panel slots</span>
           <span><b>{coverage.plates}</b> plate assets</span>
           <span><b>{coverage.resolvedTextPanels}</b> text-complete</span>
@@ -192,9 +212,34 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
           <span><b>{coverage.choiceNodes}</b> choice nodes</span>
         </section>
 
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(190px, 260px) minmax(0, 1fr)", gap: 14, alignItems: "start" }}>
-          <aside style={{ ...card, display: "grid", gap: 7, maxHeight: "72dvh", overflowY: "auto" }} aria-label="Chapter panel index">
-            <strong style={{ font: "800 18px 'Barlow Condensed', sans-serif" }}>Chapter 1 · Impact</strong>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(190px, 280px) minmax(0, 1fr)", gap: 14, alignItems: "start" }}>
+          <aside style={{ ...card, display: "grid", gap: 7, maxHeight: "72dvh", overflowY: "auto" }} aria-label="Canonical chapter and panel index">
+            <strong style={{ font: "800 18px 'Barlow Condensed', sans-serif" }}>Episode {episode.number} chapters</strong>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(94px, 1fr))", gap: 5 }}>
+              {episode.chapters.map((chapter) => (
+                <button
+                  key={chapter.id}
+                  type="button"
+                  data-testid={`canonical-chapter-index-${chapter.id}`}
+                  data-selected={chapter.id === located.chapter.id ? "true" : "false"}
+                  onClick={() => selectPanel(chapter.openingPanelId)}
+                  style={{
+                    border: `1px solid ${chapter.id === located.chapter.id ? "#c9a14a" : "#40382e"}`,
+                    background: chapter.id === located.chapter.id ? "#332c1b" : "#15130f",
+                    color: "#ddd3c1",
+                    padding: "7px 8px",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    font: "10px 'IBM Plex Mono', monospace",
+                  }}
+                >
+                  Chapter {chapter.number}
+                </button>
+              ))}
+            </div>
+            <strong style={{ font: "800 18px 'Barlow Condensed', sans-serif", marginTop: 4 }}>
+              Chapter {located.chapter.number} · {located.chapter.title}
+            </strong>
             {chapterPanels.map((panel) => (
               <button
                 key={panel.id}
@@ -216,7 +261,8 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
               </button>
             ))}
             <div data-testid="canonical-plate-boundary" style={{ borderTop: "1px solid #302b24", paddingTop: 9, marginTop: 4, color: "#8e8373", fontSize: 9, lineHeight: 1.45 }}>
-              Four scroll-plate bytes are indexed. Plate mode remains disabled until the exact `a01c1-scroll-plates.json` mapping is admitted.
+              {located.chapter.plates.length} scroll-plate assets are indexed. Plate mode remains disabled until the exact composition map is admitted
+              {plateReceiptIds.length > 0 ? ` (${plateReceiptIds.join(" · ")})` : ""}.
             </div>
           </aside>
 
@@ -224,7 +270,9 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
             <section style={{ ...card, display: "grid", gap: 10 }} aria-label="Current canonical panel">
               <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "baseline" }}>
                 <div>
-                  <span style={{ color: "#8d816f", fontSize: 10 }}>PANEL {panelIndex + 1} OF {chapterPanels.length}</span>
+                  <span style={{ color: "#8d816f", fontSize: 10 }}>
+                    PANEL {globalPanelIndex + 1} OF {coverage.panels} · CHAPTER POSITION {panelIndex + 1} OF {chapterPanels.length}
+                  </span>
                   <h2 style={{ margin: "3px 0 0", font: "800 25px 'Barlow Condensed', sans-serif" }}>{located.panel.id}</h2>
                 </div>
                 <span style={{ color: "#8d816f", fontSize: 9 }} title={located.panel.asset.sha256}>
@@ -279,9 +327,9 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
 
             {continuationPanelId && (
               <section style={{ ...card, borderColor: "#6e7844" }} data-testid="canonical-story-extent-complete">
-                <strong>Chapter 1 extent complete</strong>
+                <strong>Published canonical extent complete</strong>
                 <p style={{ marginBottom: 0, color: "#b6ad9b" }}>
-                  The canonical successor is {continuationPanelId}. Chapter 2 has not yet been compiled into this Arc source.
+                  The canonical successor is {continuationPanelId}. That successor has not yet been compiled into this Arc source.
                 </p>
               </section>
             )}
@@ -290,7 +338,7 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
               <PixelButton type="button" variant="secondary" onClick={movePrevious} disabled={located.panel.previousPanelId === null} data-testid="canonical-story-previous">
                 Previous
               </PixelButton>
-              <span style={{ color: "#807565", fontSize: 10 }}>{panelIndex + 1} / {chapterPanels.length}</span>
+              <span style={{ color: "#807565", fontSize: 10 }}>{globalPanelIndex + 1} / {coverage.panels}</span>
               <PixelButton type="button" variant="secondary" onClick={moveNext} data-testid="canonical-story-next">
                 Next
               </PixelButton>
@@ -301,7 +349,7 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
         <section style={card} aria-label="Holder asset verification">
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
             <div>
-              <strong style={{ font: "800 18px 'Barlow Condensed', sans-serif" }}>Verify holder-owned Chapter 1 assets</strong>
+              <strong style={{ font: "800 18px 'Barlow Condensed', sans-serif" }}>Verify holder-owned canonical story assets</strong>
               <p style={{ margin: "4px 0 0", color: "#968b7b", fontSize: 10 }}>Every selected file is matched to one ledger path, byte-counted, and SHA-256 verified before display.</p>
             </div>
             <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
