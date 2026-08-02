@@ -1,15 +1,15 @@
 {
   "format": "rodoh-stardew-seam-receipt/1",
   "kind": "selftest",
-  "receiptId": "stardewreceipt1_7c58ec35e595f5019b9894abdc9fae729efd294076d46c04c314b69c7a5096ce",
-  "contentSha256": "7c58ec35e595f5019b9894abdc9fae729efd294076d46c04c314b69c7a5096ce",
-  "generatedAt": "2026-08-02T16:18:04.858Z",
+  "receiptId": "stardewreceipt1_ff7c77153b9b820ef9d20386be04b6c8dda0031f521db8fa61de7108a1e03f76",
+  "contentSha256": "ff7c77153b9b820ef9d20386be04b6c8dda0031f521db8fa61de7108a1e03f76",
+  "generatedAt": "2026-08-02T16:42:03.522Z",
   "payload": {
     "rootWasTemporary": true,
     "inspectionStatus": "admitted",
     "launchStatus": "admitted",
     "profileStatus": "admitted",
     "graphDigest": "stardewgraph1_05f3af6ac6e4744ed0b5861667127a1f49e70bcb103d0b1210056c3413517a27",
-    "profileId": "stardewprofile1_78681977c4e4dc45204cdfa63180861fe3df799bb05a6f83be9cb395dd75b987"
+    "profileId": "stardewprofile1_62913285db859c2b46caaf2942bb61309c91124fa0b403959aff0e617e588899"
   }
 }
