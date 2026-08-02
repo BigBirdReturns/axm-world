@@ -39,7 +39,7 @@ jobs:
       CI: 'true'
       PW_BASE_URL: http://127.0.0.1:5173
       BURN_PROTOCOL_ARC_REPOSITORY: BigBirdReturns/axm-arc
-      BURN_PROTOCOL_ARC_HEAD: ebca349f5d5426b60ea2b8586edff2d5d12e59b8
+      BURN_PROTOCOL_ARC_HEAD: f2243c479b8b84448acc9137eb6ea90036385a99
     steps:
       - name: Check out exact World candidate
         uses: actions/checkout@v4
