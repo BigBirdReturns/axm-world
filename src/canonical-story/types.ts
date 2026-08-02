@@ -1,3 +1,5 @@
+import type { Arc, JsonValue } from "../engine/types.js";
+
 export const CANONICAL_STORY_FORMAT = "axm-canonical-story/1" as const;
 export const CANONICAL_STORY_EXTENSION_KEY = "axm.canonical-story@1" as const;
 export const CANONICAL_STORY_TRANSITION_FORMAT = "axm-canonical-story-transition/1" as const;
@@ -128,10 +130,13 @@ export interface CanonicalStoryChapter {
   id: string;
   number: number;
   title: string;
+  /** True when every canonical panel position in this chapter is represented. */
   complete: boolean;
   openingPanelId: string;
   terminalPanelId: string;
+  /** Canonical predecessor outside this published extent, if one exists. */
   previousPanelId: string | null;
+  /** Canonical successor outside this published extent, if one exists. */
   nextPanelId: string | null;
   panels: CanonicalStoryPanel[];
   plates: CanonicalStoryPlate[];
@@ -141,6 +146,7 @@ export interface CanonicalStoryEpisode {
   id: string;
   number: number;
   title: string;
+  /** True only when every canonical chapter in the episode is represented. */
   complete: boolean;
   nextChapterId: string | null;
   chapters: CanonicalStoryChapter[];
@@ -200,3 +206,11 @@ export type CanonicalStoryAdvanceResult =
       cursor: CanonicalStoryCursor;
       continuationPanelId: string | null;
     };
+
+export type CanonicalStoryExtension = CanonicalStorySource;
+
+export interface CanonicalStoryCarrier {
+  arc: Arc;
+  story: CanonicalStorySource;
+  extensions?: Record<string, JsonValue>;
+}
