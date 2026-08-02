@@ -1,0 +1,183 @@
+name: Burn Protocol world evidence crosswalk
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/burn-protocol-world-evidence-crosswalk.yml'
+      - 'src/world/WorldHost.tsx'
+      - 'src/world/external-assets/world-evidence-crosswalk.ts'
+      - 'src/world/external-assets/WorldEvidenceTargetCatalogCapture.tsx'
+      - 'src/world/external-assets/ExternalWorldEvidenceCrosswalk.tsx'
+      - 'src/world/external-assets/ExternalEvidenceProjection.tsx'
+      - 'tests/world/burn-protocol-world-evidence-crosswalk.test.ts'
+      - 'tools/build-burn-protocol-world-evidence-crosswalk-fixture.ts'
+      - 'e2e/burn-protocol-world-evidence-crosswalk.spec.ts'
+      - 'docs/BURN_PROTOCOL_WORLD_EVIDENCE_CROSSWALK.md'
+  push:
+    branches: [probe/burn-protocol-world-evidence-crosswalk-v1]
+    paths:
+      - '.github/workflows/burn-protocol-world-evidence-crosswalk.yml'
+      - 'src/world/WorldHost.tsx'
+      - 'src/world/external-assets/world-evidence-crosswalk.ts'
+      - 'src/world/external-assets/WorldEvidenceTargetCatalogCapture.tsx'
+      - 'src/world/external-assets/ExternalWorldEvidenceCrosswalk.tsx'
+      - 'src/world/external-assets/ExternalEvidenceProjection.tsx'
+      - 'tests/world/burn-protocol-world-evidence-crosswalk.test.ts'
+      - 'tools/build-burn-protocol-world-evidence-crosswalk-fixture.ts'
+      - 'e2e/burn-protocol-world-evidence-crosswalk.spec.ts'
+      - 'docs/BURN_PROTOCOL_WORLD_EVIDENCE_CROSSWALK.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-world-crosswalk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      CI: 'true'
+      PW_BASE_URL: http://127.0.0.1:5173
+      BURN_PROTOCOL_ARC_REPOSITORY: BigBirdReturns/axm-arc
+      BURN_PROTOCOL_ARC_HEAD: 9bcf2a1c65e75b7c414c0a74f73888cf2699be14
+      BURN_PROTOCOL_EXPECTED_DIGEST: cart1_870f3dfcab909fc9aace115e2c46cd30268339f80bc87a14f0eebcc4e2c28c3e
+    steps:
+      - name: Check out World crosswalk candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install World dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Check out exact Arc activation authority
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.BURN_PROTOCOL_ARC_REPOSITORY }}
+          ref: ${{ env.BURN_PROTOCOL_ARC_HEAD }}
+          path: upstream/axm-arc
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Install Arc dependencies
+        working-directory: upstream/axm-arc
+        run: npm ci --no-audit --no-fund
+
+      - name: Rebuild publication, corpus fixture, and explicit crosswalk fixtures
+        run: |
+          set -euo pipefail
+          test "$(git -C upstream/axm-arc rev-parse HEAD)" = "$BURN_PROTOCOL_ARC_HEAD"
+          publication="$RUNNER_TEMP/burn-protocol-publication"
+          corpus="$RUNNER_TEMP/burn-protocol-corpus-atlas"
+          crosswalk="$RUNNER_TEMP/burn-protocol-world-crosswalk"
+          mkdir -p "$publication" "$crosswalk"
+          (
+            cd upstream/axm-arc
+            npx vite-node tools/build-burn-protocol-disclosure-probe.ts "$publication"
+          ) | tee "$RUNNER_TEMP/publication.log"
+          node tools/build-burn-protocol-corpus-atlas-fixture.mjs "$corpus" \
+            | tee "$RUNNER_TEMP/corpus-fixture.log"
+          (cd "$corpus" && sha256sum -c SHA256SUMS)
+          npx vite-node tools/build-burn-protocol-world-evidence-crosswalk-fixture.ts \
+            --output "$crosswalk" \
+            --arc "$publication/burn-protocol-disclosure-probe.arc.json" \
+            --corpus-fixture "$corpus" \
+            | tee "$RUNNER_TEMP/crosswalk-fixture.log"
+          (cd "$crosswalk" && sha256sum -c SHA256SUMS)
+          printf 'BURN_PROTOCOL_ARC_PATH=%s\n' "$publication/burn-protocol-disclosure-probe.arc.json" >> "$GITHUB_ENV"
+          printf 'BURN_CORPUS_ATLAS_FIXTURE_DIR=%s\n' "$corpus" >> "$GITHUB_ENV"
+          printf 'BURN_WORLD_CROSSWALK_FIXTURE_DIR=%s\n' "$crosswalk" >> "$GITHUB_ENV"
+
+      - name: Strict TypeScript and focused crosswalk contracts
+        run: |
+          set -euo pipefail
+          npm run typecheck | tee "$RUNNER_TEMP/typecheck.log"
+          npm test -- \
+            tests/world/burn-protocol-corpus-receiver.test.ts \
+            tests/world/external-assets.test.ts \
+            tests/world/external-corpus-atlas.test.ts \
+            tests/world/burn-protocol-world-evidence-crosswalk.test.ts \
+            | tee "$RUNNER_TEMP/focused-tests.log"
+
+      - name: Build ordinary World product
+        run: npm run build | tee "$RUNNER_TEMP/build.log"
+
+      - name: Prove no fixture links or crosswalk records entered the build
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const needles = [
+            'burn-protocol-world-evidence-crosswalk/1',
+            'fixture-link-hearing-record',
+            'fixture crosswalk line 2',
+            'assets/E12-C3-P01.png',
+          ];
+          function walk(root) {
+            for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+              const absolute = path.join(root, entry.name);
+              if (entry.isDirectory()) walk(absolute);
+              else if (entry.isFile()) {
+                const text = fs.readFileSync(absolute).toString('utf8');
+                for (const needle of needles) {
+                  if (text.includes(needle)) {
+                    throw new Error(`Crosswalk fixture entered build output: ${needle} in ${path.relative('docs/game', absolute)}`);
+                  }
+                }
+              }
+            }
+          }
+          walk('docs/game');
+          NODE
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Desktop and mobile explicit world crosswalk
+        run: |
+          set -euo pipefail
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npx playwright test e2e/burn-protocol-world-evidence-crosswalk.spec.ts \
+            | tee "$RUNNER_TEMP/browser.log"
+
+      - name: Retain world crosswalk evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          evidence=burn-protocol-world-evidence-crosswalk-qualification
+          mkdir -p "$evidence"
+          cp "$RUNNER_TEMP"/publication.log "$evidence/" 2>/dev/null || true
+          cp "$RUNNER_TEMP"/corpus-fixture.log "$evidence/" 2>/dev/null || true
+          cp "$RUNNER_TEMP"/crosswalk-fixture.log "$evidence/" 2>/dev/null || true
+          cp "$RUNNER_TEMP"/typecheck.log "$evidence/" 2>/dev/null || true
+          cp "$RUNNER_TEMP"/focused-tests.log "$evidence/" 2>/dev/null || true
+          cp "$RUNNER_TEMP"/build.log "$evidence/" 2>/dev/null || true
+          cp "$RUNNER_TEMP"/browser.log "$evidence/" 2>/dev/null || true
+          cp "$BURN_WORLD_CROSSWALK_FIXTURE_DIR"/*.json "$evidence/" 2>/dev/null || true
+          printf '%s\n' "${{ github.event.pull_request.head.sha || github.sha }}" > "$evidence/world-candidate-sha.txt"
+          printf '%s\n' "$BURN_PROTOCOL_ARC_HEAD" > "$evidence/arc-activation-sha.txt"
+          (cd "$evidence" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+
+      - name: Upload world crosswalk qualification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: burn-protocol-world-evidence-crosswalk-qualification
+          path: |
+            burn-protocol-world-evidence-crosswalk-qualification
+            test-results
+          if-no-files-found: error
+          retention-days: 30
