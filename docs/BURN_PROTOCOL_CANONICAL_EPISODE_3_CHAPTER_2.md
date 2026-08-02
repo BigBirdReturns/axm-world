@@ -4,12 +4,18 @@
 
 This receiver admits the same `burn-protocol` cartridge through Episode 3, Chapter 2, `Lockout`, and continues the corpus-native fixed reader from `E03-C1-P20` to `E03-C2-P21`.
 
-The Arc authority is:
+The exact Arc authority is:
 
 ```text
 BigBirdReturns/axm-arc
 feature/burn-protocol-canonical-story-episode-3-chapter-2-v1
-5281923913cdd26d74196ce6a6febcb54c210870
+f2243c479b8b84448acc9137eb6ea90036385a99
+```
+
+That Arc head passed the permanent test and supply-chain workflows plus the dedicated through-Episode-3-Chapter-2 qualification. The retained Arc qualification ZIP has GitHub artifact digest:
+
+```text
+sha256:51d2bd2806820d83c5a626bfc3f72702ef9b7bb7e2b1f40c7277af4c2a282482
 ```
 
 The exact Arc publication identifies as:
@@ -51,6 +57,8 @@ The canonical asset reference is now an explicit union:
 - a manifested asset carries exact byte count and SHA-256 custody;
 - a source-required asset carries only its stable identity, expected path, optional expected byte count, named source receipts, and refusal reason.
 
+The source-required interface keeps `bytes` and `sha256` addressable only as optional `never` fields. Existing union consumers can therefore narrow or read compatibly, while no source-required record can carry manifested custody.
+
 `SequenceHost` displays a blocking exact-receipt notice for a source-required asset. The holder-file verifier refuses that asset before byte counting or hashing, creates no object URL, and clears any prior verified media session. Canonical-story coverage remains non-production-ready while any source-required asset exists.
 
 ## Honest P31 custody
@@ -83,7 +91,7 @@ Desktop and mobile acceptance also retain every prior Burn journey, verify that 
 
 ## Qualification contract
 
-The dedicated receiver workflow pins Arc commit `5281923913cdd26d74196ce6a6febcb54c210870`, byte-compares the vendored canonical-story authority, rebuilds every prior Burn publication plus the Chapter 2 publication, verifies all publication SHA-256 ledgers, and asserts the exact 160-panel/P31 boundary before running World.
+The dedicated receiver workflow pins Arc commit `f2243c479b8b84448acc9137eb6ea90036385a99`, byte-compares all vendored canonical-story authority files, rebuilds every prior Burn publication plus the Chapter 2 publication, and verifies every publication SHA-256 ledger before running World.
 
 It must then pass:
 
