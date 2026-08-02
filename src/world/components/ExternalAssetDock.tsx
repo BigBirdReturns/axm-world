@@ -57,7 +57,10 @@ export function ExternalAssetDock(): JSX.Element | null {
       data-status={state.status}
       style={{
         position: "fixed",
-        top: 70,
+        // The open sheet may cover runtime chrome because it owns its own close
+        // control. The collapsed trigger sits below the two-row mobile header so
+        // it never intercepts Board, record, or cartridge controls.
+        top: open ? 70 : 132,
         right: 12,
         zIndex: 25,
         width: open ? "min(380px, calc(100vw - 24px))" : "auto",
