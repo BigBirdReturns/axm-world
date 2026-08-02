@@ -62,7 +62,7 @@ test.describe("The Burn Protocol through Episode 2, Chapter 1", () => {
   test.skip(!ARC_PATH, "Requires the exact Arc publication through Episode 2, Chapter 1.");
   test.describe.configure({ mode: "serial" });
 
-  test("crosses E01 to E02 and traverses Reunion through the unchanged reader", async ({ page }, testInfo) => {
+  test("crosses E01 to E02 and traverses Reunion with generic episode navigation", async ({ page }, testInfo) => {
     test.slow();
     const externalRequests: string[] = [];
     page.on("request", (request) => {
@@ -80,9 +80,13 @@ test.describe("The Burn Protocol through Episode 2, Chapter 1", () => {
     await enterStory(page);
 
     const host = page.getByTestId("canonical-story-host");
+    await expect(host).toHaveAttribute("data-episode-id", "E01");
     await expect(host).toHaveAttribute("data-panel-id", "E01-C1-P01");
     await expect(host).toHaveAttribute("data-chapter-id", "E01-C1");
     await expect(page.getByText("Episode 1: The Broken Road · Chapter 1: Impact", { exact: true })).toBeVisible();
+    await expect(page.locator('[data-testid^="canonical-episode-index-"]')).toHaveCount(2);
+    await expect(page.getByTestId("canonical-episode-index-E01")).toHaveAttribute("data-selected", "true");
+    await expect(page.getByTestId("canonical-episode-index-E02")).toHaveAttribute("data-selected", "false");
     await expect(page.getByText("4 chapters", { exact: true })).toBeVisible();
     await expect(page.getByText("80 panel slots", { exact: true })).toBeVisible();
     await expect(page.getByText("16 plate assets", { exact: true })).toBeVisible();
@@ -99,11 +103,16 @@ test.describe("The Burn Protocol through Episode 2, Chapter 1", () => {
     await expect(host).toHaveAttribute("data-panel-id", "E01-C3-P60");
     await next(page, "E02-C1-P01");
 
+    await expect(host).toHaveAttribute("data-episode-id", "E02");
     await expect(host).toHaveAttribute("data-chapter-id", "E02-C1");
     await expect(page.getByText("Episode 2: Ghosts of Then · Chapter 1: Reunion", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("canonical-episode-index-E01")).toHaveAttribute("data-selected", "false");
+    await expect(page.getByTestId("canonical-episode-index-E02")).toHaveAttribute("data-selected", "true");
     await expect(page.locator('[data-testid^="canonical-chapter-index-E02-"]')).toHaveCount(1);
     await expect(page.getByTestId("canonical-chapter-index-E02-C1")).toHaveAttribute("data-selected", "true");
     await expect(page.locator('[data-testid^="canonical-panel-index-E02-C1-"]')).toHaveCount(20);
+    await expect(page.getByTestId("canonical-panel-index-E02-C1-P01")).toBeVisible();
+    await expect(page.getByTestId("canonical-panel-index-E02-C1-P01")).toHaveAttribute("data-selected", "true");
     await expect(page.getByTestId("canonical-panel-text-blocked")).toContainText("Canonical text source required");
     await expect(page.getByTestId("canonical-plate-boundary")).toContainText("4 scroll-plate assets");
     await expect(page.getByTestId("canonical-plate-boundary")).toContainText("a02c1-scroll-plates");
@@ -119,8 +128,10 @@ test.describe("The Burn Protocol through Episode 2, Chapter 1", () => {
     await page.reload();
     await expect(page.getByTestId("rodoh-cartridge-bay")).toBeVisible();
     await enterStory(page);
+    await expect(page.getByTestId("canonical-story-host")).toHaveAttribute("data-episode-id", "E02");
     await expect(page.getByTestId("canonical-story-host")).toHaveAttribute("data-panel-id", "E02-C1-P10");
     await expect(page.getByTestId("canonical-story-host")).toHaveAttribute("data-chapter-id", "E02-C1");
+    await expect(page.getByTestId("canonical-episode-index-E02")).toHaveAttribute("data-selected", "true");
 
     await advanceEpisode2Range(page, 11, 20);
     await expect(page.getByTestId("canonical-story-host")).toHaveAttribute("data-panel-id", "E02-C1-P20");
@@ -139,9 +150,16 @@ test.describe("The Burn Protocol through Episode 2, Chapter 1", () => {
     await page.getByTestId("canonical-panel-index-E02-C1-P01").click();
     await expect(host).toHaveAttribute("data-panel-id", "E02-C1-P01");
     await page.getByTestId("canonical-story-previous").click();
+    await expect(host).toHaveAttribute("data-episode-id", "E01");
     await expect(host).toHaveAttribute("data-panel-id", "E01-C3-P60");
     await expect(host).toHaveAttribute("data-chapter-id", "E01-C3");
     await expect(page.getByText("Episode 1: The Broken Road · Chapter 3: A Direction in Time", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("canonical-episode-index-E01")).toHaveAttribute("data-selected", "true");
+
+    await page.getByTestId("canonical-episode-index-E02").click();
+    await expect(host).toHaveAttribute("data-panel-id", "E02-C1-P01");
+    await page.getByTestId("canonical-episode-index-E01").click();
+    await expect(host).toHaveAttribute("data-panel-id", "E01-C1-P01");
 
     await expectNoHorizontalOverflow(page);
     expect(externalRequests).toEqual([]);
