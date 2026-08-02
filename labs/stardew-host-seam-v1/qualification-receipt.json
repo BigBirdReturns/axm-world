@@ -1,0 +1,90 @@
+{
+  "format": "rodoh-stardew-host-seam-qualification/1",
+  "packageVersion": "0.1.0",
+  "generatedAt": "2026-08-02T16:18:32.104240Z",
+  "evidenceTier": "dependency-free-source-carrier-and-synthetic-fixture-qualified",
+  "sourceCarrier": {
+    "format": "base64-split-tar-gzip",
+    "archiveSha256": "a6ca928b67dafc55bb9564b3e3b6983db1e83432dc2b7530dcaeebf88f3e3ae3",
+    "parts": 4,
+    "materializationCommand": "node ./materialize.mjs",
+    "carrierOnlyNpmTest": "passed",
+    "carrierOnlySelftest": "passed"
+  },
+  "sourceLedger": {
+    "path": "SOURCE_SHA256SUMS",
+    "sha256": "8ebda4ba2bbbc1a8525a33b3c94f4d9806e48b3e0e23da0b59965ec303e30dc6",
+    "files": 19
+  },
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "Linux",
+    "architecture": "x86_64"
+  },
+  "checks": [
+    {
+      "command": "node --check materialize.mjs",
+      "status": "passed"
+    },
+    {
+      "command": "node --check src/seam.mjs",
+      "status": "passed"
+    },
+    {
+      "command": "node --check bin/stardew-seam.mjs",
+      "status": "passed"
+    },
+    {
+      "command": "npm test from carrier-only directory",
+      "status": "passed",
+      "tests": 13,
+      "failed": 0,
+      "evidence": "qualification/carrier-npm-test.log"
+    },
+    {
+      "command": "npm run selftest from carrier-only directory",
+      "status": "passed",
+      "evidence": "qualification/carrier-npm-selftest.log"
+    },
+    {
+      "command": "node --test test/*.test.mjs",
+      "status": "passed",
+      "tests": 13,
+      "failed": 0,
+      "evidence": "qualification/node-test.tap"
+    },
+    {
+      "command": "node ./bin/stardew-seam.mjs selftest",
+      "status": "passed",
+      "receiptId": "stardewreceipt1_7c58ec35e595f5019b9894abdc9fae729efd294076d46c04c314b69c7a5096ce",
+      "graphDigest": "stardewgraph1_05f3af6ac6e4744ed0b5861667127a1f49e70bcb103d0b1210056c3413517a27",
+      "profileId": "stardewprofile1_78681977c4e4dc45204cdfa63180861fe3df799bb05a6f83be9cb395dd75b987"
+    },
+    {
+      "command": "parse every JSON artifact",
+      "status": "passed"
+    }
+  ],
+  "qualifiedClaims": [
+    "content-addressed source-carrier materialization and source-ledger verification",
+    "bounded recursive SMAPI manifest inventory",
+    "dependency and compatibility graph admission and refusal",
+    "known Stardew3DVR and Clear Glasses collision refusal",
+    "minimum-version, duplicate-ID, cycle, path-escape, malformed-manifest, and symlink refusal",
+    "whole-bundle isolated profile staging by verified copy",
+    "content-addressed save snapshot custody",
+    "native-2d, desktop-3d, hmd-vr, and cabinet-tv static mode contracts",
+    "cabinet-tv refusal without the exact dedicated adapter manifest",
+    "deterministic graph, launch, profile, snapshot, and receipt identifiers"
+  ],
+  "unqualifiedClaims": [
+    "SMAPI bridge C# compilation against real Stardew assemblies",
+    "PowerShell parsing or execution",
+    "real Stardew Valley installation discovery or launch",
+    "real community-mod compatibility beyond manifest and declared-policy analysis",
+    "real save load, sleep-save, reload, or native rollback",
+    "Windows process, display, controller, OpenXR, Quest, headset, television, or hand-tracking operation",
+    "implementation or physical qualification of BigBirdReturns.RodohStardewCabinetAdapter"
+  ],
+  "qualificationSha256": "d7edfd5b1373c5854118a5d48fadbb03f67a441f1e7a29187f2d3280dc2cd661"
+}
