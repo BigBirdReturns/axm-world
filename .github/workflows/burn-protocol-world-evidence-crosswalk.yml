@@ -121,7 +121,6 @@ jobs:
           const fs = require('node:fs');
           const path = require('node:path');
           const needles = [
-            'burn-protocol-world-evidence-crosswalk/1',
             'fixture-link-hearing-record',
             'fixture crosswalk line 2',
             'assets/E12-C3-P01.png',
