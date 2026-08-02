@@ -22,7 +22,7 @@ async function finishEntryTransition(page: Page): Promise<void> {
 }
 
 async function enterStory(page: Page): Promise<void> {
-  await page.getByTestId(`play-cartridge-${CARTRIDGE_ID}`).click();
+  await page.locator(`button[data-testid="play-cartridge-${CARTRIDGE_ID}"]`).click();
   await finishEntryTransition(page);
 }
 
