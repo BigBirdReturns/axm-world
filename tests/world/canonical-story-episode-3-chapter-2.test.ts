@@ -171,7 +171,7 @@ function fixture(): CanonicalStorySource {
         "Headquarters",
         "E02-C1-P01",
         "E03-C2-P21",
-        [manifestedPanel("E03-C1-P20", "E03-C1", 20, "E02-C1-P01", "E03-C2-P21")],
+        [manifestedPanel("E03-C1-P20", "E03-C1", 1, "E02-C1-P01", "E03-C2-P21")],
       ), chapter(
         "E03-C2",
         2,
@@ -179,9 +179,9 @@ function fixture(): CanonicalStorySource {
         "E03-C1-P20",
         "E03-C3-P41",
         [
-          manifestedPanel("E03-C2-P21", "E03-C2", 21, "E03-C1-P20", "E03-C2-P31"),
-          sourceRequiredPanel("E03-C2-P31", "E03-C2", 31, "E03-C2-P21", "E03-C2-P40"),
-          manifestedPanel("E03-C2-P40", "E03-C2", 40, "E03-C2-P31", "E03-C3-P41"),
+          manifestedPanel("E03-C2-P21", "E03-C2", 1, "E03-C1-P20", "E03-C2-P31"),
+          sourceRequiredPanel("E03-C2-P31", "E03-C2", 2, "E03-C2-P21", "E03-C2-P40"),
+          manifestedPanel("E03-C2-P40", "E03-C2", 3, "E03-C2-P31", "E03-C3-P41"),
         ],
       )],
     }],
