@@ -12,12 +12,22 @@ async function coldBay(page: Page): Promise<void> {
 }
 
 async function finishEntryTransition(page: Page): Promise<void> {
+  const host = page.getByTestId("canonical-story-host");
   const transition = page.getByTestId("cartridge-enter-transition");
-  const skip = transition.getByRole("button", { name: /skip entry/i });
-  if (await skip.isVisible().catch(() => false)) {
-    await skip.click();
+  for (let attempt = 0; attempt < 80; attempt += 1) {
+    if (await host.isVisible().catch(() => false)
+        && !(await transition.isVisible().catch(() => false))) return;
+    const skip = transition.getByRole("button", { name: /skip entry/i });
+    if (await skip.isVisible().catch(() => false)) {
+      await skip.evaluate((button: HTMLButtonElement) => button.click()).catch(() => undefined);
+    }
+    await Promise.race([
+      host.waitFor({ state: "visible", timeout: 250 }).catch(() => undefined),
+      transition.waitFor({ state: "hidden", timeout: 250 }).catch(() => undefined),
+      page.waitForTimeout(250),
+    ]);
   }
-  await expect(page.getByTestId("canonical-story-host")).toBeVisible({ timeout: 20_000 });
+  await expect(host).toBeVisible({ timeout: 20_000 });
   await expect(transition).toHaveCount(0, { timeout: 20_000 });
 }
 
