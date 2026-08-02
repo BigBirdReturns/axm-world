@@ -1,11 +1,11 @@
 {
   "format": "rodoh-stardew-host-seam-qualification/1",
   "packageVersion": "0.1.0",
-  "generatedAt": "2026-08-02T16:18:32.104240Z",
+  "generatedAt": "2026-08-02T16:42:27.180133Z",
   "evidenceTier": "dependency-free-source-carrier-and-synthetic-fixture-qualified",
   "sourceCarrier": {
     "format": "base64-split-tar-gzip",
-    "archiveSha256": "a6ca928b67dafc55bb9564b3e3b6983db1e83432dc2b7530dcaeebf88f3e3ae3",
+    "archiveSha256": "e3b350fcab8d00a9fe5ad69eab59705067cb2170a0572c8dcaafe4100b9437a5",
     "parts": 4,
     "materializationCommand": "node ./materialize.mjs",
     "carrierOnlyNpmTest": "passed",
@@ -13,7 +13,7 @@
   },
   "sourceLedger": {
     "path": "SOURCE_SHA256SUMS",
-    "sha256": "8ebda4ba2bbbc1a8525a33b3c94f4d9806e48b3e0e23da0b59965ec303e30dc6",
+    "sha256": "0b7d3e080cccb4e035ddd532a185fa6ad4714930b65a4c563165db856f697bb1",
     "files": 19
   },
   "environment": {
@@ -47,7 +47,7 @@
       "evidence": "qualification/carrier-npm-selftest.log"
     },
     {
-      "command": "node --test test/*.test.mjs",
+      "command": "node --test test/seam.test.mjs",
       "status": "passed",
       "tests": 13,
       "failed": 0,
@@ -56,9 +56,9 @@
     {
       "command": "node ./bin/stardew-seam.mjs selftest",
       "status": "passed",
-      "receiptId": "stardewreceipt1_7c58ec35e595f5019b9894abdc9fae729efd294076d46c04c314b69c7a5096ce",
+      "receiptId": "stardewreceipt1_ff7c77153b9b820ef9d20386be04b6c8dda0031f521db8fa61de7108a1e03f76",
       "graphDigest": "stardewgraph1_05f3af6ac6e4744ed0b5861667127a1f49e70bcb103d0b1210056c3413517a27",
-      "profileId": "stardewprofile1_78681977c4e4dc45204cdfa63180861fe3df799bb05a6f83be9cb395dd75b987"
+      "profileId": "stardewprofile1_62913285db859c2b46caaf2942bb61309c91124fa0b403959aff0e617e588899"
     },
     {
       "command": "parse every JSON artifact",
@@ -75,7 +75,8 @@
     "content-addressed save snapshot custody",
     "native-2d, desktop-3d, hmd-vr, and cabinet-tv static mode contracts",
     "cabinet-tv refusal without the exact dedicated adapter manifest",
-    "deterministic graph, launch, profile, snapshot, and receipt identifiers"
+    "deterministic graph, launch, profile, snapshot, and receipt identifiers",
+    "Windows-safe explicit Node test target without shell glob dependence"
   ],
   "unqualifiedClaims": [
     "SMAPI bridge C# compilation against real Stardew assemblies",
@@ -86,5 +87,5 @@
     "Windows process, display, controller, OpenXR, Quest, headset, television, or hand-tracking operation",
     "implementation or physical qualification of BigBirdReturns.RodohStardewCabinetAdapter"
   ],
-  "qualificationSha256": "d7edfd5b1373c5854118a5d48fadbb03f67a441f1e7a29187f2d3280dc2cd661"
+  "qualificationSha256": "54037df524c89cd667dd820ff3c34444dffe5cb66cc38e5d9a22f6693a9c857b"
 }
