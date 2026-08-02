@@ -1,0 +1,16 @@
+{
+  "name": "@axm/stardew-host-seam",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "Dependency-free Stardew Valley SMAPI host-seam custody and qualification floor for AXM, RODOH, and MotionDeck.",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "selftest": "node ./bin/stardew-seam.mjs selftest",
+    "catalog": "node ./bin/stardew-seam.mjs catalog"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
