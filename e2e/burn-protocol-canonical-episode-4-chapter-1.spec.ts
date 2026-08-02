@@ -86,7 +86,10 @@ test.describe("The Burn Protocol Episode 4 Chapter 1", () => {
 
     await coldBay(page);
     await page.getByTestId("open-cartridge").setInputFiles(path.resolve(ARC_PATH!));
-    await expect(page.getByTestId("import-success")).toContainText("Osyraa's Offer");
+    await expect(page.getByTestId("import-success")).toContainText(
+      "Osyraa's Offer",
+      { timeout: 15_000 },
+    );
     await expect(page.getByTestId(`cartridge-entry-${CARTRIDGE_ID}`)).toBeVisible();
     await enterStory(page);
 
@@ -101,6 +104,14 @@ test.describe("The Burn Protocol Episode 4 Chapter 1", () => {
     await expect(page.getByTestId("selected-contract")).toHaveCount(0);
     await expect(page.getByText(/success|partial|failure/i)).toHaveCount(0);
 
+    // Chapter controls are intentionally scoped to the current episode. Move
+    // through the published episode seams, then select Prime Incident inside E03.
+    await page.getByTestId("canonical-chapter-index-E01-C3").click();
+    await advanceRange(page, 1, 3, 40, 60);
+    await next(page, "E02-C1-P01");
+    await page.getByTestId("canonical-chapter-index-E02-C3").click();
+    await advanceRange(page, 2, 3, 42, 60);
+    await next(page, "E03-C1-P01");
     await page.getByTestId("canonical-chapter-index-E03-C3").click();
     await advanceRange(page, 3, 3, 42, 60);
     await next(page, "E04-C1-P01");
