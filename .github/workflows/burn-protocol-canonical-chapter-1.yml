@@ -74,7 +74,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git -C upstream/axm-arc rev-parse HEAD)" = "$BURN_PROTOCOL_ARC_HEAD"
-          for file in types.ts schema.ts runtime.ts index.ts; do
+          for file in types.ts schema.ts runtime.ts index.ts asset-reference-exclusivity.d.ts; do
             cmp "upstream/axm-arc/src/canonical-story/$file" "src/canonical-story/$file"
           done
 
@@ -133,6 +133,7 @@ jobs:
             tests/world/canonical-story-chapter-3.test.ts \
             tests/world/canonical-story-episode-2.test.ts \
             tests/world/canonical-story-episode-3-chapter-1.test.ts \
+            tests/world/canonical-story-episode-3-chapter-2.test.ts \
             tests/world/canonical-story-source-required-asset.test.ts \
             | tee "$RUNNER_TEMP/focused-tests.log"
 
