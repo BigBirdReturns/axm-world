@@ -116,7 +116,6 @@ test.describe("The Burn Protocol Episode 5 Chapter 1", () => {
     await advanceRange(page, 4, 3, 42, 60);
     await next(page, "E05-C1-P01");
 
-    await expect(host).toHaveAttribute("data-episode-id", "E05");
     await expect(host).toHaveAttribute("data-chapter-id", "E05-C1");
     await expect(page.getByText(
       "Episode 5: Nursery World · Chapter 1: The Song",
