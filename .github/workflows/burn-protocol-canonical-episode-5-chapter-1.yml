@@ -1,0 +1,151 @@
+name: Burn Protocol canonical through Episode 5 Chapter 1 receiver
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/burn-protocol-canonical-episode-5-chapter-1.yml'
+      - 'src/canonical-story/**'
+      - 'src/world/sequence/**'
+      - 'tests/world/canonical-story*.test.ts'
+      - 'e2e/burn-protocol-canonical-episode-5-chapter-1.spec.ts'
+      - 'docs/BURN_PROTOCOL_CANONICAL_EPISODE_5_CHAPTER_1.md'
+  push:
+    branches: [feature/burn-protocol-canonical-story-episode-5-chapter-1-v1]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      CI: 'true'
+      PW_BASE_URL: http://127.0.0.1:5173
+      BURN_PROTOCOL_ARC_REPOSITORY: BigBirdReturns/axm-arc
+      BURN_PROTOCOL_ARC_HEAD: 8c2e17f71d52bd26c0f62cb2a9bff910456fb70a
+    steps:
+      - name: Check out exact World candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install World dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Check out exact Arc authority
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.BURN_PROTOCOL_ARC_REPOSITORY }}
+          ref: ${{ env.BURN_PROTOCOL_ARC_HEAD }}
+          path: upstream/axm-arc
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Install Arc dependencies
+        working-directory: upstream/axm-arc
+        run: npm ci --no-audit --no-fund
+
+      - name: Verify exact vendored canonical-story authority
+        run: |
+          set -euo pipefail
+          test "$(git -C upstream/axm-arc rev-parse HEAD)" = "$BURN_PROTOCOL_ARC_HEAD"
+          for file in types.ts schema.ts runtime.ts index.ts asset-reference-exclusivity.d.ts; do
+            cmp "upstream/axm-arc/src/canonical-story/$file" "src/canonical-story/$file"
+          done
+
+      - name: Build exact Episode 5 Chapter 1 Arc
+        run: |
+          set -euo pipefail
+          publication="$RUNNER_TEMP/burn-through-episode-5-chapter-1-publication"
+          (
+            cd upstream/axm-arc
+            npx vite-node tools/build-burn-protocol-episode-5-chapter-1.ts "$publication"
+          ) | tee "$RUNNER_TEMP/arc-publication.log"
+          (cd "$publication" && sha256sum -c SHA256SUMS)
+          printf 'BURN_PROTOCOL_THROUGH_EPISODE_5_CHAPTER_1_ARC_PATH=%s\n' \
+            "$publication/burn-protocol-through-episode-05-chapter-01.arc.json" \
+            >> "$GITHUB_ENV"
+          printf 'BURN_PROTOCOL_THROUGH_EPISODE_5_CHAPTER_1_PUBLICATION=%s\n' "$publication" >> "$GITHUB_ENV"
+
+      - name: Typecheck and focused receiver contracts
+        run: |
+          set -euo pipefail
+          npm run typecheck | tee "$RUNNER_TEMP/typecheck.log"
+          npm test -- \
+            tests/world/canonical-story-episode-4-chapter-3.test.ts \
+            tests/world/canonical-story-episode-5-chapter-1.test.ts \
+            tests/world/canonical-story-source-required-asset.test.ts \
+            | tee "$RUNNER_TEMP/focused-tests.log"
+
+      - name: Complete World regression and production build
+        run: |
+          set -euo pipefail
+          npm test | tee "$RUNNER_TEMP/full-tests.log"
+          npm run build | tee "$RUNNER_TEMP/build.log"
+
+      - name: Prove Episode 5 content is not bundled into World
+        run: |
+          set -euo pipefail
+          for token in \
+            'site/assets/art/A05C1' \
+            'E05-C1-P01' \
+            'E05-C1-P20' \
+            'Nursery World' \
+            'The Song'; do
+            if grep -R -a -F "$token" docs/game; then
+              echo "Burn canonical content entered the static World product: $token" >&2
+              exit 1
+            fi
+          done
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Desktop and mobile Episode 5 Chapter 1 journey
+        run: |
+          set -euo pipefail
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npx playwright test \
+            e2e/burn-protocol-canonical-episode-5-chapter-1.spec.ts \
+            | tee "$RUNNER_TEMP/browser.log"
+
+      - name: Retain qualification
+        if: always()
+        run: |
+          set -euo pipefail
+          root="burn-protocol-canonical-through-episode-5-chapter-1-receiver-qualification"
+          mkdir -p "$root"
+          cp -R "${BURN_PROTOCOL_THROUGH_EPISODE_5_CHAPTER_1_PUBLICATION:-$RUNNER_TEMP/burn-through-episode-5-chapter-1-publication}" "$root/arc-publication" 2>/dev/null || true
+          cp "$RUNNER_TEMP"/*.log "$root/" 2>/dev/null || true
+          printf '%s\n' "${{ github.event.pull_request.head.sha || github.sha }}" > "$root/world-candidate-sha.txt"
+          printf '%s\n' "$BURN_PROTOCOL_ARC_HEAD" > "$root/arc-authority-sha.txt"
+          find "$root" -type f ! -name SHA256SUMS -print0 \
+            | sort -z \
+            | xargs -0 sha256sum \
+            | sed "s#  $root/#  #" \
+            > "$root/SHA256SUMS"
+
+      - name: Upload qualification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: burn-protocol-canonical-through-episode-5-chapter-1-receiver-qualification
+          path: |
+            burn-protocol-canonical-through-episode-5-chapter-1-receiver-qualification
+            test-results
+          if-no-files-found: error
+          retention-days: 30
