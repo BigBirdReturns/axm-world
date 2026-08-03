@@ -13,3 +13,5 @@ d13753fb8040594e86344202acf361012f68627561ded38db43efeae4422aa7e
 ```
 
 This carrier confers no World, Arc, campaign, release, or hardware authority. A passing hosted build proves only that the reviewed source reconstructed exactly and produced an APK under the pinned Android build floor. Quest hardware commissioning and household acceptance remain separate gates.
+
+The hosted transaction is self-reporting: its pass or failure ledger is committed only to this isolated branch, outside the workflow trigger path.
