@@ -14,13 +14,14 @@ on:
       - '.github/workflows/queststage-appliance-floor-build.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   CARRIER_DIR: carriers/queststage-appliance-floor-v0.1.0-tgz
   PRODUCT_ROOT_NAME: MotionDeck-QuestStage-Appliance-Floor-0.1.0
   SOURCE_ARCHIVE_SHA256: d13753fb8040594e86344202acf361012f68627561ded38db43efeae4422aa7e
   APPLICATION_ID: com.bigbirdreturns.queststage.appliance
+  OUT_DIR: out/queststage-appliance-floor-0.1.0-debug
 
 jobs:
   validate-build-and-inspect:
@@ -31,10 +32,26 @@ jobs:
       - name: Check out isolated build branch
         uses: actions/checkout@v4
 
+      - name: Initialize self-reporting ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/$OUT_DIR"
+          mkdir -p "$OUT"
+          echo "OUT=$OUT" >> "$GITHUB_ENV"
+          {
+            echo "repository=$GITHUB_REPOSITORY"
+            echo "source_commit=$GITHUB_SHA"
+            echo "workflow_run_id=$GITHUB_RUN_ID"
+            echo "workflow_run_attempt=$GITHUB_RUN_ATTEMPT"
+            echo "event=$GITHUB_EVENT_NAME"
+          } > "$OUT/workflow-context.txt"
+
       - name: Verify and reconstruct reviewed source
         shell: bash
         run: |
           set -euo pipefail
+          exec > >(tee -a "$OUT/carrier-verification.log") 2>&1
           cd "$CARRIER_DIR"
           sha256sum -c SHA256SUMS
           cat source.tgz.b64.part* | base64 --decode > "$RUNNER_TEMP/queststage-source.tar.gz"
@@ -59,6 +76,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          exec > >(tee -a "$OUT/android-sdk-install.log") 2>&1
           yes | sdkmanager --licenses >/dev/null 2>&1 || true
           sdkmanager --install \
             'platform-tools' \
@@ -70,10 +88,19 @@ jobs:
         with:
           gradle-version: '8.13'
 
+      - name: Record toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -version > "$OUT/java-version.txt" 2>&1
+          gradle --version > "$OUT/gradle-version.txt"
+          sdkmanager --list_installed > "$OUT/android-sdk-installed.txt"
+
       - name: Run source and redirect qualification
         shell: bash
         run: |
           set -euo pipefail
+          exec > >(tee -a "$OUT/source-qualification.log") 2>&1
           cd "$SOURCE_ROOT"
           python -m unittest discover -s tests -p 'test_*.py' -v
           python tools/validate_release.py
@@ -82,6 +109,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          exec > >(tee -a "$OUT/gradle-build.log") 2>&1
           cd "$SOURCE_ROOT/android"
           gradle --no-daemon :app:assembleDebug :app:lintDebug --stacktrace
 
@@ -89,6 +117,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          exec > >(tee -a "$OUT/apk-inspection.log") 2>&1
           APK="$SOURCE_ROOT/android/app/build/outputs/apk/debug/app-debug.apk"
           test -f "$APK"
           unzip -t "$APK"
@@ -96,7 +125,7 @@ jobs:
           APP_ID="$(apkanalyzer manifest application-id "$APK" | tr -d '\r')"
           test "$APP_ID" = "$APPLICATION_ID"
 
-          apkanalyzer manifest permissions "$APK" | tee "$RUNNER_TEMP/apk-permissions.txt"
+          apkanalyzer manifest permissions "$APK" | tee "$OUT/apk-permissions.txt"
           forbidden=(
             android.permission.INTERNET
             android.permission.SYSTEM_ALERT_WINDOW
@@ -109,7 +138,7 @@ jobs:
             android.permission.BIND_DEVICE_ADMIN
           )
           for permission in "${forbidden[@]}"; do
-            if grep -Fq "$permission" "$RUNNER_TEMP/apk-permissions.txt"; then
+            if grep -Fq "$permission" "$OUT/apk-permissions.txt"; then
               echo "Forbidden permission present: $permission" >&2
               exit 1
             fi
@@ -120,18 +149,12 @@ jobs:
         run: |
           set -euo pipefail
           APK="$SOURCE_ROOT/android/app/build/outputs/apk/debug/app-debug.apk"
-          OUT="$GITHUB_WORKSPACE/out/queststage-appliance-floor-0.1.0-debug"
-          mkdir -p "$OUT"
           cp "$APK" "$OUT/QuestStage-Appliance-Floor-0.1.0-debug.apk"
           cp "$SOURCE_ROOT/RELEASE_MANIFEST.json" "$OUT/SOURCE_RELEASE_MANIFEST.json"
           cp "$SOURCE_ROOT/android/app/src/main/assets/policy.json" "$OUT/policy.json"
-          cp "$RUNNER_TEMP/apk-permissions.txt" "$OUT/apk-permissions.txt"
           find "$SOURCE_ROOT/android/app/build/reports" -maxdepth 1 -type f -name 'lint-results-debug.*' -exec cp {} "$OUT/" \;
 
           sha256sum "$OUT/QuestStage-Appliance-Floor-0.1.0-debug.apk" > "$OUT/QuestStage-Appliance-Floor-0.1.0-debug.apk.sha256"
-          java -version > "$OUT/java-version.txt" 2>&1
-          gradle --version > "$OUT/gradle-version.txt"
-          sdkmanager --list_installed > "$OUT/android-sdk-installed.txt"
 
           export APK_SHA256
           APK_SHA256="$(sha256sum "$OUT/QuestStage-Appliance-Floor-0.1.0-debug.apk" | awk '{print $1}')"
@@ -139,7 +162,6 @@ jobs:
           SOURCE_MANIFEST_SHA256="$(sha256sum "$SOURCE_ROOT/RELEASE_MANIFEST.json" | awk '{print $1}')"
           export POLICY_SHA256
           POLICY_SHA256="$(sha256sum "$OUT/policy.json" | awk '{print $1}')"
-          export OUT
 
           python - <<'PY'
           import json
@@ -191,3 +213,62 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           path: out/queststage-appliance-floor-0.1.0-debug/
+
+      - name: Commit pass or failure ledger to isolated branch
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/agent/queststage-appliance-floor-v0.1.0-build'
+        shell: bash
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$OUT"
+          export JOB_STATUS
+          python - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          out = Path(os.environ['OUT'])
+          state = {
+              'schema_version': 1,
+              'product': 'queststage-appliance-floor',
+              'version': '0.1.0',
+              'generated_at_utc': datetime.now(timezone.utc).isoformat(),
+              'job_status': os.environ['JOB_STATUS'],
+              'source_commit': os.environ['GITHUB_SHA'],
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'workflow_run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'source_archive_sha256': os.environ['SOURCE_ARCHIVE_SHA256'],
+          }
+          (out / 'WORKFLOW_STATE.json').write_text(
+              json.dumps(state, indent=2) + '\n', encoding='utf-8'
+          )
+          PY
+
+          DEST="$GITHUB_WORKSPACE/build-receipts/queststage-appliance-floor-0.1.0/latest"
+          rm -rf "$DEST"
+          mkdir -p "$DEST"
+          cp -a "$OUT/." "$DEST/"
+
+          cat > "$DEST/ARTIFACT_INDEX.json" <<JSON
+          {
+            "schema_version": 1,
+            "product": "queststage-appliance-floor",
+            "version": "0.1.0",
+            "branch": "agent/queststage-appliance-floor-v0.1.0-build",
+            "workflow_run_id": "$GITHUB_RUN_ID",
+            "job_status": "$JOB_STATUS",
+            "apk_raw_url": "https://raw.githubusercontent.com/BigBirdReturns/axm-world/refs/heads/agent/queststage-appliance-floor-v0.1.0-build/build-receipts/queststage-appliance-floor-0.1.0/latest/QuestStage-Appliance-Floor-0.1.0-debug.apk",
+            "receipt_raw_url": "https://raw.githubusercontent.com/BigBirdReturns/axm-world/refs/heads/agent/queststage-appliance-floor-v0.1.0-build/build-receipts/queststage-appliance-floor-0.1.0/latest/HOSTED_BUILD_RECEIPT.json"
+          }
+          JSON
+
+          git config user.name 'queststage-build-bot'
+          git config user.email 'queststage-build-bot@users.noreply.github.com'
+          git add build-receipts/queststage-appliance-floor-0.1.0/latest
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'Record QuestStage Appliance Floor hosted build [skip ci]'
+          git push origin "HEAD:$GITHUB_REF_NAME"
