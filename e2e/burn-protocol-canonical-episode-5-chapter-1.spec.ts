@@ -87,7 +87,7 @@ test.describe("The Burn Protocol Episode 5 Chapter 1", () => {
     await coldBay(page);
     await page.getByTestId("open-cartridge").setInputFiles(path.resolve(ARC_PATH!));
     await expect(page.getByTestId("import-success")).toContainText(
-      "Nursery World",
+      "The Burn Protocol through Episode 5, Chapter 1 — The Song",
       { timeout: 15_000 },
     );
     await expect(page.getByTestId(`cartridge-entry-${CARTRIDGE_ID}`)).toBeVisible();
