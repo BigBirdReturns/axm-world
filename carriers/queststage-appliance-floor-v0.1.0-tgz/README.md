@@ -1,0 +1,15 @@
+# QuestStage Appliance Floor v0.1.0 build carrier
+
+This directory is an isolated, content-addressed transport for the reviewed `MotionDeck-QuestStage-Appliance-Floor-0.1.0` source tree. It exists only because the connected repository interface cannot publish a local binary archive directly.
+
+The workflow must verify every segment against `SHA256SUMS`, concatenate the segments in lexical order, decode the resulting base64 stream, and verify the reconstructed archive before extraction.
+
+```text
+archive
+MotionDeck-QuestStage-Appliance-Floor-0.1.0-Source.tar.gz
+
+sha256
+d13753fb8040594e86344202acf361012f68627561ded38db43efeae4422aa7e
+```
+
+This carrier confers no World, Arc, campaign, release, or hardware authority. A passing hosted build proves only that the reviewed source reconstructed exactly and produced an APK under the pinned Android build floor. Quest hardware commissioning and household acceptance remain separate gates.
