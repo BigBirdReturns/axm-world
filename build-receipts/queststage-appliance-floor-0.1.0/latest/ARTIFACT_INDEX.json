@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "product": "queststage-appliance-floor",
+  "version": "0.1.0",
+  "branch": "agent/queststage-appliance-floor-v0.1.0-build",
+  "workflow_run_id": "30843645656",
+  "job_status": "failure",
+  "apk_raw_url": "https://raw.githubusercontent.com/BigBirdReturns/axm-world/refs/heads/agent/queststage-appliance-floor-v0.1.0-build/build-receipts/queststage-appliance-floor-0.1.0/latest/QuestStage-Appliance-Floor-0.1.0-debug.apk",
+  "receipt_raw_url": "https://raw.githubusercontent.com/BigBirdReturns/axm-world/refs/heads/agent/queststage-appliance-floor-v0.1.0-build/build-receipts/queststage-appliance-floor-0.1.0/latest/HOSTED_BUILD_RECEIPT.json"
+}
