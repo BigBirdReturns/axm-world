@@ -1,6 +1,10 @@
 name: Materialize Stardew scene floor
 
 on:
+  pull_request:
+    paths:
+      - 'labs/stardew-scene-floor-v0.2.0-bootstrap/**'
+      - '.github/workflows/materialize-stardew-scene-floor.yml'
   push:
     branches:
       - 'agent/stardew-host-seam-commodity-v1'
@@ -13,17 +17,21 @@ permissions:
   contents: write
 
 concurrency:
-  group: materialize-stardew-scene-floor-${{ github.ref }}
+  group: materialize-stardew-scene-floor-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
   materialize-and-qualify:
-    if: github.repository == 'BigBirdReturns/axm-world'
+    if: >-
+      github.repository == 'BigBirdReturns/axm-world' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
+    env:
+      TARGET_BRANCH: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ env.TARGET_BRANCH }}
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -54,4 +62,4 @@ jobs:
             exit 0
           fi
           git commit -m 'Fan out Stardew scene commodity floor'
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git push origin "HEAD:${TARGET_BRANCH}"
