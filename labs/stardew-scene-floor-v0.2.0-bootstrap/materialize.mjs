@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// The bootstrap is intentionally outside the content-addressed payload it verifies.
 import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
 import os from 'node:os';
