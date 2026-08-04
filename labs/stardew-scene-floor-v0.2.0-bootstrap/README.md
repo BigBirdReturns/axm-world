@@ -61,6 +61,16 @@ ordinary-source artifact publication
 
 Each successful job publishes the materialized source package and its root qualification workflow as a GitHub Actions artifact. The branch therefore retains a compact content-addressed transport, while every supported qualification environment produces an ordinary reviewable tree from those exact bytes.
 
+## Cabinet successor
+
+The exact external cabinet-runtime source and SMAPI provider boundary now live in:
+
+```text
+labs/motiondeck-stardew-cabinet-runtime-v0.1.0
+```
+
+That successor implements authenticated local IPC, device/display leases, watchdog disarm, signed physical-evidence admission, a source-complete SMAPI provider and adapter, and a native Windows OpenXR observation probe. Its existence closes the missing source seam; it does not promote the cabinet player product.
+
 ## Authority
 
 ```text
@@ -69,4 +79,4 @@ player-product authority: none
 production authority: none
 ```
 
-The package does not claim a real Stardew installation, community-mod runtime, save round trip, multiplayer session, OpenXR path, Quest, television, controller, hand tracker, or compiled SMAPI bridge. Cabinet mode remains blocked until the exact `BigBirdReturns.MotionDeckCabinetRuntime` exists and passes live and physical acceptance.
+The combined source floors still do not claim a real Stardew launch, a live SMAPI compile, Quest tracking with an unworn HMD, authored television presentation, physical input, save continuity, multiplayer, or household player acceptance. Cabinet authority remains blocked until the exact Windows, Stardew, OpenXR, Quest, television, input, save, fallback, and player transaction passes.
