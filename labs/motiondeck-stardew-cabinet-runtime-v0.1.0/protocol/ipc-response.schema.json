@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bigbirdreturns.invalid/schemas/motiondeck-cabinet-ipc-response-1.json",
+  "title": "MotionDeck Cabinet Runtime IPC Response",
+  "type": "object",
+  "required": ["format", "requestId", "operation", "success", "code", "message", "observedAt", "state", "evidence", "payload", "responseDigest"],
+  "properties": {
+    "format": { "const": "motiondeck-cabinet-ipc-response/1" },
+    "requestId": { "type": ["string", "null"] },
+    "operation": { "type": ["string", "null"] },
+    "success": { "type": "boolean" },
+    "code": { "type": "string" },
+    "message": { "type": "string" },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "state": { "type": "object" },
+    "probe": { "type": ["object", "null"] },
+    "evidence": { "type": "array", "items": { "type": "string" } },
+    "payload": { "type": "object" },
+    "responseDigest": { "type": "string", "pattern": "^cabinetresponse1_[a-f0-9]{64}$" }
+  },
+  "additionalProperties": true
+}

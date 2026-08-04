@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bigbirdreturns.invalid/schemas/motiondeck-cabinet-physical-evidence-1.json",
+  "title": "MotionDeck Cabinet Physical Evidence Attestation",
+  "type": "object",
+  "required": ["format", "machineFingerprint", "issuedAt", "expiresAt", "operator", "records", "signingKeyId", "attestationDigest", "signature"],
+  "properties": {
+    "format": { "const": "motiondeck-cabinet-physical-evidence/1" },
+    "machineFingerprint": { "type": "string", "pattern": "^cabinetmachine1_[a-f0-9]{64}$" },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "operator": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "records": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "object",
+        "required": ["capabilityId", "status", "evidenceDigest"],
+        "properties": {
+          "capabilityId": { "type": "string" },
+          "status": { "const": "passed" },
+          "evidenceDigest": { "type": "string", "minLength": 16 },
+          "details": { "type": "object" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "signingKeyId": { "type": "string", "pattern": "^ed25519_[a-f0-9]{64}$" },
+    "attestationDigest": { "type": "string", "pattern": "^physicalevidence1_[a-f0-9]{64}$" },
+    "signature": { "type": "string", "minLength": 64 }
+  },
+  "additionalProperties": false
+}

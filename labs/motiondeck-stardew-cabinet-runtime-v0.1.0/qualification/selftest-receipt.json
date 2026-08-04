@@ -1,0 +1,32 @@
+{
+  "format": "motiondeck-cabinet-selftest-receipt/1",
+  "status": "passed",
+  "receiptId": "cabinetselftest1_1754f648e9f5faef06d3f8efd4842c500565f71ffc5a253b8e1f15e200675788",
+  "generatedAt": "2026-08-04T02:38:24.160Z",
+  "payload": {
+    "rootWasTemporary": true,
+    "platform": "linux",
+    "node": "v22.16.0",
+    "checks": {
+      "hello": true,
+      "probe": true,
+      "operationalRefused": true,
+      "syntheticArmed": true,
+      "heartbeat": true,
+      "recenter": true,
+      "frame": true,
+      "controllerFallback": true,
+      "nativeFallback": true,
+      "disarmed": true,
+      "evidence": true
+    },
+    "failures": [],
+    "ledger": {
+      "format": "motiondeck-cabinet-evidence-ledger/1",
+      "entries": 21,
+      "headDigest": "cabinetevidence1_4995e836a9a3a5b2dac0e8d3462ad5e2b2b6176fcf8148cf2552ff336388dc70",
+      "ledgerPath": "/tmp/motiondeck-cabinet-selftest-bEJNlu/evidence/events.jsonl"
+    },
+    "productAuthority": "none"
+  }
+}

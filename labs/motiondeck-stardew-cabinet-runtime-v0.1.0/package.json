@@ -1,0 +1,17 @@
+{
+  "name": "@axm/motiondeck-stardew-cabinet-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "Fail-closed local device/display runtime and SMAPI provider seam for Stardew cabinet-TV play.",
+  "scripts": {
+    "check": "node ./scripts/check.mjs",
+    "test": "node ./scripts/test.mjs",
+    "selftest": "node ./bin/motiondeck-cabinet-runtime.mjs selftest",
+    "verify-source": "node ./scripts/verify-source.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

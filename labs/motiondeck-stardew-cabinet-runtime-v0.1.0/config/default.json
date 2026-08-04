@@ -1,0 +1,21 @@
+{
+  "format": "motiondeck-cabinet-config/1",
+  "adapter": "windows",
+  "windows": {
+    "televisionDisplayId": null,
+    "physicalEvidencePath": null,
+    "trustedEvidenceKeys": {},
+    "hooks": {
+      "arm": null,
+      "disarm": null,
+      "recenter": null,
+      "controllerFallback": null,
+      "native2dFallback": null,
+      "rendererNative2d": null,
+      "rendererDesktop3d": null,
+      "rendererHmdVr": null,
+      "rendererCabinetTv": null,
+      "captureFrame": null
+    }
+  }
+}
