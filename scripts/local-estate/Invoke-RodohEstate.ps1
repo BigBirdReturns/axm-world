@@ -196,7 +196,7 @@ function Invoke-External {
             }
             return [pscustomobject]@{ Code = $code; Output = $text }
         }
-        & $FilePath @Arguments
+        & $FilePath @Arguments 2>&1 | ForEach-Object { Write-Host ([string]$_) }
         $code = $LASTEXITCODE
         if ($code -ne 0 -and -not $AllowFailure) { throw "Command failed with exit code $code." }
         return [pscustomobject]@{ Code = $code; Output = '' }

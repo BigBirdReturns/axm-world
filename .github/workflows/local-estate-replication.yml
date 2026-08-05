@@ -8,6 +8,7 @@ on:
       - 'estate/**'
       - 'scripts/local-estate/**'
       - 'tests/world/local-estate-contract.test.ts'
+      - 'tests/local-estate/**'
       - 'package.json'
       - '.github/workflows/local-estate-replication.yml'
       - 'src/**'
@@ -196,6 +197,12 @@ jobs:
         shell: pwsh
         run: New-Item -ItemType Directory -Force .rodoh-estate\logs, .rodoh-estate\receipts | Out-Null
 
+      - name: Prove native process diagnostics contract
+        shell: pwsh
+        run: |
+          pwsh -NoLogo -NoProfile -File .\axm-world\tests\local-estate\native-output-contract.ps1 *>&1 | Tee-Object .rodoh-estate\logs\native-output-contract.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Run Windows doctor and hydrate holder-owned caches
         shell: pwsh
         run: |
@@ -274,6 +281,8 @@ jobs:
             .rodoh-estate/receipts
             .rodoh-estate/library/builds
             .rodoh-estate/logs
+            axm-world/test-results
+            axm-world/playwright-report
           if-no-files-found: warn
           retention-days: 30
 

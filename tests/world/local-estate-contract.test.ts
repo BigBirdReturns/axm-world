@@ -116,6 +116,7 @@ describe("local estate replication contract", () => {
     for (const path of [
       "RODOH.cmd",
       "scripts/local-estate/Invoke-RodohEstate.ps1",
+      "tests/local-estate/native-output-contract.ps1",
       "scripts/local-estate/estate-tools.mjs",
       "scripts/local-estate/static-server.mjs",
       "estate/START_HERE.md",
@@ -138,6 +139,14 @@ describe("local estate replication contract", () => {
     expect(powershell).toContain("function Start-DetachedLoggedProcess");
     expect(powershell).toContain("-EncodedCommand");
     expect(powershell).toContain("function Assert-CurrentAcceptanceEstate");
+    const streamedInvocation = '& $FilePath @Arguments 2>&1 | ForEach-Object { Write-Host ([string]$_) }';
+    expect(powershell).toContain(streamedInvocation);
+    const captureBranch = powershell.slice(
+      powershell.indexOf("if ($Capture)"),
+      powershell.indexOf(streamedInvocation),
+    );
+    expect(captureBranch).toContain("$output = & $FilePath @Arguments 2>&1");
+    expect(captureBranch).toContain("return [pscustomobject]@{ Code = $code; Output = $text }");
     expect(powershell).toContain("Automated repository receipt World head");
     expect(powershell).toContain("Dependency receipt World lock SHA-256");
     expect(powershell).toContain("Dependency receipt Arc lock SHA-256");
@@ -162,6 +171,20 @@ describe("local estate replication contract", () => {
     expect(serverLifecycle).not.toContain("-RedirectStandardOutput");
     expect(serverLifecycle).not.toContain("-RedirectStandardError");
     expect(powershell).not.toContain("reset --hard");
+
+    const nativeOutputContract = read("tests/local-estate/native-output-contract.ps1");
+    expect(nativeOutputContract).toContain("System.Management.Automation.Language.Parser");
+    expect(nativeOutputContract).toContain("Non-capture stdout was lost behind the caller pipeline.");
+    expect(nativeOutputContract).toContain("Failing non-capture exit semantics changed.");
+    expect(nativeOutputContract).toContain("Capture failure lost stdout in the exception.");
+
+    const estateWorkflow = read(".github/workflows/local-estate-replication.yml");
+    expect(estateWorkflow).toContain("tests/local-estate/**");
+    expect(estateWorkflow).toContain("native-output-contract.ps1");
+    expect(estateWorkflow).toContain("axm-world/test-results");
+    expect(estateWorkflow).toContain("axm-world/playwright-report");
+    expect(estateWorkflow).not.toContain("axm-world/node_modules");
+    expect(estateWorkflow).not.toContain(".rodoh-estate/cache");
 
     const playwright = read("playwright.config.ts");
     expect(playwright).toContain('import { chromium, defineConfig, devices } from "@playwright/test"');
