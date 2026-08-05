@@ -1,0 +1,135 @@
+name: AP-400 ApertureHost receiver
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aperture-host.yml"
+      - "docs/APERTURE_HOST.md"
+      - "src/world/WorldHost.tsx"
+      - "src/world/sequence/SequenceHost.tsx"
+      - "src/world/aperture/ApertureHost.tsx"
+      - "src/world/aperture/session.ts"
+      - "tests/world/aperture/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aperture-host-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARC_REPOSITORY: BigBirdReturns/axm-arc
+  ARC_TIMED_MEDIA_MERGE: c8b78629217b9ba7237c1ecfff47cdc0e28cbf69
+  WORLD_TIMED_MEDIA_MERGE: 6cc78ea50a4db8789bdc4166c27a4cfee1613084
+  APERTURE_PLAYBACK_ANCHOR_SCHEMA_SHA256: 602e3f344ed3766f18a300697ebf10d914a15be6fd6f6f0a450a1e63f6488890
+  APERTURE_ANSWER_PLAN_SCHEMA_SHA256: 7c78833a6c686e85ba4734e9bcaf512ee67d99ca8c4061ee3ccc0a82d58e90b4
+  APERTURE_ANSWER_RECEIPT_SCHEMA_SHA256: 8f454128a86642e148458844d304c83712af4f32181af7a22f783face2664774
+  APERTURE_SELECTION_RECEIPT_SCHEMA_SHA256: 1ef69980402ce120392644a5266b85de0eda15e4d119ee49b07be1ab957af69d
+  APERTURE_API_POLICY_SHA256: bc52ce6faa3383340ee6e5ba19147ac6417225e351530a5336c4d6b4fe8130c0
+  APERTURE_ISSUE_LEDGER_SHA256: a05819ae3f2b9644cd44e56cfe0013bca7caa344250237a3529964d2fd31fcbd
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out exact World candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Require landed World timed-media predecessor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$WORLD_TIMED_MEDIA_MERGE" HEAD
+
+      - name: Check out landed Arc timed-media authority
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.ARC_REPOSITORY }}
+          ref: ${{ env.ARC_TIMED_MEDIA_MERGE }}
+          path: upstream/axm-arc
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Verify exact landed Arc authority bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C upstream/axm-arc rev-parse HEAD)" = "$ARC_TIMED_MEDIA_MERGE"
+          cmp upstream/axm-arc/src/canonical-story/digest.ts src/canonical-story/digest.ts
+          cmp upstream/axm-arc/src/canonical-story/timed-media.ts src/canonical-story/timed-media.ts
+
+      - name: Strict TypeScript and focused AP-400 contracts
+        run: |
+          npm run typecheck
+          npx vitest run \
+            tests/world/aperture \
+            tests/world/aperture-timed-media.test.ts \
+            tests/world/aperture-timed-media-host.test.ts \
+            tests/world/asset-standard.test.ts \
+            tests/world/browser-support-performance.test.ts
+
+      - name: Complete World regression and production build
+        run: |
+          npm test
+          npm run build
+
+      - name: Retain exact-head AP-400 receipt
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="aperture-host-qualification"
+          mkdir -p "$root"
+          printf '%s\n' "${{ github.event.pull_request.head.sha || github.sha }}" > "$root/world-candidate-sha.txt"
+          printf '%s\n' "$WORLD_TIMED_MEDIA_MERGE" > "$root/world-timed-media-merge.txt"
+          printf '%s\n' "$ARC_TIMED_MEDIA_MERGE" > "$root/arc-timed-media-merge.txt"
+          cat > "$root/authority-standing.txt" <<'STANDING'
+          transaction=AP-400
+          world_authority=read_only_presentation
+          daemon_authority=external
+          aperture_gate_accepted=false
+          aperture_hosted_repository_accepted=false
+          STANDING
+          cat > "$root/frozen-inputs.txt" <<INPUTS
+          playback-anchor.schema.json=$APERTURE_PLAYBACK_ANCHOR_SCHEMA_SHA256
+          answer-plan.schema.json=$APERTURE_ANSWER_PLAN_SCHEMA_SHA256
+          answer-receipt.schema.json=$APERTURE_ANSWER_RECEIPT_SCHEMA_SHA256
+          selection-receipt.schema.json=$APERTURE_SELECTION_RECEIPT_SCHEMA_SHA256
+          api-policy.json=$APERTURE_API_POLICY_SHA256
+          issues.json=$APERTURE_ISSUE_LEDGER_SHA256
+          INPUTS
+          cp docs/APERTURE_HOST.md "$root/"
+          sha256sum \
+            .github/workflows/aperture-host.yml \
+            docs/APERTURE_HOST.md \
+            src/world/WorldHost.tsx \
+            src/world/sequence/SequenceHost.tsx \
+            src/world/aperture/ApertureHost.tsx \
+            src/world/aperture/session.ts \
+            tests/world/aperture/*.ts \
+            > "$root/SHA256SUMS"
+
+      - name: Upload AP-400 qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aperture-host-qualification
+          path: aperture-host-qualification
+          if-no-files-found: error
+          retention-days: 30
