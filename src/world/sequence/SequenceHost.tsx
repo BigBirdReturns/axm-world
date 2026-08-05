@@ -21,6 +21,7 @@ import type { Cartridge } from "../cartridge.js";
 import { cartridgeIdentity } from "../cartridge-identity.js";
 import { RodohRuntimeMark } from "../brand/RodohRuntimeMark.js";
 import { PixelButton, PixelIcon } from "../pixel-ui/index.js";
+import { ApertureHost } from "../aperture/ApertureHost.js";
 import { ApertureProjection } from "../timed-media/ApertureProjection.js";
 import { verifyCanonicalStoryAssetFiles } from "./assets.js";
 import {
@@ -33,6 +34,7 @@ interface Props {
   cartridge: Cartridge;
   story: CanonicalStorySource;
   timedMedia: CanonicalStoryTimedMedia | null;
+  apertureDaemonProjection?: unknown;
   onExit: () => void;
 }
 
@@ -71,7 +73,13 @@ function shortDigest(value: string): string {
   return `${value.slice(0, 12)}…${value.slice(-9)}`;
 }
 
-export function SequenceHost({ cartridge, story, timedMedia, onExit }: Props): JSX.Element {
+export function SequenceHost({
+  cartridge,
+  story,
+  timedMedia,
+  apertureDaemonProjection,
+  onExit,
+}: Props): JSX.Element {
   const digest = useMemo(() => cartridgeIdentity(cartridge), [cartridge]);
   const directoryInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -357,10 +365,17 @@ export function SequenceHost({ cartridge, story, timedMedia, onExit }: Props): J
             )}
 
             {timedMedia && (
-              <ApertureProjection
-                timedMedia={timedMedia}
-                panelId={located.panel.id}
-              />
+              <>
+                <ApertureProjection
+                  timedMedia={timedMedia}
+                  panelId={located.panel.id}
+                />
+                <ApertureHost
+                  story={story}
+                  timedMedia={timedMedia}
+                  daemonProjection={apertureDaemonProjection}
+                />
+              </>
             )}
 
             {continuationPanelId && (

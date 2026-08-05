@@ -15,6 +15,7 @@ import {
 export interface WorldHostProps {
   cartridge: Cartridge;
   onExit: () => void;
+  apertureDaemonProjection?: unknown;
 }
 
 function SimulationWorldHost({ cartridge, onExit }: WorldHostProps): JSX.Element {
@@ -60,7 +61,11 @@ function InvalidCanonicalStory({ title, message, testId, onExit }: RefusalProps)
   );
 }
 
-export function WorldHost({ cartridge, onExit }: WorldHostProps): JSX.Element {
+export function WorldHost({
+  cartridge,
+  onExit,
+  apertureDaemonProjection,
+}: WorldHostProps): JSX.Element {
   let story = null;
   try {
     story = readCanonicalStoryExtension(cartridge.arc);
@@ -83,6 +88,7 @@ export function WorldHost({ cartridge, onExit }: WorldHostProps): JSX.Element {
           cartridge={cartridge}
           story={story}
           timedMedia={timedMedia}
+          apertureDaemonProjection={apertureDaemonProjection}
           onExit={onExit}
         />
       );
