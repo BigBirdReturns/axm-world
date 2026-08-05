@@ -37,14 +37,22 @@ jobs:
           set -euo pipefail
           carrier="$RUNNER_TEMP/payload.tar.gz.b64"
           cat tmp/aperture-g1-csharp-native/payload.part-* > "$carrier"
-          test "$(sha256sum "$carrier" | awk '{print $1}')" = "b210eb33bef932e07bf15030dcfa93976fd7c5b8c0212ac6b0e238a344ec6bea"
+          actual_b64="$(sha256sum "$carrier" | awk '{print $1}')"
+          printf 'concatenated base64 bytes=%s sha256=%s\n' "$(wc -c < "$carrier")" "$actual_b64"
+          [[ "$actual_b64" = "b210eb33bef932e07bf15030dcfa93976fd7c5b8c0212ac6b0e238a344ec6bea" ]] || { echo 'base64 carrier digest mismatch' >&2; exit 1; }
           base64 -d "$carrier" > "$RUNNER_TEMP/aperture-g1-csharp-native.tar.gz"
-          test "$(sha256sum "$RUNNER_TEMP/aperture-g1-csharp-native.tar.gz" | awk '{print $1}')" = "7cde0e47f8aefd301482d65377186785446486eab6449de71f8fefad2c348b07"
+          actual_tgz="$(sha256sum "$RUNNER_TEMP/aperture-g1-csharp-native.tar.gz" | awk '{print $1}')"
+          printf 'decoded archive bytes=%s sha256=%s\n' "$(wc -c < "$RUNNER_TEMP/aperture-g1-csharp-native.tar.gz")" "$actual_tgz"
+          [[ "$actual_tgz" = "7cde0e47f8aefd301482d65377186785446486eab6449de71f8fefad2c348b07" ]] || { echo 'decoded archive digest mismatch' >&2; exit 1; }
           mkdir -p "$RUNNER_TEMP/aperture-g1"
           tar -xzf "$RUNNER_TEMP/aperture-g1-csharp-native.tar.gz" -C "$RUNNER_TEMP/aperture-g1"
-          test "$(sha256sum "$RUNNER_TEMP/aperture-g1/conformance/csharp/Conformance.cs" | awk '{print $1}')" = "5316730db6144f57ae21ac29424ac51541f0e0e72901b8e15299943b913fece0"
-          test "$(sha256sum "$RUNNER_TEMP/aperture-g1/conformance/csharp/Aperture.Conformance.csproj" | awk '{print $1}')" = "77c425f6ec2a0c5a6c760c899e9ae754f4f81639368894a99b7a0b059deecc09"
-          test "$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["manifest_sha256"])' "$RUNNER_TEMP/aperture-g1/protocol/vectors/manifest.json")" = "3ca5e2151a3d97ef546afaf5175d1284b48b63ff9fc2332d29caa572edf0c2d4"
+          actual_cs="$(sha256sum "$RUNNER_TEMP/aperture-g1/conformance/csharp/Conformance.cs" | awk '{print $1}')"
+          actual_project="$(sha256sum "$RUNNER_TEMP/aperture-g1/conformance/csharp/Aperture.Conformance.csproj" | awk '{print $1}')"
+          actual_manifest="$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["manifest_sha256"])' "$RUNNER_TEMP/aperture-g1/protocol/vectors/manifest.json")"
+          printf 'csharp source sha256=%s\nproject sha256=%s\nvector manifest sha256=%s\n' "$actual_cs" "$actual_project" "$actual_manifest"
+          [[ "$actual_cs" = "5316730db6144f57ae21ac29424ac51541f0e0e72901b8e15299943b913fece0" ]] || { echo 'C# source digest mismatch' >&2; exit 1; }
+          [[ "$actual_project" = "77c425f6ec2a0c5a6c760c899e9ae754f4f81639368894a99b7a0b059deecc09" ]] || { echo 'project digest mismatch' >&2; exit 1; }
+          [[ "$actual_manifest" = "3ca5e2151a3d97ef546afaf5175d1284b48b63ff9fc2332d29caa572edf0c2d4" ]] || { echo 'vector manifest digest mismatch' >&2; exit 1; }
 
       - name: Compile and execute the exact C# implementation
         shell: bash
