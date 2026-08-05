@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">The Waking Tower hall framing</title>
+  <desc id="desc">Dark tower arches, chainwork, balcony rails, and blue lantern glass frame the survey hall without obscuring its playable center.</desc>
+  <defs>
+    <linearGradient id="iron" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4c4655"/>
+      <stop offset=".5" stop-color="#201b27"/>
+      <stop offset="1" stop-color="#09070d"/>
+    </linearGradient>
+    <radialGradient id="blueGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#9fd5f4" stop-opacity=".76"/>
+      <stop offset=".42" stop-color="#4f7d9e" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#4f7d9e" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <path d="M0 0h186c34 100 48 205 48 316v584H0zM1600 0h-186c-34 100-48 205-48 316v584h234z" fill="#08050d" opacity=".93"/>
+  <path d="M40 0h116c28 120 36 224 36 330v570H40zM1560 0h-116c-28 120-36 224-36 330v570h152z" fill="url(#iron)" opacity=".68"/>
+  <path d="M0 0h1600v60H0z" fill="#050307" opacity=".88"/>
+  <path d="M0 840h1600v60H0z" fill="#050307" opacity=".94"/>
+  <path d="M0 830h1600" stroke="#574a7a" stroke-width="6" opacity=".7"/>
+  <g fill="none" stroke="#746f7c" stroke-width="8"><path d="M108 84v298M1492 84v298"/><path d="M84 382h48M1468 382h48"/></g>
+  <g fill="none" stroke="#2a2430" stroke-width="12"><path d="M210 0c-20 92-18 186 6 282M1390 0c20 92 18 186-6 282"/><path d="M236 0c-14 112-8 212 18 300M1364 0c14 112 8 212-18 300"/></g>
+  <g fill="#17131d" stroke="#746f7c" stroke-width="4"><circle cx="214" cy="286" r="18"/><circle cx="1386" cy="286" r="18"/></g>
+  <ellipse cx="112" cy="540" rx="112" ry="142" fill="url(#blueGlow)"/>
+  <ellipse cx="1488" cy="540" rx="112" ry="142" fill="url(#blueGlow)"/>
+  <path d="M84 508h56l-8 78H92zM1460 508h56l-8 78h-40z" fill="#6faedb" opacity=".7" stroke="#17131d" stroke-width="7"/>
+  <path d="M0 698h254v34H0zM1346 698h254v34h-254z" fill="#17131d" stroke="#574a7a" stroke-width="5"/>
+  <g stroke="#746f7c" stroke-width="7"><path d="M38 704v136M96 704v136M154 704v136M212 704v136"/><path d="M1388 704v136M1446 704v136M1504 704v136M1562 704v136"/></g>
+</svg>

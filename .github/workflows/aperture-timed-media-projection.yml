@@ -1,0 +1,129 @@
+name: Aperture timed-media projection
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aperture-timed-media-projection.yml"
+      - "src/canonical-story/digest.ts"
+      - "src/canonical-story/timed-media.ts"
+      - "src/world/WorldHost.tsx"
+      - "src/world/sequence/SequenceHost.tsx"
+      - "src/world/timed-media/**"
+      - "tests/world/aperture-timed-media.test.ts"
+      - "tests/world/aperture-timed-media-host.test.ts"
+      - "docs/APERTURE_TIMED_MEDIA_PROJECTION.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aperture-timed-media-projection-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  APERTURE_ARC_REPOSITORY: BigBirdReturns/axm-arc
+  APERTURE_ARC_HEAD: c8b78629217b9ba7237c1ecfff47cdc0e28cbf69
+  WORLD_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out exact World candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.WORLD_HEAD }}
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install World dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Check out exact landed Arc authority
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.APERTURE_ARC_REPOSITORY }}
+          ref: ${{ env.APERTURE_ARC_HEAD }}
+          path: upstream/axm-arc
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Verify exact additive Arc authority bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C upstream/axm-arc rev-parse HEAD)" = "$APERTURE_ARC_HEAD"
+          for file in digest.ts timed-media.ts; do
+            cmp "upstream/axm-arc/src/canonical-story/$file" "src/canonical-story/$file"
+          done
+
+      - name: Requalify landed Arc digest and timed-media law
+        working-directory: upstream/axm-arc
+        run: |
+          npm ci --no-audit --no-fund
+          npx vitest run \
+            tests/canonical-story/digest.test.ts \
+            tests/canonical-story/timed-media.test.ts
+
+      - name: Typecheck World
+        run: npm run typecheck
+
+      - name: Qualify focused World receiver, host, and projection
+        run: |
+          npx vitest run \
+            tests/world/aperture-timed-media.test.ts \
+            tests/world/aperture-timed-media-host.test.ts
+
+      - name: Prove projection owns no state or control hooks
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -R -nE 'useState\(|useEffect\(|localStorage|sessionStorage|onClick=|currentTime|\.play\(|\.pause\(' src/world/timed-media; then
+            echo "Aperture projection acquired a state or control hook" >&2
+            exit 1
+          fi
+          test ! -e src/world/timed-media/player.ts
+          test ! -e src/world/timed-media/ledger.ts
+
+      - name: Complete World regression and production build
+        run: |
+          npm test
+          npm run build
+
+      - name: Retain exact-head qualification receipt
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="aperture-timed-media-projection-qualification"
+          mkdir -p "$root"
+          printf '%s\n' "$WORLD_HEAD" > "$root/world-candidate-sha.txt"
+          printf '%s\n' "$APERTURE_ARC_HEAD" > "$root/arc-landed-authority-sha.txt"
+          printf '%s\n' "projection_authority=world-only" > "$root/authority-standing.txt"
+          printf '%s\n' "aperture_hosted_repository_accepted=false" >> "$root/authority-standing.txt"
+          cp docs/APERTURE_TIMED_MEDIA_PROJECTION.md "$root/"
+          sha256sum \
+            src/canonical-story/digest.ts \
+            src/canonical-story/timed-media.ts \
+            src/world/timed-media/receiver.ts \
+            src/world/timed-media/projection.ts \
+            src/world/timed-media/ApertureProjection.tsx \
+            tests/world/aperture-timed-media.test.ts \
+            tests/world/aperture-timed-media-host.test.ts \
+            > "$root/SHA256SUMS"
+
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aperture-timed-media-projection-qualification
+          path: aperture-timed-media-projection-qualification
+          if-no-files-found: error
+          retention-days: 30

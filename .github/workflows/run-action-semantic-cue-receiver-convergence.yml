@@ -1,0 +1,89 @@
+name: Run action semantic cue receiver convergence
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/run-action-semantic-cue-receiver-convergence.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: run-action-semantic-cue-receiver-convergence
+  cancel-in-progress: true
+
+jobs:
+  converge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out the temporary main carrier
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: carrier-main
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Check out the semantic cue receiver candidate
+        uses: actions/checkout@v4
+        with:
+          ref: feature/action-semantic-cue-receiver-v1
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: axm-world/package-lock.json
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Apply and compile the bounded receiver repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python axm-world/scripts/converge-action-semantic-cue-receiver.py
+          python -m py_compile axm-world/scripts/converge-action-semantic-cue-receiver.py
+          git -C axm-world diff --check
+          npm --prefix axm-world ci --no-audit --no-fund
+          npm --prefix axm-world run typecheck
+          npm --prefix axm-world test -- tests/world/action-semantic-cue-receiver.test.ts
+          dotnet build axm-world/unity/Conformance/Axm.Rodoh.Action.Cues.csproj --configuration Release
+          find axm-world/unity/Conformance -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
+
+      - name: Publish one carrier-free receiver commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C axm-world config user.name 'github-actions[bot]'
+          git -C axm-world config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C axm-world rm \
+            .github/workflows/converge-action-semantic-cue-receiver.yml \
+            scripts/converge-action-semantic-cue-receiver.py
+          git -C axm-world add -A
+          git -C axm-world diff --cached --check
+          git -C axm-world commit -m 'Consume exact Arc semantic cues through the production player adapter'
+          git -C axm-world push origin HEAD:feature/action-semantic-cue-receiver-v1
+
+      - name: Remove this temporary carrier from main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C carrier-main config user.name 'github-actions[bot]'
+          git -C carrier-main config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C carrier-main rm .github/workflows/run-action-semantic-cue-receiver-convergence.yml
+          git -C carrier-main commit -m 'Remove completed semantic cue receiver carrier'
+          git -C carrier-main push origin HEAD:main
+
+# One-shot trigger: action-semantic-cue-receiver-v1.

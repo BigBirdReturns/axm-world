@@ -36,6 +36,7 @@ const I18N_CLEAN_CHROME = [
   "src/world/inhabited/HallScene.tsx",
   "src/world/worldmap/WorldMap.tsx",
   "src/world/aperture/GodscarPocketPanel.tsx",
+  "src/world/common-ship/CommonShipScene.tsx",
 ];
 
 // Attributes that render as user-facing text, so a string literal in one is an

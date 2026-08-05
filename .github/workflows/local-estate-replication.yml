@@ -1,0 +1,299 @@
+name: Local estate replication
+
+on:
+  pull_request:
+    paths:
+      - '.gitattributes'
+      - 'RODOH.cmd'
+      - 'estate/**'
+      - 'scripts/local-estate/**'
+      - 'tests/world/local-estate-contract.test.ts'
+      - 'tests/local-estate/**'
+      - 'package.json'
+      - '.github/workflows/local-estate-replication.yml'
+      - 'src/**'
+      - 'cartridges/**'
+      - 'docs/conformance/**'
+      - 'e2e/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARC_LOCAL_ESTATE_REF: 318faaab6fb1c4b0eefe66516d3573bdb8f97369
+  WORLD_REQUIRED_ANCESTOR: 466ead00a64af07e85d034ad3d6a6ebd7c3e4998
+  SOURCE_DATE_EPOCH: '0'
+
+jobs:
+  source-library:
+    name: Source authority and offline library
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out exact World candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Check out exact Arc local-estate candidate
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_LOCAL_ESTATE_REF }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Normalize exact tracked bytes
+        run: |
+          set -euo pipefail
+          for repo in axm-arc axm-world; do
+            test -z "$(git -C "$repo" status --porcelain)"
+            git -C "$repo" config --local core.autocrlf false
+            git -C "$repo" config --local core.eol lf
+            git -C "$repo" restore --source=HEAD --staged --worktree -- .
+            test -z "$(git -C "$repo" status --porcelain)"
+          done
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            axm-world/package-lock.json
+            axm-arc/package-lock.json
+
+      - name: Install exact dependencies
+        run: |
+          set -euo pipefail
+          npm --prefix axm-arc ci --no-audit --no-fund
+          npm --prefix axm-world ci --no-audit --no-fund
+
+      - name: Verify lock, local-estate contract, and exact vendored plane
+        run: |
+          set -euo pipefail
+          mkdir -p local-estate-receipt
+          node axm-world/scripts/local-estate/estate-tools.mjs validate-lock --lock axm-world/estate/estate.lock.json | tee local-estate-receipt/lock-validation.log
+          npm --prefix axm-world test -- tests/world/local-estate-contract.test.ts | tee local-estate-receipt/local-estate-contract.log
+          node axm-world/scripts/local-estate/estate-tools.mjs compare-vendored \
+            --world axm-world \
+            --arc axm-arc \
+            --output local-estate-receipt/vendored-plane.json \
+            | tee local-estate-receipt/vendored-plane.log
+          git -C axm-world merge-base --is-ancestor "$WORLD_REQUIRED_ANCESTOR" HEAD
+          test "$(git -C axm-arc rev-parse HEAD)" = "$ARC_LOCAL_ESTATE_REF"
+
+      - name: Build both products twice and require identical trees
+        run: |
+          set -euo pipefail
+          mkdir -p local-estate-receipt/builds
+          for repo in axm-arc axm-world; do
+            name="$(basename "$repo")"
+            npm --prefix "$repo" run build | tee "local-estate-receipt/${name}-build-first.log"
+            cp -a "$repo/docs/game" "local-estate-receipt/builds/${name}-first"
+            if git -C "$repo" ls-files -- docs/game | grep -q .; then
+              git -C "$repo" restore --source=HEAD --staged --worktree -- docs/game
+            fi
+            git -C "$repo" clean -fdx -- docs/game
+            test -z "$(git -C "$repo" status --porcelain)"
+
+            npm --prefix "$repo" run build | tee "local-estate-receipt/${name}-build-second.log"
+            cp -a "$repo/docs/game" "local-estate-receipt/builds/${name}-second"
+            if git -C "$repo" ls-files -- docs/game | grep -q .; then
+              git -C "$repo" restore --source=HEAD --staged --worktree -- docs/game
+            fi
+            git -C "$repo" clean -fdx -- docs/game
+            test -z "$(git -C "$repo" status --porcelain)"
+
+            first="$(node axm-world/scripts/local-estate/estate-tools.mjs tree-hash --root "local-estate-receipt/builds/${name}-first")"
+            second="$(node axm-world/scripts/local-estate/estate-tools.mjs tree-hash --root "local-estate-receipt/builds/${name}-second")"
+            printf '%s\n' "$first" > "local-estate-receipt/${name}-build-first.sha256"
+            printf '%s\n' "$second" > "local-estate-receipt/${name}-build-second.sha256"
+            test "$first" = "$second"
+            printf '%s\n' "$second" > "local-estate-receipt/${name}-build.sha256"
+            mv "local-estate-receipt/builds/${name}-second" "local-estate-receipt/builds/${name}-game"
+            rm -rf "local-estate-receipt/builds/${name}-first"
+          done
+
+      - name: Assemble recoverable source estate
+        run: |
+          set -euo pipefail
+          mkdir -p local-estate-receipt/source local-estate-receipt/human-library local-estate-receipt/cartridges
+          git -C axm-world bundle create "$PWD/local-estate-receipt/source/axm-world.bundle" --all
+          git -C axm-arc bundle create "$PWD/local-estate-receipt/source/axm-arc.bundle" --all
+          git -C axm-world archive --format=zip --output "$PWD/local-estate-receipt/source/axm-world-source.zip" HEAD
+          git -C axm-arc archive --format=zip --output "$PWD/local-estate-receipt/source/axm-arc-source.zip" HEAD
+          cp -a axm-world/estate local-estate-receipt/
+          cp -a axm-world/cartridges local-estate-receipt/cartridges/world
+          cp -a axm-arc/cartridges local-estate-receipt/cartridges/arc
+          cp axm-world/README.md axm-world/VISION.md axm-world/RECONCILIATION.md local-estate-receipt/human-library/ 2>/dev/null || true
+          cp axm-arc/README.md axm-arc/DESIGN.md local-estate-receipt/human-library/ 2>/dev/null || true
+          printf '%s\n' "$(git -C axm-world rev-parse HEAD)" > local-estate-receipt/world-head.txt
+          printf '%s\n' "$(git -C axm-arc rev-parse HEAD)" > local-estate-receipt/arc-head.txt
+          node axm-world/scripts/local-estate/estate-tools.mjs build-manifest \
+            --root local-estate-receipt \
+            --output local-estate-receipt/estate.manifest.json \
+            --sums local-estate-receipt/SHA256SUMS
+          node axm-world/scripts/local-estate/estate-tools.mjs verify-manifest \
+            --root local-estate-receipt \
+            --manifest local-estate-receipt/estate.manifest.json
+
+      - name: Upload source and machine library
+        uses: actions/upload-artifact@v4
+        with:
+          name: rodoh-local-estate-source-library
+          path: local-estate-receipt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Preserve source-library diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rodoh-local-estate-source-diagnostics
+          path: local-estate-receipt
+          if-no-files-found: warn
+          retention-days: 14
+
+  windows-replication:
+    name: Windows 11 local replication and play
+    runs-on: windows-2025
+    timeout-minutes: 210
+    steps:
+      - name: Check out exact World candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Check out exact Arc local-estate candidate
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_LOCAL_ESTATE_REF }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            axm-world/package-lock.json
+            axm-arc/package-lock.json
+
+      - name: Prepare Windows diagnostics
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force .rodoh-estate\logs, .rodoh-estate\receipts | Out-Null
+
+      - name: Prove native process diagnostics contract
+        shell: pwsh
+        run: |
+          pwsh -NoLogo -NoProfile -File .\axm-world\tests\local-estate\native-output-contract.ps1 *>&1 | Tee-Object .rodoh-estate\logs\native-output-contract.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run Windows doctor and hydrate holder-owned caches
+        shell: pwsh
+        run: |
+          & .\axm-world\RODOH.cmd doctor -EstateRoot "$PWD" *>&1 | Tee-Object .rodoh-estate\logs\doctor.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\axm-world\RODOH.cmd hydrate -EstateRoot "$PWD" *>&1 | Tee-Object .rodoh-estate\logs\hydrate.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify exact source custody
+        shell: pwsh
+        run: |
+          & .\axm-world\RODOH.cmd verify -EstateRoot "$PWD" *>&1 | Tee-Object .rodoh-estate\logs\verify.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Prove reproducible Windows builds
+        shell: pwsh
+        run: |
+          & .\axm-world\RODOH.cmd build -EstateRoot "$PWD" *>&1 | Tee-Object .rodoh-estate\logs\build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Qualify AXM Arc locally
+        shell: pwsh
+        run: |
+          & .\axm-world\RODOH.cmd test -EstateRoot "$PWD" -Scope Arc *>&1 | Tee-Object .rodoh-estate\logs\test-arc.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Qualify Rodoh and every desktop/mobile browser journey locally
+        shell: pwsh
+        run: |
+          & .\axm-world\RODOH.cmd test -EstateRoot "$PWD" -Scope World -FullBrowser *>&1 | Tee-Object .rodoh-estate\logs\test-world.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Boot the captured static builds and prove local health
+        shell: pwsh
+        run: |
+          & .\axm-world\RODOH.cmd play -EstateRoot "$PWD" -NoOpen *>&1 | Tee-Object .rodoh-estate\logs\play.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          try {
+            $worldStatus = (Invoke-WebRequest -UseBasicParsing http://127.0.0.1:5173/axm-world/game/).StatusCode
+            $arcStatus = (Invoke-WebRequest -UseBasicParsing http://127.0.0.1:5174/axm-arc/game/).StatusCode
+            if ($worldStatus -ne 200 -or $arcStatus -ne 200) {
+              throw "Static health check failed: World=$worldStatus Arc=$arcStatus"
+            }
+          } finally {
+            & .\axm-world\RODOH.cmd stop -EstateRoot "$PWD" *>&1 | Tee-Object -Append .rodoh-estate\logs\play.log
+          }
+
+      - name: Record Windows replication receipt
+        shell: pwsh
+        run: |
+          $receipt = [ordered]@{
+            format = 'rodoh-windows-replication-receipt/1'
+            generatedAt = (Get-Date).ToUniversalTime().ToString('o')
+            status = 'pass'
+            worldHead = (git -C axm-world rev-parse HEAD).Trim()
+            arcHead = (git -C axm-arc rev-parse HEAD).Trim()
+            node = (node --version).Trim()
+            npm = (npm --version).Trim()
+            operatingSystem = [Environment]::OSVersion.VersionString
+            checks = @('doctor', 'hydrate', 'vendored-plane', 'double-build', 'arc-suite', 'world-suite', 'gate6', 'gate7', 'complete-playwright', 'static-health')
+          }
+          $receipt | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf8 .rodoh-estate\receipts\windows-replication.json
+
+      - name: Pack the Windows offline dependency cache
+        shell: pwsh
+        run: |
+          Compress-Archive -Path .rodoh-estate\cache\npm -DestinationPath rodoh-windows-npm-cache.zip -CompressionLevel Optimal
+          Compress-Archive -Path .rodoh-estate\cache\ms-playwright -DestinationPath rodoh-windows-playwright-cache.zip -CompressionLevel Optimal
+
+      - name: Upload Windows receipts and captured builds
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rodoh-windows-local-replication
+          path: |
+            .rodoh-estate/receipts
+            .rodoh-estate/library/builds
+            .rodoh-estate/logs
+            axm-world/test-results
+            axm-world/playwright-report
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload Windows offline dependencies
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rodoh-windows-offline-dependencies
+          path: |
+            rodoh-windows-npm-cache.zip
+            rodoh-windows-playwright-cache.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30

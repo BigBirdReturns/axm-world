@@ -250,6 +250,135 @@ export type MessageId =
   | "presentations.aperture.blurb"
   | "presentations.aperture.controlsHint"
   | "presentations.aperture.purpose"
+  | "presentations.underworld.label"
+  | "presentations.underworld.blurb"
+  | "presentations.underworld.controlsHint"
+  | "presentations.underworld.purpose"
+  | "presentations.commonShip.label"
+  | "presentations.commonShip.blurb"
+  | "presentations.commonShip.controlsHint"
+  | "presentations.commonShip.purpose"
+  | "commonShip.variable"
+  | "commonShip.unassigned"
+  | "commonShip.profile.passage"
+  | "commonShip.profile.gravity"
+  | "commonShip.profile.life"
+  | "commonShip.decisionHorizon"
+  | "commonShip.closesWhen"
+  | "commonShip.physical"
+  | "commonShip.informational"
+  | "commonShip.institutional"
+  | "commonShip.manufactured"
+  | "commonShip.compositionReceipt"
+  | "commonShip.absentActor"
+  | "commonShip.excludedBody"
+  | "commonShip.dependency"
+  | "commonShip.allocation.heading"
+  | "commonShip.allocation.habitatBands"
+  | "commonShip.allocation.translationPaths"
+  | "commonShip.allocation.directInterfaces"
+  | "commonShip.allocation.standby"
+  | "commonShip.allocation.stores"
+  | "commonShip.allocation.emergencyAuthority"
+  | "commonShip.handoff.heading"
+  | "commonShip.handoff.dissent"
+  | "commonShip.handoff.injury"
+  | "commonShip.handoff.readinessDebt"
+  | "commonShip.handoff.promises"
+  | "commonShip.handoff.missingPersons"
+  | "commonShip.handoff.uncertainty"
+  | "commonShip.precedent.heading"
+  | "commonShip.precedent.newlyPossible"
+  | "commonShip.precedent.newlyImpossible"
+  | "commonShip.precedent.newlyGovernable"
+  | "commonShip.precedent.inherited"
+  | "commonShip.noSource"
+  | "commonShip.sourceRefused"
+  | "commonShip.program.firstParty"
+  | "commonShip.program.holderOwned"
+  | "commonShip.progressAria"
+  | "commonShip.operationsRecorded"
+  | "commonShip.state.habitatIntegrity"
+  | "commonShip.state.temporalCoherence"
+  | "commonShip.state.translationTrust"
+  | "commonShip.state.rosterResilience"
+  | "commonShip.state.storesAndCare"
+  | "commonShip.state.continuity"
+  | "commonShip.state.visibility"
+  | "commonShip.state.compatibilityDebt"
+  | "commonShip.operationsAria"
+  | "commonShip.watchSequence"
+  | "commonShip.system.transitBody"
+  | "commonShip.system.habitatBands"
+  | "commonShip.system.commonThresholds"
+  | "commonShip.system.translationMesh"
+  | "commonShip.system.watchLattice"
+  | "commonShip.system.continuityCommons"
+  | "commonShip.system.sovereignCore"
+  | "commonShip.verdict.heading"
+  | "commonShip.verdict.viable"
+  | "commonShip.verdict.refused"
+  | "commonShip.selectedCount"
+  | "commonShip.dependencies"
+  | "commonShip.singlePoints"
+  | "commonShip.engineProjection"
+  | "commonShip.currentCycle"
+  | "commonShip.readinessClear"
+  | "commonShip.prepareCycle"
+  | "commonShip.commitWatch"
+  | "commonShip.profilesAria"
+  | "commonShip.vesselAnatomy"
+  | "commonShip.onePolity"
+  | "commonShip.crossSectionAria"
+  | "commonShip.crossSectionAlt"
+  | "commonShip.atlasSummary"
+  | "commonShip.atlasAria"
+  | "commonShip.atlasAlt"
+  | "commonShip.creatorAnatomy"
+  | "commonShip.currentUse"
+  | "commonShip.revisionAuthority"
+  | "commonShip.connection.selectedWatch"
+  | "commonShip.connection.people"
+  | "commonShip.connection.stores"
+  | "commonShip.connection.exposure"
+  | "commonShip.connection.outbound"
+  | "commonShip.connection.returned"
+  | "underworld.metadataRefused"
+  | "underworld.invalidHeading"
+  | "underworld.invalidBody"
+  | "underworld.noSource"
+  | "underworld.eyebrow"
+  | "underworld.stateLedger"
+  | "underworld.alarm"
+  | "underworld.signature"
+  | "underworld.visibility"
+  | "underworld.recordedMovements"
+  | "underworld.civicHub"
+  | "underworld.steward"
+  | "underworld.ordinaryLife"
+  | "underworld.exteriorClassification"
+  | "underworld.observer"
+  | "underworld.hubChanged"
+  | "underworld.hubHeld"
+  | "underworld.layeredMap"
+  | "underworld.layeredMapHint"
+  | "underworld.available"
+  | "underworld.recorded"
+  | "underworld.locked"
+  | "underworld.expedition"
+  | "underworld.depthVector"
+  | "underworld.objective"
+  | "underworld.route"
+  | "underworld.authority"
+  | "underworld.claim"
+  | "underworld.signatureBudget"
+  | "underworld.inheritance"
+  | "underworld.enterExpedition"
+  | "underworld.cast"
+  | "underworld.wakeSources"
+  | "underworld.inheritedConsequences"
+  | "underworld.inherited"
+  | "underworld.pending"
   // ── inhabited hall (presentation + scene chrome) ─────────────────────────
   | "presentations.hall.label"
   | "presentations.hall.blurb"
@@ -389,6 +518,18 @@ export type MessageId =
   | "cartridgePanel.ledgerProvenance"
   // ── boot screen (cartridge bay) ──────────────────────────────────────────
   | "boot.openCartridge"
+  | "boot.holderEstateHeading"
+  | "boot.exportHolderEstate"
+  | "boot.restoreHolderEstate"
+  | "boot.holderEstateExported"
+  | "boot.holderEstateRestored"
+  | "boot.holderEstatePreflight"
+  | "boot.holderEstateSummary"
+  | "boot.holderEstateOpaque"
+  | "boot.holderEstateMerge"
+  | "boot.holderEstateReplace"
+  | "boot.holderEstateCancel"
+  | "boot.holderEstateFailed"
   | "boot.remove"
   | "boot.importedNamed"
   | "boot.runRestoredNamed"
@@ -729,6 +870,135 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.aperture.blurb": "Semantic command deck — campaign, contracts, bounded people, and exact receipts",
     "presentations.aperture.controlsHint": "switch Map / Trace / Surface · zoom between cartridge and receipts · copy an exact view",
     "presentations.aperture.purpose": "A high-information projection of the same run. It exposes authored structure and recorded consequence without manufacturing routes, choices, or relationships.",
+    "presentations.underworld.label": "Underworld",
+    "presentations.underworld.blurb": "Civic hub and layered Tomb map — ordinary life, descent, breach, return, and exact inherited state",
+    "presentations.underworld.controlsHint": "choose a layer, inspect its expedition ledger, then enter the authored encounter",
+    "presentations.underworld.purpose": "The Dark Tomb as an inhabited political architecture. Read the hub, Long Alarm, signature budget, layers, and persistent consequences without replacing Arc law.",
+    "presentations.commonShip.label": "Common Ship",
+    "presentations.commonShip.blurb": "Compose watches across bodies, clocks, habitats, and inherited obligations.",
+    "presentations.commonShip.controlsHint": "Select an operation, compose the watch, inspect the Arc verdict, then commit.",
+    "presentations.commonShip.purpose": "Manage the vessel as a shared polity rather than a human-normal vehicle.",
+    "commonShip.variable": "variable",
+    "commonShip.unassigned": "unassigned",
+    "commonShip.profile.passage": "Passage",
+    "commonShip.profile.gravity": "Gravity",
+    "commonShip.profile.life": "Life",
+    "commonShip.decisionHorizon": "Decision horizon",
+    "commonShip.closesWhen": "Closes when",
+    "commonShip.physical": "Physical",
+    "commonShip.informational": "Informational",
+    "commonShip.institutional": "Institutional",
+    "commonShip.manufactured": "Manufactured",
+    "commonShip.compositionReceipt": "Composition receipt",
+    "commonShip.absentActor": "Absent actor",
+    "commonShip.excludedBody": "Excluded body",
+    "commonShip.dependency": "Dependency",
+    "commonShip.allocation.heading": "Common systems allocation",
+    "commonShip.allocation.habitatBands": "Habitat bands",
+    "commonShip.allocation.translationPaths": "Translation paths",
+    "commonShip.allocation.directInterfaces": "Direct interfaces",
+    "commonShip.allocation.standby": "Standby",
+    "commonShip.allocation.stores": "Stores",
+    "commonShip.allocation.emergencyAuthority": "Emergency authority",
+    "commonShip.handoff.heading": "Handoff",
+    "commonShip.handoff.dissent": "Dissent",
+    "commonShip.handoff.injury": "Injury",
+    "commonShip.handoff.readinessDebt": "Readiness debt",
+    "commonShip.handoff.promises": "Promises",
+    "commonShip.handoff.missingPersons": "Missing persons",
+    "commonShip.handoff.uncertainty": "Uncertainty",
+    "commonShip.precedent.heading": "Precedent",
+    "commonShip.precedent.newlyPossible": "Newly possible",
+    "commonShip.precedent.newlyImpossible": "Newly impossible",
+    "commonShip.precedent.newlyGovernable": "Newly governable",
+    "commonShip.precedent.inherited": "Inherited",
+    "commonShip.noSource": "This cartridge does not carry a Common Ship source plane.",
+    "commonShip.sourceRefused": "Common Ship source refused",
+    "commonShip.program.firstParty": "PROGRAM 005 · COMMON SHIP",
+    "commonShip.program.holderOwned": "COMMON SHIP · HOLDER-OWNED CARTRIDGE",
+    "commonShip.progressAria": "Campaign progress",
+    "commonShip.operationsRecorded": "operations recorded",
+    "commonShip.state.habitatIntegrity": "Habitat Integrity",
+    "commonShip.state.temporalCoherence": "Temporal Coherence",
+    "commonShip.state.translationTrust": "Translation Trust",
+    "commonShip.state.rosterResilience": "Roster Resilience",
+    "commonShip.state.storesAndCare": "Stores and Care",
+    "commonShip.state.continuity": "Continuity",
+    "commonShip.state.visibility": "Visibility",
+    "commonShip.state.compatibilityDebt": "Compatibility Debt",
+    "commonShip.operationsAria": "Common Ship operations",
+    "commonShip.watchSequence": "Watch sequence",
+    "commonShip.system.transitBody": "transit body",
+    "commonShip.system.habitatBands": "habitat bands",
+    "commonShip.system.commonThresholds": "common thresholds",
+    "commonShip.system.translationMesh": "translation mesh",
+    "commonShip.system.watchLattice": "watch lattice",
+    "commonShip.system.continuityCommons": "continuity commons",
+    "commonShip.system.sovereignCore": "sovereign core",
+    "commonShip.verdict.heading": "Arc-owned Common Watch verdict",
+    "commonShip.verdict.viable": "Viable watch",
+    "commonShip.verdict.refused": "Watch refused",
+    "commonShip.selectedCount": (params) => `${num(params, "n")}/${num(params, "max")} selected`,
+    "commonShip.dependencies": "Dependencies:",
+    "commonShip.singlePoints": "Single points:",
+    "commonShip.engineProjection": "Engine projection",
+    "commonShip.currentCycle": "Current cycle",
+    "commonShip.readinessClear": "The selected watch clears the current reliability projection.",
+    "commonShip.prepareCycle": "Run one preparation cycle",
+    "commonShip.commitWatch": "Commit this watch",
+    "commonShip.profilesAria": "Embodiment profiles",
+    "commonShip.vesselAnatomy": "Vessel anatomy",
+    "commonShip.onePolity": "One polity across incompatible environments",
+    "commonShip.crossSectionAria": "Scrollable Relief Circuit vessel cross-section",
+    "commonShip.crossSectionAlt": "Relief Circuit cross-section with seven operating systems and route to the Lamp District",
+    "commonShip.atlasSummary": "Operational symbol atlas · six watch tests · seven systems · eight state tracks",
+    "commonShip.atlasAria": "Scrollable Relief Circuit operational symbol atlas",
+    "commonShip.atlasAlt": "Operational symbols for Common Watch tests, vessel systems, and ship-state tracks",
+    "commonShip.creatorAnatomy": "Creator-authored vessel anatomy",
+    "commonShip.currentUse": "Current use",
+    "commonShip.revisionAuthority": "Revision authority",
+    "commonShip.connection.selectedWatch": "Selected watch",
+    "commonShip.connection.people": "People",
+    "commonShip.connection.stores": "Stores",
+    "commonShip.connection.exposure": "Exposure",
+    "commonShip.connection.outbound": "outbound",
+    "commonShip.connection.returned": "returned",
+    "underworld.metadataRefused": "DARK TOMB METADATA REFUSED",
+    "underworld.invalidHeading": "The cartridge claims a Dark Tomb source it cannot validate.",
+    "underworld.invalidBody": "Play law remains the validated Arc. Rodoh will not infer layers, Alarm state, or consequences from malformed source.",
+    "underworld.noSource": "This cartridge does not contain a registered Dark Tomb source.",
+    "underworld.eyebrow": "DARK TOMB · CIVIC UNDERWORLD",
+    "underworld.stateLedger": "Tomb state ledger",
+    "underworld.alarm": "Long Alarm",
+    "underworld.signature": "Signature",
+    "underworld.visibility": "Visibility",
+    "underworld.recordedMovements": "Recorded movements",
+    "underworld.civicHub": "Lamp District civic hub",
+    "underworld.steward": "Local witness",
+    "underworld.ordinaryLife": "Ordinary life",
+    "underworld.exteriorClassification": "Exterior classification",
+    "underworld.observer": "Observer regime",
+    "underworld.hubChanged": "The hub inherited the descent",
+    "underworld.hubHeld": "The previous map still governs",
+    "underworld.layeredMap": "Seven-layer district map",
+    "underworld.layeredMapHint": "Select a layer to focus its current or next movement",
+    "underworld.available": "Available",
+    "underworld.recorded": "Recorded",
+    "underworld.locked": "Locked",
+    "underworld.expedition": "Expedition ledger",
+    "underworld.depthVector": "Depth vector",
+    "underworld.objective": "Objective",
+    "underworld.route": "Authorized route",
+    "underworld.authority": "Authority",
+    "underworld.claim": "Claim to prove",
+    "underworld.signatureBudget": "Signature budget",
+    "underworld.inheritance": "Likely inheritance",
+    "underworld.enterExpedition": "Enter expedition",
+    "underworld.cast": "District cast",
+    "underworld.wakeSources": "Wake sources",
+    "underworld.inheritedConsequences": "Inherited consequences",
+    "underworld.inherited": "Inherited",
+    "underworld.pending": "Pending",
     "presentations.hall.label": "Hall",
     "presentations.hall.blurb": "Inhabited hall — meet the steward and take a contract in person",
     "presentations.hall.controlsHint": "talk to the steward to take a contract",
@@ -872,6 +1142,18 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "cartridgePanel.ledgerProvenance": "Each result is recorded under the authored identity above. This ledger checks against the program.",
 
     "boot.openCartridge": "Open cartridge…",
+    "boot.holderEstateHeading": "Holder estate",
+    "boot.exportHolderEstate": "Export holder estate",
+    "boot.restoreHolderEstate": "Restore holder estate",
+    "boot.holderEstateExported": (params) => `Holder estate exported · ${num(params, "count")} records.`,
+    "boot.holderEstateRestored": (params) => `Holder estate restored · ${num(params, "count")} records. Reloading…`,
+    "boot.holderEstatePreflight": "Holder-estate preflight",
+    "boot.holderEstateSummary": (params) => `${num(params, "count")} records · add ${num(params, "add")} · change ${num(params, "change")} · exact-remove ${num(params, "remove")} · opaque ${num(params, "opaque")}`,
+    "boot.holderEstateOpaque": (params) => `${num(params, "count")} opaque future namespace${num(params, "count") === 1 ? "" : "s"}`,
+    "boot.holderEstateMerge": "Merge held records",
+    "boot.holderEstateReplace": "Restore exactly",
+    "boot.holderEstateCancel": "Cancel",
+    "boot.holderEstateFailed": "Holder-estate operation failed:",
     "boot.remove": "Remove",
     "boot.importedNamed": (params) => `Imported "${str(params, "name")}".`,
     "boot.runRestoredNamed": (params) => `Exact run restored: ${str(params, "name")}.`,
@@ -1165,6 +1447,135 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "presentations.aperture.blurb": "語意指揮台 — 戰役、契約、受限人物與精確收據",
     "presentations.aperture.controlsHint": "切換地圖／追蹤／界面 · 在卡匣與收據間縮放 · 複製精確檢視",
     "presentations.aperture.purpose": "同一執行紀錄的高資訊投影。它揭示作者結構與已記錄後果，不虛構路徑、選擇或關係。",
+    "presentations.underworld.label": "地下世界",
+    "presentations.underworld.blurb": "市民樞紐與分層墓域地圖 — 日常生活、下降、破口、返回與精確繼承狀態",
+    "presentations.underworld.controlsHint": "選擇一層、檢視遠征帳本，再進入作者設定的遭遇",
+    "presentations.underworld.purpose": "將黑暗墓域呈現為有人居住的政治建築。讀取樞紐、長期警報、訊號預算、層次與持續後果，不取代 Arc 規則。",
+    "presentations.commonShip.label": "共同船艦",
+    "presentations.commonShip.blurb": "跨越不同身體、時鐘、棲地與繼承義務編組值班。",
+    "presentations.commonShip.controlsHint": "選擇一項行動、編組值班、檢視 Arc 判定，然後提交。",
+    "presentations.commonShip.purpose": "將船艦作為共享政體管理，而非以人類常態為基準的載具。",
+    "commonShip.variable": "可變",
+    "commonShip.unassigned": "未指派",
+    "commonShip.profile.passage": "通行寬度",
+    "commonShip.profile.gravity": "重力",
+    "commonShip.profile.life": "預期壽命",
+    "commonShip.decisionHorizon": "決策時限",
+    "commonShip.closesWhen": "截止條件",
+    "commonShip.physical": "物理急迫性",
+    "commonShip.informational": "資訊急迫性",
+    "commonShip.institutional": "制度急迫性",
+    "commonShip.manufactured": "人為急迫性",
+    "commonShip.compositionReceipt": "編組收據",
+    "commonShip.absentActor": "缺席行動者",
+    "commonShip.excludedBody": "被排除身體",
+    "commonShip.dependency": "依賴",
+    "commonShip.allocation.heading": "共同系統配置",
+    "commonShip.allocation.habitatBands": "棲地帶",
+    "commonShip.allocation.translationPaths": "翻譯路徑",
+    "commonShip.allocation.directInterfaces": "直接介面",
+    "commonShip.allocation.standby": "待命",
+    "commonShip.allocation.stores": "儲備",
+    "commonShip.allocation.emergencyAuthority": "緊急權限",
+    "commonShip.handoff.heading": "交班",
+    "commonShip.handoff.dissent": "異議",
+    "commonShip.handoff.injury": "傷害",
+    "commonShip.handoff.readinessDebt": "戰備債務",
+    "commonShip.handoff.promises": "承諾",
+    "commonShip.handoff.missingPersons": "失聯人員",
+    "commonShip.handoff.uncertainty": "不確定性",
+    "commonShip.precedent.heading": "先例",
+    "commonShip.precedent.newlyPossible": "新增可能",
+    "commonShip.precedent.newlyImpossible": "新增不可能",
+    "commonShip.precedent.newlyGovernable": "新增可治理事項",
+    "commonShip.precedent.inherited": "已繼承",
+    "commonShip.noSource": "此卡匣不含共同船艦來源平面。",
+    "commonShip.sourceRefused": "共同船艦來源已拒絕",
+    "commonShip.program.firstParty": "計畫 005 · 共同船艦",
+    "commonShip.program.holderOwned": "共同船艦 · 持有人所有卡匣",
+    "commonShip.progressAria": "戰役進度",
+    "commonShip.operationsRecorded": "項行動已記錄",
+    "commonShip.state.habitatIntegrity": "棲地完整性",
+    "commonShip.state.temporalCoherence": "時間協調性",
+    "commonShip.state.translationTrust": "翻譯信任",
+    "commonShip.state.rosterResilience": "值班韌性",
+    "commonShip.state.storesAndCare": "儲備與照護",
+    "commonShip.state.continuity": "延續性",
+    "commonShip.state.visibility": "可見度",
+    "commonShip.state.compatibilityDebt": "相容性債務",
+    "commonShip.operationsAria": "共同船艦行動",
+    "commonShip.watchSequence": "值班序列",
+    "commonShip.system.transitBody": "轉運船體",
+    "commonShip.system.habitatBands": "棲地帶",
+    "commonShip.system.commonThresholds": "共同門檻",
+    "commonShip.system.translationMesh": "翻譯網",
+    "commonShip.system.watchLattice": "值班格網",
+    "commonShip.system.continuityCommons": "延續公域",
+    "commonShip.system.sovereignCore": "主權核心",
+    "commonShip.verdict.heading": "Arc 所有的共同值班判定",
+    "commonShip.verdict.viable": "可行值班",
+    "commonShip.verdict.refused": "值班已拒絕",
+    "commonShip.selectedCount": (params) => `已選 ${num(params, "n")}/${num(params, "max")}`,
+    "commonShip.dependencies": "依賴：",
+    "commonShip.singlePoints": "單點故障：",
+    "commonShip.engineProjection": "引擎推估",
+    "commonShip.currentCycle": "目前週期",
+    "commonShip.readinessClear": "選定值班符合目前的可靠性推估。",
+    "commonShip.prepareCycle": "執行一個準備週期",
+    "commonShip.commitWatch": "提交此值班",
+    "commonShip.profilesAria": "具身設定檔",
+    "commonShip.vesselAnatomy": "船艦結構",
+    "commonShip.onePolity": "一個跨越不相容環境的政體",
+    "commonShip.crossSectionAria": "可捲動的救援迴路船艦剖面圖",
+    "commonShip.crossSectionAlt": "救援迴路剖面圖，顯示七個運作系統與通往燈區的路線",
+    "commonShip.atlasSummary": "運作符號圖集 · 六項值班測試 · 七個系統 · 八條狀態軌",
+    "commonShip.atlasAria": "可捲動的救援迴路運作符號圖集",
+    "commonShip.atlasAlt": "共同值班測試、船艦系統與船艦狀態軌的運作符號",
+    "commonShip.creatorAnatomy": "作者定義的船艦結構",
+    "commonShip.currentUse": "目前用途",
+    "commonShip.revisionAuthority": "修訂權限",
+    "commonShip.connection.selectedWatch": "選定值班",
+    "commonShip.connection.people": "人員",
+    "commonShip.connection.stores": "儲備",
+    "commonShip.connection.exposure": "暴露後果",
+    "commonShip.connection.outbound": "已出發",
+    "commonShip.connection.returned": "已返回",
+    "underworld.metadataRefused": "黑暗墓域中繼資料已拒絕",
+    "underworld.invalidHeading": "此卡匣聲稱使用的黑暗墓域來源無法通過驗證。",
+    "underworld.invalidBody": "遊玩規則仍以已驗證的 Arc 為準。Rodoh 不會從格式錯誤的來源推測層次、警報狀態或後果。",
+    "underworld.noSource": "此卡匣不含已登錄的黑暗墓域來源。",
+    "underworld.eyebrow": "黑暗墓域 · 市民地下世界",
+    "underworld.stateLedger": "墓域狀態帳本",
+    "underworld.alarm": "長期警報",
+    "underworld.signature": "訊號",
+    "underworld.visibility": "可見度",
+    "underworld.recordedMovements": "已記錄行動",
+    "underworld.civicHub": "燈區市民樞紐",
+    "underworld.steward": "在地見證者",
+    "underworld.ordinaryLife": "日常生活",
+    "underworld.exteriorClassification": "外部分類",
+    "underworld.observer": "觀察者制度",
+    "underworld.hubChanged": "樞紐已繼承此次下降",
+    "underworld.hubHeld": "舊地圖仍在治理",
+    "underworld.layeredMap": "七層區域地圖",
+    "underworld.layeredMapHint": "選擇一層以聚焦目前或下一項行動",
+    "underworld.available": "可用",
+    "underworld.recorded": "已記錄",
+    "underworld.locked": "鎖定",
+    "underworld.expedition": "遠征帳本",
+    "underworld.depthVector": "深度向量",
+    "underworld.objective": "目標",
+    "underworld.route": "授權路線",
+    "underworld.authority": "權限",
+    "underworld.claim": "待證明主張",
+    "underworld.signatureBudget": "訊號預算",
+    "underworld.inheritance": "可能繼承",
+    "underworld.enterExpedition": "進入遠征",
+    "underworld.cast": "區域角色",
+    "underworld.wakeSources": "外洩來源",
+    "underworld.inheritedConsequences": "已繼承後果",
+    "underworld.inherited": "已繼承",
+    "underworld.pending": "待處理",
     "presentations.hall.label": "契約堂",
     "presentations.hall.blurb": "有人的契約堂 — 與管事會面，親自承接契約",
     "presentations.hall.controlsHint": "與管事對話以承接契約",
@@ -1299,6 +1710,18 @@ export const MESSAGES: Record<Locale, Partial<Record<MessageId, MessageValue>>> 
     "cartridgePanel.ledgerProvenance": "每筆結果皆記錄於上方的作者身分之下。此帳本可對照程式核對。",
 
     "boot.openCartridge": "開啟卡匣…",
+    "boot.holderEstateHeading": "持有者資產",
+    "boot.exportHolderEstate": "匯出持有者資產",
+    "boot.restoreHolderEstate": "還原持有者資產",
+    "boot.holderEstateExported": (params) => `持有者資產已匯出 · ${num(params, "count")} 筆記錄。`,
+    "boot.holderEstateRestored": (params) => `持有者資產已還原 · ${num(params, "count")} 筆記錄。正在重新載入…`,
+    "boot.holderEstatePreflight": "持有者資產預檢",
+    "boot.holderEstateSummary": (params) => `${num(params, "count")} 筆記錄 · 新增 ${num(params, "add")} · 變更 ${num(params, "change")} · 精確移除 ${num(params, "remove")} · 不透明 ${num(params, "opaque")}`,
+    "boot.holderEstateOpaque": (params) => `${num(params, "count")} 個不透明的未來命名空間`,
+    "boot.holderEstateMerge": "合併持有記錄",
+    "boot.holderEstateReplace": "精確還原",
+    "boot.holderEstateCancel": "取消",
+    "boot.holderEstateFailed": "持有者資產操作失敗：",
     "boot.remove": "移除",
     "boot.importedNamed": (params) => `已匯入「${str(params, "name")}」。`,
     "boot.runRestoredNamed": (params) => `已還原精確執行紀錄：${str(params, "name")}。`,

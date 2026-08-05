@@ -76,62 +76,48 @@ describe("asset standard: grid integrity", () => {
     }
   });
 
-  it("RodohRuntimeMark PIXELS: every row matches row 0's length", () => {
-    const rows = extractRows(markSource, "const PIXELS = [", "function colorFor");
-    expect(rows.length).toBeGreaterThan(0);
-    expect(rows).toHaveLength(18);
-    const expectedLength = (rows[0] ?? "").length;
-    expect(expectedLength).toBe(16);
-    rows.forEach((row, i) => {
-      expect(row.length, `PIXELS row ${i} ("${row}") should be ${expectedLength} chars like row 0`).toBe(expectedLength);
-    });
-  });
-
-  it("RodohRuntimeMark uses the byte-exact governed AXM Tools map", () => {
-    const rows = extractRows(markSource, "const PIXELS = [", "function colorFor");
+  it("Rodoh root source is the byte-exact constitutional 16x16 map", () => {
+    const rootSource = read("src/world/brand/rodoh-root-mark.ts");
+    const rows = extractRows(rootSource, "export const RODOH_ROOT_MARK_MAP = [", "] as const;");
     expect(rows).toEqual([
-      "0000W00000W00000", "0000000000000000", "00W0000W00000WW0", "0W00WW0WW00W00W0",
-      "00WWWWWWWW00W000", "0WWWWWWWWWW00000", "00WWWWWWWWW00000", "00WWWWWWWW000000",
-      "000WWWWWW0o00000", "00000WWW00000000", "000000o0000000W0", "000000o000000000",
-      "000o00o00o000000", "00o000o00o000000", "000000o000000000", "00000oo000000000",
-      "00000oo000000000", "000oooooo0000000",
+      "....W..W........",
+      "..W..WW..W..W...",
+      "...W.WWW.W.W....",
+      "..W.WWWWW.WW....",
+      "...WWWWWWW.W....",
+      "..W.WWWWW..W....",
+      "....WWWWW.......",
+      ".....MWM........",
+      "......M.........",
+      "......M.....W...",
+      "....M.M..W......",
+      "...M..M.M.......",
+      "...M..M.........",
+      "......M.........",
+      ".....MMM........",
+      "....MMMMM.......",
     ]);
-    expect(markSource).toContain("https://bigbirdreturns.github.io/axm-tools/identity/");
+    expect(rows).toHaveLength(16);
+    for (const [index, row] of rows.entries()) {
+      expect(row.length, `root row ${index}`).toBe(16);
+      expect(row).toMatch(/^[.WM]+$/);
+    }
   });
 
-  it("RodohRuntimeMark: every grid char is handled by colorFor and vice versa (no dead tokens)", () => {
-    const rows = extractRows(markSource, "const PIXELS = [", "function colorFor");
-    const gridChars = new Set<string>();
-    for (const row of rows) {
-      for (const ch of row) gridChars.add(ch);
-    }
-
-    // Parse the actual `case "x":` tokens out of colorFor() so this check
-    // stays honest if the function is ever edited, rather than hardcoding
-    // the token list here.
-    const colorForMatch = markSource.match(/function colorFor[\s\S]*?\n\}/);
-    expect(colorForMatch, "expected to find a colorFor() function").not.toBeNull();
-    const colorForBody = colorForMatch![0];
-    const caseTokens = new Set<string>();
-    const caseRegex = /case\s+"([^"]+)":/g;
-    let m: RegExpExecArray | null;
-    while ((m = caseRegex.exec(colorForBody))) {
-      caseTokens.add(m[1] ?? "");
-    }
-    expect(caseTokens.size).toBeGreaterThan(0);
-
-    // "0" is background/transparent and intentionally has no colorFor case.
-    const paintedGridChars = new Set([...gridChars].filter((c) => c !== "0"));
-
-    // Every painted grid char must be handled by colorFor.
-    for (const ch of paintedGridChars) {
-      expect(caseTokens.has(ch), `grid uses token "${ch}" with no colorFor case`).toBe(true);
-    }
-    // Every colorFor case must actually appear in the grid (the bug this
-    // guard is here to catch: colorFor's "e"/SEED case with no "e" in PIXELS).
-    for (const token of caseTokens) {
-      expect(paintedGridChars.has(token), `colorFor handles "${token}" but it never appears in PIXELS`).toBe(true);
-    }
+  it("Rodoh root source and renderer use only the locked root palette and transforms", () => {
+    const rootSource = read("src/world/brand/rodoh-root-mark.ts");
+    const runtime = read("src/world/brand/RodohRuntimeMark.tsx");
+    expect(rootSource).toContain('cream: "#fffdf5"');
+    expect(rootSource).toContain('moss: "#6B784D"');
+    expect(rootSource).toContain('charcoal: "#1B1818"');
+    expect(runtime).toContain('from "./rodoh-root-mark.js"');
+    expect(runtime).toContain('shapeRendering="crispEdges"');
+    expect(runtime).toContain('imageRendering: "pixelated"');
+    expect(runtime).not.toContain("drop-shadow");
+    expect(runtime).not.toContain("#ECE7D8");
+    expect(runtime).not.toContain("#7C7F57");
+    expect(runtime).not.toContain('viewBox="0 0 16 18"');
+    expect(runtime).not.toContain("filter:");
   });
 });
 

@@ -1,3 +1,4 @@
+import "../themes/lamp-district/lamp-district.css";
 // The player shell: ONE runtime shell across breakpoints. It owns every engine region
 // (status, view switcher, active representation, roster/assignment, selected contract +
 // readiness, outcome/report, coach) and the chrome (cartridge object, decisions). The
@@ -19,6 +20,7 @@ import { getPresentations, type Representation } from "../presentations.js";
 import { deriveNodeMarkers } from "../worldmap/derive.js";
 import { deriveHallView } from "../inhabited/hall.js";
 import { hallSteward } from "../inhabited/people.js";
+import { programForCartridge } from "../program-of-record.js";
 import { CartridgePortrait } from "../themes/CartridgeMotif.js";
 import { loadCostume, saveCostume, isCostumeId, type CostumeId } from "../presentation-prefs.js";
 import { useIsMobile } from "../use-viewport.js";
@@ -212,8 +214,10 @@ export function Shell({ world, interaction: ix, onExit, initialCostumeId, onCost
   const playerPresentations = useMemo(
     // Planet/world is a player surface, not developer chrome. Keep it reachable
     // everywhere; only the dependency graph is a development-only renderer.
-    () => presentations.filter((presentation) => presentation.id !== "graph"),
-    [presentations],
+    () => presentations.filter((presentation) => presentation.id !== "graph"
+      && (presentation.id !== "underworld" || world.arc.meta.domain === "godscar-dark-tomb")
+      && (presentation.id !== "common-ship" || world.arc.meta.domain === "godscar-common-ship")),
+    [presentations, world.arc.meta.domain],
   );
   const active = useMemo(() => presentations.find((p) => p.id === costumeId) ?? presentations[0]!, [presentations, costumeId]);
   const modalOpen = world.pendingDecision !== null || decisionResponse !== null || encounterChallengeId !== null;
@@ -229,7 +233,10 @@ export function Shell({ world, interaction: ix, onExit, initialCostumeId, onCost
     // Seed with the recommended party for THIS challenge explicitly: ix.select's
     // party reseed runs in a later effect, so ix.party can still hold the previous
     // selection's party when EncounterShell snapshots it at mount.
-    setEncounterParty(world.recommendedParty(challengeId));
+    const committedParty = ix.selectedId === challengeId && ix.party.length > 0
+      ? ix.party
+      : world.recommendedParty(challengeId);
+    setEncounterParty(committedParty);
     setEncounterChallengeId(challengeId);
   };
 
@@ -521,7 +528,15 @@ export function Shell({ world, interaction: ix, onExit, initialCostumeId, onCost
               data-testid="mobile-step-back"
               onClick={() => {
                 if (mobileStep === "party") setMobileStep("contract");
-                else { ix.select(null); setMobileStep("board"); }
+                else {
+                  // A Common Ship operation remains the same managed watch after a
+                  // partial outcome. Returning to the vessel must preserve the
+                  // selected people so the holder can prepare or recommit them.
+                  // Other representations retain the established deselect-to-board
+                  // behavior.
+                  if (costumeId !== "common-ship") ix.select(null);
+                  setMobileStep("board");
+                }
               }}
               style={{ flex: "none", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "rgba(15,13,9,0.92)", borderBottom: "1px solid #2a2620", color: "#d8cfbd", fontFamily: "var(--px-font)", fontSize: 12, fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" }}
             >
@@ -630,7 +645,7 @@ export function Shell({ world, interaction: ix, onExit, initialCostumeId, onCost
           onContinue={() => {
             const closesOpening = decisionResponse.cardId.startsWith("opening:");
             setDecisionResponse(null);
-            if (closesOpening && hallSteward(world.cartridge)) {
+            if (closesOpening && programForCartridge(world.cartridge)?.entryExperience === "guided-first-contract" && hallSteward(world.cartridge)) {
               // This is scene direction, not a preference write: the player's saved
               // representation remains theirs after the one-shot handoff.
               setCostumeId("hall");

@@ -1,0 +1,95 @@
+/* Ilyon production observatory pack. The environment, foreground, and Aster
+   Neral portrait deepen the accepted cartridge identity while the existing
+   Godscar source, cast order, evidence, and outcomes remain authoritative. */
+
+:root[data-cartridge="ilyon"] .axm-hall,
+:root[data-cartridge="ilyon"] [data-testid="hall-scene"] {
+  position: relative;
+  isolation: isolate;
+  background-image:
+    linear-gradient(180deg, rgba(3, 16, 25, .08), rgba(3, 16, 25, .52)),
+    url("../../../assets/ilyon/observatory/ilyon-observatory-foreground.svg"),
+    url("../../../assets/ilyon/observatory/ilyon-observatory-environment.svg") !important;
+  background-repeat: no-repeat !important;
+  background-position: center center, center center, center center !important;
+  background-size: cover, cover, cover !important;
+}
+
+:root[data-cartridge="ilyon"] .axm-hall > *,
+:root[data-cartridge="ilyon"] [data-testid="hall-scene"] > * {
+  position: relative;
+  z-index: 2;
+}
+
+:root[data-cartridge="ilyon"] .axm-hall .axm-steward {
+  background: rgba(4, 22, 32, .9);
+  border-color: rgba(72, 183, 176, .68);
+  backdrop-filter: blur(4px);
+}
+
+/* The first authored cast member is Aster Neral in the creator source. Enlarge
+   that lead receipt and bind the standalone portrait without replacing the
+   cartridge-owned pixel silhouettes used everywhere else. */
+:root[data-cartridge="ilyon"] .godscar-pocket__cast article:first-child {
+  grid-template-columns: 92px 1fr;
+  min-height: 132px;
+  border-color: rgba(201, 164, 93, .52);
+  background:
+    linear-gradient(135deg, rgba(72, 183, 176, .12), rgba(214, 129, 101, .05)),
+    rgba(2, 15, 23, .48);
+}
+
+:root[data-cartridge="ilyon"] .godscar-pocket__cast article:first-child .godscar-pocket__cast-portrait {
+  width: 88px;
+  height: 112px;
+  overflow: hidden;
+  color: transparent;
+  background:
+    linear-gradient(rgba(0, 0, 0, 0), rgba(3, 16, 25, .08)),
+    url("../../../assets/ilyon/observatory/aster-neral-portrait.svg") center 16%/cover no-repeat;
+  border: 3px double #c9a45d;
+  box-shadow: 4px 5px 0 rgba(0, 0, 0, .34), inset 0 0 0 1px rgba(72, 183, 176, .5);
+}
+
+:root[data-cartridge="ilyon"] .godscar-pocket__cast article:first-child .godscar-pocket__cast-portrait > * {
+  opacity: 0;
+}
+
+@media (max-width: 700px) {
+  :root[data-cartridge="ilyon"] .axm-hall,
+  :root[data-cartridge="ilyon"] [data-testid="hall-scene"] {
+    background-position: 50% center, 50% center, 50% center !important;
+  }
+
+  :root[data-cartridge="ilyon"] .godscar-pocket__cast article:first-child {
+    grid-template-columns: 74px 1fr;
+    min-height: 108px;
+  }
+
+  :root[data-cartridge="ilyon"] .godscar-pocket__cast article:first-child .godscar-pocket__cast-portrait {
+    width: 70px;
+    height: 90px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-cartridge="ilyon"] .godscar-pocket__cast article:first-child .godscar-pocket__cast-portrait {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  :root[data-cartridge="ilyon"] .axm-hall,
+  :root[data-cartridge="ilyon"] [data-testid="hall-scene"] {
+    background-image: none !important;
+  }
+
+  :root[data-cartridge="ilyon"] .godscar-pocket__cast article:first-child .godscar-pocket__cast-portrait {
+    background-image: none !important;
+    border-color: CanvasText;
+  }
+
+  :root[data-cartridge="ilyon"] .godscar-pocket__cast article:first-child .godscar-pocket__cast-portrait > * {
+    opacity: 1;
+  }
+}

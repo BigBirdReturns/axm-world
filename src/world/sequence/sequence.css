@@ -1,0 +1,17 @@
+@media (max-width: 640px) {
+  main[data-testid="canonical-story-host"] > div > div {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  main[data-testid="canonical-story-host"] > div > div > aside {
+    max-height: 240px !important;
+  }
+
+  main[data-testid="canonical-story-host"] nav[aria-label="Canonical story navigation"] {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+  }
+
+  main[data-testid="canonical-story-host"] button {
+    max-width: 100%;
+  }
+}

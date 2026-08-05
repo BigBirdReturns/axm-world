@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axm.tools/schemas/rodoh-nvda-edge-acceptance-1.json",
+  "title": "RODOH NVDA and Edge acceptance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "acceptedAt",
+    "machineFingerprintSha256",
+    "operatingSystem",
+    "edgeVersion",
+    "nvdaVersion",
+    "nodeVersion",
+    "npmVersion",
+    "playwrightVersion",
+    "worldCommit",
+    "arcCommit",
+    "checks",
+    "status"
+  ],
+  "properties": {
+    "format": { "const": "rodoh-nvda-edge-acceptance/1" },
+    "acceptedAt": { "type": "string", "format": "date-time" },
+    "machineFingerprintSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "operatingSystem": { "type": "string", "minLength": 1 },
+    "edgeVersion": { "type": "string", "minLength": 1 },
+    "nvdaVersion": { "type": "string", "minLength": 1 },
+    "nodeVersion": { "type": "string", "minLength": 1 },
+    "npmVersion": { "type": "string", "minLength": 1 },
+    "playwrightVersion": { "type": "string", "minLength": 1 },
+    "worldCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "arcCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shelfAndIdentity",
+        "keyboardEntry",
+        "viewSwitcher",
+        "contractAndParty",
+        "decisionAndConsequence",
+        "encounterAndRecord",
+        "runExportRestore",
+        "holderEstate",
+        "forcedColorsAndMotion",
+        "semanticRedundancy"
+      ],
+      "properties": {
+        "shelfAndIdentity": { "const": true },
+        "keyboardEntry": { "const": true },
+        "viewSwitcher": { "const": true },
+        "contractAndParty": { "const": true },
+        "decisionAndConsequence": { "const": true },
+        "encounterAndRecord": { "const": true },
+        "runExportRestore": { "const": true },
+        "holderEstate": { "const": true },
+        "forcedColorsAndMotion": { "const": true },
+        "semanticRedundancy": { "const": true }
+      }
+    },
+    "notes": { "type": "string" },
+    "status": { "const": "pass" }
+  }
+}

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 800" role="img" aria-labelledby="title desc">
+  <title id="title">Orun Sable, high-gravity maintainer</title>
+  <desc id="desc">A massive load-bearing maintainer in a reinforced pressure harness, braced against a structural contact wall where ordinary corridors become inaccessible work terrain.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3c2922"/><stop offset=".5" stop-color="#201713"/><stop offset="1" stop-color="#090706"/></linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b87e58"/><stop offset=".45" stop-color="#7a4f3c"/><stop offset="1" stop-color="#3e2824"/></linearGradient>
+    <linearGradient id="harness" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d7b276"/><stop offset=".38" stop-color="#8a6b3f"/><stop offset="1" stop-color="#3b3024"/></linearGradient>
+    <radialGradient id="load" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff0b8" stop-opacity=".82"/><stop offset=".34" stop-color="#e6ba63" stop-opacity=".38"/><stop offset="1" stop-color="#e6ba63" stop-opacity="0"/></radialGradient>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="20"/></filter>
+    <filter id="grain" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="3" seed="97"/><feComponentTransfer><feFuncA type="table" tableValues="0 .07"/></feComponentTransfer></filter>
+  </defs>
+  <rect width="640" height="800" fill="url(#bg)"/>
+  <path d="M36 690V94h568v596z" fill="#16110f" stroke="#8a5d42" stroke-width="12"/>
+  <g stroke="#5a3b2e" stroke-width="22"><path d="M90 118v546M220 118v546M420 118v546M550 118v546"/><path d="M60 210h520M60 380h520M60 550h520"/></g>
+  <g stroke="#c28a5f" stroke-width="5" opacity=".6"><path d="M74 218h492M74 388h492M74 558h492"/></g>
+  <g fill="#e6ba63"><circle cx="112" cy="160" r="10"/><circle cx="528" cy="160" r="10"/><circle cx="112" cy="606" r="10"/><circle cx="528" cy="606" r="10"/></g>
+  <circle cx="320" cy="418" r="244" fill="url(#load)" filter="url(#glow)" opacity=".3"/>
+
+  <!-- broad high-gravity body -->
+  <path d="M80 800c12-198 62-344 154-416h172c92 72 142 218 154 416z" fill="url(#body)" stroke="#120c0b" stroke-width="14"/>
+  <path d="M202 218c18-66 58-104 118-104s100 38 118 104l-28 194H230z" fill="#9d694f" stroke="#291b18" stroke-width="10"/>
+  <path d="M194 246c18-84 62-128 126-132 64 4 108 48 126 132l-16-126-110-68-110 68z" fill="#3d2825"/>
+  <path d="M248 296c20 10 40 10 60 0M332 296c20 10 40 10 60 0" stroke="#291d1a" stroke-width="8" stroke-linecap="round"/><path d="M282 356c26 12 52 12 76 0" stroke="#6b4038" stroke-width="8" stroke-linecap="round"/><path d="M320 296v40" stroke="#7f503f" stroke-width="7"/>
+  <path d="M194 420c84 50 168 50 252 0" fill="none" stroke="#d7b276" stroke-width="16"/>
+
+  <!-- load-rated harness -->
+  <path d="M138 464l86-64 96 92 96-92 86 64-40 336H178z" fill="none" stroke="url(#harness)" stroke-width="26" stroke-linejoin="round"/>
+  <path d="M224 400v340M416 400v340M178 566h284M164 676h312" stroke="#6d5337" stroke-width="18"/>
+  <g fill="#e6ba63" stroke="#291b18" stroke-width="5"><circle cx="224" cy="492" r="18"/><circle cx="416" cy="492" r="18"/><circle cx="320" cy="566" r="20"/><circle cx="224" cy="676" r="16"/><circle cx="416" cy="676" r="16"/></g>
+  <g transform="translate(320 568)"><circle r="112" fill="url(#load)" filter="url(#glow)"/><circle r="66" fill="#2c211a" stroke="#e6ba63" stroke-width="10"/><path d="M-44-30h88v60h-88zM0-66v132M-66 0h132" fill="none" stroke="#c28a5f" stroke-width="7"/><circle r="12" fill="#fff0b8"/></g>
+
+  <!-- direct structural contact hands -->
+  <path d="M118 620c-58-16-84 12-72 78 10 54 52 76 108 56M522 620c58-16 84 12 72 78-10 54-52 76-108 56" fill="none" stroke="#9d694f" stroke-width="38" stroke-linecap="round"/>
+  <path d="M46 694h84M510 694h84" stroke="#e6ba63" stroke-width="9"/>
+  <path d="M112 800h416" stroke="#0c0807" stroke-width="34"/>
+  <rect width="640" height="800" filter="url(#grain)" opacity=".54"/>
+</svg>

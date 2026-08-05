@@ -1,0 +1,48 @@
+{
+  "format": "axm-identity-custody/1",
+  "mark": "AXM-WORLD root glyph",
+  "status": "constitutional-source",
+  "dimensions": "16x16",
+  "palette": {
+    "cream": "#fffdf5",
+    "moss": "#6B784D",
+    "charcoal": "#1B1818"
+  },
+  "upstream": {
+    "repository": "BigBirdReturns/axm-tools",
+    "commit": "93a9740a26b0fafe5b5152103a8118a489afbcec",
+    "constitution": {
+      "path": "identity/scg/SCG_MARK_CONSTITUTION.md",
+      "blob": "6ce2a3a6262a1190764117ec04ce687a1708271c",
+      "authority": "root coordinate ledger and allowed-transform law"
+    },
+    "practiceDerivative": {
+      "path": "identity/scg/source/scg-pixel-mark.js",
+      "blob": "bc9a3eb2db82b21c6fdb58acb1d017c5a48cdedf",
+      "authority": "lineage evidence only; the 16x18 derivative is not the runtime source"
+    },
+    "practiceTokens": {
+      "path": "identity/scg/source/scg.tokens.css",
+      "blob": "5d03305a3fb7cd0982b1e34242ecc3588629f17f",
+      "authority": "evidence that SCG bone, olive, void, and ember belong to the derivative layer, not the Rodoh root"
+    }
+  },
+  "localSource": "src/world/brand/rodoh-root-mark.ts",
+  "renderer": "src/world/brand/RodohRuntimeMark.tsx",
+  "allowedTransforms": [
+    "integer cell scale",
+    "declared root palette",
+    "integer crop padding outside the map",
+    "whole-cell removal only for favicons at or below 16px"
+  ],
+  "bannedTransforms": [
+    "smoothing",
+    "drop shadow",
+    "fractional scale",
+    "re-centering",
+    "symmetry repair",
+    "seed invention",
+    "derivative palette substitution",
+    "application artwork promoted to source"
+  ]
+}

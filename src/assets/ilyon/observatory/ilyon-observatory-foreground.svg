@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">The Ilyon observatory framing</title>
+  <desc id="desc">Nacre arches, tideglass railings, brass instruments, and coral growth frame the public observatory while preserving the central council space.</desc>
+  <defs>
+    <linearGradient id="nacre" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f7efd8"/><stop offset=".48" stop-color="#a9d3cf"/><stop offset="1" stop-color="#547b84"/></linearGradient>
+    <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ead28b"/><stop offset=".55" stop-color="#c9a45d"/><stop offset="1" stop-color="#76552c"/></linearGradient>
+    <radialGradient id="waterGlow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#a4ece5" stop-opacity=".58"/><stop offset=".52" stop-color="#48b7b0" stop-opacity=".2"/><stop offset="1" stop-color="#48b7b0" stop-opacity="0"/></radialGradient>
+  </defs>
+  <path d="M0 0h156c42 112 54 232 54 360v540H0zM1600 0h-156c-42 112-54 232-54 360v540h210z" fill="#031019" opacity=".92"/>
+  <path d="M26 0h112c34 118 44 228 44 346v554H26zM1574 0h-112c-34 118-44 228-44 346v554h156z" fill="url(#nacre)" opacity=".54"/>
+  <path d="M0 0h1600v54H0z" fill="#020a10" opacity=".8"/><path d="M0 842h1600v58H0z" fill="#020a10" opacity=".88"/><path d="M0 836h1600" stroke="#48b7b0" stroke-width="6" opacity=".7"/>
+  <g fill="none" stroke="url(#brass)" stroke-width="8"><circle cx="132" cy="234" r="62"/><path d="M132 164v140M62 234h140"/><circle cx="1468" cy="234" r="62"/><path d="M1468 164v140M1398 234h140"/></g>
+  <g fill="none" stroke="#d68165" stroke-width="16" stroke-linecap="round"><path d="M110 900c-12-92 12-158 56-208M166 692c-34-24-54-54-58-92M166 692c42-20 68-48 84-86"/><path d="M1490 900c12-92-12-158-56-208M1434 692c34-24 54-54 58-92M1434 692c-42-20-68-48-84-86"/></g>
+  <ellipse cx="88" cy="560" rx="118" ry="162" fill="url(#waterGlow)"/><ellipse cx="1512" cy="560" rx="118" ry="162" fill="url(#waterGlow)"/>
+  <path d="M0 720h250v34H0zM1350 720h250v34h-250z" fill="#0b2d3b" stroke="#48b7b0" stroke-width="5"/>
+  <g stroke="#8eb6b3" stroke-width="7"><path d="M38 724v116M98 724v116M158 724v116M218 724v116"/><path d="M1382 724v116M1442 724v116M1502 724v116M1562 724v116"/></g>
+</svg>

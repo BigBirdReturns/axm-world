@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">The Rodoh cartridge bay framing</title>
+  <desc id="desc">Heavy vault jambs, shelf edges, local-status lamps, and a brass footer frame the cartridge bay without obscuring its controls.</desc>
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6b5a3b"/>
+      <stop offset=".42" stop-color="#2a2419"/>
+      <stop offset="1" stop-color="#090806"/>
+    </linearGradient>
+    <radialGradient id="green" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#b4e6a8" stop-opacity=".68"/>
+      <stop offset=".5" stop-color="#74ad77" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#74ad77" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <path d="M0 0h160v900H0zM1600 0h-160v900h160z" fill="#050504" opacity=".92"/>
+  <path d="M30 0h104v900H30zM1570 0h-104v900h104z" fill="url(#metal)" opacity=".72"/>
+  <path d="M0 0h1600v52H0zM0 850h1600v50H0z" fill="#030302" opacity=".92"/>
+  <path d="M0 846h1600" stroke="#8d6a32" stroke-width="6"/>
+  <g fill="#1a1711" stroke="#6a5635" stroke-width="5">
+    <rect x="48" y="88" width="72" height="104" rx="8"/>
+    <rect x="1480" y="88" width="72" height="104" rx="8"/>
+  </g>
+  <ellipse cx="84" cy="140" rx="86" ry="110" fill="url(#green)"/>
+  <ellipse cx="1516" cy="140" rx="86" ry="110" fill="url(#green)"/>
+  <g fill="#74ad77"><circle cx="84" cy="122" r="10"/><circle cx="1516" cy="122" r="10"/></g>
+  <g fill="#c9a14a"><circle cx="84" cy="158" r="7"/><circle cx="1516" cy="158" r="7"/></g>
+  <path d="M0 706h210v34H0zM1390 706h210v34h-210z" fill="#15120d" stroke="#6a5635" stroke-width="5"/>
+  <g stroke="#6a5635" stroke-width="8">
+    <path d="M38 710v136M98 710v136M158 710v136"/>
+    <path d="M1442 710v136M1502 710v136M1562 710v136"/>
+  </g>
+</svg>

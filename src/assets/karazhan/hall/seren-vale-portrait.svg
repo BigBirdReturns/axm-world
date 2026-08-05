@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 800" role="img" aria-labelledby="title desc">
+  <title id="title">Seren Vale, Warden of the Lamplit Survey</title>
+  <desc id="desc">A tower survey warden in an amethyst hood and layered violet coat, holding a blue lantern compass before a moonlit gothic window.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#241936"/><stop offset=".58" stop-color="#11101a"/><stop offset="1" stop-color="#07050b"/></linearGradient>
+    <linearGradient id="cloak" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6a4f8d"/><stop offset=".5" stop-color="#46335f"/><stop offset="1" stop-color="#1e1728"/></linearGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8d8c5"/><stop offset=".58" stop-color="#c6b29c"/><stop offset="1" stop-color="#927c6b"/></linearGradient>
+    <radialGradient id="lantern" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#e4f6ff" stop-opacity=".98"/><stop offset=".24" stop-color="#84c9ef" stop-opacity=".78"/><stop offset="1" stop-color="#4f7d9e" stop-opacity="0"/></radialGradient>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="22"/></filter>
+    <filter id="grain" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="3" seed="19"/><feComponentTransfer><feFuncA type="table" tableValues="0 .08"/></feComponentTransfer></filter>
+  </defs>
+  <rect width="640" height="800" fill="url(#bg)"/>
+  <path d="M60 610V190Q60 54 196 34h248q136 20 136 156v420z" fill="#0b0e15" stroke="#574a7a" stroke-width="10"/>
+  <circle cx="320" cy="182" r="124" fill="#d5e0ef" opacity=".74"/>
+  <circle cx="320" cy="182" r="154" fill="#6faedb" opacity=".12" filter="url(#glow)"/>
+  <path d="M320 50v270M164 182h312" stroke="#574a7a" stroke-width="7"/>
+  <path d="M150 800c18-170 64-302 142-364h56c78 62 124 194 142 364z" fill="#160f21"/>
+  <path d="M118 800c12-192 70-338 174-404h56c104 66 162 212 174 404z" fill="url(#cloak)" stroke="#15101c" stroke-width="12"/>
+  <path d="M210 414c-20-90-4-184 48-248 36-44 86-44 124 0 54 64 70 158 48 248l-52 58H260z" fill="#3c2b52" stroke="#15101c" stroke-width="12"/>
+  <path d="M246 220c18-36 48-54 74-54s56 18 74 54l-24 174H270z" fill="url(#skin)" stroke="#2a202a" stroke-width="8"/>
+  <path d="M246 250c18-26 44-42 74-42 30 0 56 16 74 42l-16-74-58-38-58 38z" fill="#49345f"/>
+  <path d="M264 296c18 6 34 4 48-4M328 292c14 8 30 10 48 4" stroke="#31262a" stroke-width="6" stroke-linecap="round"/>
+  <path d="M294 344c18 10 38 10 54 0" stroke="#8e6257" stroke-width="6" stroke-linecap="round"/>
+  <path d="M320 292v34" stroke="#9c8774" stroke-width="5"/>
+  <path d="M206 426c72 42 156 42 228 0" fill="none" stroke="#9a7fd0" stroke-width="12"/>
+  <path d="M230 462l90 74 90-74" fill="#2c213c" stroke="#d19a3d" stroke-width="7"/>
+  <path d="M320 538v202" stroke="#9a7fd0" stroke-width="7"/>
+  <path d="M208 548c44 18 80 14 112-10M432 548c-44 18-80 14-112-10" fill="none" stroke="#4f7d9e" stroke-width="6"/>
+  <g transform="translate(320 625)"><circle r="106" fill="url(#lantern)" filter="url(#glow)"/><circle r="58" fill="#112838" stroke="#6faedb" stroke-width="8"/><circle r="36" fill="#bfe8ff" opacity=".9"/><path d="M0-58V58M-58 0H58M-40-40L40 40M40-40L-40 40" stroke="#d19a3d" stroke-width="5"/><circle r="10" fill="#efe7f5"/></g>
+  <path d="M166 704c48-56 88-72 120-52M474 704c-48-56-88-72-120-52" fill="none" stroke="#c6b29c" stroke-width="26" stroke-linecap="round"/>
+  <path d="M152 800h336" stroke="#0b0810" stroke-width="28"/>
+  <rect width="640" height="800" filter="url(#grain)" opacity=".55"/>
+</svg>

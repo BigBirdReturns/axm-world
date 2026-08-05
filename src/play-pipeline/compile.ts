@@ -45,9 +45,11 @@ export interface PlayScene {
   cycle: number;
   resources: {
     currency: number;
+    materials: number;
     tokens: number;
     reputation: number;
     currencyName: string;
+    materialName: string;
     tokenName: string;
     reputationName: string;
   };
@@ -233,9 +235,11 @@ export function compileArcToPlayScene(arc: Arc, org: Organization): PlayScene {
     cycle: org.cycle,
     resources: {
       currency: org.resources.currency,
+      materials: org.resources.materials,
       tokens: org.resources.tokens,
       reputation: org.reputation,
       currencyName: arc.currencyName,
+      materialName: arc.materialName,
       tokenName: arc.tokenName,
       reputationName: arc.reputationName,
     },

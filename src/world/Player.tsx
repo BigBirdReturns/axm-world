@@ -26,9 +26,14 @@ import { SensorySwitcher } from "./components/SensorySwitcher.js";
 import { playPresentationCue } from "./sensory-prefs.js";
 import "./sensory-prefs.css";
 import { CartridgeEnterTransition } from "./components/CartridgeEnterTransition.js";
+import { HolderEstatePanel } from "./components/HolderEstatePanel.js";
 import { RodohRuntimeMark } from "./brand/RodohRuntimeMark.js";
 import "./themes/karazhan/karazhan.css";
 import "./themes/ilyon/ilyon.css";
+import "./themes/lamp-district/lamp-district.css";
+import "./themes/karazhan/production-assets.css";
+import "./themes/ilyon/production-assets.css";
+import "./rodoh-bay.css";
 import { PixelButton, PixelIcon } from "./pixel-ui/index.js";
 import { t, useLocale } from "./i18n/index.js";
 
@@ -180,8 +185,8 @@ export function Player(): JSX.Element {
   };
 
   return (
-    <div style={screen} role="region" aria-label={t("boot.heroTitle")}>
-      <div style={{ width: "min(560px, 92vw)" }}>
+    <div className="rodoh-bay-screen" data-testid="rodoh-cartridge-bay" style={screen} role="region" aria-label={t("boot.heroTitle")}>
+      <div className="rodoh-bay-shell" style={{ width: "min(560px, 92vw)" }}>
         {/* The runtime mark, with the language toggle beside it — the boot surface
             must offer the same EN / zh-Hant switch the shell has, or a persisted
             choice locks the player out of the other language before they enter. */}
@@ -309,6 +314,8 @@ export function Player(): JSX.Element {
             )}
           </div>
         )}
+
+        <HolderEstatePanel />
 
         <p style={{ color: "#a59c8b", fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, marginTop: 18 }}>
           {t("boot.footerNote")}

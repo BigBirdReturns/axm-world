@@ -1,0 +1,102 @@
+html[data-cartridge="lamp-district"] {
+  --accent: #d8a24c;
+  --positive: #87a67f;
+  --danger: #ba6740;
+}
+html[data-cartridge="lamp-district"] body,
+html[data-cartridge="lamp-district"] #root { background: #0a090b; }
+.lamp-motif { display:inline-grid;place-items:center;color:currentColor;flex:none;vertical-align:middle }
+.lamp-person-portrait,.lamp-person-sprite{image-rendering:pixelated}
+.underworld-scene {
+  position:absolute;inset:0;overflow:auto;color:#e8dfcb;background:#0a090b;
+  font:12px/1.48 "IBM Plex Mono",ui-monospace,monospace;
+  scrollbar-color:#8c5b45 #121014;
+}
+.underworld-scene__hero {
+  position:relative;min-height:360px;display:flex;align-items:flex-end;padding:30px;
+  background:
+    linear-gradient(90deg,rgba(8,7,9,.96) 0%,rgba(8,7,9,.72) 45%,rgba(8,7,9,.2) 80%),
+    linear-gradient(0deg,#0a090b 0%,transparent 58%),
+    url("../../../assets/lamp-district/underworld/lamp-district-environment.svg") center/cover no-repeat;
+  border-bottom:1px solid #5a474e;
+}
+.underworld-scene__hero::after {
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.17;
+  background:url("../../../assets/lamp-district/underworld/lamp-district-cross-section.svg") right center/58% auto no-repeat;
+  mix-blend-mode:screen;
+}
+.underworld-scene__hero-copy{position:relative;z-index:1;max-width:850px}
+.underworld-scene__eyebrow,.underworld-panel__head small,.underworld-fact small,.underworld-status small{
+  color:#d8a24c;text-transform:uppercase;letter-spacing:.12em;font-size:9px;font-weight:800
+}
+.underworld-scene h2{margin:5px 0 8px;font:800 clamp(38px,6vw,72px)/.93 "Barlow Condensed",sans-serif;letter-spacing:.02em;text-transform:uppercase}
+.underworld-scene__question{max-width:74ch;margin:0 0 18px;color:#ddd0ba;font:17px/1.5 "Lora",Georgia,serif}
+.underworld-status-grid{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:8px}
+.underworld-status{display:grid;gap:3px;padding:10px;border:1px solid #544148;background:rgba(16,13,16,.82)}
+.underworld-status strong{text-transform:uppercase;color:#f2e4c7;font-size:13px}
+.underworld-status[data-value="wake"],.underworld-status[data-value="breached"],.underworld-status[data-value="exposed"]{border-color:#ba6740;background:rgba(100,39,29,.28)}
+.underworld-scene__body{display:grid;gap:14px;padding:16px 18px 48px;max-width:1480px;margin:0 auto}
+.underworld-hub-grid{display:grid;grid-template-columns:1.05fr 1.5fr 1fr;gap:12px}
+.underworld-panel{min-width:0;border:1px solid #493a40;background:linear-gradient(145deg,rgba(36,30,36,.97),rgba(18,15,19,.98));box-shadow:0 16px 40px -30px #000}
+.underworld-panel__head{min-height:42px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-bottom:1px solid #493a40;background:rgba(8,7,9,.35)}
+.underworld-panel__head>span{color:#baad99;font-size:10px;text-align:right}
+.underworld-panel__body{padding:12px;color:#cfc2ae}
+.underworld-panel__body>p:first-child{margin-top:0}
+.underworld-steward{display:grid;grid-template-columns:112px 1fr;gap:12px}
+.underworld-steward__portrait{min-height:146px;border:1px solid #6b514f;background:url("../../../assets/lamp-district/underworld/anja-vei-portrait.svg") center 16%/cover no-repeat}
+.underworld-steward strong{display:block;color:#f2e4c7;font-size:17px}.underworld-steward small{display:block;color:#d8a24c;margin-top:2px}.underworld-steward p{font-family:"Lora",Georgia,serif;font-size:13px}
+.underworld-hub-state{display:inline-block;padding:4px 7px;border:1px solid #665057;color:#b6aa98;text-transform:uppercase;font-size:9px;letter-spacing:.08em}
+.underworld-hub-state[data-changed="true"]{border-color:#87a67f;color:#bbd0b8}
+.underworld-inheritance-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.underworld-allocation,.underworld-inheritance{display:grid;gap:4px;padding:8px;border:1px solid #45373d;background:#151217}
+.underworld-allocation strong,.underworld-inheritance strong{color:#eadfc7}.underworld-allocation small,.underworld-inheritance small{color:#d8a24c}.underworld-allocation span,.underworld-inheritance span{color:#a99c8b;font-size:10px}
+.underworld-inheritance[data-inherited="true"]{border-color:#78927d;background:rgba(53,74,60,.22)}
+.underworld-cross-section{border:1px solid #493a40;background:#121014 url("../../../assets/lamp-district/underworld/lamp-district-cross-section.svg") center/cover no-repeat;background-blend-mode:soft-light}
+.underworld-layers{display:grid;padding:12px;gap:7px}
+.underworld-layer{
+  display:grid;grid-template-columns:42px minmax(160px,.8fr) minmax(180px,1.15fr) minmax(140px,.8fr) minmax(210px,1.2fr);
+  gap:10px;align-items:center;width:100%;text-align:left;padding:9px 10px;color:#d6c9b5;background:rgba(16,13,16,.9);
+  border:1px solid #4b3c42;cursor:pointer;font:10px/1.35 "IBM Plex Mono",monospace;
+}
+.underworld-layer:hover,.underworld-layer[data-active="true"]{border-color:#d8a24c;background:rgba(79,55,35,.74)}
+.underworld-layer[data-cleared="true"]{border-color:#78927d;background:rgba(38,56,44,.75)}
+.underworld-layer__index{color:#d8a24c;font-weight:900}.underworld-layer strong{font-size:12px;color:#f0e2c7}.underworld-layer code{color:#9e9081;white-space:normal}
+.underworld-layer__nodes{display:grid;gap:3px}.underworld-layer__node{display:flex;align-items:center;gap:5px;padding:3px 5px;border-left:2px solid #4a4148;color:#908577}
+.underworld-layer__node[data-state="available"]{border-color:#d8a24c;color:#edcf96}.underworld-layer__node[data-state="cleared"]{border-color:#87a67f;color:#b4c7af}
+.underworld-expedition{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(260px,.7fr);gap:12px}
+.underworld-expedition h3{display:flex;align-items:center;gap:8px;margin:0 0 8px;color:#f2e4c7;font:700 25px/1.1 "Barlow Condensed",sans-serif}
+.underworld-depth-vector{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0}
+.underworld-depth{padding:4px 6px;border:1px solid #544148;background:#100d10;color:#a89b88;font-size:9px;text-transform:uppercase}.underworld-depth b{color:#d8a24c}
+.underworld-expedition__meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.underworld-fact{display:grid;gap:4px;padding:8px;border:1px solid #403339;background:#141115}.underworld-fact span{font-size:10px;color:#c5b8a3}
+.underworld-enter{width:100%;min-height:48px;margin-top:10px;border:1px solid #d8a24c;background:#d8a24c;color:#18120c;font:900 11px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.08em;cursor:pointer}
+.underworld-enter:disabled{border-color:#4b4042;background:#1a171a;color:#6f6462;cursor:not-allowed}
+.underworld-cast-list{display:grid;gap:5px}.underworld-cast-row{display:flex;align-items:center;gap:8px;padding:6px;border:1px solid #403339}.underworld-cast-row strong{display:block;color:#e2d5bf}.underworld-cast-row small{display:block;color:#9b8d7b;font-size:9px}
+.underworld-budget-grid{display:grid;grid-template-columns:.8fr 1.6fr;gap:12px}.underworld-list{margin:6px 0 0;padding-left:18px}
+@media (max-width:980px){
+  .underworld-scene__hero{min-height:310px;padding:20px}.underworld-status-grid{grid-template-columns:repeat(2,1fr)}
+  .underworld-hub-grid,.underworld-expedition,.underworld-budget-grid{grid-template-columns:1fr}
+  .underworld-layer{grid-template-columns:36px 1fr}.underworld-layer>span:nth-child(3),.underworld-layer code{grid-column:2}.underworld-layer__nodes{grid-column:1/-1}
+}
+@media (max-width:560px){
+  .underworld-scene__hero{min-height:300px;padding:16px;background-position:62% center}
+  .underworld-scene__hero::after{display:none}.underworld-scene h2{font-size:43px}.underworld-scene__question{font-size:14px}
+  .underworld-scene__body{padding:10px 8px 90px}.underworld-status-grid{grid-template-columns:1fr 1fr}
+  .underworld-steward{grid-template-columns:84px 1fr}.underworld-steward__portrait{min-height:124px}
+  .underworld-inheritance-grid,.underworld-expedition__meta{grid-template-columns:1fr}
+  .underworld-layer{padding:8px 6px;gap:6px}.underworld-layer__index{font-size:9px}
+  .underworld-panel__head{align-items:flex-start}.underworld-panel__head>span{max-width:60%}
+}
+@media (forced-colors:active){.underworld-scene,.underworld-panel,.underworld-layer,.underworld-fact,.underworld-allocation,.underworld-inheritance{forced-color-adjust:auto;background:Canvas;color:CanvasText;border-color:CanvasText}.underworld-scene__hero{background:Canvas}.underworld-enter{background:ButtonFace;color:ButtonText;border-color:ButtonText}}
+@media (prefers-reduced-motion:reduce){.underworld-scene *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+html[data-cartridge="lamp-district"] .contract-board-shell,
+html[data-cartridge="lamp-district"] .wm-surface,
+html[data-cartridge="lamp-district"] [data-testid="hall-scene"],
+html[data-cartridge="lamp-district"] .encs-panel,
+html[data-cartridge="lamp-district"] .rodoh-aperture,
+html[data-cartridge="lamp-district"] .walkable-world,
+html[data-cartridge="lamp-district"] .pixel-doll-portrait {
+  --lamp-material-accent: #d8a24c;
+  border-color: color-mix(in srgb, #d8a24c 36%, currentColor);
+}

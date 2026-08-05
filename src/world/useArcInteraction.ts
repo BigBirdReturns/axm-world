@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ArcWorld, ChallengeReq } from "./useArcWorld.js";
 import type { WorldNode } from "./contract.js";
 import type { ContractRequirements, FixSuggestion, PartyReadiness } from "./readiness.js";
+import type { CompositionEvaluation } from "../engine/abi13.js";
 import { useLocale } from "./i18n/index.js";
 
 export function firstAvailableNodeId(nodes: Pick<WorldNode, "challengeId" | "status">[], excludeId?: string | null): string | null {
@@ -32,6 +33,8 @@ export interface ArcInteraction {
   run: () => void;
   /** Structured requirements for the selected contract (null when none selected). */
   contract: ContractRequirements | null;
+  /** Exact Arc-owned composition verdict for the current selection + party. */
+  composition: CompositionEvaluation | null;
   /** Faithful projection of the resolver for the current selection + party. */
   readiness: PartyReadiness | null;
   /** Why the recommended party is recommended (selected contract). */
@@ -130,12 +133,17 @@ export function useArcInteraction(world: ArcWorld): ArcInteraction {
   );
 
   const req = selectedId ? world.reqFor(selectedId) : null;
+  const composition = useMemo(
+    () => (selectedId ? world.evaluateCompositionFor(selectedId, party) : null),
+    [selectedId, party, world],
+  );
   const canRun =
     selected !== null &&
     selected.status === "available" &&
     req !== null &&
     party.length >= req.minAgents &&
-    party.length <= req.maxAgents;
+    party.length <= req.maxAgents &&
+    (composition?.feasible ?? true);
 
   const run = useCallback(() => {
     if (selectedId) world.runChallenge(selectedId, party);
@@ -166,5 +174,5 @@ export function useArcInteraction(world: ArcWorld): ArcInteraction {
     setSelectedId(challengeId);
   }, []);
 
-  return { selectedId, select, selectionIsUserAct, nearbyId, setNearbyId, party, toggleAgent, selected, req, canRun, run, contract, readiness, recommendation, fixPlan, applyFix };
+  return { selectedId, select, selectionIsUserAct, nearbyId, setNearbyId, party, toggleAgent, selected, req, canRun, run, contract, composition, readiness, recommendation, fixPlan, applyFix };
 }

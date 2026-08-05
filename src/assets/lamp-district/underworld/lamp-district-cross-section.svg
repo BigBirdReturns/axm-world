@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+<title id="title">Lamp District seven-layer cross section</title>
+<desc id="desc">Seven labelled functional strata descend from the grave-skin through the shroud, quiet works, common depths, custodial ring, war layer and black core.</desc>
+<rect width="1600" height="900" fill="#0b090c"/>
+<g font-family="monospace">
+  <g transform="translate(90 70)"><rect width="1420" height="88" rx="8" fill="#4d403f" stroke="#d8a24c" stroke-width="4"/><text x="34" y="54" fill="#f2e6d0" font-size="30">01 GRAVE-SKIN · sterile Meridian ruin</text></g>
+  <g transform="translate(130 174)"><rect width="1340" height="88" rx="8" fill="#3e343a" stroke="#b9824a" stroke-width="4"/><text x="34" y="54" fill="#f2e6d0" font-size="30">02 SHROUD · staged remediation and false heat</text></g>
+  <g transform="translate(170 278)"><rect width="1260" height="88" rx="8" fill="#30313a" stroke="#87927d" stroke-width="4"/><text x="34" y="54" fill="#f2e6d0" font-size="30">03 QUIET WORKS · sinks, reservoirs, drainage</text></g>
+  <g transform="translate(210 382)"><rect width="1180" height="88" rx="8" fill="#40333d" stroke="#d8a24c" stroke-width="4"/><text x="34" y="54" fill="#f2e6d0" font-size="30">04 COMMON DEPTHS · school, clinic, market, homes</text></g>
+  <g transform="translate(250 486)"><rect width="1100" height="88" rx="8" fill="#312c38" stroke="#a98a5c" stroke-width="4"/><text x="34" y="54" fill="#f2e6d0" font-size="30">05 CUSTODIAL RING · credentials, maps, Quiet Hours</text></g>
+  <g transform="translate(290 590)"><rect width="1020" height="88" rx="8" fill="#382523" stroke="#ba6740" stroke-width="4"/><text x="34" y="54" fill="#f2e6d0" font-size="30">06 WAR LAYER · Meridian target tables and defenses</text></g>
+  <g transform="translate(330 694)"><rect width="940" height="116" rx="8" fill="#111418" stroke="#79b5aa" stroke-width="5"/><text x="34" y="48" fill="#e3f3ee" font-size="30">07 BLACK CORE · responsive search lattice</text><text x="34" y="88" fill="#9ec7bc" font-size="20">THE THREAT MAY BE DEAD. THE LISTENER IS NOT.</text></g>
+</g>
+<path d="M80 835H1520" stroke="#d8a24c" stroke-width="4" stroke-dasharray="12 14"/>
+</svg>

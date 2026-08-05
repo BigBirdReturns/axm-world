@@ -25,10 +25,13 @@ permissions:
 jobs:
   receiver:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
-      - name: Check out World
+      - name: Check out exact World candidate
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -38,6 +41,17 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Record exact candidate identity
+        env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p ilyon-receipt
+          actual_sha="$(git rev-parse HEAD)"
+          printf '%s\n' "$CANDIDATE_SHA" | tee ilyon-receipt/candidate-sha.txt
+          printf '%s\n' "$actual_sha" | tee ilyon-receipt/checkout-sha.txt
+          test "$actual_sha" = "$CANDIDATE_SHA"
 
       - name: Verify exact Arc provenance
         env:
@@ -63,7 +77,35 @@ jobs:
 
       - name: Verify Ilyon on desktop and mobile
         env:
-          PW_BASE_URL: http://localhost:5173
+          PW_BASE_URL: http://127.0.0.1:5173
         run: |
+          set -euo pipefail
+          npm run dev -- --host 127.0.0.1 >ilyon-receipt/vite.log 2>&1 &
+          vite_pid=$!
+          cleanup() {
+            kill "$vite_pid" 2>/dev/null || true
+            wait "$vite_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          ready=0
+          for attempt in $(seq 1 90); do
+            if curl -fsS "$PW_BASE_URL/axm-world/game/" >/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          test "$ready" = 1
           export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
-          npx playwright test e2e/honest-opening.spec.ts --grep "Ilyon" --workers=1
+          npx playwright test e2e/honest-opening.spec.ts --grep "Ilyon" --workers=1 --trace=retain-on-failure 2>&1 | tee ilyon-receipt/playwright.log
+
+      - name: Upload Ilyon receiver receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godscar-ilyon-receiver-receipt
+          path: |
+            ilyon-receipt
+            test-results
+          if-no-files-found: warn
+          retention-days: 14

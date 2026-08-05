@@ -1,0 +1,84 @@
+name: Holder estate custody
+
+on:
+  pull_request:
+    paths:
+      - 'src/world/holder-estate.ts'
+      - 'src/world/components/HolderEstatePanel.tsx'
+      - 'src/world/Player.tsx'
+      - 'src/world/i18n/**'
+      - 'tests/world/holder-estate.test.ts'
+      - 'e2e/holder-estate.spec.ts'
+      - 'docs/HOLDER_ESTATE_V1.md'
+      - 'docs/schemas/rodoh-holder-estate-v1.schema.json'
+      - '.github/workflows/holder-estate.yml'
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  holder-estate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      CI: 'true'
+      PW_BASE_URL: http://127.0.0.1:5173
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Record exact candidate
+        env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          mkdir -p holder-estate-receipt
+          printf '%s\n' "$CANDIDATE_SHA" > holder-estate-receipt/world-candidate-sha.txt
+          git diff --check
+      - name: TypeScript
+        run: |
+          set -euo pipefail
+          npm run typecheck | tee holder-estate-receipt/typecheck.log
+      - name: Holder-estate contracts
+        run: |
+          set -euo pipefail
+          npm test -- tests/world/holder-estate.test.ts tests/world/locale.test.ts | tee holder-estate-receipt/focused-tests.log
+      - name: Complete World regression suite
+        run: |
+          set -euo pipefail
+          npm test | tee holder-estate-receipt/vitest.log
+      - name: Production build
+        run: |
+          set -euo pipefail
+          npm run build | tee holder-estate-receipt/build.log
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Desktop and mobile whole-holder journey
+        run: |
+          set -euo pipefail
+          export PW_CHROMIUM_PATH="$(node -e 'const { chromium } = require("playwright"); process.stdout.write(chromium.executablePath())')"
+          npx playwright test e2e/holder-estate.spec.ts | tee holder-estate-receipt/browser.log
+      - name: Upload holder-estate receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: holder-estate-custody-receipt
+          path: |
+            holder-estate-receipt
+            test-results
+          if-no-files-found: warn
+          retention-days: 30

@@ -70,6 +70,12 @@ const GRADE_KEY = {
   failure: "outcome.failed",
 } as const;
 
+export function hasCompositionVerdict(
+  composition: { results: readonly unknown[] } | null | undefined,
+): boolean {
+  return (composition?.results.length ?? 0) > 0;
+}
+
 interface Props {
   world: ArcWorld;
   challengeId: string;
@@ -118,6 +124,11 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
     () => (spec ? world.evaluateParty(challengeId, committed, modeId, 0) : null),
     [world, challengeId, committed, modeId, spec],
   );
+  const composition = useMemo(
+    () => world.evaluateCompositionFor(challengeId, committed),
+    [world, challengeId, committed],
+  );
+  const showCompositionVerdict = hasCompositionVerdict(composition);
   const tokenBalance = world.resources.tokens;
   const offer = spendOffer(spec?.spendLever ?? null, baseReadiness, tokenBalance);
   const spendValue = offer.available ? Math.min(spend, offer.maxSpend) : 0;
@@ -137,6 +148,7 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
 
   const committedSet = new Set(committed);
   const countOk = committed.length >= spec.minAgents && committed.length <= spec.maxAgents;
+  const compositionOk = showCompositionVerdict ? (composition?.feasible ?? false) : true;
   const projectedOutcome = readiness?.projectedOutcome ?? "none";
   const projection = PROJECTION[projectedOutcome];
   // The single most useful "why" line for the current squad (missing role, thin
@@ -162,7 +174,7 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
   }, [report, world.arc.meta.id]);
 
   const resolve = () => {
-    if (!countOk) return;
+    if (!countOk || !compositionOk) return;
     world.runChallenge(challengeId, committed, modeId, spendValue);
     setResolvedSpend(spendValue);
     setResolved(true);
@@ -317,6 +329,28 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
                 {projectionReason && <span className="encs-projection-why">— {projectionReason}</span>}
               </div>
 
+              {showCompositionVerdict && composition && (
+                <div className={`encs-composition encs-composition--${composition.feasible ? "pass" : "fail"}`} data-testid="encs-composition" data-feasible={composition.feasible ? "true" : "false"}>
+                  <div className="encs-composition-head">
+                    <strong>{composition.feasible ? "Common Watch viable" : "Common Watch refused"}</strong>
+                    <span>{composition.results.filter((result) => result.passed).length}/{composition.results.length} tests</span>
+                  </div>
+                  <div className="encs-composition-tests">
+                    {composition.results.map((result) => (
+                      <span key={result.id} className={result.passed ? "is-pass" : "is-fail"} title={result.reason}>
+                        {result.passed ? "✓" : "✗"} {result.label}
+                      </span>
+                    ))}
+                  </div>
+                  {!composition.feasible && composition.rejectionReasons.length > 0 && (
+                    <p>{composition.rejectionReasons[0]}</p>
+                  )}
+                  {composition.singlePointsOfFailure.length > 0 && (
+                    <small>Single points: {composition.singlePointsOfFailure.join(", ")}</small>
+                  )}
+                </div>
+              )}
+
               <div className="encs-muster">
                 <div className="encs-muster-col" data-testid="encs-in-room">
                   <div className="encs-muster-head">{t("encounterShell.committed")}</div>
@@ -402,10 +436,10 @@ export function EncounterShell({ world, challengeId, party, onClose }: Props): J
               className="pixel-button--cta"
               data-testid="encs-resolve"
               onClick={resolve}
-              disabled={!countOk}
+              disabled={!countOk || !compositionOk}
               style={{ width: "100%" }}
             >
-              {countOk ? t("encounterShell.resolve") : t("encounterShell.minNeeded", { n: spec.minAgents })}
+              {!countOk ? t("encounterShell.minNeeded", { n: spec.minAgents }) : compositionOk ? t("encounterShell.resolve") : "Composition refused"}
             </PixelButton>
           </div>
         )}
