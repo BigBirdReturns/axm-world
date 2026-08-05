@@ -35,7 +35,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          carrier=tmp/aperture-g1-csharp-native/payload.tar.gz.b64
+          carrier="$RUNNER_TEMP/payload.tar.gz.b64"
+          cat tmp/aperture-g1-csharp-native/payload.part-* > "$carrier"
           test "$(sha256sum "$carrier" | awk '{print $1}')" = "b210eb33bef932e07bf15030dcfa93976fd7c5b8c0212ac6b0e238a344ec6bea"
           base64 -d "$carrier" > "$RUNNER_TEMP/aperture-g1-csharp-native.tar.gz"
           test "$(sha256sum "$RUNNER_TEMP/aperture-g1-csharp-native.tar.gz" | awk '{print $1}')" = "7cde0e47f8aefd301482d65377186785446486eab6449de71f8fefad2c348b07"
