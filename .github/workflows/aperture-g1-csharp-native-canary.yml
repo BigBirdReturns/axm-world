@@ -1,0 +1,90 @@
+name: TEMP AXM Aperture G1 native C# conformance
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/aperture-g1-csharp-native-canary.yml'
+      - 'tmp/aperture-g1-csharp-native/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aperture-g1-csharp-native-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact never-merge carrier
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Set up native .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Reconstruct exact Aperture conformance payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          carrier=tmp/aperture-g1-csharp-native/payload.tar.gz.b64
+          test "$(sha256sum "$carrier" | awk '{print $1}')" = "b210eb33bef932e07bf15030dcfa93976fd7c5b8c0212ac6b0e238a344ec6bea"
+          base64 -d "$carrier" > "$RUNNER_TEMP/aperture-g1-csharp-native.tar.gz"
+          test "$(sha256sum "$RUNNER_TEMP/aperture-g1-csharp-native.tar.gz" | awk '{print $1}')" = "7cde0e47f8aefd301482d65377186785446486eab6449de71f8fefad2c348b07"
+          mkdir -p "$RUNNER_TEMP/aperture-g1"
+          tar -xzf "$RUNNER_TEMP/aperture-g1-csharp-native.tar.gz" -C "$RUNNER_TEMP/aperture-g1"
+          test "$(sha256sum "$RUNNER_TEMP/aperture-g1/conformance/csharp/Conformance.cs" | awk '{print $1}')" = "5316730db6144f57ae21ac29424ac51541f0e0e72901b8e15299943b913fece0"
+          test "$(sha256sum "$RUNNER_TEMP/aperture-g1/conformance/csharp/Aperture.Conformance.csproj" | awk '{print $1}')" = "77c425f6ec2a0c5a6c760c899e9ae754f4f81639368894a99b7a0b059deecc09"
+          test "$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["manifest_sha256"])' "$RUNNER_TEMP/aperture-g1/protocol/vectors/manifest.json")" = "3ca5e2151a3d97ef546afaf5175d1284b48b63ff9fc2332d29caa572edf0c2d4"
+
+      - name: Compile and execute the exact C# implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/aperture-g1"
+          project="$root/conformance/csharp/Aperture.Conformance.csproj"
+          dotnet --info | tee "$RUNNER_TEMP/dotnet-info.txt"
+          dotnet restore "$project" --locked-mode=false | tee "$RUNNER_TEMP/restore.log"
+          dotnet build "$project" -c Release --no-restore | tee "$RUNNER_TEMP/build.log"
+          dotnet run --project "$project" -c Release --no-build -- "$root" | tee "$RUNNER_TEMP/csharp-result.json"
+          python - "$RUNNER_TEMP/csharp-result.json" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1]))
+          assert d['implementation']=='csharp',d
+          assert d['status']=='PASS',d
+          assert d['count']==89 and d['passed']==89 and not d['failed'],d
+          assert d['vector_manifest_sha256']=='3ca5e2151a3d97ef546afaf5175d1284b48b63ff9fc2332d29caa572edf0c2d4',d
+          PY
+
+      - name: Seal native execution receipt
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          out=aperture-g1-csharp-native-qualification
+          mkdir -p "$out"
+          cp "$RUNNER_TEMP"/dotnet-info.txt "$out/" 2>/dev/null || true
+          cp "$RUNNER_TEMP"/restore.log "$out/" 2>/dev/null || true
+          cp "$RUNNER_TEMP"/build.log "$out/" 2>/dev/null || true
+          cp "$RUNNER_TEMP"/csharp-result.json "$out/" 2>/dev/null || true
+          printf '%s\n' "${{ github.event.pull_request.head.sha || github.sha }}" > "$out/carrier-head.txt"
+          printf '%s\n' "7cde0e47f8aefd301482d65377186785446486eab6449de71f8fefad2c348b07" > "$out/payload-sha256.txt"
+          printf '%s\n' "5316730db6144f57ae21ac29424ac51541f0e0e72901b8e15299943b913fece0" > "$out/csharp-source-sha256.txt"
+          find "$out" -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum | sed "s#  $out/#  #" > "$out/SHA256SUMS"
+
+      - name: Upload native qualification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aperture-g1-csharp-native-qualification
+          path: aperture-g1-csharp-native-qualification
+          if-no-files-found: error
+          retention-days: 30
