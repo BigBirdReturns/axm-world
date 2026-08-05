@@ -7,6 +7,10 @@ import type { Cartridge } from "./cartridge.js";
 import { useArcWorld } from "./useArcWorld.js";
 import { RuntimeRouter } from "./runtime/RuntimeRouter.js";
 import { SequenceHost } from "./sequence/SequenceHost.js";
+import {
+  arcCarriesApertureTimedMedia,
+  readApertureTimedMediaForStory,
+} from "./timed-media/receiver.js";
 
 export interface WorldHostProps {
   cartridge: Cartridge;
@@ -18,10 +22,17 @@ function SimulationWorldHost({ cartridge, onExit }: WorldHostProps): JSX.Element
   return <RuntimeRouter world={world} onExit={onExit} />;
 }
 
-function InvalidCanonicalStory(props: { message: string; onExit: () => void }): JSX.Element {
+interface RefusalProps {
+  title: string;
+  message: string;
+  testId: string;
+  onExit: () => void;
+}
+
+function InvalidCanonicalStory({ title, message, testId, onExit }: RefusalProps): JSX.Element {
   return (
     <main
-      data-testid="invalid-canonical-story"
+      data-testid={testId}
       role="alert"
       style={{
         minHeight: "100dvh",
@@ -35,11 +46,11 @@ function InvalidCanonicalStory(props: { message: string; onExit: () => void }): 
       }}
     >
       <section style={{ width: "min(680px, 100%)", border: "1px solid #7a352f", padding: 18, background: "#17120f" }}>
-        <h1 style={{ marginTop: 0, font: "800 27px 'Barlow Condensed', sans-serif" }}>Canonical story refused</h1>
-        <p style={{ color: "#d7c4bf", lineHeight: 1.6 }}>{props.message}</p>
+        <h1 style={{ marginTop: 0, font: "800 27px 'Barlow Condensed', sans-serif" }}>{title}</h1>
+        <p style={{ color: "#d7c4bf", lineHeight: 1.6 }}>{message}</p>
         <button
           type="button"
-          onClick={props.onExit}
+          onClick={onExit}
           style={{ border: "1px solid #6b5e4c", background: "#201c15", color: "#ece4d4", padding: "9px 12px", cursor: "pointer" }}
         >
           Exit to cartridge bay
@@ -56,14 +67,47 @@ export function WorldHost({ cartridge, onExit }: WorldHostProps): JSX.Element {
   } catch (error) {
     return (
       <InvalidCanonicalStory
+        title="Canonical story refused"
         message={error instanceof Error ? error.message : String(error)}
+        testId="invalid-canonical-story"
         onExit={onExit}
       />
     );
   }
 
   if (story) {
-    return <SequenceHost cartridge={cartridge} story={story} onExit={onExit} />;
+    try {
+      const timedMedia = readApertureTimedMediaForStory(cartridge.arc, story);
+      return (
+        <SequenceHost
+          cartridge={cartridge}
+          story={story}
+          timedMedia={timedMedia}
+          onExit={onExit}
+        />
+      );
+    } catch (error) {
+      return (
+        <InvalidCanonicalStory
+          title="Aperture timed media refused"
+          message={error instanceof Error ? error.message : String(error)}
+          testId="invalid-aperture-timed-media"
+          onExit={onExit}
+        />
+      );
+    }
   }
+
+  if (arcCarriesApertureTimedMedia(cartridge.arc)) {
+    return (
+      <InvalidCanonicalStory
+        title="Orphan Aperture timed media refused"
+        message="The Arc carries timed-media records without the canonical-story authority they must identify. World will not route an orphan narrative extension into simulation."
+        testId="invalid-aperture-timed-media"
+        onExit={onExit}
+      />
+    );
+  }
+
   return <SimulationWorldHost cartridge={cartridge} onExit={onExit} />;
 }
