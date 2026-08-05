@@ -16,10 +16,12 @@ import {
   type CanonicalStoryCursor,
   type CanonicalStorySource,
 } from "../../canonical-story/index.js";
+import type { CanonicalStoryTimedMedia } from "../../canonical-story/timed-media.js";
 import type { Cartridge } from "../cartridge.js";
 import { cartridgeIdentity } from "../cartridge-identity.js";
 import { RodohRuntimeMark } from "../brand/RodohRuntimeMark.js";
 import { PixelButton, PixelIcon } from "../pixel-ui/index.js";
+import { ApertureProjection } from "../timed-media/ApertureProjection.js";
 import { verifyCanonicalStoryAssetFiles } from "./assets.js";
 import {
   CANONICAL_STORY_SESSION_FORMAT,
@@ -30,6 +32,7 @@ import {
 interface Props {
   cartridge: Cartridge;
   story: CanonicalStorySource;
+  timedMedia: CanonicalStoryTimedMedia | null;
   onExit: () => void;
 }
 
@@ -68,7 +71,7 @@ function shortDigest(value: string): string {
   return `${value.slice(0, 12)}…${value.slice(-9)}`;
 }
 
-export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
+export function SequenceHost({ cartridge, story, timedMedia, onExit }: Props): JSX.Element {
   const digest = useMemo(() => cartridgeIdentity(cartridge), [cartridge]);
   const directoryInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -353,6 +356,13 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
               </section>
             )}
 
+            {timedMedia && (
+              <ApertureProjection
+                timedMedia={timedMedia}
+                panelId={located.panel.id}
+              />
+            )}
+
             {continuationPanelId && (
               <section style={{ ...card, borderColor: "#6e7844" }} data-testid="canonical-story-extent-complete">
                 <strong>Published canonical extent complete</strong>
@@ -392,7 +402,7 @@ export function SequenceHost({ cartridge, story, onExit }: Props): JSX.Element {
         </section>
 
         <footer style={{ color: "#706656", fontSize: 9, lineHeight: 1.6 }}>
-          Reading position is stored under the exact Arc digest. Panel and plate bytes are never stored, exported, or added to simulation state. Reload requires local asset reselection.
+          Reading position is stored under the exact Arc digest. Panel and plate bytes are never stored, exported, or added to simulation state. Timed-media projection adds no viewer, provider, or playback state. Reload requires local asset reselection.
         </footer>
       </div>
     </main>
