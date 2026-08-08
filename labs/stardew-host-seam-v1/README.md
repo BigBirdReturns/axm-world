@@ -41,24 +41,24 @@ node ./bin/stardew-seam.mjs inspect \
   --out stardew-inspection.json
 
 node ./bin/stardew-seam.mjs qualify \
-  --game-dir "D:\SteamLibrary\steamapps\common\Stardew Valley" \
+  --game-dir "<steam-library-root>\steamapps\common\Stardew Valley" \
   --mode desktop-3d \
   --out stardew-profile-lock.json
 
 node ./bin/stardew-seam.mjs plan \
-  --game-dir "D:\SteamLibrary\steamapps\common\Stardew Valley" \
-  --mods-dir "D:\MotionDeck\profiles\stardew-family\Mods" \
+  --game-dir "<steam-library-root>\steamapps\common\Stardew Valley" \
+  --mods-dir "<motion-deck-root>\profiles\stardew-family\Mods" \
   --mode hmd-vr
 
 node ./bin/stardew-seam.mjs stage-profile \
-  --game-dir "D:\SteamLibrary\steamapps\common\Stardew Valley" \
-  --source-mods-dir "D:\SteamLibrary\steamapps\common\Stardew Valley\Mods" \
-  --profile-dir "D:\MotionDeck\profiles\stardew-family" \
+  --game-dir "<steam-library-root>\steamapps\common\Stardew Valley" \
+  --source-mods-dir "<steam-library-root>\steamapps\common\Stardew Valley\Mods" \
+  --profile-dir "<motion-deck-root>\profiles\stardew-family" \
   --mode desktop-3d
 
 node ./bin/stardew-seam.mjs snapshot-saves \
   --saves-dir "%APPDATA%\StardewValley\Saves" \
-  --backup-root "D:\MotionDeck\custody\stardew-saves"
+  --backup-root "<motion-deck-root>\custody\stardew-saves"
 ```
 
 The Windows wrapper exposes the same operations:
@@ -66,7 +66,7 @@ The Windows wrapper exposes the same operations:
 ```powershell
 .\powershell\Invoke-StardewHostSeam.ps1 `
   -Command Qualify `
-  -GameDir 'D:\SteamLibrary\steamapps\common\Stardew Valley' `
+  -GameDir '<steam-library-root>\steamapps\common\Stardew Valley' `
   -Mode desktop-3d
 ```
 
