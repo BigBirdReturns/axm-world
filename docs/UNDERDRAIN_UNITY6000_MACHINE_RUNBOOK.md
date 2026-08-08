@@ -48,9 +48,9 @@ The final Windows acceptor must differ from the presentation-asset approver. The
 The examples below use conventional paths. Substitute the actual clean checkout roots.
 
 ```powershell
-$World = "D:\Projects\axm-world\main"
-$Arc = "D:\Projects\axm-arc\main"
-$Embodied = "D:\Projects\Embodied-AR-Lab"
+$World = "<projects-root>\axm-world\main"
+$Arc = "<projects-root>\axm-arc\main"
+$Embodied = "<projects-root>\Embodied-AR-Lab"
 $WorldCommit = (& git -C $World rev-parse HEAD).Trim()
 
 if ((& git -C $Arc rev-parse HEAD).Trim() -ne "aaa5685903a348b3c1ba875622fbe99d90c1da35") {
@@ -72,7 +72,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -WorldRoot $World `
   -ArcRoot $Arc `
   -EmbodiedArLabRoot $Embodied `
-  -ShineStandalone "D:\Evidence\UNDERDRAIN_The_Bloom_Below_Shine_v0.4.html" `
+  -ShineStandalone "<evidence-root>\UNDERDRAIN_The_Bloom_Below_Shine_v0.4.html" `
   -OperatorId "<local-operator>" `
   -InstallDependencies
 ```

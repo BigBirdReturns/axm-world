@@ -52,8 +52,8 @@ The extractor reads only the local standalone, parses its flat `ASSET_DATA` obje
 
 ```powershell
 node .\scripts\extract-underdrain-shine-assets.mjs `
-  --input D:\Evidence\UNDERDRAIN_The_Bloom_Below_Shine_v0.4.html `
-  --output D:\Projects\Embodied-AR-Lab\local\underdrain-shine-extraction `
+  --input <evidence-root>\UNDERDRAIN_The_Bloom_Below_Shine_v0.4.html `
+  --output <projects-root>\Embodied-AR-Lab\local\underdrain-shine-extraction `
   --expected-sha256 ab9e1a542f89d66733d0b9946fd9f2b724e5e09395a74611fa760d336c209311
 ```
 
@@ -94,9 +94,9 @@ Each role must use a distinct Shine product. The resolver refuses duplicate keys
 
 ```powershell
 node .\scripts\resolve-underdrain-shine-representation.mjs `
-  --extraction D:\Projects\Embodied-AR-Lab\local\underdrain-shine-extraction\shine-extraction.json `
-  --role-map D:\Projects\Embodied-AR-Lab\local\underdrain-shine-extraction\underdrain.shine-role-map.json `
-  --output D:\Projects\Embodied-AR-Lab\local\underdrain-resolved-representation
+  --extraction <projects-root>\Embodied-AR-Lab\local\underdrain-shine-extraction\shine-extraction.json `
+  --role-map <projects-root>\Embodied-AR-Lab\local\underdrain-shine-extraction\underdrain.shine-role-map.json `
+  --output <projects-root>\Embodied-AR-Lab\local\underdrain-resolved-representation
 ```
 
 The output directory must be absent or empty. Use `--replace` only for an explicit, reviewable replacement; the resolver will not silently mix a new seven-role set with stale files.
@@ -116,10 +116,10 @@ Close Unity and run:
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File .\scripts\materialize-underdrain-production-representation.ps1 `
-  -EmbodiedArLabRoot D:\Projects\Embodied-AR-Lab `
-  -SourceManifest D:\Projects\Embodied-AR-Lab\local\underdrain-resolved-representation\resolved-representation-source.json `
-  -SourceRoot D:\Projects\Embodied-AR-Lab\local\underdrain-resolved-representation `
-  -ArcRoot D:\Projects\axm-arc\main
+  -EmbodiedArLabRoot <projects-root>\Embodied-AR-Lab `
+  -SourceManifest <projects-root>\Embodied-AR-Lab\local\underdrain-resolved-representation\resolved-representation-source.json `
+  -SourceRoot <projects-root>\Embodied-AR-Lab\local\underdrain-resolved-representation `
+  -ArcRoot <projects-root>\axm-arc\main
 ```
 
 Prepared role sprites use explicit custom pivots. Actor bodies are authored as `root → Facing → Visual`: camera billboarding rotates `Facing`, animation curves target `Facing/Visual`, and role scale remains on `Facing`. This prevents camera-facing logic from erasing attack rotation and prevents animation from collapsing the five enemy scale reads.

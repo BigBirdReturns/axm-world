@@ -44,8 +44,8 @@ After `extract-underdrain-shine-assets.mjs` produces `shine-extraction.json`:
 
 ```powershell
 node .\scripts\author-underdrain-production-representation.mjs `
-  --extraction D:\Projects\Embodied-AR-Lab\local\underdrain-shine-extraction\shine-extraction.json `
-  --output D:\Projects\Embodied-AR-Lab\local\underdrain-resolved-representation `
+  --extraction <projects-root>\Embodied-AR-Lab\local\underdrain-shine-extraction\shine-extraction.json `
+  --output <projects-root>\Embodied-AR-Lab\local\underdrain-resolved-representation `
   --operator-id "<local-operator>"
 ```
 
@@ -97,10 +97,10 @@ Example:
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File .\scripts\stage-underdrain-production-representation.ps1 `
-  -WorldRoot D:\Projects\axm-world\player-product `
-  -ArcRoot D:\Projects\axm-arc\action-player `
-  -EmbodiedArLabRoot D:\Projects\Embodied-AR-Lab `
-  -ShineStandalone D:\Evidence\UNDERDRAIN_The_Bloom_Below_Shine_v0.4.html `
+  -WorldRoot <projects-root>\axm-world\player-product `
+  -ArcRoot <projects-root>\axm-arc\action-player `
+  -EmbodiedArLabRoot <projects-root>\Embodied-AR-Lab `
+  -ShineStandalone <evidence-root>\UNDERDRAIN_The_Bloom_Below_Shine_v0.4.html `
   -OperatorId "<local-operator>" `
   -InstallDependencies
 ```
