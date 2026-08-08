@@ -4,10 +4,14 @@ on:
   pull_request:
     paths:
       - '.github/workflows/underdrain-representation-materializer-source.yml'
+      - 'docs/UNDERDRAIN_REPRESENTATION_AUTHORING.md'
       - 'docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md'
       - 'scripts/extract-underdrain-shine-assets.mjs'
+      - 'scripts/author-underdrain-production-representation.mjs'
       - 'scripts/resolve-underdrain-shine-representation.mjs'
+      - 'scripts/stage-underdrain-production-representation.ps1'
       - 'scripts/materialize-underdrain-production-representation.ps1'
+      - 'tests/world/underdrain-representation-authoring.test.ts'
       - 'tests/world/underdrain-representation-materializer.test.ts'
       - 'tests/world/underdrain-powershell-contract.test.ts'
       - 'unity/Fixtures/underdrain.shine-source.json'
@@ -22,12 +26,17 @@ on:
     branches:
       - feature/underdrain-unity6000-player-train-v1
       - feature/underdrain-production-representation-materializer-v1
+      - feature/underdrain-local-representation-authoring-v1
     paths:
       - '.github/workflows/underdrain-representation-materializer-source.yml'
+      - 'docs/UNDERDRAIN_REPRESENTATION_AUTHORING.md'
       - 'docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md'
       - 'scripts/extract-underdrain-shine-assets.mjs'
+      - 'scripts/author-underdrain-production-representation.mjs'
       - 'scripts/resolve-underdrain-shine-representation.mjs'
+      - 'scripts/stage-underdrain-production-representation.ps1'
       - 'scripts/materialize-underdrain-production-representation.ps1'
+      - 'tests/world/underdrain-representation-authoring.test.ts'
       - 'tests/world/underdrain-representation-materializer.test.ts'
       - 'tests/world/underdrain-powershell-contract.test.ts'
       - 'unity/Fixtures/underdrain.shine-source.json'
@@ -74,14 +83,16 @@ jobs:
 
       - run: npm ci --no-audit --no-fund
 
-      - name: Qualify extraction, resolution, Unity materializer, and PowerShell source
+      - name: Qualify extraction, authoring, resolution, Unity materializer, and PowerShell source
         shell: bash
         run: |
           set -euo pipefail
           node --check scripts/extract-underdrain-shine-assets.mjs
+          node --check scripts/author-underdrain-production-representation.mjs
           node --check scripts/resolve-underdrain-shine-representation.mjs
           npm run typecheck
           npm test -- \
+            tests/world/underdrain-representation-authoring.test.ts \
             tests/world/underdrain-representation-materializer.test.ts \
             tests/world/underdrain-powershell-contract.test.ts \
             tests/world/underdrain-player-product-acceptance.test.ts \
@@ -107,9 +118,12 @@ jobs:
           set -euo pipefail
           root="$RUNNER_TEMP/underdrain-representation-materializer-source"
           mkdir -p "$root/source"
+          cp docs/UNDERDRAIN_REPRESENTATION_AUTHORING.md "$root/source/"
           cp docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md "$root/source/"
           cp scripts/extract-underdrain-shine-assets.mjs "$root/source/"
+          cp scripts/author-underdrain-production-representation.mjs "$root/source/"
           cp scripts/resolve-underdrain-shine-representation.mjs "$root/source/"
+          cp scripts/stage-underdrain-production-representation.ps1 "$root/source/"
           cp scripts/materialize-underdrain-production-representation.ps1 "$root/source/"
           cp unity/Fixtures/underdrain.shine-source.json "$root/source/"
           cp unity/Fixtures/underdrain.shine-role-map.template.json "$root/source/"
@@ -124,7 +138,7 @@ jobs:
           const shine = JSON.parse(readFileSync('unity/Fixtures/underdrain.shine-source.json', 'utf8'));
           const template = JSON.parse(readFileSync('unity/Fixtures/underdrain.representation-source.template.json', 'utf8'));
           writeFileSync(process.env.ROOT + '/source-qualification.json', JSON.stringify({
-            format: 'rodoh-underdrain-representation-materializer-source-qualification/1',
+            format: 'rodoh-underdrain-representation-materializer-source-qualification/2',
             status: 'pass',
             worldCommit: process.env.WORLD_SHA,
             arcActionPlayerCommit: process.env.ARC_ACTION_PLAYER_SHA,
@@ -143,11 +157,13 @@ jobs:
             controllerParameterCount: 14,
             sourceCompilation: 'pass',
             extractionFixture: 'pass',
+            authoringConsoleFixture: 'pass',
+            windowsStagerContract: 'pass',
             completeWorldRegression: 'pass',
             productionBuild: 'pass',
             nonClaims: [
               'availability of the exact Shine standalone on this hosted runner',
-              'seven resolved production-role PNGs',
+              'seven visually accepted production-role PNGs',
               'real Unity import or materialization',
               'rendered representation review',
               'named production-asset approval',
