@@ -19,7 +19,7 @@ permissions:
 env:
   CARRIER_DIR: carriers/queststage-appliance-floor-v0.1.0-tgz
   PRODUCT_ROOT_NAME: MotionDeck-QuestStage-Appliance-Floor-0.1.0
-  SOURCE_ARCHIVE_SHA256: d13753fb8040594e86344202acf361012f68627561ded38db43efeae4422aa7e
+  SOURCE_ARCHIVE_SHA256: 3989ce8a665827c3625f505c199c4728b75b2c2eb2dec2263923e0e3526864ea
   APPLICATION_ID: com.bigbirdreturns.queststage.appliance
   OUT_DIR: out/queststage-appliance-floor-0.1.0-debug
 
