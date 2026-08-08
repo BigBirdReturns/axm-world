@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const carrierDir = path.join(root, 'carrier');
-const expectedArchiveSha256 = '962f78cc3e07b3c96946b94dfc091fa91343775d7b80ec324e9c10cf3713a157';
+const expectedArchiveSha256 = '7f5c76819f4d7aa470a9ba28cc76bb22cf56a3a0ef05bc1681204f21248a4750';
 const partNames = (await fsp.readdir(carrierDir))
   .filter((name) => /^source\.tar\.gz\.b64\.part\d+$/.test(name))
   .sort((a, b) => a.localeCompare(b, 'en-US'));
