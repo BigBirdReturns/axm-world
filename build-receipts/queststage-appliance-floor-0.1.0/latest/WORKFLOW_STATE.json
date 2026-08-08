@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "product": "queststage-appliance-floor",
+  "version": "0.1.0",
+  "generated_at_utc": "2026-08-08T03:51:13.568305+00:00",
+  "job_status": "failure",
+  "source_commit": "703b2368b1fde65e07e38d003e669691420fea7e",
+  "workflow_run_id": "31238062976",
+  "workflow_run_attempt": "1",
+  "source_archive_sha256": "3989ce8a665827c3625f505c199c4728b75b2c2eb2dec2263923e0e3526864ea"
+}
