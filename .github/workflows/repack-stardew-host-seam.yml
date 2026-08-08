@@ -1,0 +1,102 @@
+name: Repack Stardew host seam carrier
+
+on:
+  pull_request:
+    paths:
+      - 'labs/stardew-host-seam-v1/package.json'
+      - 'labs/stardew-host-seam-v1/materialize.mjs'
+      - 'labs/stardew-host-seam-v1/SOURCE_SHA256SUMS'
+      - 'labs/stardew-host-seam-v1/.github/workflows/stardew-host-seam.yml'
+      - 'labs/stardew-host-seam-v1/LICENSE'
+      - 'labs/stardew-host-seam-v1/README.md'
+      - 'labs/stardew-host-seam-v1/THIRD_PARTY.md'
+      - 'labs/stardew-host-seam-v1/bin/**'
+      - 'labs/stardew-host-seam-v1/config/**'
+      - 'labs/stardew-host-seam-v1/docs/**'
+      - 'labs/stardew-host-seam-v1/powershell/**'
+      - 'labs/stardew-host-seam-v1/smapi/**'
+      - 'labs/stardew-host-seam-v1/src/**'
+      - 'labs/stardew-host-seam-v1/test/**'
+      - '.github/workflows/repack-stardew-host-seam.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repack-stardew-host-seam-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  repack:
+    if: >-
+      github.repository == 'BigBirdReturns/axm-world' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    env:
+      TARGET_BRANCH: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+      SEAM_ROOT: labs/stardew-host-seam-v1
+      ARCHIVE_ROOT: stardew-host-seam-v0.1.0
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+      - name: Verify the reviewable source ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$SEAM_ROOT"
+          sha256sum --check SOURCE_SHA256SUMS
+      - name: Rebuild the deterministic source carrier
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          mkdir -p "$work/$ARCHIVE_ROOT"
+
+          while read -r digest relative; do
+            [[ -n "$relative" ]] || continue
+            [[ "$relative" == 'materialize.mjs' ]] && continue
+            mkdir -p "$work/$ARCHIVE_ROOT/$(dirname "$relative")"
+            cp -p "$SEAM_ROOT/$relative" "$work/$ARCHIVE_ROOT/$relative"
+          done < "$SEAM_ROOT/SOURCE_SHA256SUMS"
+
+          tar \
+            --sort=name \
+            --mtime='2026-08-02 00:00:00Z' \
+            --owner=0 \
+            --group=0 \
+            --numeric-owner \
+            --mode='u+rwX,go+rX,go-w' \
+            -cf "$work/source.tar" \
+            -C "$work" \
+            "$ARCHIVE_ROOT"
+          gzip -9n -c "$work/source.tar" > "$work/source.tar.gz"
+
+          expected="$(sed -n "s/.*expectedArchiveSha256 = '\([a-f0-9]\{64\}\)'.*/\1/p" "$SEAM_ROOT/materialize.mjs")"
+          actual="$(sha256sum "$work/source.tar.gz" | awk '{print $1}')"
+          test -n "$expected"
+          test "$actual" = "$expected"
+
+          mkdir -p "$SEAM_ROOT/carrier"
+          rm -f "$SEAM_ROOT"/carrier/source.tar.gz.b64.part*
+          base64 -w 0 "$work/source.tar.gz" | split -b 12000 -d -a 2 - "$SEAM_ROOT/carrier/source.tar.gz.b64.part"
+          printf '%s  source.tar.gz\n' "$actual" > "$SEAM_ROOT/carrier/source.tar.gz.sha256"
+
+          cat "$SEAM_ROOT"/carrier/source.tar.gz.b64.part* | tr -d '[:space:]' | base64 --decode > "$work/roundtrip.tar.gz"
+          test "$(sha256sum "$work/roundtrip.tar.gz" | awk '{print $1}')" = "$actual"
+      - name: Commit generated carrier custody
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$SEAM_ROOT/carrier"
+          if git diff --cached --quiet; then
+            echo 'Carrier custody already matches the reviewable source.'
+            exit 0
+          fi
+          git commit -m 'Repack the Stardew host seam carrier'
+          git push origin "HEAD:${TARGET_BRANCH}"

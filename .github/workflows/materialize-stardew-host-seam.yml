@@ -1,0 +1,58 @@
+name: Materialize Stardew host seam source
+
+on:
+  pull_request:
+    paths:
+      - 'labs/stardew-host-seam-v1/carrier/**'
+      - 'labs/stardew-host-seam-v1/materialize.mjs'
+      - 'labs/stardew-host-seam-v1/SOURCE_SHA256SUMS'
+      - '.github/workflows/materialize-stardew-host-seam.yml'
+  push:
+    branches:
+      - 'agent/stardew-host-seam-commodity-v1'
+    paths:
+      - 'labs/stardew-host-seam-v1/carrier/**'
+      - 'labs/stardew-host-seam-v1/materialize.mjs'
+      - 'labs/stardew-host-seam-v1/SOURCE_SHA256SUMS'
+      - '.github/workflows/materialize-stardew-host-seam.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: materialize-stardew-host-seam-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  materialize:
+    if: >-
+      github.repository == 'BigBirdReturns/axm-world' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    env:
+      TARGET_BRANCH: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify carrier and materialize ordinary source
+        working-directory: labs/stardew-host-seam-v1
+        run: node ./materialize.mjs
+      - name: Commit the reviewable source tree when absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add labs/stardew-host-seam-v1
+          if git diff --cached --quiet; then
+            echo 'The reviewable source tree already matches the verified carrier.'
+            exit 0
+          fi
+          git commit -m 'Materialize Stardew host seam source'
+          git push origin "HEAD:${TARGET_BRANCH}"

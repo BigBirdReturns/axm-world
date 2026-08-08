@@ -1,0 +1,68 @@
+{
+  "format": "motiondeck-stardew-cabinet-qualification/1",
+  "packageVersion": "0.1.0",
+  "generatedAt": "2026-08-04T02:39:23.409712Z",
+  "environment": {
+    "platform": "Linux",
+    "architecture": "x86_64",
+    "python": "3.13.5",
+    "node": "v22.16.0"
+  },
+  "checks": {
+    "source": {
+      "format": "motiondeck-cabinet-source-check/1",
+      "status": "passed",
+      "files": 73,
+      "javascript": 32,
+      "json": 14,
+      "symlinks": 0,
+      "smapiBoundary": "versioned-json-string",
+      "openxrSdkCommit": "57af7fc61f9f2d492580cb28aab6d0ea59d8d417",
+      "productAuthority": "none"
+    },
+    "tests": {
+      "status": "passed",
+      "tests": 26,
+      "passed": 26,
+      "failed": 0,
+      "evidence": "qualification/node-test.tap"
+    },
+    "selftest": {
+      "status": "passed",
+      "receiptId": "cabinetselftest1_1754f648e9f5faef06d3f8efd4842c500565f71ffc5a253b8e1f15e200675788",
+      "evidence": "qualification/selftest-receipt.json",
+      "ledgerEntries": 21
+    }
+  },
+  "qualifiedClaims": [
+    "authenticated bounded local JSON IPC",
+    "assembly-safe one-string SMAPI provider API source contract",
+    "exclusive transaction ownership and operator fail-safe disarm",
+    "renewable watchdog lease and automatic expiry disarm",
+    "hash-chained redacted evidence ledger and tamper refusal",
+    "synthetic fixture arm, heartbeat, recenter, frame, fallback, and disarm transaction",
+    "operational arm refusal without complete signed physical evidence",
+    "Ed25519 physical evidence generation, signing, verification, machine binding, expiry, and tamper refusal",
+    "conditional local operational lease after complete signed physical evidence and successful exact hooks",
+    "exact OpenXR SDK 1.1.62 source pin and native source non-authority contract"
+  ],
+  "unqualifiedClaims": [
+    "Windows native OpenXR probe compilation on this local environment",
+    "SMAPI provider or adapter compilation against an owned Stardew installation",
+    "real Stardew or Stardew3DVR launch",
+    "Quest tracking with an unworn HMD",
+    "authored monoscopic television presentation",
+    "physical tracked-input or controller fallback round trips",
+    "real frame correctness or latency",
+    "save, reload, cartridge removal, multiplayer, or player acceptance",
+    "player-product or production authority"
+  ],
+  "authority": {
+    "syntheticContracts": "qualified",
+    "nativeWindowsBuild": "pending-ci",
+    "localDeviceDisplayLease": "conditional-only",
+    "playerProduct": "none",
+    "production": "none"
+  },
+  "qualificationDigest": "cabinetqualification1_37c47d3df3415b7e83079c5aebd29afeabbf4167c354faf70530e82039856973"
+}

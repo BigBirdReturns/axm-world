@@ -1,0 +1,62 @@
+name: Materialize and qualify Stardew scene floor
+
+on:
+  pull_request:
+    paths:
+      - 'labs/stardew-scene-floor-v0.2.0-bootstrap/**'
+      - '.github/workflows/materialize-stardew-scene-floor.yml'
+  push:
+    branches:
+      - 'agent/stardew-host-seam-commodity-v1'
+    paths:
+      - 'labs/stardew-scene-floor-v0.2.0-bootstrap/**'
+      - '.github/workflows/materialize-stardew-scene-floor.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qualify-stardew-scene-floor-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  materialize-and-qualify:
+    if: >-
+      github.repository == 'BigBirdReturns/axm-world' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    name: ${{ matrix.os }} / Node ${{ matrix.node }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [20, 22]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Materialize content-addressed reviewable source
+        run: node ./labs/stardew-scene-floor-v0.2.0-bootstrap/materialize.mjs
+      - name: Verify source custody
+        working-directory: labs/stardew-scene-floor-v0.2.0
+        run: npm run verify-source
+      - name: Check JavaScript sources
+        working-directory: labs/stardew-scene-floor-v0.2.0
+        run: npm run check
+      - name: Run admission and refusal contracts
+        working-directory: labs/stardew-scene-floor-v0.2.0
+        run: npm test
+      - name: Run bounded selftest
+        working-directory: labs/stardew-scene-floor-v0.2.0
+        run: npm run selftest
+      - name: Publish ordinary reviewable source
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-node-${{ matrix.node }}-stardew-scene-source
+          path: |
+            labs/stardew-scene-floor-v0.2.0
+            .github/workflows/stardew-scene-floor.yml
+          if-no-files-found: error
+          retention-days: 14

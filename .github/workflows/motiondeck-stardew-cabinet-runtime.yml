@@ -1,0 +1,138 @@
+name: MotionDeck Stardew cabinet runtime
+
+on:
+  pull_request:
+    paths:
+      - 'labs/motiondeck-stardew-cabinet-runtime-v0.1.0-bootstrap/**'
+      - 'labs/motiondeck-stardew-cabinet-runtime-v0.1.0/**'
+      - '.github/workflows/materialize-motiondeck-stardew-cabinet-runtime.yml'
+      - '.github/workflows/motiondeck-stardew-cabinet-runtime.yml'
+  push:
+    branches:
+      - 'agent/stardew-host-seam-commodity-v1'
+    paths:
+      - 'labs/motiondeck-stardew-cabinet-runtime-v0.1.0-bootstrap/**'
+      - 'labs/motiondeck-stardew-cabinet-runtime-v0.1.0/**'
+      - '.github/workflows/materialize-motiondeck-stardew-cabinet-runtime.yml'
+      - '.github/workflows/motiondeck-stardew-cabinet-runtime.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: motiondeck-stardew-cabinet-runtime-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: ${{ matrix.os }} / Node ${{ matrix.node }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [20, 22]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Materialize exact source carrier
+        run: node ./labs/motiondeck-stardew-cabinet-runtime-v0.1.0-bootstrap/materialize.mjs
+      - name: Verify source custody
+        working-directory: labs/motiondeck-stardew-cabinet-runtime-v0.1.0
+        run: npm run verify-source
+      - name: Check source and protocol contracts
+        working-directory: labs/motiondeck-stardew-cabinet-runtime-v0.1.0
+        run: npm run check
+      - name: Run admission and refusal tests
+        working-directory: labs/motiondeck-stardew-cabinet-runtime-v0.1.0
+        run: npm test
+      - name: Run bounded full-transaction selftest
+        shell: bash
+        working-directory: labs/motiondeck-stardew-cabinet-runtime-v0.1.0
+        run: npm run selftest | tee qualification/selftest-${{ matrix.os }}-node-${{ matrix.node }}.json
+      - name: Upload contract evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-node-${{ matrix.node }}-motiondeck-cabinet-contracts
+          path: |
+            labs/motiondeck-stardew-cabinet-runtime-v0.1.0/qualification/selftest-${{ matrix.os }}-node-${{ matrix.node }}.json
+            labs/motiondeck-stardew-cabinet-runtime-v0.1.0/qualification/qualification-receipt.json
+            labs/motiondeck-stardew-cabinet-runtime-v0.1.0/SOURCE_SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
+
+  powershell-contract:
+    name: Windows PowerShell surface
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Materialize exact source carrier
+        run: node ./labs/motiondeck-stardew-cabinet-runtime-v0.1.0-bootstrap/materialize.mjs
+      - name: Parse PowerShell source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $files = Get-ChildItem -LiteralPath 'labs/motiondeck-stardew-cabinet-runtime-v0.1.0/powershell' -Filter '*.ps1'
+          if ($files.Count -eq 0) { throw 'No PowerShell surfaces were found.' }
+          foreach ($file in $files) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$tokens, [ref]$errors)
+            if ($errors.Count -gt 0) { throw ($errors | Out-String) }
+          }
+      - name: Exercise PowerShell wrapper against fixture
+        shell: pwsh
+        run: |
+          ./labs/motiondeck-stardew-cabinet-runtime-v0.1.0/powershell/Invoke-MotionDeckCabinetRuntime.ps1 -Command Selftest |
+            Set-Content -LiteralPath ./labs/motiondeck-stardew-cabinet-runtime-v0.1.0/qualification/powershell-selftest.json -Encoding utf8
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-powershell-motiondeck-cabinet-contract
+          path: labs/motiondeck-stardew-cabinet-runtime-v0.1.0/qualification/powershell-selftest.json
+          if-no-files-found: error
+          retention-days: 14
+
+  native-windows:
+    name: Windows native OpenXR probe build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Materialize exact source carrier
+        run: node ./labs/motiondeck-stardew-cabinet-runtime-v0.1.0-bootstrap/materialize.mjs
+      - name: Configure exact OpenXR source build
+        shell: pwsh
+        run: >-
+          cmake
+          -S labs/motiondeck-stardew-cabinet-runtime-v0.1.0/native
+          -B labs/motiondeck-stardew-cabinet-runtime-v0.1.0/native/build
+          -A x64
+      - name: Build native probe
+        shell: pwsh
+        run: >-
+          cmake
+          --build labs/motiondeck-stardew-cabinet-runtime-v0.1.0/native/build
+          --config Release
+          --parallel
+      - name: Run source-only native selftest
+        shell: pwsh
+        run: |
+          $exe = 'labs/motiondeck-stardew-cabinet-runtime-v0.1.0/native/build/Release/motiondeck-openxr-probe.exe'
+          & $exe --selftest | Set-Content -LiteralPath 'labs/motiondeck-stardew-cabinet-runtime-v0.1.0/qualification/native-openxr-selftest.json' -Encoding utf8
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-motiondeck-openxr-probe
+          path: |
+            labs/motiondeck-stardew-cabinet-runtime-v0.1.0/native/build/Release/motiondeck-openxr-probe.exe
+            labs/motiondeck-stardew-cabinet-runtime-v0.1.0/qualification/native-openxr-selftest.json
+          if-no-files-found: error
+          retention-days: 14

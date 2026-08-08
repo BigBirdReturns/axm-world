@@ -1,0 +1,44 @@
+{
+  "format": "rodoh-stardew-scene-runtime-integration/1",
+  "consumer": {
+    "package": "@axm/stardew-scene-floor",
+    "versionFloor": "0.2.0",
+    "profile": "cabinet-tv"
+  },
+  "provider": {
+    "componentId": "BigBirdReturns.MotionDeckCabinetRuntime",
+    "package": "@axm/motiondeck-stardew-cabinet-runtime",
+    "version": "0.1.0",
+    "smapiUniqueId": "BigBirdReturns.MotionDeckCabinetRuntime",
+    "adapterUniqueId": "BigBirdReturns.RodohStardewCabinetAdapter",
+    "rendererUniqueId": "GingasVR.Stardew3D"
+  },
+  "protocols": {
+    "modApi": "motiondeck-cabinet-mod-api-request/1",
+    "ipcRequest": "motiondeck-cabinet-ipc-request/1",
+    "ipcResponse": "motiondeck-cabinet-ipc-response/1",
+    "probe": "motiondeck-cabinet-probe/1",
+    "state": "motiondeck-cabinet-state/1",
+    "physicalEvidence": "motiondeck-cabinet-physical-evidence/1"
+  },
+  "providesCapabilityIds": [
+    "openxr.tracking.unworn-hmd",
+    "display.television.monoscopic",
+    "input.quest-controller",
+    "input.gamepad-fallback",
+    "presentation.native-2d-fallback",
+    "tracking.recenter",
+    "evidence.frame-capture"
+  ],
+  "admission": {
+    "synthetic": "fixture-only",
+    "commissioning": "all capabilities available at probed-or-physical tier",
+    "operational": "all capabilities available at signed physical tier"
+  },
+  "authority": {
+    "source": "qualified after contract and native-build gates",
+    "localDeviceDisplayLease": "conditional",
+    "playerProduct": "none",
+    "production": "none"
+  }
+}

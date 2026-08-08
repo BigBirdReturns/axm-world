@@ -1,0 +1,166 @@
+TAP version 13
+# Subtest: signed physical evidence admits exact machine and complete capability set
+ok 1 - signed physical evidence admits exact machine and complete capability set
+  ---
+  duration_ms: 9.601251
+  type: 'test'
+  ...
+# Subtest: physical evidence refuses tamper, wrong machine, and missing capability
+ok 2 - physical evidence refuses tamper, wrong machine, and missing capability
+  ---
+  duration_ms: 2.234195
+  type: 'test'
+  ...
+# Subtest: stable object digests ignore key insertion order
+ok 3 - stable object digests ignore key insertion order
+  ---
+  duration_ms: 7.186465
+  type: 'test'
+  ...
+# Subtest: bounded JSON and scalar helpers fail closed
+ok 4 - bounded JSON and scalar helpers fail closed
+  ---
+  duration_ms: 1.028168
+  type: 'test'
+  ...
+# Subtest: credential-like values are redacted recursively
+ok 5 - credential-like values are redacted recursively
+  ---
+  duration_ms: 0.375306
+  type: 'test'
+  ...
+# Subtest: evidence ledger persists and verifies a hash chain
+ok 6 - evidence ledger persists and verifies a hash chain
+  ---
+  duration_ms: 20.905753
+  type: 'test'
+  ...
+# Subtest: evidence ledger refuses tampering
+ok 7 - evidence ledger refuses tampering
+  ---
+  duration_ms: 4.551386
+  type: 'test'
+  ...
+# Subtest: hooks execute exact argv without a shell and receive bounded environment
+ok 8 - hooks execute exact argv without a shell and receive bounded environment
+  ---
+  duration_ms: 44.481688
+  type: 'test'
+  ...
+# Subtest: hooks time out and are killed
+ok 9 - hooks time out and are killed
+  ---
+  duration_ms: 104.12693
+  type: 'test'
+  ...
+# Subtest: operational arm requires and consumes complete signed physical evidence
+ok 10 - operational arm requires and consumes complete signed physical evidence
+  ---
+  duration_ms: 100.279719
+  type: 'test'
+  ...
+# Subtest: operator tooling generates, signs, and verifies a physical evidence file
+ok 11 - operator tooling generates, signs, and verifies a physical evidence file
+  ---
+  duration_ms: 18.264863
+  type: 'test'
+  ...
+# Subtest: diagnostic PNG is non-empty, dimensioned, and content-addressed
+ok 12 - diagnostic PNG is non-empty, dimensioned, and content-addressed
+  ---
+  duration_ms: 17.551359
+  type: 'test'
+  ...
+# Subtest: authenticated requests normalize and stale or unknown clients refuse
+ok 13 - authenticated requests normalize and stale or unknown clients refuse
+  ---
+  duration_ms: 4.098429
+  type: 'test'
+  ...
+# Subtest: arm payload is bounded and authority modes are explicit
+ok 14 - arm payload is bounded and authority modes are explicit
+  ---
+  duration_ms: 0.879101
+  type: 'test'
+  ...
+# Subtest: probe validation requires exact provider and every required capability
+ok 15 - probe validation requires exact provider and every required capability
+  ---
+  duration_ms: 16.587417
+  type: 'test'
+  ...
+# Subtest: synthetic fixture arms only in synthetic mode and never emits authority
+ok 16 - synthetic fixture arms only in synthetic mode and never emits authority
+  ---
+  duration_ms: 51.543975
+  type: 'test'
+  ...
+# Subtest: request IDs are idempotent but collisions refuse
+ok 17 - request IDs are idempotent but collisions refuse
+  ---
+  duration_ms: 9.460091
+  type: 'test'
+  ...
+# Subtest: lease watchdog automatically disarms an abandoned synthetic transaction
+ok 18 - lease watchdog automatically disarms an abandoned synthetic transaction
+  ---
+  duration_ms: 1308.438723
+  type: 'test'
+  ...
+# Subtest: foreign adapter cannot disarm but operator can invoke fail-safe disarm
+ok 19 - foreign adapter cannot disarm but operator can invoke fail-safe disarm
+  ---
+  duration_ms: 11.088286
+  type: 'test'
+  ...
+# Subtest: authenticated local IPC completes a full fixture transaction
+ok 20 - authenticated local IPC completes a full fixture transaction
+  ---
+  duration_ms: 36.131354
+  type: 'test'
+  ...
+# Subtest: token file permissions are private on POSIX
+ok 21 - token file permissions are private on POSIX
+  ---
+  duration_ms: 2.32759
+  type: 'test'
+  ...
+# Subtest: SMAPI provider API is one JSON string method with no provider-owned record parameters
+ok 22 - SMAPI provider API is one JSON string method with no provider-owned record parameters
+  ---
+  duration_ms: 5.358133
+  type: 'test'
+  ...
+# Subtest: native build pins exact OpenXR SDK 1.1.62 source commit and does not claim physical authority
+ok 23 - native build pins exact OpenXR SDK 1.1.62 source commit and does not claim physical authority
+  ---
+  duration_ms: 1.565512
+  type: 'test'
+  ...
+# Subtest: all JSON protocol and configuration files parse
+ok 24 - all JSON protocol and configuration files parse
+  ---
+  duration_ms: 5.736732
+  type: 'test'
+  ...
+# Subtest: missing native probe leaves unworn-HMD capability unavailable on every platform
+ok 25 - missing native probe leaves unworn-HMD capability unavailable on every platform
+  ---
+  duration_ms: 12.406288
+  type: 'test'
+  ...
+# Subtest: native OpenXR discovery never self-promotes into unworn-HMD capability
+ok 26 - native OpenXR discovery never self-promotes into unworn-HMD capability
+  ---
+  duration_ms: 28.217928
+  type: 'test'
+  ...
+1..26
+# tests 26
+# suites 0
+# pass 26
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1685.018785

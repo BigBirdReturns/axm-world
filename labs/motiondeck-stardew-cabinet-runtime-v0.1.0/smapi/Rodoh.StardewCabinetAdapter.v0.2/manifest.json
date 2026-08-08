@@ -1,0 +1,13 @@
+{
+  "Name": "RODOH Stardew Cabinet Adapter",
+  "Author": "BigBirdReturns",
+  "Version": "0.2.0",
+  "Description": "Fail-closed Stardew-side control plane for MotionDeck cabinet-TV presentation.",
+  "UniqueID": "BigBirdReturns.RodohStardewCabinetAdapter",
+  "EntryDll": "Rodoh.StardewCabinetAdapter.dll",
+  "MinimumApiVersion": "4.0.0",
+  "Dependencies": [
+    { "UniqueID": "BigBirdReturns.MotionDeckCabinetRuntime", "MinimumVersion": "0.1.0", "IsRequired": true },
+    { "UniqueID": "GingasVR.Stardew3D", "IsRequired": true }
+  ]
+}

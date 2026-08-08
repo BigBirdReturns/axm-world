@@ -1,0 +1,11 @@
+{
+  "format": "motiondeck-cabinet-source-check/1",
+  "status": "passed",
+  "files": 73,
+  "javascript": 32,
+  "json": 14,
+  "symlinks": 0,
+  "smapiBoundary": "versioned-json-string",
+  "openxrSdkCommit": "57af7fc61f9f2d492580cb28aab6d0ea59d8d417",
+  "productAuthority": "none"
+}

@@ -1,0 +1,16 @@
+{
+  "format": "motiondeck-cabinet-physical-evidence/1",
+  "machineFingerprint": "cabinetmachine1_0000000000000000000000000000000000000000000000000000000000000000",
+  "issuedAt": "2026-08-03T00:00:00.000Z",
+  "expiresAt": "2026-08-10T00:00:00.000Z",
+  "operator": "replace-with-acceptance-operator",
+  "records": [
+    { "capabilityId": "openxr.tracking.unworn-hmd", "status": "passed", "evidenceDigest": "replace-with-content-addressed-tracking-evidence" },
+    { "capabilityId": "display.television.monoscopic", "status": "passed", "evidenceDigest": "replace-with-content-addressed-tv-frame-evidence" },
+    { "capabilityId": "input.quest-controller", "status": "passed", "evidenceDigest": "replace-with-content-addressed-tracked-input-evidence" },
+    { "capabilityId": "input.gamepad-fallback", "status": "passed", "evidenceDigest": "replace-with-content-addressed-gamepad-evidence" },
+    { "capabilityId": "presentation.native-2d-fallback", "status": "passed", "evidenceDigest": "replace-with-content-addressed-native-fallback-evidence" },
+    { "capabilityId": "tracking.recenter", "status": "passed", "evidenceDigest": "replace-with-content-addressed-recenter-evidence" },
+    { "capabilityId": "evidence.frame-capture", "status": "passed", "evidenceDigest": "replace-with-content-addressed-capture-evidence" }
+  ]
+}

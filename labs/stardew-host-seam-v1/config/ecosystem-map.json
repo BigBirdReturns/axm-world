@@ -1,0 +1,225 @@
+{
+  "format": "rodoh-stardew-ecosystem-map/1",
+  "generatedFor": "AXM / RODOH / MotionDeck",
+  "principle": "Consume the community's host-native standards and active content graph; own custody, qualification, semantic routing, household embodiment, and receipts.",
+  "planes": [
+    {
+      "id": "distribution",
+      "commodities": [
+        {
+          "name": "Nexus Mods",
+          "role": "primary packaged-mod distribution and holder-controlled acquisition",
+          "projectRoute": "external acquisition only; record update key, manifest, version, and local hash; do not mirror without permission"
+        },
+        {
+          "name": "ModDrop",
+          "role": "alternate distribution and manager integration",
+          "projectRoute": "external acquisition only"
+        },
+        {
+          "name": "GitHub releases/source",
+          "role": "open-source inspection, reproducible builds, issue and release provenance",
+          "projectRoute": "prefer primary repositories; pin commit or release when source-backed"
+        }
+      ]
+    },
+    {
+      "id": "host",
+      "commodities": [
+        {
+          "name": "SMAPI",
+          "role": "in-process loader, API/event host, compatibility rewriting, error containment, update checks, compatibility checks, daily save backup",
+          "projectRoute": "authoritative host substrate; launch exact executable and profile; never replace"
+        },
+        {
+          "name": "SMAPI manifest graph",
+          "role": "UniqueID, version, EntryDll, ContentPackFor, dependencies, minimum versions, and update keys",
+          "projectRoute": "machine-readable admission authority and profile identity"
+        },
+        {
+          "name": "Pathoschild.Stardew.ModBuildConfig",
+          "role": "cross-platform references, deployment, debugging, analyzer, and release packaging for SMAPI projects",
+          "projectRoute": "official bridge build commodity"
+        }
+      ]
+    },
+    {
+      "id": "runtime-extension",
+      "commodities": [
+        {
+          "name": "SMAPI APIs and events",
+          "role": "lifecycle, input, game content, data, multiplayer, logging, reflection, translations, console commands, and mod integration",
+          "projectRoute": "public API first"
+        },
+        {
+          "name": "Harmony",
+          "role": "runtime method patching when the host exposes no adequate public seam",
+          "projectRoute": "version-bounded last resort behind an adapter; refuse unknown target versions"
+        }
+      ]
+    },
+    {
+      "id": "content-graph",
+      "commodities": [
+        {
+          "name": "Content Patcher",
+          "role": "conditional JSON changes to images, maps, dialogue, data, locations, items, shops, and other game assets",
+          "projectRoute": "treat resolved host assets as world authority; do not translate packs into a private RODOH format"
+        },
+        {
+          "name": "SMAPI content packs",
+          "role": "framework-owned declarative content formats linked through ContentPackFor",
+          "projectRoute": "preserve opaque pack structure and dependency host"
+        },
+        {
+          "name": "Stardew Valley 1.6 native data model",
+          "role": "native data-driven items, locations, machines, and trigger/query surfaces that supersede parts of older framework stacks",
+          "projectRoute": "prefer native 1.6 plus Content Patcher when adequate; retain old framework only when the selected graph requires it"
+        }
+      ]
+    },
+    {
+      "id": "framework-ecology",
+      "policy": "Discover through manifests and dependencies rather than hard-coding the entire community into the launcher.",
+      "representativeCommodities": [
+        {
+          "name": "Alternative Textures",
+          "role": "texture variation for placeable objects, buildings, trees, animals, pets, plants, and related entities"
+        },
+        {
+          "name": "Fashion Sense",
+          "role": "extended and animated player appearance content"
+        },
+        {
+          "name": "Farm Type Manager",
+          "role": "map-local spawning of forage, debris, ores, monsters, and other farm-like features"
+        },
+        {
+          "name": "SpaceCore",
+          "role": "Content Patcher extensions, custom actions and queries, recipes, animation, spawnables, and dungeon support",
+          "statusNote": "maintenance-mode component for Stardew 1.6; preserve only when selected content requires it"
+        },
+        {
+          "name": "specialized Content Patcher extensions",
+          "role": "storage, machines, terrain, notes, trinkets, visual effects, and other narrow content capabilities",
+          "projectRoute": "consume selected dependencies; do not preinstall a maximal framework pile"
+        }
+      ]
+    },
+    {
+      "id": "configuration",
+      "commodities": [
+        {
+          "name": "Generic Mod Config Menu",
+          "role": "in-game configuration for compatible mods and standard SMAPI keybind models",
+          "projectRoute": "leave renderer and mod-specific settings here; MotionDeck owns only machine and profile custody"
+        },
+        {
+          "name": "SMAPI KeybindList and ButtonsChanged",
+          "role": "portable keyboard, mouse, and controller binding representation",
+          "projectRoute": "bridge host bindings to semantic actions without suppressing native input"
+        }
+      ]
+    },
+    {
+      "id": "composition-and-profiles",
+      "commodities": [
+        {
+          "name": "SMAPI --mods-path",
+          "role": "select a concrete Mods tree at launch",
+          "projectRoute": "authoritative profile launch boundary"
+        },
+        {
+          "name": "Stardrop",
+          "role": "open-source cross-platform manager with profiles, update checks, SMAPI integration, Nexus integration, import, and export",
+          "projectRoute": "optional acquisition and human composition surface; Host Seam consumes the resulting selected graph"
+        },
+        {
+          "name": "Vortex and ModDrop",
+          "role": "existing acquisition and installation managers",
+          "projectRoute": "optional upstream UX; never make their databases the sole local authority"
+        },
+        {
+          "name": "dot-prefixed disabled folders",
+          "role": "SMAPI-native manual disabling convention",
+          "projectRoute": "ignore in active graph but record as disabled custody"
+        }
+      ]
+    },
+    {
+      "id": "diagnostics",
+      "commodities": [
+        {
+          "name": "SMAPI console and log",
+          "role": "load decisions, compatibility warnings, errors, versions, and runtime diagnostics",
+          "projectRoute": "capture with each execution receipt"
+        },
+        {
+          "name": "SMAPI log parser and compatibility list",
+          "role": "community-standard support and compatibility interpretation",
+          "projectRoute": "link or API-consume where permitted; never replace with an ungrounded private compatibility score"
+        },
+        {
+          "name": "Content Patcher debug, reload, and export commands",
+          "role": "inspect resolved assets, hot-reload selected packs, and export post-patch content",
+          "projectRoute": "use as evidence and adapter-development tooling"
+        }
+      ]
+    },
+    {
+      "id": "presentation",
+      "commodities": [
+        {
+          "name": "GingasVR.Stardew3D",
+          "role": "2D/desktop-3D/VR hot switching, procedural sprite/map presentation, world-space UI, wrist HUD, and motion controls",
+          "projectRoute": "externally acquired presentation adapter; pin and wrap, do not vendor or rebuild"
+        },
+        {
+          "name": "RODOH Stardew Host Bridge",
+          "role": "lifecycle and semantic-presentation receipts plus future public adapter handshake",
+          "projectRoute": "project-owned thin in-process bridge"
+        },
+        {
+          "name": "MotionDeck cabinet-TV adapter",
+          "role": "unworn-headset OpenXR tracking with authored monoscopic television output",
+          "projectRoute": "project-owned remaining presentation contribution; version-bound to renderer handshake"
+        }
+      ]
+    },
+    {
+      "id": "qualification",
+      "commodities": [
+        {
+          "name": "Stardew Valley Expanded",
+          "role": "large content and map compatibility corpus"
+        },
+        {
+          "name": "Ridgeside Village",
+          "role": "large content and map compatibility corpus"
+        },
+        {
+          "name": "East Scarp",
+          "role": "modular content and interoperability corpus"
+        },
+        {
+          "name": "Clear Glasses",
+          "role": "known renderer-conflict refusal corpus"
+        },
+        {
+          "name": "native save round-trip",
+          "role": "prove presentation profile can be disabled without losing save authority"
+        }
+      ]
+    }
+  ],
+  "routingRules": [
+    "Use the selected local manifest graph as live truth.",
+    "Use upstream managers for acquisition and human curation when useful, but recompute local custody independently.",
+    "Prefer Stardew 1.6 native data and Content Patcher over obsolete framework layers when the content allows it.",
+    "Preserve framework-specific content packs as opaque host-owned content.",
+    "Use public SMAPI and mod APIs first; isolate Harmony or reflection behind exact-version adapters.",
+    "Never redistribute holder-controlled packages merely because they are installed locally.",
+    "Qualify exact profiles and versions; never infer all-mod compatibility.",
+    "Keep native 2D available as an in-session fallback rather than treating fallback as product failure."
+  ]
+}

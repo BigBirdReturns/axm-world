@@ -1,0 +1,49 @@
+{
+  "format": "motiondeck-cabinet-config/1",
+  "adapter": "windows",
+  "windows": {
+    "nativeProbePath": "<motion-deck-root>\\motiondeck-openxr-probe.exe",
+    "televisionDisplayId": "\\\\.\\DISPLAY2",
+    "physicalEvidencePath": null,
+    "trustedEvidenceKeys": {},
+    "hooks": {
+      "arm": {
+        "executable": "pwsh.exe",
+        "args": ["-NoProfile", "-File", "<motion-deck-hooks>\\Arm-StardewCabinet.ps1"],
+        "timeoutMs": 15000
+      },
+      "disarm": {
+        "executable": "pwsh.exe",
+        "args": ["-NoProfile", "-File", "<motion-deck-hooks>\\Disarm-StardewCabinet.ps1"],
+        "timeoutMs": 15000
+      },
+      "recenter": {
+        "executable": "pwsh.exe",
+        "args": ["-NoProfile", "-File", "<motion-deck-hooks>\\Recenter-StardewCabinet.ps1"]
+      },
+      "controllerFallback": {
+        "executable": "pwsh.exe",
+        "args": ["-NoProfile", "-File", "<motion-deck-hooks>\\Select-ControllerFallback.ps1"]
+      },
+      "native2dFallback": {
+        "executable": "pwsh.exe",
+        "args": ["-NoProfile", "-File", "<motion-deck-hooks>\\Select-Native2D.ps1"]
+      },
+      "rendererNative2d": {
+        "executable": "pwsh.exe",
+        "args": ["-NoProfile", "-File", "<motion-deck-hooks>\\Select-Native2D.ps1"]
+      },
+      "rendererDesktop3d": null,
+      "rendererHmdVr": null,
+      "rendererCabinetTv": {
+        "executable": "pwsh.exe",
+        "args": ["-NoProfile", "-File", "<motion-deck-hooks>\\Select-CabinetTV.ps1"]
+      },
+      "captureFrame": {
+        "executable": "pwsh.exe",
+        "args": ["-NoProfile", "-File", "<motion-deck-root>\\Capture-Display.ps1"],
+        "timeoutMs": 10000
+      }
+    }
+  }
+}

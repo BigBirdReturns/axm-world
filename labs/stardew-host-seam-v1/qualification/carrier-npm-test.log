@@ -1,0 +1,98 @@
+
+> @axm/stardew-host-seam@0.1.0 test
+> node ./materialize.mjs && node --test test/seam.test.mjs
+
+{
+  "format": "rodoh-stardew-source-materialization/1",
+  "archiveSha256": "e3b350fcab8d00a9fe5ad69eab59705067cb2170a0572c8dcaafe4100b9437a5",
+  "partCount": 4,
+  "sourceLedgerVerified": true
+}
+TAP version 13
+# Subtest: admits a complete host-native graph and all four modes
+ok 1 - admits a complete host-native graph and all four modes
+  ---
+  duration_ms: 28.307468
+  type: 'test'
+  ...
+# Subtest: keeps cabinet-tv blocked until a dedicated renderer adapter is present
+ok 2 - keeps cabinet-tv blocked until a dedicated renderer adapter is present
+  ---
+  duration_ms: 8.316007
+  type: 'test'
+  ...
+# Subtest: refuses a missing required dependency but reports a missing optional dependency as info
+ok 3 - refuses a missing required dependency but reports a missing optional dependency as info
+  ---
+  duration_ms: 4.238022
+  type: 'test'
+  ...
+# Subtest: refuses duplicate UniqueIDs and required dependency cycles
+ok 4 - refuses duplicate UniqueIDs and required dependency cycles
+  ---
+  duration_ms: 12.343596
+  type: 'test'
+  ...
+# Subtest: refuses the known Stardew3DVR and Clear Glasses renderer collision
+ok 5 - refuses the known Stardew3DVR and Clear Glasses renderer collision
+  ---
+  duration_ms: 8.240135
+  type: 'test'
+  ...
+# Subtest: admits native 2D without a renderer and blocks renderer-dependent modes
+ok 6 - admits native 2D without a renderer and blocks renderer-dependent modes
+  ---
+  duration_ms: 5.196375
+  type: 'test'
+  ...
+# Subtest: refuses a manifest EntryDll path escape
+ok 7 - refuses a manifest EntryDll path escape
+  ---
+  duration_ms: 1.889866
+  type: 'test'
+  ...
+# Subtest: stages an isolated verified-copy profile without mutating source mods
+ok 8 - stages an isolated verified-copy profile without mutating source mods
+  ---
+  duration_ms: 20.702557
+  type: 'test'
+  ...
+# Subtest: creates a content-addressed save snapshot without changing the source save
+ok 9 - creates a content-addressed save snapshot without changing the source save
+  ---
+  duration_ms: 5.439176
+  type: 'test'
+  ...
+# Subtest: receipt and object digests are deterministic for equal authority
+ok 10 - receipt and object digests are deterministic for equal authority
+  ---
+  duration_ms: 0.529997
+  type: 'test'
+  ...
+# Subtest: refuses an installed dependency below the declared minimum version
+ok 11 - refuses an installed dependency below the declared minimum version
+  ---
+  duration_ms: 4.932173
+  type: 'test'
+  ...
+# Subtest: refuses uninspected symlinks in the selected Mods custody graph
+ok 12 - refuses uninspected symlinks in the selected Mods custody graph
+  ---
+  duration_ms: 5.308632
+  type: 'test'
+  ...
+# Subtest: ignores dot-prefixed disabled mod folders to match SMAPI active-graph behavior
+ok 13 - ignores dot-prefixed disabled mod folders to match SMAPI active-graph behavior
+  ---
+  duration_ms: 7.098999
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 159.661277

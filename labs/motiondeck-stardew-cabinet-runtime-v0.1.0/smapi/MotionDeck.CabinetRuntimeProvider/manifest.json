@@ -1,0 +1,9 @@
+{
+  "Name": "MotionDeck Cabinet Runtime Provider",
+  "Author": "BigBirdReturns",
+  "Version": "0.1.0",
+  "Description": "SMAPI provider for the authenticated local MotionDeck cabinet runtime. Exposes one versioned JSON method and no device authority of its own.",
+  "UniqueID": "BigBirdReturns.MotionDeckCabinetRuntime",
+  "EntryDll": "MotionDeck.CabinetRuntimeProvider.dll",
+  "MinimumApiVersion": "4.0.0"
+}
