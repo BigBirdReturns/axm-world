@@ -1,0 +1,101 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$EmbodiedArLabRoot,
+
+    [Parameter(Mandatory = $true)]
+    [string]$ArcRoot,
+
+    [string]$AuthoredPresentationTemplate,
+    [string]$ProductProfile,
+    [string]$JobId = "underdrain-unity6000-player-v1",
+    [string]$SessionId,
+    [string]$DeviceId = "windows-local",
+    [ValidateSet("low", "standard", "high")]
+    [string]$InitialQuality = "standard",
+    [string]$UnityVersion = "6000.0.66f2",
+    [string]$UnityEditor,
+    [switch]$ReducedMotion,
+    [switch]$HighContrast,
+    [switch]$SkipNpmInstall,
+    [switch]$SkipUnityTests,
+    [switch]$SkipWindowsBuild,
+    [switch]$SkipWindowsSmoke,
+    [switch]$DevelopmentBuild,
+    [switch]$ForceCloseUnity
+)
+
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
+
+$ExpectedArcCommit = "aaa5685903a348b3c1ba875622fbe99d90c1da35"
+$ExpectedTimingProfile = "forgiving"
+
+function Resolve-FullPath([string]$Value, [string]$Base) {
+    if ([System.IO.Path]::IsPathRooted($Value)) { return [System.IO.Path]::GetFullPath($Value) }
+    return [System.IO.Path]::GetFullPath((Join-Path $Base $Value))
+}
+
+function Invoke-Checked([string]$FilePath, [string[]]$Arguments, [string]$Label, [string]$LogPath) {
+    Write-Host $Label
+    New-Item -ItemType Directory -Force ([System.IO.Path]::GetDirectoryName($LogPath)) | Out-Null
+    & $FilePath @Arguments 2>&1 | Tee-Object -FilePath $LogPath
+    if ($LASTEXITCODE -ne 0) { throw "$Label failed with exit $LASTEXITCODE. See $LogPath" }
+}
+
+function Invoke-CheckedPowerShell([string]$Script, [hashtable]$Parameters, [string]$Label) {
+    $arguments = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $Script)
+    foreach ($key in $Parameters.Keys) {
+        $value = $Parameters[$key]
+        if ($value -is [System.Management.Automation.SwitchParameter] -or $value -is [bool]) {
+            if ([bool]$value) { $arguments += "-$key" }
+        } elseif ($null -ne $value -and -not [string]::IsNullOrWhiteSpace([string]$value)) {
+            $arguments += @("-$key", [string]$value)
+        }
+    }
+    Write-Host $Label
+    & powershell.exe @arguments
+    if ($LASTEXITCODE -ne 0) { throw "$Label failed with exit $LASTEXITCODE." }
+}
+
+function Require-CleanExactGit([string]$Root, [string]$ExpectedCommit, [string]$Label) {
+    if (-not (Test-Path (Join-Path $Root ".git"))) { throw "$Label is not a Git checkout: $Root" }
+    $head = (& git -C $Root rev-parse HEAD).Trim()
+    if ($LASTEXITCODE -ne 0 -or $head -ne $ExpectedCommit) { throw "$Label must be exactly $ExpectedCommit; found $head" }
+    $dirty = (& git -C $Root status --porcelain)
+    if ($LASTEXITCODE -ne 0) { throw "$Label Git status failed." }
+    if ($dirty) { throw "$Label checkout is dirty. Commit, stash, or clean it before production qualification." }
+}
+
+function Require-ProjectAsset([string]$ProjectRoot, [string]$AssetPath, [string]$Label) {
+    if ([string]::IsNullOrWhiteSpace($AssetPath) -or -not $AssetPath.Replace('\','/').StartsWith("Assets/")) { throw "$Label is not a project-owned Assets path: $AssetPath" }
+    $full = Join-Path $ProjectRoot ($AssetPath -replace '/', '\')
+    if (-not (Test-Path $full)) { throw "$Label is absent from Embodied-AR-Lab: $full" }
+    return [System.IO.Path]::GetFullPath($full)
+}
+
+$worldRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+$projectRoot = Resolve-FullPath $EmbodiedArLabRoot (Get-Location).Path
+$arcPath = Resolve-FullPath $ArcRoot (Get-Location).Path
+foreach ($directory in @("Assets", "Packages", "ProjectSettings")) {
+    if (-not (Test-Path (Join-Path $projectRoot $directory))) { throw "Embodied-AR-Lab $directory directory is absent: $projectRoot" }
+}
+if ([string]::IsNullOrWhiteSpace($AuthoredPresentationTemplate)) { $AuthoredPresentationTemplate = Join-Path $worldRoot "unity\Fixtures\underdrain.authored-presentation.template.json" }
+if ([string]::IsNullOrWhiteSpace($ProductProfile)) { $ProductProfile = Join-Path $worldRoot "unity\Fixtures\underdrain.player-product.json" }
+$templatePath = Resolve-FullPath $AuthoredPresentationTemplate $worldRoot
+$profilePath = Resolve-FullPath $ProductProfile $worldRoot
+foreach ($path in @($templatePath, $profilePath)) { if (-not (Test-Path $path)) { throw "UNDERDRAIN player-train input is absent: $path" } }
+if ([string]::IsNullOrWhiteSpace($SessionId)) { $SessionId = $JobId }
+if ([string]::IsNullOrWhiteSpace($UnityEditor)) { $UnityEditor = "C:\Program Files\Unity\Hub\Editor\$UnityVersion\Editor\Unity.exe" }
+$unityPath = [System.IO.Path]::GetFullPath($UnityEditor)
+if (-not (Test-Path $unityPath)) { throw "Unity Editor is absent: $unityPath" }
+
+$worldCommit = (& git -C $worldRoot rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $worldCommit -notmatch '^[0-9a-f]{40}$') { throw "World checkout identity could not be resolved." }
+Require-CleanExactGit $worldRoot $worldCommit "World"
+Require-CleanExactGit $arcPath $ExpectedArcCommit "Arc"
+
+$template = Get-Content $templatePath -Raw | ConvertFrom-Json
+$profile = Get-Content $profilePath -Raw | ConvertFrom-Json
+if ($template.format -ne "rodoh-action-presentation-manifest/1" -or $template.themeId -ne "underdrain-bloom-below") { throw "Authored UNDERDRAIN presentation template is unsupported." }
+if ($profile.format -ne "rodoh-action-player-product-profile/1" -or $profile.challengeId -ne "breach-crown-pump" -or $profile.timingProfileId -ne $ExpectedTimingProfile) { throw "UNDERDRAIN player-product profile is unsupported." }
