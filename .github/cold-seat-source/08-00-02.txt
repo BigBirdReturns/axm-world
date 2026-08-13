@@ -1,0 +1,45 @@
+
+  it("declares software acceptance as cold-seat qualified while retaining the physical installation evidence tier", () => {
+    const profile = json("unity/Fixtures/underdrain.player-product.json");
+    expect(profile).toMatchObject({
+      productId: "underdrain-bloom-below-unity6000-v1",
+      softwareAcceptance: {
+        comprehensionMode: "role-separated-cold-seat",
+        comprehensionReceiptFormat: "rodoh-underdrain-cold-seat-comprehension/1",
+        humanRequired: false,
+        runtimeMayIssueReceipt: false,
+      },
+      physicalAcceptance: {
+        humanPlayEvidence: "separate",
+        householdInstallationEvidence: "separate",
+        questEvidence: "separate",
+        coldSeatMayClaimHumanEvidence: false,
+        requiredForWindowsSoftwareAcceptance: false,
+      },
+    });
+  });
+
+  it("keeps the Unity batch mechanics-only while recording the software and physical evidence boundary", () => {
+    const batch = read("unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs");
+    expect(batch).toContain('public string coldSeatComprehension;');
+    expect(batch).toContain('public string physicalHumanEvidence;');
+    expect(batch).toContain('coldSeatComprehension = "open"');
+    expect(batch).toContain('physicalHumanEvidence = "separate-open"');
+    expect(batch).toContain('humanEvidence = "separate-open"');
+    expect(batch).toContain('productAcceptance = "not-issued"');
+    expect(batch).not.toContain('rodoh-underdrain-cold-seat-comprehension/1');
+  });
+
+  it("documents the replacement transaction without claiming physical human evidence", () => {
+    const doc = read("docs/UNDERDRAIN_COLD_SEAT_COMPREHENSION.md");
+    expect(doc).toContain("supersedes the human-staffing language");
+    expect(doc).toContain("Cold player seat");
+    expect(doc).toContain("Cold observer seat");
+    expect(doc).toContain("Cold adjudicator seat");
+    expect(doc).toContain("Software-product acceptor seat");
+    expect(doc).toContain("The same operator may invoke these functions sequentially");
+    expect(doc).toContain("humanEvidenceClaimed = false");
+    expect(doc).toContain("physicalInstallationEvidence = separate-open");
+    expect(doc).toContain("A cold-seat pass may never be described as human acceptance");
+  });
+});
