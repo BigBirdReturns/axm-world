@@ -1,0 +1,14 @@
+    "humanPlayEvidence": "separate",
+    "householdInstallationEvidence": "separate",
+    "questEvidence": "separate",
+    "coldSeatMayClaimHumanEvidence": false,
+    "requiredForWindowsSoftwareAcceptance": false
+  },
+  "accessibility": {
+    "reducedMotionSupported": true,
+    "highContrastSupported": true,
+    "audioOptional": true,
+    "hapticsOptional": true,
+    "oneHandedMappings": true
+  }
+}
