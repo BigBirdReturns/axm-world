@@ -1,0 +1,8 @@
+if ($audit.format -ne "rodoh-underdrain-production-asset-audit-run/2" -or $audit.status -ne "pass" -or $audit.assetCount -ne 7 -or $audit.declaredBindingCount -ne 27 -or $audit.uniqueDeclaredAssetCount -ne 23 -or $audit.exactRepresentationCustody -ne $true -or $audit.generatedPrimitive -ne $false -or $audit.activePhysicsAuthority -ne $false) { throw "UNDERDRAIN production-asset audit did not pass exact representation custody." }
+if ($audit.approvalId -ne $intake.approvalId -or $audit.approvalAuthorityId -ne $intake.approvalAuthorityId) { throw "Read-only production-asset audit lost named approval custody." }
+
+$qualificationPath = [System.IO.Path]::GetFullPath([string]$productRun.qualificationReceipt)
+if (-not (Test-Path $qualificationPath)) { throw "Player-product qualification receipt is absent: $qualificationPath" }
+$qualification = Get-Content $qualificationPath -Raw | ConvertFrom-Json
+$intakeById = Index-ByAssetId @($intake.representationClosures) "Production-asset intake"
+$auditById = Index-ByAssetId @($audit.assetReceipts) "Production-asset audit"
