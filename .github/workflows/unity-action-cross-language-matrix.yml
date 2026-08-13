@@ -1,0 +1,140 @@
+name: Unity action cross-language matrix
+
+on:
+  pull_request:
+    paths:
+      - 'unity/Conformance/arc-vector-matrix.test.ts'
+      - 'unity/Conformance/ArcParityProgram.cs'
+      - 'unity/Conformance/Axm.Rodoh.Action.ArcParity.csproj'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Core/**'
+      - 'unity/Fixtures/**'
+      - '.github/workflows/unity-action-cross-language-matrix.yml'
+  push:
+    branches:
+      - feature/action-runtime-v1
+    paths:
+      - 'unity/Conformance/arc-vector-matrix.test.ts'
+      - 'unity/Conformance/ArcParityProgram.cs'
+      - 'unity/Conformance/Axm.Rodoh.Action.ArcParity.csproj'
+      - 'unity/Packages/com.axm.rodoh-action/Runtime/Core/**'
+      - 'unity/Fixtures/**'
+      - '.github/workflows/unity-action-cross-language-matrix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unity-action-cross-language-matrix-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARC_ACTION_AUTHORITY_SHA: 6eef311836ee7cb3a43a94ce51f448a2699c3b04
+
+jobs:
+  matrix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out exact World candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: axm-world
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Check out exact Arc action authority
+        uses: actions/checkout@v4
+        with:
+          repository: BigBirdReturns/axm-arc
+          ref: ${{ env.ARC_ACTION_AUTHORITY_SHA }}
+          path: axm-arc
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: axm-arc/package-lock.json
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - run: npm --prefix axm-arc ci --no-audit --no-fund
+
+      - name: Generate the Arc-controlled vector matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p receipts/vectors receipts/parity
+          cp axm-world/unity/Conformance/arc-vector-matrix.test.ts axm-arc/tests/action/unity-vector-matrix.test.ts
+          export AXM_UNITY_NATIVE_SPEC="$GITHUB_WORKSPACE/axm-world/unity/Fixtures/frog-pit.action-spec.json"
+          export AXM_UNITY_PROJECTION="$GITHUB_WORKSPACE/axm-world/unity/Fixtures/frog-pit.unity-action-spec.json"
+          export AXM_UNITY_VECTOR_MATRIX_OUT="$GITHUB_WORKSPACE/receipts/arc-vector-matrix.json"
+          (
+            cd axm-arc
+            npx vitest run tests/action/unity-vector-matrix.test.ts --reporter=verbose
+          ) 2>&1 | tee receipts/arc-vector-matrix.log
+          test -s receipts/arc-vector-matrix.json
+          test "$(jq '.vectors | length' receipts/arc-vector-matrix.json)" -ge 7
+
+      - name: Require exact Csharp parity for every vector
+        shell: bash
+        run: |
+          set -euo pipefail
+          authority="$(jq -r '.arcActionAuthorityCommit' receipts/arc-vector-matrix.json)"
+          arc_digest="$(jq -r '.sourceArcDigest' receipts/arc-vector-matrix.json)"
+          count="$(jq '.vectors | length' receipts/arc-vector-matrix.json)"
+          for index in $(seq 0 $((count - 1))); do
+            id="$(jq -r ".vectors[$index].id" receipts/arc-vector-matrix.json)"
+            jq \
+              --arg authority "$authority" \
+              --arg arc "$arc_digest" \
+              --argjson index "$index" \
+              '{
+                format: "axm-action-cross-language-vector/1",
+                arcActionAuthorityCommit: $authority,
+                sourceSpecDigest: .vectors[$index].projection.sourceSpecDigest,
+                sourceArcDigest: $arc,
+                seed: .vectors[$index].seed,
+                projection: .vectors[$index].projection,
+                trace: .vectors[$index].trace,
+                expected: .vectors[$index].expected
+              }' receipts/arc-vector-matrix.json > "receipts/vectors/$id.json"
+            dotnet run \
+              --configuration Release \
+              --project axm-world/unity/Conformance/Axm.Rodoh.Action.ArcParity.csproj \
+              -- \
+              "receipts/vectors/$id.json" \
+              "receipts/parity/$id.json" \
+              2>&1 | tee "receipts/parity/$id.log"
+            grep -q '"status": "pass"' "receipts/parity/$id.json"
+            grep -q '"parity": true' "receipts/parity/$id.json"
+          done
+          jq -n \
+            --arg format 'rodoh-unity-action-cross-language-matrix/1' \
+            --arg status pass \
+            --arg authority "$authority" \
+            --argjson vectors "$count" \
+            '{format:$format,status:$status,arcActionAuthorityCommit:$authority,vectors:$vectors}' \
+            > receipts/matrix-summary.json
+
+      - name: Clean temporary Arc test and preserve source identity
+        if: always()
+        shell: bash
+        run: |
+          rm -f axm-arc/tests/action/unity-vector-matrix.test.ts
+          test "$(git -C axm-arc rev-parse HEAD)" = "$ARC_ACTION_AUTHORITY_SHA"
+          test -z "$(git -C axm-arc status --porcelain)"
+          git -C axm-world diff --check
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rodoh-unity-action-cross-language-matrix
+          path: receipts
+          if-no-files-found: warn
+          retention-days: 30

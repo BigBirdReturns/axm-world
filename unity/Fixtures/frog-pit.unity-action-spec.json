@@ -1,0 +1,142 @@
+{
+  "format": "rodoh-unity-action-spec/1",
+  "sourceFormat": "axm-action-spec/1",
+  "sourceSpecDigest": "actspec1_0000000000000000000000000000000000000000000000000000000000000000",
+  "sourceArcDigest": "cart1_0000000000000000000000000000000000000000000000000000000000000000",
+  "runtimeVersion": "1.0.0",
+  "challengeId": "unity-frog-pit-conformance",
+  "title": "The Frog Pit",
+  "difficultyModeId": null,
+  "tickRate": 30,
+  "maxTicks": 900,
+  "arena": {
+    "kit": "ring",
+    "radius": 6500
+  },
+  "player": {
+    "kit": "staff",
+    "maxHealth": 12,
+    "radius": 360,
+    "movePerTick": 180,
+    "dodgePerTick": 480,
+    "dodgeTicks": 10,
+    "dodgeInvulnerableTicks": 6,
+    "parryTicks": 5,
+    "parryActiveTicks": 3,
+    "parryRecoveryTicks": 7,
+    "staggerTicks": 12,
+    "attacks": [
+      {
+        "id": "light",
+        "startupTicks": 4,
+        "activeTicks": 3,
+        "recoveryTicks": 7,
+        "damage": 2,
+        "range": 1550,
+        "coneNumerator": 0,
+        "coneDenominator": 1,
+        "knockback": 320
+      },
+      {
+        "id": "heavy",
+        "startupTicks": 10,
+        "activeTicks": 4,
+        "recoveryTicks": 15,
+        "damage": 4,
+        "range": 1900,
+        "coneNumerator": 1,
+        "coneDenominator": 2,
+        "knockback": 760
+      }
+    ]
+  },
+  "enemyLaws": [
+    {
+      "kit": "skirmisher",
+      "maxHealth": 3,
+      "radius": 300,
+      "movePerTick": 115,
+      "attackRange": 900,
+      "attackDamage": 1,
+      "telegraphTicks": 18,
+      "activeTicks": 2,
+      "recoveryTicks": 16,
+      "staggerTicks": 20
+    },
+    {
+      "kit": "duelist",
+      "maxHealth": 5,
+      "radius": 320,
+      "movePerTick": 125,
+      "attackRange": 980,
+      "attackDamage": 2,
+      "telegraphTicks": 14,
+      "activeTicks": 2,
+      "recoveryTicks": 18,
+      "staggerTicks": 24
+    },
+    {
+      "kit": "swarm",
+      "maxHealth": 2,
+      "radius": 270,
+      "movePerTick": 145,
+      "attackRange": 760,
+      "attackDamage": 1,
+      "telegraphTicks": 20,
+      "activeTicks": 2,
+      "recoveryTicks": 20,
+      "staggerTicks": 16
+    },
+    {
+      "kit": "hexer",
+      "maxHealth": 4,
+      "radius": 300,
+      "movePerTick": 85,
+      "attackRange": 2600,
+      "attackDamage": 1,
+      "telegraphTicks": 28,
+      "activeTicks": 2,
+      "recoveryTicks": 24,
+      "staggerTicks": 22
+    },
+    {
+      "kit": "breaker",
+      "maxHealth": 9,
+      "radius": 430,
+      "movePerTick": 80,
+      "attackRange": 1150,
+      "attackDamage": 3,
+      "telegraphTicks": 32,
+      "activeTicks": 3,
+      "recoveryTicks": 28,
+      "staggerTicks": 30
+    }
+  ],
+  "objectives": [
+    {
+      "id": "break-the-croak-line",
+      "label": "Break the croak line",
+      "brief": "Clear the first skirmishers before the pit closes around you.",
+      "enemyKit": "skirmisher",
+      "enemyCount": 3,
+      "targetDefeats": 3,
+      "failureKind": "stress",
+      "severity": 0.35
+    },
+    {
+      "id": "hold-the-mud-gate",
+      "label": "Hold the mud gate",
+      "brief": "Defeat the breaker while the remaining frogs crowd the ring.",
+      "enemyKit": "breaker",
+      "enemyCount": 1,
+      "targetDefeats": 1,
+      "failureKind": "cascade",
+      "severity": 0.7
+    }
+  ],
+  "completion": {
+    "kind": "clear",
+    "successObjectiveCount": 2,
+    "partialObjectiveCount": 1
+  }
+}

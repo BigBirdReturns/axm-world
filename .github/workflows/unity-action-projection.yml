@@ -1,0 +1,51 @@
+name: Unity action projection
+
+on:
+  pull_request:
+    paths:
+      - 'unity/Conformance/project-action-spec.mjs'
+      - 'unity/Fixtures/**'
+      - '.github/workflows/unity-action-projection.yml'
+  push:
+    branches:
+      - feature/action-runtime-v1
+    paths:
+      - 'unity/Conformance/project-action-spec.mjs'
+      - 'unity/Fixtures/**'
+      - '.github/workflows/unity-action-projection.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  projection:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Rebuild Unity projection from native Arc action spec
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p projection-receipt
+          node unity/Conformance/project-action-spec.mjs \
+            unity/Fixtures/frog-pit.action-spec.json \
+            projection-receipt/frog-pit.unity-action-spec.json \
+            | tee projection-receipt/projection.log
+          cmp projection-receipt/frog-pit.unity-action-spec.json unity/Fixtures/frog-pit.unity-action-spec.json
+          git diff --check
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rodoh-unity-action-projection
+          path: projection-receipt
+          if-no-files-found: error
+          retention-days: 30

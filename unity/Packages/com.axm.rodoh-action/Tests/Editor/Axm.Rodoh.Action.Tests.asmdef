@@ -1,0 +1,23 @@
+{
+  "name": "Axm.Rodoh.Action.Tests",
+  "rootNamespace": "Axm.Rodoh.Action.Tests",
+  "references": [
+    "Axm.Rodoh.Action.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}
