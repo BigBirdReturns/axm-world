@@ -1,0 +1,44 @@
+{
+  "format": "rodoh-underdrain-role-separated-review/1",
+  "productId": "underdrain-bloom-below-unity6000-v1",
+  "challengeId": "breach-crown-pump",
+  "timingProfileId": "forgiving",
+  "packetFormats": {
+    "player": "rodoh-underdrain-review-player/1",
+    "observer": "rodoh-underdrain-review-observer/1",
+    "adjudicator": "rodoh-underdrain-review-adjudicator/1"
+  },
+  "learningSequence": [
+    "diagnose-spore-valves",
+    "operate-purge-wheel",
+    "open-crown-sluice"
+  ],
+  "answers": {
+    "playerRoleId": "rhea-venn",
+    "immediateConflictId": "conflict-keep-water-running-without-flooding-hidden-nursery",
+    "allowedChoiceIds": [
+      "emergency-plan",
+      "service-tunnel",
+      "truce-offer"
+    ],
+    "nextPlayableActionId": "root-gate-parley",
+    "consequenceByOutcome": {
+      "success": "fact-pump-seven-balanced",
+      "partial": "fact-pump-seven-ceasefire",
+      "failure": "fact-crown-controls-pump-seven"
+    }
+  },
+  "independence": {
+    "distinctSeatIds": true,
+    "distinctLineageIds": true,
+    "distinctContextDigests": true,
+    "artifactMutationAllowed": false,
+    "playerAccess": "product-only",
+    "observerAccess": "session-only",
+    "adjudicatorAccess": "contract-and-observation-only",
+    "runtimeMayIssue": false,
+    "candidateAuthorMayIssue": false
+  },
+  "softwareScope": "windows-player-product",
+  "physicalInstallationScope": "separate"
+}
