@@ -1,0 +1,41 @@
+    acceptedConsequence = Answer ([string]$consequence.expectedId) ([string]$observer.observations.acceptedConsequenceId) ([string]$adjudicator.answers.acceptedConsequenceId) ([string]$adjudicator.seat.seatId)
+    nextPlayableAction = Answer ([string]$contract.nextPlayableAction.expectedId) ([string]$observer.observations.nextPlayableActionId) ([string]$adjudicator.answers.nextPlayableActionId) ([string]$adjudicator.seat.seatId)
+}
+$answerValues = @($answers.playerRole, $answers.immediateConflict, $answers.authoredChoice, $answers.acceptedConsequence, $answers.nextPlayableAction)
+if (@($answerValues | Where-Object { $_.matched -ne $true }).Count -gt 0) { throw "Cold-seat comprehension did not match every canonical answer." }
+
+if ([string]::IsNullOrWhiteSpace($OutputPath)) { $OutputPath = Join-Path ([System.IO.Path]::GetDirectoryName($sessionPath)) "cold-seat-comprehension.json" }
+$output = Resolve-FullPath $OutputPath (Get-Location).Path
+New-Item -ItemType Directory -Force ([System.IO.Path]::GetDirectoryName($output)) | Out-Null
+$receipt = [ordered]@{
+    format = "rodoh-underdrain-cold-seat-comprehension/1"
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    status = "pass"
+    productId = $train.productId
+    worldCommit = $train.worldCommit
+    arcCommit = $train.arcCommit
+    productProfileSha256 = $train.productProfileSha256
+    windowsProductSha256 = $train.windowsProductSha256
+    actionSpecDigest = $train.actionSpecDigest
+    arcDigest = $train.arcDigest
+    challengeId = $train.challengeId
+    timingProfileId = $train.timingProfileId
+    presentationManifestId = $train.presentationManifestId
+    sceneJobDigest = $train.sceneJobDigest
+    run = [ordered]@{
+        startedAt = $startedAt.ToUniversalTime().ToString("o")
+        completedAt = $completedAt.ToUniversalTime().ToString("o")
+        device = [string]$observer.run.device
+        viewport = [string]$observer.run.viewport
+        playerSessionReceipt = $sessionPath
+        playerSessionReceiptSha256 = $sessionSha
+        acceptedArcReceipt = $acceptedPath
+        acceptedArcReceiptDigest = $accepted.receiptDigest
+        outcome = $outcome
+    }
+    packets = [ordered]@{
+        player = [ordered]@{ path = $playerPacketPath; sha256 = $playerPacketSha; transcript = $transcript }
+        observer = [ordered]@{ path = $observerPacketPath; sha256 = $observerPacketSha; notes = $notes }
+        adjudicator = [ordered]@{ path = $adjudicatorPacketPath; sha256 = $adjudicatorPacketSha; adjudication = $adjudication }
+        contract = [ordered]@{ path = $contractPath; sha256 = $contractSha }
+    }
