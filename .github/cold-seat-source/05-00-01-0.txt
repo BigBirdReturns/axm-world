@@ -1,0 +1,31 @@
+    AssetApprovalReceipt = $approvalPath
+    OutputRoot = $intakeRoot
+    UnityVersion = $UnityVersion
+    UnityEditor = $unityPath
+    ForceCloseUnity = $ForceCloseUnity
+} "Admitting the seven named-approved UNDERDRAIN production prefabs through exact representation custody..."
+$intakeRunPath = Join-Path $intakeRoot "production-asset-intake-run.json"
+if (-not (Test-Path $intakeRunPath)) { throw "UNDERDRAIN production-asset intake run is absent: $intakeRunPath" }
+$intake = Get-Content $intakeRunPath -Raw | ConvertFrom-Json
+if ($intake.format -ne "rodoh-underdrain-production-asset-intake-run/3" -or $intake.status -ne "pass" -or $intake.assetCount -ne 7 -or $intake.declaredBindingCount -ne 27 -or $intake.uniqueDeclaredAssetCount -ne 23 -or $intake.exactRepresentationCustody -ne $true -or $intake.generatedPrimitive -ne $false -or $intake.activePhysicsAuthority -ne $false) { throw "UNDERDRAIN production-asset intake did not pass." }
+if ($intake.approvalId -ne $approval.approvalId -or $intake.approvalAuthorityId -ne $approval.approvalAuthorityId) { throw "UNDERDRAIN production-asset intake lost named approval custody." }
+
+Invoke-CheckedPowerShell $sourceTrainScript @{
+    EmbodiedArLabRoot = $projectRoot
+    ArcRoot = $arcPath
+    AuthoredPresentationTemplate = $templatePath
+    ProductProfile = $profilePath
+    JobId = $JobId
+    SessionId = $SessionId
+    DeviceId = $DeviceId
+    InitialQuality = $InitialQuality
+    UnityVersion = $UnityVersion
+    UnityEditor = $unityPath
+    ReducedMotion = $ReducedMotion
+    HighContrast = $HighContrast
+    SkipNpmInstall = $SkipNpmInstall
+    SkipUnityTests = $SkipUnityTests
+    SkipWindowsBuild = $SkipWindowsBuild
+    SkipWindowsSmoke = $SkipWindowsSmoke
+    DevelopmentBuild = $DevelopmentBuild
+    ForceCloseUnity = $ForceCloseUnity
