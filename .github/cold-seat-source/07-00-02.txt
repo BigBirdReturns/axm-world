@@ -1,0 +1,48 @@
+      paths => {
+        const player = JSON.parse(readFileSync(paths.playerPath, "utf8"));
+        const observer = JSON.parse(readFileSync(paths.observerPath, "utf8"));
+        observer.seat.contextDigest = player.seat.contextDigest;
+        writeJson(paths.observerPath, observer);
+        const adjudicator = JSON.parse(readFileSync(paths.adjudicatorPath, "utf8"));
+        adjudicator.observerPacketSha256 = sha(paths.observerPath);
+        writeJson(paths.adjudicatorPath, adjudicator);
+      },
+      paths => {
+        const player = JSON.parse(readFileSync(paths.playerPath, "utf8"));
+        player.sourceIsolation.sourceAccess = "candidate-source";
+        writeJson(paths.playerPath, player);
+        const observer = JSON.parse(readFileSync(paths.observerPath, "utf8"));
+        observer.playerPacketSha256 = sha(paths.playerPath);
+        writeJson(paths.observerPath, observer);
+        const adjudicator = JSON.parse(readFileSync(paths.adjudicatorPath, "utf8"));
+        adjudicator.observerPacketSha256 = sha(paths.observerPath);
+        writeJson(paths.adjudicatorPath, adjudicator);
+      },
+      paths => {
+        const adjudicator = JSON.parse(readFileSync(paths.adjudicatorPath, "utf8"));
+        adjudicator.seat.seatId = "unity-runtime";
+        adjudicator.artifactMutationCapability = true;
+        writeJson(paths.adjudicatorPath, adjudicator);
+      },
+      paths => {
+        const observer = JSON.parse(readFileSync(paths.observerPath, "utf8"));
+        const adjudicator = JSON.parse(readFileSync(paths.adjudicatorPath, "utf8"));
+        adjudicator.seat.seatId = observer.seat.seatId;
+        writeJson(paths.adjudicatorPath, adjudicator);
+      },
+    ];
+    for (const mutate of cases) {
+      const paths = fixture();
+      mutate(paths);
+      const result = spawnSync(ps, [
+        "-NoProfile", "-File", script,
+        "-PlayerProductTrainReceipt", paths.trainPath,
+        "-PlayerSessionReceipt", paths.sessionPath,
+        "-PlayerSeatPacket", paths.playerPath,
+        "-ObserverSeatPacket", paths.observerPath,
+        "-AdjudicatorSeatPacket", paths.adjudicatorPath,
+      ], { cwd: ROOT, encoding: "utf8" });
+      expect(result.status).not.toBe(0);
+    }
+  });
+});
