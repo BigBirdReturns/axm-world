@@ -1,0 +1,40 @@
+    seats = [ordered]@{
+        player = $player.seat
+        observer = $observer.seat
+        adjudicator = $adjudicator.seat
+        distinctSeatIds = $true
+        distinctLineageIds = $true
+        distinctContextDigests = $true
+        lineageAuthentication = "packet-declared-and-content-addressed"
+    }
+    sourceIsolation = [ordered]@{
+        player = $player.sourceIsolation
+        observer = $observer.sourceIsolation
+        adjudicatorSourceScope = $adjudicator.sourceScope
+        artifactMutationAllowed = $false
+        candidateAuthorMayIssueReceipt = $false
+    }
+    timing = $observer.timing
+    learning = [ordered]@{
+        requiredObjectiveIds = $requiredObjectives
+        completedObjectiveIds = $completedObjectives
+        teachPracticeMasterComplete = $true
+    }
+    comprehension = $answers
+    behavior = $observer.behavior
+    runtimeIssued = $false
+    candidateAuthorIssued = $false
+    humanEvidenceClaimed = $false
+    softwareEvidenceAuthority = "role-separated cold player, observer, and adjudicator lineages"
+    physicalHumanEvidence = "not-required-for-windows-software-acceptance"
+    physicalInstallationEvidence = "separate-open"
+    productAcceptance = "not-issued"
+    playerProductTrainReceipt = $trainPath
+}
+$receipt | ConvertTo-Json -Depth 40 | Set-Content -Encoding utf8 $output
+$shaPath = $output + ".sha256"
+$hash = File-Sha256 $output
+"$hash  $([System.IO.Path]::GetFileName($output))" | Set-Content -Encoding ascii $shaPath
+Write-Host "UNDERDRAIN cold-seat comprehension passed its software-evidence boundary."
+Write-Host "No human evidence, physical installation evidence, or player-product acceptance is claimed."
+Write-Host $output
