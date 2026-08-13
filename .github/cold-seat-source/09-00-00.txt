@@ -1,0 +1,115 @@
+{
+  "format": "rodoh-underdrain-comprehension-contract/1",
+  "productId": "underdrain-bloom-below-unity6000-v1",
+  "experienceId": "pump-seven-operation",
+  "challengeId": "breach-crown-pump",
+  "timingProfileId": "forgiving",
+  "playerRole": {
+    "expectedId": "rhea-venn",
+    "label": "Rhea Venn, civilian plumber under municipal draft"
+  },
+  "immediateConflict": {
+    "expectedId": "conflict-keep-water-running-without-flooding-hidden-nursery",
+    "label": "Keep Bellwether's water moving without letting the municipal purge flood the hidden fungal nursery.",
+    "supportingFactIds": [
+      "fact-valves-shield-nursery-branch",
+      "fact-city-purge-would-flood-nursery"
+    ]
+  },
+  "authoredChoice": {
+    "allowedIds": [
+      "emergency-plan",
+      "service-tunnel",
+      "truce-offer"
+    ]
+  },
+  "acceptedConsequenceByOutcome": {
+    "success": {
+      "expectedId": "fact-pump-seven-balanced",
+      "supportingFactIds": [
+        "fact-pump-seven-balanced",
+        "fact-nursery-route-preserved"
+      ]
+    },
+    "partial": {
+      "expectedId": "fact-pump-seven-ceasefire",
+      "supportingFactIds": [
+        "fact-pump-seven-ceasefire"
+      ]
+    },
+    "failure": {
+      "expectedId": "fact-crown-controls-pump-seven",
+      "supportingFactIds": [
+        "fact-crown-controls-pump-seven"
+      ]
+    }
+  },
+  "nextPlayableAction": {
+    "expectedId": "root-gate-parley",
+    "label": "Parley at the Root Gate"
+  },
+  "learningSequence": [
+    {
+      "phase": "teach",
+      "objectiveId": "diagnose-spore-valves",
+      "playerFacingLabel": "Inspect and reroute the three living spore valves"
+    },
+    {
+      "phase": "practice",
+      "objectiveId": "operate-purge-wheel",
+      "playerFacingLabel": "Hold the purge wheel at shared-flow pressure"
+    },
+    {
+      "phase": "master",
+      "objectiveId": "open-crown-sluice",
+      "playerFacingLabel": "Balance the Crown Sluice and open a communication route"
+    }
+  ],
+  "humanEvidence": {
+    "independentRequired": true,
+    "authoredCandidateMustBeFalse": true,
+    "inspectedSourceMustBeFalse": true,
+    "receivedWalkthroughMustBeFalse": true,
+    "maximumAssistanceEvents": 0,
+    "runtimeMayIssueReceipt": false,
+    "observerAndAdjudicatorMustDiffer": true,
+    "compatibilityAliasOnly": true,
+    "humanRequiredForWindowsSoftwareAcceptance": false,
+    "supersededBy": "softwareEvidence"
+  },
+  "contractRevision": "cold-seat-software-evidence-v1",
+  "packetFormats": {
+    "player": "rodoh-underdrain-cold-player-seat/1",
+    "observer": "rodoh-underdrain-cold-observer-seat/1",
+    "adjudicator": "rodoh-underdrain-cold-adjudicator-seat/1"
+  },
+  "softwareEvidence": {
+    "mode": "role-separated-cold-seat",
+    "seatIds": {
+      "player": "underdrain-cold-player",
+      "observer": "underdrain-cold-observer",
+      "adjudicator": "underdrain-cold-adjudicator"
+    },
+    "seatsMustDiffer": true,
+    "lineagesMustDiffer": true,
+    "contextDigestsMustDiffer": true,
+    "playerMayInspectSource": false,
+    "playerMayInspectRubric": false,
+    "playerMayInspectAnswerKey": false,
+    "observerMayInspectSource": false,
+    "observerMayInspectRubric": false,
+    "observerMayInspectAnswerKey": false,
+    "adjudicatorSourceScope": "contract-and-observation-only",
+    "artifactMutationAllowed": false,
+    "runtimeMayOccupySeat": false,
+    "runtimeMayIssueReceipt": false,
+    "candidateAuthorMayIssueReceipt": false,
+    "maximumAssistanceEvents": 0
+  },
+  "physicalEvidence": {
+    "requiredForWindowsSoftwareAcceptance": false,
+    "requiredForNamedPhysicalInstallationAcceptance": true,
+    "coldSeatReceiptMayClaimHumanEvidence": false,
+    "runtimeMayIssuePhysicalAcceptance": false
+  }
+}
