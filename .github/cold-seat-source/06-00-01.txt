@@ -1,0 +1,89 @@
+
+$playerPrefab = Require-ProjectAsset $projectRoot ([string]$template.player.bodyPrefab) "UNDERDRAIN player prefab"
+$arenaPrefab = Require-ProjectAsset $projectRoot ([string]$template.arena.recipe) "UNDERDRAIN arena prefab"
+$enemyPrefabs = @($template.enemies | ForEach-Object { Require-ProjectAsset $projectRoot ([string]$_.bodyPrefab) "UNDERDRAIN $($_.kit) prefab" })
+$resolvedAssets = @($playerPrefab) + $enemyPrefabs + @($arenaPrefab)
+if ($resolvedAssets.Count -lt 7) { throw "UNDERDRAIN production presentation must resolve at least seven core prefabs." }
+
+$jobRoot = Join-Path $projectRoot "local\scene-jobs\$JobId"
+$inputRoot = Join-Path $jobRoot "input"
+$outputRoot = Join-Path $jobRoot "output"
+$trainRoot = Join-Path $outputRoot "player-train"
+$logRoot = Join-Path $jobRoot "logs"
+New-Item -ItemType Directory -Force $inputRoot, $trainRoot, $logRoot | Out-Null
+
+$sourceArcPath = Join-Path $inputRoot "underdrain.pilot.arc.json"
+$nativeActionSpecPath = Join-Path $inputRoot "underdrain.action-spec.json"
+$canonicalActionSpecPath = Join-Path $inputRoot "underdrain.canonical.action-spec.json"
+$unityProjectionPath = Join-Path $inputRoot "underdrain.unity-action-spec.json"
+$csharpProjectionPath = Join-Path $inputRoot "underdrain.csharp-projection.json"
+$presentationPath = Join-Path $inputRoot "underdrain.effective-presentation.json"
+$sceneJobPath = Join-Path $inputRoot "action.scene-job.json"
+
+$generateScript = Join-Path $worldRoot "unity\Conformance\generate-project-authored-action-artifacts.mjs"
+$csharpProject = Join-Path $worldRoot "unity\Conformance\Axm.Rodoh.Action.CSharp.csproj"
+$runnerV2 = Join-Path $worldRoot "scripts\run-unity-action-local-v2.ps1"
+$runnerV3 = Join-Path $worldRoot "scripts\run-unity-action-local-v3.ps1"
+$qualifyPlayerProduct = Join-Path $worldRoot "scripts\qualify-unity-action-player-product.ps1"
+$buildPlayer = Join-Path $worldRoot "scripts\build-unity-action-player.ps1"
+foreach ($path in @($generateScript, $csharpProject, $runnerV2, $runnerV3, $qualifyPlayerProduct, $buildPlayer)) { if (-not (Test-Path $path)) { throw "Required UNDERDRAIN player-train source is absent: $path" } }
+
+$nodeLog = Join-Path $logRoot "underdrain-action-generation.log"
+$nodeArgs = @(
+    $generateScript,
+    "--arc-output", $sourceArcPath,
+    "--native-output", $nativeActionSpecPath,
+    "--canonical-output", $canonicalActionSpecPath,
+    "--unity-output", $unityProjectionPath,
+    "--timing-profile", $ExpectedTimingProfile
+)
+Invoke-Checked "node" $nodeArgs "Generating the exact project-authored UNDERDRAIN Arc and action specs..." $nodeLog
+
+$csharpLog = Join-Path $logRoot "underdrain-action-csharp.log"
+$csharpArgs = @("run", "--project", $csharpProject, "--", $nativeActionSpecPath, $csharpProjectionPath)
+Invoke-Checked "dotnet" $csharpArgs "Running the independent C# action-contract projection..." $csharpLog
+
+$nodeProjection = Get-Content $unityProjectionPath -Raw | ConvertFrom-Json
+$csharpProjection = Get-Content $csharpProjectionPath -Raw | ConvertFrom-Json
+if ($nodeProjection.actionSpecDigest -ne $csharpProjection.actionSpecDigest) { throw "Node and C# disagree on UNDERDRAIN action-spec identity." }
+if ($nodeProjection.arcDigest -ne $csharpProjection.arcDigest) { throw "Node and C# disagree on UNDERDRAIN Arc identity." }
+if ($nodeProjection.timingProfileId -ne $ExpectedTimingProfile -or $csharpProjection.timingProfileId -ne $ExpectedTimingProfile) { throw "UNDERDRAIN source generation lost the forgiving timing profile." }
+$nodeCues = @($nodeProjection.semanticCues | ForEach-Object { [string]$_.cueId } | Sort-Object -Unique)
+$csharpCues = @($csharpProjection.semanticCues | ForEach-Object { [string]$_.cueId } | Sort-Object -Unique)
+if (($nodeCues -join "\n") -ne ($csharpCues -join "\n")) { throw "Node and C# disagree on UNDERDRAIN semantic cue coverage." }
+if ($nodeCues.Count -lt 17) { throw "UNDERDRAIN production source must expose at least seventeen semantic cues." }
+
+$effectivePresentation = $template | ConvertTo-Json -Depth 30 | ConvertFrom-Json
+$effectivePresentation.sourceActionSpecDigest = $nodeProjection.actionSpecDigest
+$effectivePresentationId = "underdrain-bloom-below-$($nodeProjection.actionSpecDigest.Substring(9, 12))"
+$effectivePresentation.manifestId = $effectivePresentationId
+$effectivePresentation | ConvertTo-Json -Depth 30 | Set-Content -Encoding utf8 $presentationPath
+$effectivePresentationSha = (Get-FileHash $presentationPath -Algorithm SHA256).Hash.ToLowerInvariant()
+$sceneJob = [ordered]@{
+    format = "rodoh-action-scene-job/1"
+    jobId = $JobId
+    sessionId = $SessionId
+    deviceId = $DeviceId
+    unityScenePath = $profile.scenePath
+    productId = $profile.productId
+    productProfileSha256 = (Get-FileHash $profilePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    arcPath = $sourceArcPath
+    arcDigest = $nodeProjection.arcDigest
+    actionSpecPath = $nativeActionSpecPath
+    actionSpecDigest = $nodeProjection.actionSpecDigest
+    timingProfileId = $ExpectedTimingProfile
+    expectedResultDigest = $nodeProjection.expectedResultDigest
+    authoredPresentation = $presentationPath
+    authoredPresentationId = $effectivePresentationId
+    authoredPresentationSha256 = $effectivePresentationSha
+    presentationAdapterId = $profile.presentationAdapterId
+    controlAdapterId = $profile.controlAdapterId
+    initialQuality = $InitialQuality
+    accessibility = [ordered]@{
+        reducedMotion = [bool]$ReducedMotion
+        highContrast = [bool]$HighContrast
+    }
+    expectedCandidate = $nodeProjection.expectedCandidate
+    candidateAuthority = "Arc replay required"
+    playerProduct = [ordered]@{
+        required = $true
