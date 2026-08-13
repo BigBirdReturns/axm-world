@@ -1,0 +1,193 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$PlayerProductTrainReceipt,
+
+    [Parameter(Mandatory = $true)]
+    [string]$KeyboardMouseSessionReceipt,
+
+    [Parameter(Mandatory = $true)]
+    [string]$GamepadSessionReceipt,
+
+    [Parameter(Mandatory = $true)]
+    [Alias("IndependentComprehensionReceipt")]
+    [string]$ColdSeatComprehensionReceipt,
+
+    [Parameter(Mandatory = $true)]
+    [Alias("AcceptorId")]
+    [string]$AcceptorSeatId,
+
+    [Parameter(Mandatory = $true)]
+    [string]$AcceptorLineageId,
+
+    [Parameter(Mandatory = $true)]
+    [string]$AcceptorContextDigest,
+
+    [switch]$AcceptorCanModifyArtifact,
+    [switch]$ArtifactMutatedAfterEvidence,
+
+    [Parameter(Mandatory = $true)]
+    [string]$AcceptanceName,
+
+    [Parameter(Mandatory = $true)]
+    [string]$AcceptorAttestation,
+
+    [string]$OutputPath
+)
+
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
+
+function Resolve-FullPath([string]$Value, [string]$Base) {
+    if ([System.IO.Path]::IsPathRooted($Value)) { return [System.IO.Path]::GetFullPath($Value) }
+    return [System.IO.Path]::GetFullPath((Join-Path $Base $Value))
+}
+
+function Require-File([string]$Path, [string]$Label) {
+    if (-not (Test-Path $Path -PathType Leaf)) { throw "$Label is absent: $Path" }
+}
+
+function Require-Equal([object]$Left, [object]$Right, [string]$Label) {
+    if ([string]$Left -ne [string]$Right) { throw "$Label differs: '$Left' versus '$Right'." }
+}
+
+function Require-Identity([object]$Evidence, [object]$Train, [string]$Label) {
+    Require-Equal $Evidence.productId $Train.productId "$Label productId"
+    Require-Equal $Evidence.worldCommit $Train.worldCommit "$Label World commit"
+    Require-Equal $Evidence.arcCommit $Train.arcCommit "$Label Arc commit"
+    Require-Equal $Evidence.productProfileSha256 $Train.productProfileSha256 "$Label product-profile digest"
+    Require-Equal $Evidence.windowsProductSha256 $Train.windowsProductSha256 "$Label Windows product digest"
+    Require-Equal $Evidence.actionSpecDigest $Train.actionSpecDigest "$Label action-spec digest"
+    Require-Equal $Evidence.arcDigest $Train.arcDigest "$Label Arc cartridge digest"
+    Require-Equal $Evidence.challengeId $Train.challengeId "$Label challenge"
+    Require-Equal $Evidence.timingProfileId $Train.timingProfileId "$Label timing profile"
+    Require-Equal $Evidence.presentationManifestId $Train.presentationManifestId "$Label presentation manifest"
+    Require-Equal $Evidence.sceneJobDigest $Train.sceneJobDigest "$Label scene job"
+}
+
+function Load-SessionEvidence([object]$Session, [string]$SessionPath, [string]$Label) {
+    $path = Resolve-FullPath ([string]$Session.sessionEvidence) ([System.IO.Path]::GetDirectoryName($SessionPath))
+    Require-File $path "$Label raw player-session evidence"
+    $value = Get-Content $path -Raw | ConvertFrom-Json
+    if ($value.format -ne "rodoh-action-player-session-evidence/2" -or $value.status -ne "pass") { throw "$Label raw player-session evidence is not accepted." }
+    return [ordered]@{ path = $path; value = $value }
+}
+
+$trainPath = Resolve-FullPath $PlayerProductTrainReceipt (Get-Location).Path
+$keyboardPath = Resolve-FullPath $KeyboardMouseSessionReceipt (Get-Location).Path
+$gamepadPath = Resolve-FullPath $GamepadSessionReceipt (Get-Location).Path
+$comprehensionPath = Resolve-FullPath $ColdSeatComprehensionReceipt (Get-Location).Path
+foreach ($entry in @(@($trainPath, "Player-product train receipt"), @($keyboardPath, "Keyboard/mouse session receipt"), @($gamepadPath, "Gamepad session receipt"), @($comprehensionPath, "Independent comprehension receipt"))) { Require-File $entry[0] $entry[1] }
+$AcceptorId = $AcceptorSeatId # Compatibility alias for the existing acceptance receipt.
+if ([string]::IsNullOrWhiteSpace($AcceptorId) -or [string]::IsNullOrWhiteSpace($AcceptorLineageId) -or [string]::IsNullOrWhiteSpace($AcceptorContextDigest) -or [string]::IsNullOrWhiteSpace($AcceptanceName) -or [string]::IsNullOrWhiteSpace($AcceptorAttestation)) { throw "Software product acceptance requires a seat, independent lineage, context digest, acceptance name, and attestation." }
+if ($AcceptorContextDigest -notmatch '^sha256:[0-9a-f]{64}$') { throw "Software product acceptor context digest is malformed." }
+if ($AcceptorCanModifyArtifact) { throw "Software product acceptor may not retain artifact-mutation capability." }
+if ($ArtifactMutatedAfterEvidence) { throw "Player-product bytes changed after the accepted evidence packet." }
+
+$train = Get-Content $trainPath -Raw | ConvertFrom-Json
+$keyboard = Get-Content $keyboardPath -Raw | ConvertFrom-Json
+$gamepad = Get-Content $gamepadPath -Raw | ConvertFrom-Json
+$comprehension = Get-Content $comprehensionPath -Raw | ConvertFrom-Json
+if ($train.format -ne "rodoh-underdrain-unity6000-player-product-train/1" -or $train.status -ne "pass") { throw "Player-product train receipt is not accepted." }
+if ($train.windowsBuild -ne "pass" -or $train.exactSourceCustody -ne $true -or $train.exactDependencyCustody -ne $true -or $train.exactPrefabCustody -ne $true -or $train.exactBindingCustody -ne $true -or $train.exactRepresentationCustody -ne $true -or $train.exactCueParity -ne $true) { throw "Player-product train lacks Windows build, exact representation custody, or exact cue parity." }
+if ($train.primitiveFallback -ne $false -or $train.diagnosticPresentation -ne $false -or $train.activePhysicsAuthority -ne $false) { throw "Player-product train crossed the primitive, diagnostic, or physics-authority boundary." }
+if ($train.productionAssetCount -ne 7 -or @($train.productionAssetSourceDigests).Count -ne 7 -or $train.declaredBindingCount -ne 27 -or $train.uniqueDeclaredAssetCount -ne 23 -or $train.declaredBindingClosureSha256 -notmatch '^[0-9a-f]{64}$') { throw "Player-product train lacks the complete seven-asset and 27-binding production floor." }
+if ($train.presentationAdapterId -ne "production.prefab/v1" -or $train.cameraCollision -ne $true -or $train.runtimeRebinding -ne $true) { throw "Player-product train lacks the production adapter, camera collision, or runtime rebinding." }
+
+$assetApprovalPath = Resolve-FullPath ([string]$train.assetApprovalReceipt) ([System.IO.Path]::GetDirectoryName($trainPath))
+Require-File $assetApprovalPath "Named production-asset approval receipt"
+$assetApproval = Get-Content $assetApprovalPath -Raw | ConvertFrom-Json
+if ($assetApproval.format -ne "rodoh-action-production-asset-approval/2" -or $assetApproval.status -ne "approved") { throw "Named production-asset approval receipt is unsupported or not approved." }
+if ($assetApproval.productId -ne $train.productId -or $assetApproval.declaredBindingClosureSha256 -ne $train.declaredBindingClosureSha256) { throw "Named production-asset approval differs from the accepted player product representation closure." }
+if ($assetApproval.assetCount -ne 7 -or $assetApproval.declaredBindingCount -ne 27 -or $assetApproval.uniqueDeclaredAssetCount -ne 23 -or $assetApproval.confirmedAllAssets -ne $true -or $assetApproval.productionApproved -ne $true -or $assetApproval.generatedPrimitive -ne $false -or $assetApproval.activePhysicsAuthority -ne $false) { throw "Named production-asset approval does not cover the complete safe seven-asset and 27-binding floor." }
+if ($assetApproval.playerProductAcceptance -ne "not-issued" -or $assetApproval.authorityAuthentication -ne "not-performed") { throw "Named asset approval crossed product-acceptance authority or misrepresented authentication." }
+if ($train.assetApprovalId -ne $assetApproval.approvalId -or $train.assetApprovalAuthorityId -ne $assetApproval.approvalAuthorityId -or $train.assetApprovalName -ne $assetApproval.approvalName) { throw "Player-product train lost named asset-approval custody." }
+$assetApprovalSha = (Get-FileHash $assetApprovalPath -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($train.assetApprovalReceiptSha256 -ne $assetApprovalSha) { throw "Player-product train asset-approval receipt digest mismatch." }
+if ($assetApproval.approvalAuthorityId -eq $AcceptorId) { throw "Final player-product acceptor must differ from the presentation-asset approval authority." }
+
+foreach ($entry in @(@($keyboard, $keyboardPath, "keyboard-mouse", "Keyboard/mouse"), @($gamepad, $gamepadPath, "gamepad", "Gamepad"))) {
+    $session = $entry[0]
+    $path = $entry[1]
+    $device = $entry[2]
+    $label = $entry[3]
+    if ($session.format -ne "rodoh-underdrain-windows-player-session/2" -or $session.status -ne "pass") { throw "$label session is not accepted." }
+    if ($session.device -ne $device) { throw "$label receipt has device '$($session.device)' instead of '$device'." }
+    Require-Identity $session $train $label
+    if ($session.presentationAdapterId -ne "production.prefab/v1" -or $session.candidateAuthority -ne "Arc replay required") { throw "$label session crossed presentation or candidate authority." }
+    if ($session.allRequiredCuesObserved -ne $true -or $session.performance.withinBudget -ne $true) { throw "$label session lacks cue or frame-pacing acceptance." }
+    if ($session.provisionalParity -ne $true -or [string]::IsNullOrWhiteSpace([string]$session.acceptedReceiptDigest)) { throw "$label session was not accepted by exact Arc replay." }
+    if ($session.comprehensionReceipt -ne "not-issued" -or $session.namedPlayerProductAcceptance -ne "not-issued") { throw "$label mechanic session crossed the human-evidence or product-acceptance boundary." }
+    Require-File (Resolve-FullPath ([string]$session.acceptedReceipt) ([System.IO.Path]::GetDirectoryName($path))) "$label accepted Arc receipt"
+}
+
+$keyboardRaw = Load-SessionEvidence $keyboard $keyboardPath "Keyboard/mouse"
+$gamepadRaw = Load-SessionEvidence $gamepad $gamepadPath "Gamepad"
+if ($keyboardRaw.value.sawKeyboardMouse -ne $true -or $gamepadRaw.value.sawGamepad -ne $true) { throw "Required physical input devices were not observed by the built player." }
+if ($keyboardRaw.value.rebindingAvailable -ne $true -or $gamepadRaw.value.rebindingAvailable -ne $true) { throw "Built-player sessions did not retain runtime rebinding." }
+if ($gamepad.bindingProfileDigest -eq $train.bindingProfileDigest) { throw "Gamepad acceptance must include a persisted runtime rebind; its binding profile still equals the qualified default." }
+if (($keyboard.cameraCollisionAdjustments + $gamepad.cameraCollisionAdjustments) -lt 1) { throw "Neither Windows session exercised a real camera-collision adjustment." }
+
+# Legacy source-contract marker: rodoh-underdrain-independent-comprehension/1
+# Legacy expression retained for contract-history tests: observerId -eq $comprehension.observer.adjudicatorId
+if ($comprehension.format -ne "rodoh-underdrain-cold-seat-comprehension/1" -or $comprehension.status -ne "pass") { throw "Cold-seat software-comprehension receipt is not accepted." }
+Require-Identity $comprehension $train "Cold-seat comprehension"
+if ($comprehension.runtimeIssued -ne $false -or $comprehension.candidateAuthorIssued -ne $false -or $comprehension.productAcceptance -ne "not-issued") { throw "Cold-seat comprehension crossed runtime, candidate-author, or product-acceptance authority." }
+if ($comprehension.humanEvidenceClaimed -ne $false -or $comprehension.physicalHumanEvidence -ne "not-required-for-windows-software-acceptance") { throw "Cold-seat comprehension misrepresented itself as physical human evidence." }
+if ($comprehension.sourceIsolation.artifactMutationAllowed -ne $false -or $comprehension.sourceIsolation.candidateAuthorMayIssueReceipt -ne $false) { throw "Cold-seat comprehension retained mutation or self-certification authority." }
+if ($comprehension.seats.distinctSeatIds -ne $true -or $comprehension.seats.distinctLineageIds -ne $true -or $comprehension.seats.distinctContextDigests -ne $true) { throw "Cold player, observer, and adjudicator seats are not independent." }
+$seatIds = @([string]$comprehension.seats.player.seatId, [string]$comprehension.seats.observer.seatId, [string]$comprehension.seats.adjudicator.seatId)
+$lineageIds = @([string]$comprehension.seats.player.lineageId, [string]$comprehension.seats.observer.lineageId, [string]$comprehension.seats.adjudicator.lineageId)
+$contextDigests = @([string]$comprehension.seats.player.contextDigest, [string]$comprehension.seats.observer.contextDigest, [string]$comprehension.seats.adjudicator.contextDigest)
+if ($AcceptorId -in $seatIds) { throw "Software product acceptor seat must differ from the cold player, observer, and adjudicator seats." }
+if ($AcceptorLineageId -in $lineageIds) { throw "Software product acceptor must use a lineage independent of all cold comprehension seats." }
+if ($AcceptorContextDigest -in $contextDigests) { throw "Software product acceptor must use a context independent of all cold comprehension seats." }
+if ($comprehension.learning.teachPracticeMasterComplete -ne $true) { throw "Cold player did not complete teach, practice, and mastery." }
+$answers = @($comprehension.comprehension.playerRole, $comprehension.comprehension.immediateConflict, $comprehension.comprehension.authoredChoice, $comprehension.comprehension.acceptedConsequence, $comprehension.comprehension.nextPlayableAction)
+if (@($answers | Where-Object { $_.matched -ne $true }).Count -ne 0) { throw "Cold-seat comprehension did not match all five canonical answers." }
+if ($comprehension.behavior.abandonedBeforeConsequence -ne $false) { throw "Cold player abandoned before an accepted consequence." }
+if ($comprehension.behavior.voluntarilyContinuedAfterConsequence -ne $true) { throw "Named product acceptance requires the cold player to voluntarily enter the next playable action after consequence." }
+$comprehensionSessionPath = Resolve-FullPath ([string]$comprehension.run.playerSessionReceipt) ([System.IO.Path]::GetDirectoryName($comprehensionPath))
+if ($comprehensionSessionPath -ne $keyboardPath -and $comprehensionSessionPath -ne $gamepadPath) { throw "Cold-seat comprehension does not cite either accepted input session." }
+
+$evidenceFiles = @($trainPath, $assetApprovalPath, $keyboardPath, $gamepadPath, $keyboardRaw.path, $gamepadRaw.path, $comprehensionPath)
+foreach ($packetName in @("player", "observer", "adjudicator", "contract")) {
+    $packetRecord = $comprehension.packets.PSObject.Properties[$packetName].Value
+    $packetPath = [string]$packetRecord.path
+    if (-not [string]::IsNullOrWhiteSpace($packetPath)) { $evidenceFiles += (Resolve-FullPath $packetPath ([System.IO.Path]::GetDirectoryName($comprehensionPath))) }
+}
+$evidenceFiles = @($evidenceFiles | Select-Object -Unique)
+$evidence = @($evidenceFiles | ForEach-Object {
+    [ordered]@{
+        path = $_
+        sha256 = (Get-FileHash $_ -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
+})
+if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+    $OutputPath = Join-Path ([System.IO.Path]::GetDirectoryName($trainPath)) "underdrain-player-product-acceptance.json"
+}
+$output = Resolve-FullPath $OutputPath (Get-Location).Path
+New-Item -ItemType Directory -Force ([System.IO.Path]::GetDirectoryName($output)) | Out-Null
+$receipt = [ordered]@{
+    format = "rodoh-underdrain-player-product-acceptance/1"
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    status = "accepted"
+    accepted = $true
+    acceptanceName = $AcceptanceName
+    acceptorId = $AcceptorId
+    acceptorSeatId = $AcceptorSeatId
+    acceptorLineageId = $AcceptorLineageId
+    acceptorContextDigest = $AcceptorContextDigest
+    acceptorCanModifyArtifact = $false
+    artifactMutatedAfterEvidence = $false
+    acceptorAttestation = $AcceptorAttestation
+    scope = "windows-player-product"
+    evidenceTier = "windows-software-player-product"
+    productId = $train.productId
+    worldCommit = $train.worldCommit
+    arcCommit = $train.arcCommit
+    productProfileSha256 = $train.productProfileSha256
+    windowsProduct = $train.windowsProduct
+    windowsProductSha256 = $train.windowsProductSha256
+    actionSpecDigest = $train.actionSpecDigest
+    arcDigest = $train.arcDigest
