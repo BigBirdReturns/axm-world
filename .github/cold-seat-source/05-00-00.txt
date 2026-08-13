@@ -1,0 +1,101 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$EmbodiedArLabRoot,
+
+    [Parameter(Mandatory = $true)]
+    [string]$ArcRoot,
+
+    [string]$AuthoredPresentationTemplate,
+    [string]$ProductProfile,
+    [string]$AssetApprovalReceipt,
+    [string]$JobId = "underdrain-unity6000-player-v1",
+    [string]$SessionId,
+    [string]$DeviceId = "windows-local",
+    [ValidateSet("low", "standard", "high")]
+    [string]$InitialQuality = "standard",
+    [string]$UnityVersion = "6000.0.66f2",
+    [string]$UnityEditor,
+    [switch]$ReducedMotion,
+    [switch]$HighContrast,
+    [switch]$SkipNpmInstall,
+    [switch]$SkipUnityTests,
+    [switch]$SkipWindowsBuild,
+    [switch]$SkipWindowsSmoke,
+    [switch]$DevelopmentBuild,
+    [switch]$ForceCloseUnity
+)
+
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
+
+function Resolve-FullPath([string]$Value, [string]$Base) {
+    if ([System.IO.Path]::IsPathRooted($Value)) { return [System.IO.Path]::GetFullPath($Value) }
+    return [System.IO.Path]::GetFullPath((Join-Path $Base $Value))
+}
+
+function Invoke-CheckedPowerShell([string]$Script, [hashtable]$Parameters, [string]$Label) {
+    $arguments = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $Script)
+    foreach ($key in $Parameters.Keys) {
+        $value = $Parameters[$key]
+        if ($value -is [System.Management.Automation.SwitchParameter] -or $value -is [bool]) {
+            if ([bool]$value) { $arguments += "-$key" }
+        } elseif ($null -ne $value -and -not [string]::IsNullOrWhiteSpace([string]$value)) {
+            $arguments += @("-$key", [string]$value)
+        }
+    }
+    Write-Host $Label
+    & powershell.exe @arguments
+    if ($LASTEXITCODE -ne 0) { throw "$Label failed with exit $LASTEXITCODE." }
+}
+
+function Index-ByAssetId([object[]]$Assets, [string]$Label) {
+    $index = @{}
+    foreach ($asset in @($Assets)) {
+        $id = [string]$asset.assetId
+        if ([string]::IsNullOrWhiteSpace($id)) { throw "$Label contains an asset without an assetId." }
+        if ($index.ContainsKey($id)) { throw "$Label contains duplicate assetId $id." }
+        $index[$id] = $asset
+    }
+    return $index
+}
+
+$worldRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+$projectRoot = Resolve-FullPath $EmbodiedArLabRoot (Get-Location).Path
+$arcPath = Resolve-FullPath $ArcRoot (Get-Location).Path
+if ([string]::IsNullOrWhiteSpace($AuthoredPresentationTemplate)) { $AuthoredPresentationTemplate = Join-Path $worldRoot "unity\Fixtures\underdrain.authored-presentation.template.json" }
+if ([string]::IsNullOrWhiteSpace($ProductProfile)) { $ProductProfile = Join-Path $worldRoot "unity\Fixtures\underdrain.player-product.json" }
+$templatePath = Resolve-FullPath $AuthoredPresentationTemplate $worldRoot
+$profilePath = Resolve-FullPath $ProductProfile $worldRoot
+if ([string]::IsNullOrWhiteSpace($SessionId)) { $SessionId = $JobId }
+if ([string]::IsNullOrWhiteSpace($UnityEditor)) { $UnityEditor = "C:\Program Files\Unity\Hub\Editor\$UnityVersion\Editor\Unity.exe" }
+$unityPath = [System.IO.Path]::GetFullPath($UnityEditor)
+if (-not (Test-Path $unityPath)) { throw "Unity Editor is absent: $unityPath" }
+
+$worldCommit = (& git -C $worldRoot rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $worldCommit -notmatch '^[0-9a-f]{40}$') { throw "World checkout identity could not be resolved." }
+if (& git -C $worldRoot status --porcelain) { throw "World checkout must be clean before production qualification." }
+
+$jobRoot = Join-Path $projectRoot "local\scene-jobs\$JobId"
+$outputRoot = Join-Path $jobRoot "output"
+$trainRoot = Join-Path $outputRoot "player-train"
+$approvalRoot = Join-Path $trainRoot "production-asset-approval"
+$intakeRoot = Join-Path $trainRoot "production-asset-intake"
+$auditRoot = Join-Path $trainRoot "production-asset-audit"
+if ([string]::IsNullOrWhiteSpace($AssetApprovalReceipt)) { $AssetApprovalReceipt = Join-Path $approvalRoot "production-asset-approval.json" }
+$approvalPath = Resolve-FullPath $AssetApprovalReceipt (Get-Location).Path
+foreach ($path in @($templatePath, $profilePath, $approvalPath)) { if (-not (Test-Path $path)) { throw "UNDERDRAIN player-product input is absent: $path" } }
+$approval = Get-Content $approvalPath -Raw | ConvertFrom-Json
+if ($approval.format -ne "rodoh-action-production-asset-approval/2" -or $approval.status -ne "approved" -or $approval.assetCount -ne 7 -or $approval.declaredBindingCount -ne 27 -or $approval.uniqueDeclaredAssetCount -ne 23 -or $approval.declaredBindingClosureSha256 -notmatch '^[0-9a-f]{64}$' -or $approval.productionApproved -ne $true) { throw "UNDERDRAIN production assets lack a complete named representation-closure approval receipt." }
+if ($approval.playerProductAcceptance -ne "not-issued") { throw "Asset approval receipt falsely claims player-product acceptance." }
+New-Item -ItemType Directory -Force $intakeRoot, $auditRoot | Out-Null
+
+$intakeScript = Join-Path $worldRoot "scripts\prepare-underdrain-production-assets.ps1"
+$sourceTrainScript = Join-Path $worldRoot "scripts\run-underdrain-unity6000-player-train.ps1"
+$auditScript = Join-Path $worldRoot "scripts\audit-underdrain-production-assets.ps1"
+foreach ($script in @($intakeScript, $sourceTrainScript, $auditScript)) { if (-not (Test-Path $script)) { throw "Required UNDERDRAIN product script is absent: $script" } }
+
+Invoke-CheckedPowerShell $intakeScript @{
+    EmbodiedArLabRoot = $projectRoot
+    PresentationManifest = $templatePath
+    ProductProfile = $profilePath
