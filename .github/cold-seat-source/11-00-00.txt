@@ -1,0 +1,399 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Security.Cryptography;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+namespace Axm.Rodoh.Action.Editor
+{
+    [Serializable]
+    public sealed class ActionPlayerProductProfile
+    {
+        public string format;
+        public string productId;
+        public string experienceId;
+        public string challengeId;
+        public string timingProfileId;
+        public string scenePath;
+        public string presentationAdapterId;
+        public string controlAdapterId;
+        public string mode;
+        public string[] requiredDevices;
+        public ActionPlayerProductIdentityPolicy productIdentity;
+        public ActionPlayerProductPresentationPolicy presentation;
+        public ActionPlayerProductControlPolicy controls;
+        public ActionPlayerProductPerformancePolicy performance;
+        public ActionPlayerProductAcceptancePolicy acceptance;
+        public ActionPlayerProductSoftwareAcceptancePolicy softwareAcceptance;
+        public ActionPlayerProductPhysicalAcceptancePolicy physicalAcceptance;
+        public ActionPlayerProductAccessibilityPolicy accessibility;
+    }
+
+    [Serializable]
+    public sealed class ActionPlayerProductIdentityPolicy
+    {
+        public bool serializedOnPlayerRoot;
+        public bool requiredAtRuntime;
+        public bool requiredForBuild;
+        public bool requiredForPhysicalSession;
+        public bool worldCommitExact;
+        public bool arcCommitExact;
+        public bool profileDigestExact;
+        public bool sceneDigestExact;
+        public bool actionSpecDigestExact;
+        public bool arcDigestExact;
+        public bool presentationManifestIdExact;
+        public bool sceneJobDigestExact;
+    }
+
+    [Serializable]
+    public sealed class ActionPlayerProductPresentationPolicy
+    {
+        public bool primitiveFallbackAllowed;
+        public bool diagnosticPresentationAllowed;
+        public int minimumProductionAssetCount;
+        public bool allFiveEnemyKitsRequired;
+        public bool arenaPrefabRequired;
+        public bool semanticCueFeedbackRequired;
+        public int minimumSemanticCueCount;
+        public bool cameraCollisionRequired;
+        public bool runtimeRebindingRequired;
+        public bool activeUnityPhysicsAuthorityAllowed;
+        public bool assetProvenanceRequired;
+        public bool namedRepresentationApprovalRequired;
+        public string representationApprovalReceiptFormat;
+        public bool approvalMustBindCompleteDependencyClosure;
+        public bool approvalMustBindPrefabAndMetaCustody;
+        public bool approvalMustBindDeclaredBindingClosure;
+        public int minimumDeclaredBindingCount;
+        public int minimumUniqueDeclaredAssetCount;
+        public string representationIntakeReceiptFormat;
+        public string representationAuditReceiptFormat;
+        public bool readOnlyIntakeRequired;
+        public bool readOnlyPostSerializationAuditRequired;
+        public bool finalAcceptorMustDifferFromRepresentationApprover;
+    }
+
+    [Serializable]
+    public sealed class ActionPlayerProductControlPolicy
+    {
+        public bool keyboardMouseRequired;
+        public bool gamepadRequired;
+        public bool runtimeRebindingRequired;
+        public bool gamepadRebindMustChangeProfileDigest;
+        public bool oneHandedMappings;
+    }
+
+    [Serializable]
+    public sealed class ActionPlayerProductPerformancePolicy
+    {
+        public int targetFps;
+        public float maximumP95FrameMilliseconds;
+        public float maximumP99FrameMilliseconds;
+        public int minimumMeasuredFrames;
+        public bool perDeviceReceiptRequired;
+    }
+
+    [Serializable]
+    public sealed class ActionPlayerProductAcceptancePolicy
+    {
+        public bool fullTeachPracticeMasterRequired;
+        public bool allRequiredCuesObserved;
+        public bool cameraCollisionObserved;
+        public bool bindingProfileRecorded;
+        public string candidateAuthority;
+        public bool arcReplayRequired;
+        public bool roleSeparatedColdSeatsRequired;
+        public bool coldPlayerObserverAdjudicatorMustDiffer;
+        public bool coldPlayerObserverAdjudicatorLineagesMustDiffer;
+        public bool coldPlayerObserverAdjudicatorContextsMustDiffer;
+        public bool sourceIsolationRequired;
+        public bool immutableObservationPacketRequired;
+        public bool runtimeMayIssueComprehensionReceipt;
+        public bool candidateAuthorMayIssueComprehensionReceipt;
+        public bool coldSeatReceiptMayClaimHumanEvidence;
+        public bool humanRequiredForWindowsSoftwareAcceptance;
+        public bool physicalHumanEvidenceSeparate;
+        public bool finalSoftwareAcceptorSeatMustDiffer;
+        public bool finalSoftwareAcceptorLineageMustDiffer;
+        public bool finalSoftwareAcceptorContextMustDiffer;
+        public bool finalAcceptorMayModifyArtifact;
+        public bool voluntaryContinuationAfterConsequenceRequired;
+        public bool namedPlayerProductAcceptanceRequired;
+    }
+
+    [Serializable]
+    public sealed class ActionPlayerProductSoftwareAcceptancePolicy
+    {
+        public string comprehensionMode;
+        public string comprehensionReceiptFormat;
+        public bool humanRequired;
+        public bool runtimeMayIssueReceipt;
+    }
+
+    [Serializable]
+    public sealed class ActionPlayerProductPhysicalAcceptancePolicy
+    {
+        public string humanPlayEvidence;
+        public string householdInstallationEvidence;
+        public string questEvidence;
+        public bool coldSeatMayClaimHumanEvidence;
+        public bool requiredForWindowsSoftwareAcceptance;
+    }
+
+    [Serializable]
+    public sealed class ActionPlayerProductAccessibilityPolicy
+    {
+        public bool reducedMotionSupported;
+        public bool highContrastSupported;
+        public bool audioOptional;
+        public bool hapticsOptional;
+        public bool oneHandedMappings;
+    }
+
+    [Serializable]
+    public sealed class ActionPlayerProductAssetReceipt
+    {
+        public string assetId;
+        public string prefabPath;
+        public string prefabSha256;
+        public string sourcePath;
+        public string sourceSha256;
+        public bool approved;
+        public string approvalId;
+        public string approvalAuthorityId;
+        public string approvalName;
+        public string approvalAttestation;
+        public string approvedAt;
+        public bool generatedPrimitive;
+        public bool activePhysicsAuthority;
+    }
+
+    [Serializable]
+    public sealed class ActionPlayerProductReceipt
+    {
+        public string format;
+        public string generatedAt;
+        public string status;
+        public string productId;
+        public string productProfileSha256;
+        public string worldCommit;
+        public string arcCommit;
+        public string unityVersion;
+        public string challengeId;
+        public string timingProfileId;
+        public string actionSpecDigest;
+        public string arcDigest;
+        public string presentationManifestId;
+        public string presentationManifestSha256;
+        public string scenePath;
+        public string sceneSha256;
+        public string sceneJobDigest;
+        public string presentationAdapterId;
+        public bool diagnosticPresentation;
+        public bool primitiveFallback;
+        public bool activePhysicsAuthority;
+        public string playerAssetId;
+        public string arenaAssetId;
+        public string[] enemyAssetIds;
+        public string[] productionAssetIds;
+        public ActionPlayerProductAssetReceipt[] assets;
+        public bool exactCueCoverage;
+        public bool semanticCueFeedback;
+        public bool cameraCollision;
+        public int arenaCollisionSurfaces;
+        public bool keyboardMouse;
+        public bool gamepad;
+        public bool runtimeRebinding;
+        public string bindingProfileDigest;
+        public bool playerSessionEvidence;
+        public bool performanceRecorder;
+        public bool buildEligible;
+        public string independentComprehension;
+        public string coldSeatComprehension;
+        public string physicalHumanEvidence;
+        public string humanEvidence;
+        public string productAcceptance;
+        public string error;
+    }
+
+    /// <summary>
+    /// Exact serialized player-product gate. This is stronger than source
+    /// conformance and weaker than a built-player, device, cold-seat comprehension,
+    /// physical-human, or final product-acceptance receipt.
+    /// </summary>
+    public static class ActionPlayerProductBatch
+    {
+        private const string ReceiptFormat = "rodoh-action-player-product-qualification/1";
+        private const string SceneJobFormat = "rodoh-action-scene-job/1";
+        private const string ProductProfileFormat = "rodoh-action-player-product-profile/1";
+
+        public static void Run()
+        {
+            var outputRoot = GetRequiredArgument("-outputRoot");
+            Directory.CreateDirectory(outputRoot);
+            var receiptPath = Path.Combine(outputRoot, "player-product-qualification.json");
+            var receipt = new ActionPlayerProductReceipt
+            {
+                format = ReceiptFormat,
+                generatedAt = DateTime.UtcNow.ToString("o"),
+                status = "fail",
+                independentComprehension = "open",
+                coldSeatComprehension = "open",
+                physicalHumanEvidence = "separate-open",
+                humanEvidence = "separate-open",
+                productAcceptance = "not-issued",
+            };
+
+            try
+            {
+                var scenePath = NormalizeAssetPath(GetRequiredArgument("-scenePath"));
+                var sceneJobPath = GetRequiredArgument("-sceneJob");
+                var presentationPath = GetRequiredArgument("-presentation");
+                var productProfilePath = GetRequiredArgument("-productProfile");
+                var worldCommit = GetRequiredArgument("-worldCommit");
+                var arcCommit = GetRequiredArgument("-arcCommit");
+                RequireHexCommit(worldCommit, "World commit");
+                RequireHexCommit(arcCommit, "Arc commit");
+
+                var sceneJob = JsonUtility.FromJson<ActionSceneJob>(File.ReadAllText(sceneJobPath));
+                var manifest = JsonUtility.FromJson<ActionPresentationManifest>(File.ReadAllText(presentationPath));
+                var profileText = File.ReadAllText(productProfilePath);
+                var profile = JsonUtility.FromJson<ActionPlayerProductProfile>(profileText);
+                ValidateSourceContracts(sceneJob, manifest, profile, worldCommit, arcCommit);
+
+                if (!File.Exists(ToProjectFile(scenePath))) throw new InvalidOperationException("Serialized player scene is absent: " + scenePath);
+                var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+                var runtime = FindSingle<ActionRuntimeBehaviour>();
+                var presentation = FindSingle<ActionProductionPresentation>();
+                var input = FindSingle<ActionNaturalPlayerInput>();
+                var bindings = FindSingle<ActionInputBindings>();
+                var identity = FindSingle<ActionPlayerProductIdentity>();
+                var collision = UnityEngine.Object.FindObjectsOfType<ActionCameraCollision>(true);
+                var sessionEvidence = FindSingle<ActionPlayerSessionEvidence>();
+                var performance = FindSingle<ActionPerformanceRecorder>();
+                var spec = runtime.Spec;
+                if (spec == null) throw new InvalidOperationException("Serialized player scene has no action spec.");
+                if (spec.ActionSpecDigest != sceneJob.actionSpecDigest || spec.ArcDigest != sceneJob.arcDigest) throw new InvalidOperationException("Serialized scene lost action or Arc identity.");
+                if (spec.TimingProfileId != profile.timingProfileId) throw new InvalidOperationException("Serialized scene lost timing-profile custody.");
+                if (presentation.AdapterId != profile.presentationAdapterId || presentation.DiagnosticOnly) throw new InvalidOperationException("Serialized scene is not using the required production presentation adapter.");
+                if (input.AdapterId != profile.controlAdapterId) throw new InvalidOperationException("Serialized scene is not using the required natural input adapter.");
+                if (presentation.UsesUnityPhysicsAuthority() != profile.presentation.activeUnityPhysicsAuthorityAllowed) throw new InvalidOperationException("Serialized presentation crossed the deterministic physics-authority boundary.");
+
+                var profileSha = Sha256String(profileText);
+                var sceneSha = Sha256File(ToProjectFile(scenePath));
+                var sceneJobSha = Sha256File(sceneJobPath);
+                identity.Configure(
+                    profile.productId,
+                    profileSha,
+                    worldCommit,
+                    arcCommit,
+                    spec.ActionSpecDigest,
+                    spec.ArcDigest,
+                    manifest.manifestId,
+                    scenePath,
+                    sceneSha,
+                    sceneJobSha,
+                    "source-and-scene-qualified");
+                var productIdentity = identity.Identity;
+                if (!identity.IsConfigured || productIdentity.productId != profile.productId) throw new InvalidOperationException("Player-product identity did not serialize onto the player root.");
+                if (productIdentity.worldCommit != worldCommit || productIdentity.arcCommit != arcCommit) throw new InvalidOperationException("Player-product identity lost exact source commits.");
+                if (productIdentity.actionSpecDigest != spec.ActionSpecDigest || productIdentity.arcDigest != spec.ArcDigest) throw new InvalidOperationException("Player-product identity lost exact Arc action law.");
+                if (productIdentity.sceneSha256 != sceneSha || productIdentity.sceneJobDigest != sceneJobSha) throw new InvalidOperationException("Player-product identity lost serialized scene custody.");
+                if (string.IsNullOrEmpty(productIdentity.BindingDigest)) throw new InvalidOperationException("Player-product identity binding digest is absent.");
+
+                var assetReceipts = CollectProductionAssets(profile, manifest, presentation);
+                var productionIds = assetReceipts.Select(asset => asset.assetId).OrderBy(value => value, StringComparer.Ordinal).ToArray();
+                if (productionIds.Length < profile.presentation.minimumProductionAssetCount) throw new InvalidOperationException("Player product lacks the required production-asset floor.");
+                var enemyIds = assetReceipts.Where(asset => asset.assetId.StartsWith("enemy:", StringComparison.Ordinal)).Select(asset => asset.assetId).OrderBy(value => value, StringComparer.Ordinal).ToArray();
+                if (profile.presentation.allFiveEnemyKitsRequired && enemyIds.Length != 5) throw new InvalidOperationException("Player product does not bind all five enemy kits.");
+                var playerAsset = assetReceipts.Single(asset => asset.assetId == "player:rhea-venn");
+                var arenaAsset = assetReceipts.Single(asset => asset.assetId == "arena:pump-seven");
+                var cueIds = spec.SemanticCues.Select(cue => cue.cueId).Distinct(StringComparer.Ordinal).ToArray();
+                var cueCoverage = cueIds.Length >= profile.presentation.minimumSemanticCueCount && cueIds.All(presentation.SupportsCue);
+                if (profile.presentation.semanticCueFeedbackRequired && !cueCoverage) throw new InvalidOperationException("Player product does not cover every required semantic cue.");
+                var arenaCollision = CountArenaCollisionSurfaces(manifest.arena.recipe);
+                if (profile.presentation.cameraCollisionRequired && (collision.Length == 0 || arenaCollision == 0)) throw new InvalidOperationException("Player product lacks dynamic camera collision over an authored arena surface.");
+                if (profile.presentation.runtimeRebindingRequired && !bindings.RuntimeRebinding) throw new InvalidOperationException("Player product lacks runtime rebinding.");
+                if (profile.controls.gamepadRebindMustChangeProfileDigest && !bindings.RuntimeRebinding) throw new InvalidOperationException("Player product cannot produce a persisted rebind profile.");
+                if (!sessionEvidence.enabled) throw new InvalidOperationException("Player-product session evidence is disabled.");
+                if (!performance.enabled) throw new InvalidOperationException("Player-product performance recorder is disabled.");
+                if (profile.softwareAcceptance == null || profile.softwareAcceptance.comprehensionMode != "role-separated-cold-seat" || profile.softwareAcceptance.comprehensionReceiptFormat != "rodoh-underdrain-cold-seat-comprehension/1") throw new InvalidOperationException("Player product does not declare the role-separated cold-seat software-comprehension contract.");
+                if (profile.softwareAcceptance.humanRequired || profile.softwareAcceptance.runtimeMayIssueReceipt) throw new InvalidOperationException("Player product incorrectly makes human staffing or runtime self-certification a Windows software gate.");
+                if (profile.physicalAcceptance == null || profile.physicalAcceptance.requiredForWindowsSoftwareAcceptance || profile.physicalAcceptance.coldSeatMayClaimHumanEvidence) throw new InvalidOperationException("Player product collapsed physical human evidence into cold-seat software acceptance.");
+
+                receipt.status = "pass";
+                receipt.productId = profile.productId;
+                receipt.productProfileSha256 = profileSha;
+                receipt.worldCommit = worldCommit;
+                receipt.arcCommit = arcCommit;
+                receipt.unityVersion = Application.unityVersion;
+                receipt.challengeId = spec.ChallengeId;
+                receipt.timingProfileId = spec.TimingProfileId;
+                receipt.actionSpecDigest = spec.ActionSpecDigest;
+                receipt.arcDigest = spec.ArcDigest;
+                receipt.presentationManifestId = manifest.manifestId;
+                receipt.presentationManifestSha256 = Sha256File(presentationPath);
+                receipt.scenePath = scenePath;
+                receipt.sceneSha256 = sceneSha;
+                receipt.sceneJobDigest = sceneJobSha;
+                receipt.presentationAdapterId = presentation.AdapterId;
+                receipt.diagnosticPresentation = presentation.DiagnosticOnly;
+                receipt.primitiveFallback = assetReceipts.Any(asset => asset.generatedPrimitive);
+                receipt.activePhysicsAuthority = presentation.UsesUnityPhysicsAuthority();
+                receipt.playerAssetId = playerAsset.assetId;
+                receipt.arenaAssetId = arenaAsset.assetId;
+                receipt.enemyAssetIds = enemyIds;
+                receipt.productionAssetIds = productionIds;
+                receipt.assets = assetReceipts;
+                receipt.exactCueCoverage = cueCoverage;
+                receipt.semanticCueFeedback = profile.presentation.semanticCueFeedbackRequired;
+                receipt.cameraCollision = collision.Length > 0;
+                receipt.arenaCollisionSurfaces = arenaCollision;
+                receipt.keyboardMouse = profile.controls.keyboardMouseRequired;
+                receipt.gamepad = profile.controls.gamepadRequired;
+                receipt.runtimeRebinding = bindings.RuntimeRebinding;
+                receipt.bindingProfileDigest = bindings.BindingProfileDigest;
+                receipt.playerSessionEvidence = sessionEvidence.enabled;
+                receipt.performanceRecorder = performance.enabled;
+                receipt.buildEligible = true;
+
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene);
+                AssetDatabase.SaveAssets();
+            }
+            catch (Exception ex)
+            {
+                receipt.error = ex.ToString();
+                WriteReceipt(receiptPath, receipt);
+                Debug.LogException(ex);
+                UnityEditor.EditorApplication.Exit(1);
+                return;
+            }
+
+            WriteReceipt(receiptPath, receipt);
+            UnityEditor.EditorApplication.Exit(0);
+        }
+
+        private static void ValidateSourceContracts(ActionSceneJob job, ActionPresentationManifest manifest, ActionPlayerProductProfile profile, string worldCommit, string arcCommit)
+        {
+            if (job == null || job.format != SceneJobFormat) throw new InvalidOperationException("Action scene job format is unsupported.");
+            if (manifest == null || manifest.format != ActionPresentationManifest.Format) throw new InvalidOperationException("Authored presentation manifest format is unsupported.");
+            if (profile == null || profile.format != ProductProfileFormat) throw new InvalidOperationException("Player-product profile format is unsupported.");
+            if (string.IsNullOrEmpty(profile.productId)) throw new InvalidOperationException("Player-product id is absent.");
+            if (profile.challengeId != "breach-crown-pump" || profile.timingProfileId != "forgiving") throw new InvalidOperationException("Player-product profile does not bind the forgiving UNDERDRAIN challenge.");
+            if (job.productId != profile.productId) throw new InvalidOperationException("Scene job binds a different player product.");
+            if (job.playerProduct == null || !job.playerProduct.required || job.playerProduct.profileSha256 != Sha256File(GetRequiredArgument("-productProfile"))) throw new InvalidOperationException("Scene job lost exact player-product profile custody.");
+            if (job.candidateAuthority != "Arc replay required") throw new InvalidOperationException("Scene job crossed candidate authority.");
+            if (manifest.sourceActionSpecDigest != job.actionSpecDigest) throw new InvalidOperationException("Authored presentation targets a different action spec.");
+            if (profile.presentationAdapterId != "production.prefab/v1" || profile.controlAdapterId != "natural.input/v1") throw new InvalidOperationException("Player-product adapters are unsupported.");
+            if (profile.presentation.primitiveFallbackAllowed || profile.presentation.diagnosticPresentationAllowed || profile.presentation.activeUnityPhysicsAuthorityAllowed) throw new InvalidOperationException("Player-product profile permits forbidden fallback, diagnostic, or physics authority.");
+            if (!profile.productIdentity.serializedOnPlayerRoot || !profile.productIdentity.requiredAtRuntime || !profile.productIdentity.requiredForBuild || !profile.productIdentity.requiredForPhysicalSession) throw new InvalidOperationException("Player-product identity policy is incomplete.");
+            if (!profile.acceptance.arcReplayRequired || profile.acceptance.candidateAuthority != "Arc replay required" || !profile.acceptance.roleSeparatedColdSeatsRequired || !profile.acceptance.coldPlayerObserverAdjudicatorMustDiffer || !profile.acceptance.coldPlayerObserverAdjudicatorLineagesMustDiffer || !profile.acceptance.coldPlayerObserverAdjudicatorContextsMustDiffer || !profile.acceptance.sourceIsolationRequired || !profile.acceptance.immutableObservationPacketRequired || profile.acceptance.runtimeMayIssueComprehensionReceipt || profile.acceptance.candidateAuthorMayIssueComprehensionReceipt || profile.acceptance.coldSeatReceiptMayClaimHumanEvidence || profile.acceptance.humanRequiredForWindowsSoftwareAcceptance || !profile.acceptance.physicalHumanEvidenceSeparate || !profile.acceptance.finalSoftwareAcceptorSeatMustDiffer || !profile.acceptance.finalSoftwareAcceptorLineageMustDiffer || !profile.acceptance.finalSoftwareAcceptorContextMustDiffer || profile.acceptance.finalAcceptorMayModifyArtifact || !profile.acceptance.namedPlayerProductAcceptanceRequired) throw new InvalidOperationException("Player-product acceptance policy is incomplete or permits self-certification.");
+            if (!profile.presentation.namedRepresentationApprovalRequired || profile.presentation.representationApprovalReceiptFormat != "rodoh-action-production-asset-approval/2" || !profile.presentation.approvalMustBindCompleteDependencyClosure || !profile.presentation.approvalMustBindPrefabAndMetaCustody || !profile.presentation.approvalMustBindDeclaredBindingClosure || profile.presentation.minimumDeclaredBindingCount < 27 || profile.presentation.minimumUniqueDeclaredAssetCount < 23 || profile.presentation.representationIntakeReceiptFormat != "rodoh-action-production-asset-intake/3" || profile.presentation.representationAuditReceiptFormat != "rodoh-action-production-asset-audit/2" || !profile.presentation.readOnlyIntakeRequired || !profile.presentation.readOnlyPostSerializationAuditRequired || !profile.presentation.finalAcceptorMustDifferFromRepresentationApprover) throw new InvalidOperationException("Player-product profile lacks complete named representation-closure approval and audit policy.");
+            if (worldCommit.Length != 40 || arcCommit.Length != 40) throw new InvalidOperationException("Exact source commits are absent.");
+        }
