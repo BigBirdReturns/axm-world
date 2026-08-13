@@ -1,0 +1,146 @@
+
+        private static ActionPlayerProductAssetReceipt[] CollectProductionAssets(ActionPlayerProductProfile profile, ActionPresentationManifest manifest, ActionProductionPresentation presentation)
+        {
+            var receipts = new List<ActionPlayerProductAssetReceipt>();
+            var approvalIds = new HashSet<string>(StringComparer.Ordinal);
+            var approvalAuthorityIds = new HashSet<string>(StringComparer.Ordinal);
+            var approvalNames = new HashSet<string>(StringComparer.Ordinal);
+            var approvedAts = new HashSet<string>(StringComparer.Ordinal);
+            var player = CollectAsset("player:rhea-venn", manifest.player.bodyPrefab, presentation.PlayerPrefab, profile);
+            receipts.Add(player);
+            foreach (var binding in manifest.enemies)
+            {
+                var runtime = presentation.EnemyPrefabs.SingleOrDefault(value => value != null && value.kit == binding.kit);
+                receipts.Add(CollectAsset("enemy:" + binding.kit, binding.bodyPrefab, runtime == null ? null : runtime.prefab, profile));
+            }
+            receipts.Add(CollectAsset("arena:pump-seven", manifest.arena.recipe, AssetDatabase.LoadAssetAtPath<GameObject>(manifest.arena.recipe), profile));
+            foreach (var receipt in receipts)
+            {
+                if (!receipt.approved) throw new InvalidOperationException("Player product contains an unapproved production asset: " + receipt.assetId);
+                if (string.IsNullOrEmpty(receipt.approvalId) || string.IsNullOrEmpty(receipt.approvalAuthorityId) || string.IsNullOrEmpty(receipt.approvalName) || string.IsNullOrEmpty(receipt.approvalAttestation) || string.IsNullOrEmpty(receipt.approvedAt)) throw new InvalidOperationException("Player product asset lacks complete named approval custody: " + receipt.assetId);
+                approvalIds.Add(receipt.approvalId);
+                approvalAuthorityIds.Add(receipt.approvalAuthorityId);
+                approvalNames.Add(receipt.approvalName);
+                approvedAts.Add(receipt.approvedAt);
+                if (receipt.generatedPrimitive) throw new InvalidOperationException("Player product contains a generated primitive: " + receipt.assetId);
+                if (receipt.activePhysicsAuthority) throw new InvalidOperationException("Player product contains active Unity combat physics authority: " + receipt.assetId);
+                if (profile.presentation.assetProvenanceRequired && string.IsNullOrEmpty(receipt.sourceSha256)) throw new InvalidOperationException("Player product asset lacks imported-source provenance: " + receipt.assetId);
+            }
+            if (approvalIds.Count != 1 || approvalAuthorityIds.Count != 1 || approvalNames.Count != 1 || approvedAts.Count != 1) throw new InvalidOperationException("Player product assets do not share one exact named representation approval.");
+            return receipts.ToArray();
+        }
+
+        private static ActionPlayerProductAssetReceipt CollectAsset(string assetId, string expectedPath, GameObject prefab, ActionPlayerProductProfile profile)
+        {
+            if (prefab == null) throw new InvalidOperationException("Production prefab is absent: " + expectedPath);
+            var path = AssetDatabase.GetAssetPath(prefab).Replace('\\', '/');
+            if (path != expectedPath.Replace('\\', '/')) throw new InvalidOperationException("Serialized prefab differs from the authored presentation path: " + assetId);
+            var marker = prefab.GetComponent<ActionProductionAssetMarker>();
+            if (marker == null) throw new InvalidOperationException("Production prefab lacks an ActionProductionAssetMarker: " + assetId);
+            marker.RequireProductionApproved();
+            if (marker.AssetId != assetId) throw new InvalidOperationException("Production asset id differs from the authored player product: " + assetId);
+            var generatedPrimitive = path.Contains("/Generated/", StringComparison.OrdinalIgnoreCase) || path.Contains("/Primitive", StringComparison.OrdinalIgnoreCase);
+            var activePhysics = HasActivePhysics(prefab);
+            if (assetId == "arena:pump-seven") activePhysics = false; // Static camera collision is presentation-only and separately measured.
+            return new ActionPlayerProductAssetReceipt
+            {
+                assetId = assetId,
+                prefabPath = path,
+                prefabSha256 = Sha256File(ToProjectFile(path)),
+                sourcePath = marker.VisualSourcePath,
+                sourceSha256 = marker.VisualSourceSha256,
+                approved = marker.ProductionApproved,
+                approvalId = marker.ApprovalId,
+                approvalAuthorityId = marker.ApprovalAuthorityId,
+                approvalName = marker.ApprovalName,
+                approvalAttestation = marker.ApprovalAttestation,
+                approvedAt = marker.ApprovedAt,
+                generatedPrimitive = generatedPrimitive,
+                activePhysicsAuthority = activePhysics,
+            };
+        }
+
+        private static bool HasActivePhysics(GameObject prefab)
+        {
+            if (prefab.GetComponentsInChildren<Rigidbody>(true).Any(body => body != null && !body.isKinematic)) return true;
+            return prefab.GetComponentsInChildren<Collider>(true).Any(collider => collider != null && collider.enabled);
+        }
+
+        private static int CountArenaCollisionSurfaces(string assetPath)
+        {
+            var arena = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
+            if (arena == null) return 0;
+            return arena.GetComponentsInChildren<Collider>(true).Count(collider => collider != null && collider.enabled && collider.gameObject.isStatic);
+        }
+
+        private static T FindSingle<T>() where T : UnityEngine.Object
+        {
+            var values = UnityEngine.Object.FindObjectsOfType<T>(true);
+            if (values.Length != 1) throw new InvalidOperationException("Serialized player scene must contain exactly one " + typeof(T).Name + "; found " + values.Length + ".");
+            return values[0];
+        }
+
+        private static void WriteReceipt(string path, ActionPlayerProductReceipt receipt)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path) ?? ".");
+            File.WriteAllText(path, JsonUtility.ToJson(receipt, true));
+        }
+
+        private static string GetRequiredArgument(string name)
+        {
+            var value = GetOptionalArgument(name);
+            if (string.IsNullOrEmpty(value)) throw new InvalidOperationException("Missing required argument " + name + ".");
+            return value;
+        }
+
+        private static string GetOptionalArgument(string name)
+        {
+            var args = Environment.GetCommandLineArgs();
+            for (var i = 0; i < args.Length - 1; i++) if (args[i] == name) return args[i + 1];
+            return null;
+        }
+
+        private static string NormalizeAssetPath(string value)
+        {
+            var normalized = (value ?? string.Empty).Replace('\\', '/');
+            if (!normalized.StartsWith("Assets/", StringComparison.Ordinal)) throw new InvalidOperationException("Expected project asset path, got " + value);
+            return normalized;
+        }
+
+        private static string ToProjectFile(string assetPath)
+        {
+            var normalized = NormalizeAssetPath(assetPath);
+            return Path.GetFullPath(Path.Combine(Application.dataPath, "..", normalized.Replace('/', Path.DirectorySeparatorChar)));
+        }
+
+        private static void RequireHexCommit(string value, string label)
+        {
+            if (string.IsNullOrEmpty(value) || value.Length != 40 || value.Any(character => !Uri.IsHexDigit(character))) throw new InvalidOperationException(label + " must be a 40-character hexadecimal commit.");
+        }
+
+        private static string Sha256File(string path)
+        {
+            using (var stream = File.OpenRead(path))
+            using (var sha = SHA256.Create()) return ToHex(sha.ComputeHash(stream));
+        }
+
+        private static string Sha256String(string value)
+        {
+            using (var sha = SHA256.Create()) return ToHex(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(value ?? string.Empty)));
+        }
+
+        private static string ToHex(byte[] value)
+        {
+            var characters = new char[value.Length * 2];
+            var index = 0;
+            foreach (var item in value)
+            {
+                characters[index++] = GetHex(item >> 4);
+                characters[index++] = GetHex(item & 15);
+            }
+            return new string(characters);
+        }
+
+        private static char GetHex(int value) => (char)(value < 10 ? '0' + value : 'a' + value - 10);
+    }
+}
