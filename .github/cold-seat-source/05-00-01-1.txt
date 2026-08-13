@@ -1,0 +1,25 @@
+} "Running exact Arc generation, Unity scene serialization, product qualification, and Windows build..."
+
+$sourceTrainPath = Join-Path $trainRoot "underdrain-unity6000-player-train.json"
+$productRunPath = Join-Path $outputRoot "player-product-run.json"
+foreach ($path in @($sourceTrainPath, $productRunPath)) { if (-not (Test-Path $path)) { throw "UNDERDRAIN product train output is absent: $path" } }
+$sourceTrain = Get-Content $sourceTrainPath -Raw | ConvertFrom-Json
+$productRun = Get-Content $productRunPath -Raw | ConvertFrom-Json
+if ($sourceTrain.status -ne "pass" -or $productRun.status -ne "pass" -or $productRun.buildEligible -ne $true) { throw "UNDERDRAIN source train or player-product qualification did not pass." }
+if ($sourceTrain.worldCommit -ne $worldCommit -or $productRun.worldCommit -ne $worldCommit) { throw "UNDERDRAIN player product lost exact World commit custody." }
+$effectivePresentationPath = [System.IO.Path]::GetFullPath([string]$productRun.presentationManifest)
+if (-not (Test-Path $effectivePresentationPath)) { throw "Effective authored presentation manifest is absent: $effectivePresentationPath" }
+
+Invoke-CheckedPowerShell $auditScript @{
+    EmbodiedArLabRoot = $projectRoot
+    PresentationManifest = $effectivePresentationPath
+    ProductProfile = $profilePath
+    AssetApprovalReceipt = $approvalPath
+    OutputRoot = $auditRoot
+    UnityVersion = $UnityVersion
+    UnityEditor = $unityPath
+    ForceCloseUnity = $ForceCloseUnity
+} "Recomputing exact production representation custody after serialized-scene qualification..."
+$auditRunPath = Join-Path $auditRoot "production-asset-audit-run.json"
+if (-not (Test-Path $auditRunPath)) { throw "UNDERDRAIN production-asset audit run is absent: $auditRunPath" }
+$audit = Get-Content $auditRunPath -Raw | ConvertFrom-Json
