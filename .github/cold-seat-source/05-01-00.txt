@@ -1,0 +1,10 @@
+    Sort-Object FullName |
+    ForEach-Object {
+        $relative = [IO.Path]::GetRelativePath($trainRoot, $_.FullName).Replace('\','/')
+        $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+        "$hash  $relative"
+    } | Set-Content -Encoding ascii $checksumPath
+
+Write-Host "UNDERDRAIN Unity 6000 player product passed named representation-closure approval, exact representation intake, Arc/C# law, serialized-scene qualification, read-only representation audit, and the requested Windows build boundary."
+Write-Host "Keyboard/mouse, gamepad, cold-seat comprehension, software-product acceptance, and Quest remain separate evidence gates; physical human evidence remains a separate installation lane."
+Write-Host $receiptPath
