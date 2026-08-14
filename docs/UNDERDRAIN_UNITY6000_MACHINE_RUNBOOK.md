@@ -1,11 +1,17 @@
 # UNDERDRAIN Unity 6000 machine runbook
 
-This runbook begins where hosted source qualification ends. It produces only evidence that the local Windows and Unity venues actually observe. GitHub Actions may qualify source contracts and synthetic refusals, but it cannot establish Unity import, production-asset approval, device operation, software review, household use, Quest operation, or physical acceptance.
+This runbook begins where hosted source qualification ends. It produces only evidence observed by the local Windows and Unity venues. GitHub Actions can qualify source contracts and synthetic refusals. It cannot establish local representation materialization, production-asset approval, device operation, software review, household use, Quest operation, or physical acceptance.
 
 ## Immutable source authorities
 
 ```text
-Arc Action Player authority
+World player-product source
+75f84ebe86f3691035fa35596f559959dd39c173
+
+World tree
+3ddb71721d1381382dbe602cd9d1e2b70bd96fe8
+
+ARC Action Player authority
 aaa5685903a348b3c1ba875622fbe99d90c1da35
 
 Action Player Floor
@@ -21,50 +27,164 @@ Unity
 6000.0.66f2
 ```
 
-Use the exact World commit named by `MACHINE_LOCK.json`. Do not run this sequence from an uncommitted checkout or a branch that moved after the kit was produced.
+Use the exact World commit named by `MACHINE_LOCK.json`. Do not run the transaction from an uncommitted checkout or a branch that moved after the machine kit was produced.
 
-## Evidence sequence
+## Controlling evidence order
+
+A fresh machine follows this order:
 
 ```text
-read-only machine preflight v2
-→ inspect the seven production prefabs in Unity
+exact representation source
+→ seven-role resolution
+→ Unity representation materialization
+→ read-only machine preflight v2
+→ inspect the seven exact prefabs in Unity
 → named presentation-asset approval
 → approval-bound read-only source intake
-→ exact Arc and C# qualification
+→ exact ARC and C# qualification
 → serialized Unity player scene
-→ read-only post-serialization asset audit
+→ read-only post-serialization asset audit and representation audit
 → exact Windows player build
 → keyboard and mouse session
 → gamepad session with a persisted rebind
-→ exact Arc replay of both provisional candidates
+→ exact ARC replay of both provisional candidates
+→ role-review kit
 → three-seat role-separated software review
 → fourth-seat Windows software-product acceptance
 ```
 
-Human play, accessibility observation, household use, mounted Quest use, room qualification, and physical comprehension remain separate evidence lanes. Their absence does not invalidate the bounded Windows software-product transaction, and a passing software review does not establish human or physical acceptance.
+The state inspector represents this as ten gates:
 
-The presentation-approval seat, cold player seat, cold observer seat, cold adjudicator seat, and final product-acceptance seat are distinct functions. The three review functions must carry different seat identifiers, lineage identifiers, and context digests. The final acceptance function must differ from all three review functions and from the presentation-approval authority. No review or acceptance function may modify the artifact under review.
+```text
+source-custody
+representation-materialization
+machine-preflight-v2
+presentation-asset-approval
+player-product-train
+keyboard-mouse-session
+gamepad-session
+role-review-kit
+role-separated-software-review
+windows-software-product-acceptance
+```
 
-## 1. Establish exact local checkouts
+Human play, accessibility observation, household use, mounted Quest use, room qualification, and physical comprehension remain separate evidence lanes. Their absence does not invalidate the bounded Windows software-product transaction. A passing software review does not establish human or physical acceptance.
 
-The examples below use conventional paths. Substitute the actual clean checkout roots.
+The presentation approver, cold player, cold observer, cold adjudicator, and final software-product acceptor are distinct functions. The three review functions require different seat identifiers, lineage identifiers, and context digests. The final acceptance function must differ from all three review functions and from the presentation approver. No review or acceptance function may modify the artifact under review.
+
+## 1. Establish exact local roots
 
 ```powershell
 $World = "D:\Projects\Organs\AXM\axm-world\main"
 $Arc = "D:\Projects\Organs\AXM\axm-arc\main"
 $Embodied = "D:\Projects\Embodied-AR-Lab"
-$WorldCommit = (& git -C $World rev-parse HEAD).Trim()
+$JobId = "underdrain-unity6000-player-v1"
+$WorldCommit = "75f84ebe86f3691035fa35596f559959dd39c173"
 
+if ((& git -C $World rev-parse HEAD).Trim() -ne $WorldCommit) {
+    throw "World is not on the accepted source head."
+}
 if ((& git -C $Arc rev-parse HEAD).Trim() -ne "aaa5685903a348b3c1ba875622fbe99d90c1da35") {
-    throw "Arc is not on the accepted Action Player authority."
+    throw "ARC is not on the accepted Action Player authority."
 }
 if (& git -C $World status --porcelain) { throw "World is dirty." }
-if (& git -C $Arc status --porcelain) { throw "Arc is dirty." }
+if (& git -C $Arc status --porcelain) { throw "ARC is dirty." }
 ```
 
 Keep Unity Editor closed unless a step explicitly requires visual inspection. Automated runners refuse or deliberately close a live editor rather than racing it.
 
-## 2. Run the read-only machine preflight v2
+## 2. Inspect current state before acting
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File "$World\scripts\get-underdrain-commissioning-state.ps1" `
+  -WorldRoot $World `
+  -ArcRoot $Arc `
+  -EmbodiedArLabRoot $Embodied `
+  -JobId $JobId `
+  -ExpectedWorldCommit $WorldCommit
+```
+
+The current state receipt is:
+
+```text
+local\scene-jobs\<JobId>\output\commissioning-state\underdrain-commissioning-state.json
+```
+
+The inspector is read-only. It records the first divergence, the exact expected receipt paths, a concrete next command, and any later evidence that appeared out of order. A missing gate is `open`. A malformed or stale gate is `held`. A completed bounded Windows transaction is `pass`.
+
+For one-gate progression:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File "$World\scripts\invoke-underdrain-commissioning.ps1" `
+  -WorldRoot $World `
+  -ArcRoot $Arc `
+  -EmbodiedArLabRoot $Embodied `
+  -JobId $JobId `
+  -ExpectedWorldCommit $WorldCommit `
+  -Mode advance
+```
+
+Use `-Mode auto` only when all required machine inputs and manual attestations have been supplied. The controller stops at missing human decisions instead of fabricating them.
+
+## 3. Establish the seven-role representation
+
+A fresh project cannot pass asset preflight before the seven production representation products exist. Use the exact Shine standalone or another project-owned source pack.
+
+The retained Shine identity is:
+
+```text
+UNDERDRAIN_The_Bloom_Below_Shine_v0.4.html
+bytes   828259
+sha256  ab9e1a542f89d66733d0b9946fd9f2b724e5e09395a74611fa760d336c209311
+object  ASSET_DATA
+```
+
+With the machine kit:
+
+```powershell
+.\INSTALL_SHINE_EXTRACTOR.ps1
+
+.\RUN_EXTRACT_SHINE.ps1 `
+  -Standalone "D:\Sources\UNDERDRAIN_The_Bloom_Below_Shine_v0.4.html" `
+  -Output "D:\Evidence\underdrain\shine-extraction"
+
+.\RUN_RESOLVE_SHINE.ps1 `
+  -Extraction "D:\Evidence\underdrain\shine-extraction" `
+  -RoleMap ".\fixtures\underdrain.shine-role-map.template.json" `
+  -Output "D:\Evidence\underdrain\resolved-role-assets"
+```
+
+Complete the role map with seven byte-distinct, visually appropriate source products before resolution. The semantic roles are:
+
+```text
+player:rhea-venn
+enemy:skirmisher
+enemy:duelist
+enemy:swarm
+enemy:hexer
+enemy:breaker
+arena:pump-seven
+```
+
+Materialize the resolved source pack:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File "$World\scripts\materialize-underdrain-production-representation.ps1" `
+  -WorldRoot $World `
+  -ArcRoot $Arc `
+  -ExpectedWorldCommit $WorldCommit `
+  -ExpectedArcCommit "aaa5685903a348b3c1ba875622fbe99d90c1da35" `
+  -EmbodiedArLabRoot $Embodied `
+  -SourceManifest "D:\Evidence\underdrain\resolved-role-assets\resolved-representation-source.json" `
+  -SourceRoot "D:\Evidence\underdrain\resolved-role-assets"
+```
+
+The materializer creates project-owned sprite imports, authored hierarchy, presentation-only animation, controllers, seven core prefabs, seven semantic-feedback prefabs, seven deterministic PCM WAV clips, and the Pump Seven review scene. It cannot issue approval or product acceptance.
+
+## 4. Run read-only machine preflight v2
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
@@ -73,10 +193,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -ExpectedWorldCommit $WorldCommit `
   -ArcRoot $Arc `
   -EmbodiedArLabRoot $Embodied `
-  -OutputRoot "$Embodied\local\scene-jobs\underdrain-unity6000-player-v1\preflight"
+  -OutputRoot "$Embodied\local\scene-jobs\$JobId\preflight"
 ```
 
-Preflight v2 invokes the accepted v1 machine and asset preflight, retains its exact receipt, and adds the role-separated review contract, product-profile review floor, and authority-separation checks. It verifies the exact World and Arc identities, clean source custody, Unity 6000.0.66f2 project identity, Unity editor location, required fixtures, all seventeen semantic cues, all five enemy kits, seven core production asset identities, every prefab, controller, VFX, and audio path declared by the authored manifest, stable Unity `.meta` files, allowed asset roots, role-appropriate extensions, three distinct review functions, a separate fourth acceptance function, and the separation of Windows software scope from physical evidence.
+Preflight v2 invokes the accepted v1 machine and asset preflight, retains its exact receipt and digest, and adds the role-separated review contract, product-profile review floor, three-function independence, fourth-seat separation, and software-versus-physical authority checks.
 
 It writes:
 
@@ -84,16 +204,16 @@ It writes:
 underdrain-unity6000-machine-preflight-v2.json
 underdrain-unity6000-machine-preflight-v2.json.sha256
 underdrain-unity6000-machine-preflight-v2.txt
-legacy-v1/underdrain-unity6000-machine-preflight.json
-legacy-v1/underdrain-unity6000-machine-preflight.json.sha256
-legacy-v1/underdrain-unity6000-machine-preflight.txt
+legacy-v1\underdrain-unity6000-machine-preflight.json
+legacy-v1\underdrain-unity6000-machine-preflight.json.sha256
+legacy-v1\underdrain-unity6000-machine-preflight.txt
 ```
 
-A v2 `pass` means that the machine is ready for visual review and Unity intake on the exact cited software-review floor. It does not approve the art, issue a review receipt, accept the software product, or qualify a physical installation. A `held` receipt lists the first machine, filesystem, product-contract, or authority blocker and exits with code 2.
+A v2 `pass` opens named asset review. It does not approve the representation, issue a review receipt, accept the software product, or qualify a physical installation. A `held` receipt identifies the first blocker and exits with code 2.
 
-## 3. Review the exact production representation
+## 5. Review the exact production representation
 
-Open the Embodied-AR-Lab project in Unity 6000.0.66f2. Review these seven prefabs in the intended player camera, sewer lighting, action scale, and mechanism context:
+Open `Embodied-AR-Lab` in Unity 6000.0.66f2 and inspect:
 
 ```text
 Rhea Venn
@@ -105,11 +225,11 @@ Root breaker
 Pump Seven arena
 ```
 
-Confirm that the visible product is not a primitive fallback, diagnostic renderer, generated placeholder root, or presentation whose silhouette and materials fail at play distance. Confirm that character prefabs carry no active Unity combat physics. Confirm that the arena has a static camera-collision surface without becoming combat authority.
+Review them in the intended player camera, sewer lighting, action scale, and mechanism context. Confirm that the visible product is not a primitive fallback, diagnostic renderer, generated placeholder root, or presentation whose silhouette and materials fail at play distance. Confirm that character prefabs carry no active Unity combat physics. Confirm that Pump Seven carries a static camera-collision surface without becoming action authority.
 
-## 4. Record named presentation-asset approval
+Close Unity after the review.
 
-Close Unity after the review. Supply one stable presentation-approval seat identifier and an attestation that applies to the exact seven imported visual products.
+## 6. Record named presentation-asset approval
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
@@ -117,7 +237,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -EmbodiedArLabRoot $Embodied `
   -PresentationManifest "$World\unity\Fixtures\underdrain.authored-presentation.template.json" `
   -ProductProfile "$World\unity\Fixtures\underdrain.player-product.json" `
-  -OutputRoot "$Embodied\local\scene-jobs\underdrain-unity6000-player-v1\output\player-train\production-asset-approval" `
+  -OutputRoot "$Embodied\local\scene-jobs\$JobId\output\player-train\production-asset-approval" `
   -ApprovalId "underdrain-assets-approval-001" `
   -ApprovalAuthorityId "seat:underdrain-presentation-approver" `
   -ApprovalName "UNDERDRAIN Windows presentation assets" `
@@ -127,65 +247,78 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 
 The approval batch is the only process allowed to write `ProductionApproved`. It records the supplied authority but does not authenticate it and cannot accept the Windows software product.
 
-## 5. Build and qualify the exact Unity and Windows product
+## 7. Build and qualify the exact Unity and Windows product
 
 ```powershell
-$Approval = "$Embodied\local\scene-jobs\underdrain-unity6000-player-v1\output\player-train\production-asset-approval\production-asset-approval.json"
+$Approval = "$Embodied\local\scene-jobs\$JobId\output\player-train\production-asset-approval\production-asset-approval.json"
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File "$World\scripts\run-underdrain-unity6000-player-product.ps1" `
   -EmbodiedArLabRoot $Embodied `
   -ArcRoot $Arc `
   -AssetApprovalReceipt $Approval `
-  -JobId "underdrain-unity6000-player-v1"
+  -JobId $JobId
 ```
 
-This transaction performs read-only approval-bound source intake, exact Arc generation, exact C# cue parity, Unity package import, scene serialization, player-product qualification, read-only post-serialization asset audit, and the Windows build. It stops if any identity or source digest changes between those planes.
+This transaction performs approval-bound read-only source intake, exact ARC generation, exact C# cue parity, Unity package import, scene serialization, player-product qualification, read-only post-serialization representation audit, and the Windows build. It stops if any identity, source digest, dependency closure, prefab byte sequence, `.meta` byte sequence, GUID, or declared binding changes between those planes.
 
-The controlling product-train receipt is:
+The controlling train receipt is:
 
 ```text
-local\scene-jobs\underdrain-unity6000-player-v1\output\player-train\underdrain-unity6000-player-product-train.json
+local\scene-jobs\<JobId>\output\player-train\underdrain-unity6000-player-product-train.json
 ```
 
-It must still report the keyboard and mouse session, gamepad session, role-separated software review, final software-product acceptance, physical human evidence, and Quest acceptance as separately open or unissued.
+It must leave the two device sessions, role-separated review, final software-product acceptance, physical human evidence, and Quest acceptance open or unissued.
 
-## 6. Run the keyboard and mouse session
+## 8. Run the keyboard and mouse session
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File "$World\scripts\run-underdrain-player-session.ps1" `
   -EmbodiedArLabRoot $Embodied `
   -ArcRoot $Arc `
-  -JobId "underdrain-unity6000-player-v1" `
+  -JobId $JobId `
   -Device keyboard-mouse
 ```
 
-Complete teach, practice, and mastery. The built player must observe the required device, all seventeen Arc cues, camera collision, terminal state, and frame-pacing budgets, then export a provisional candidate that exact Arc replay accepts.
+Complete teach, practice, and mastery. The player closes after terminal evidence is written and exact ARC replay accepts the provisional candidate.
 
-## 7. Run the gamepad and persisted-rebind session
+The actual receipt path is:
 
-Use the in-game rebind surface during the session. Software-product acceptance refuses a gamepad receipt whose binding-profile digest still equals the qualified default.
+```text
+local\scene-jobs\<JobId>\build\receipts\player-session-keyboard-mouse\session-run.json
+```
+
+## 9. Run the gamepad and persisted-rebind session
+
+Use the in-game rebind surface during the session:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File "$World\scripts\run-underdrain-player-session.ps1" `
   -EmbodiedArLabRoot $Embodied `
   -ArcRoot $Arc `
-  -JobId "underdrain-unity6000-player-v1" `
+  -JobId $JobId `
   -Device gamepad
 ```
 
-At least one device session must exercise a real camera-collision adjustment. Both sessions must remain within the declared p95 and p99 frame-time budgets.
+The actual receipt path is:
 
-## 8. Create the role-separated review kit
+```text
+local\scene-jobs\<JobId>\build\receipts\player-session-gamepad\session-run.json
+```
 
-Choose either accepted device session as the software-review session. The kit generator binds the exact train, Windows product, session receipt, ARC receipt, and frozen review contract, then emits packet templates. It does not issue a review or acceptance.
+Software acceptance refuses a gamepad receipt whose binding-profile digest still equals the qualified default. At least one of the two device sessions must exercise a real camera-collision adjustment. Both sessions must remain inside the declared p95 and p99 frame-time budgets.
+
+Do not use the obsolete `output\player-train\sessions` path. The executable runner never writes there.
+
+## 10. Create the role-separated review kit
 
 ```powershell
-$Train = "$Embodied\local\scene-jobs\underdrain-unity6000-player-v1\output\player-train\underdrain-unity6000-player-product-train.json"
-$Keyboard = "$Embodied\local\scene-jobs\underdrain-unity6000-player-v1\output\player-train\sessions\keyboard-mouse\player-session.json"
-$ReviewRoot = "$Embodied\local\scene-jobs\underdrain-unity6000-player-v1\output\player-train\role-separated-review"
+$Train = "$Embodied\local\scene-jobs\$JobId\output\player-train\underdrain-unity6000-player-product-train.json"
+$Keyboard = "$Embodied\local\scene-jobs\$JobId\build\receipts\player-session-keyboard-mouse\session-run.json"
+$Gamepad = "$Embodied\local\scene-jobs\$JobId\build\receipts\player-session-gamepad\session-run.json"
+$ReviewRoot = "$Embodied\local\scene-jobs\$JobId\output\player-train\role-separated-review"
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File "$World\scripts\new-underdrain-role-separated-review-kit.ps1" `
@@ -194,15 +327,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -OutputRoot $ReviewRoot
 ```
 
-Instantiate three isolated functions from different lineages and contexts.
+Either accepted device session may be selected. The kit binds the exact train, Windows product, selected session receipt, accepted ARC receipt, and frozen review contract. It emits packet templates only.
 
-The cold player receives only the exact built product and ordinary player instructions. It receives no source, answer key, review rubric, or walkthrough. Its packet cites an immutable transcript and records whether the session completed and voluntarily continued after the accepted consequence.
+The cold player receives only the exact built product and ordinary player instructions. The cold observer receives only the immutable session capture and completed player packet. The cold adjudicator receives only the frozen review contract, completed observer packet, and accepted ARC receipt. No review function may modify the product or have authored the candidate.
 
-The cold observer receives only the immutable session capture and completed player packet. It records first authored decision, first accepted consequence, player role, immediate conflict, chosen strategy, accepted consequence, next playable action, assistance state, retries, and voluntary continuation. It receives no source, answer key, or rubric.
-
-The cold adjudicator receives only the frozen review contract, completed observer packet, and accepted ARC receipt. It uses `underdrain-role-separated-review-rubric/1`, writes an immutable adjudication object, and returns either `pass` or `refuse`. It cannot modify the product, accept an ARC consequence, or accept the player product.
-
-Replace every placeholder in the packet templates, create the cited transcript, observer notes, and adjudication objects, and recompute every SHA-256 declaration. Each seat must use a valid identifier:
+Replace every placeholder, create the cited transcript, notes, and adjudication files, and recompute every SHA-256 declaration. Use stable identities:
 
 ```text
 seat:<stable-function-id>
@@ -210,7 +339,7 @@ lineage1_<64 lowercase hex>
 ctx1_<64 lowercase hex>
 ```
 
-## 9. Record role-separated software review
+## 11. Record role-separated software review
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
@@ -223,20 +352,17 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -OutputPath "$ReviewRoot\role-separated-review.json"
 ```
 
-The recorder verifies exact product identity, the entire packet digest chain, distinct seats, distinct lineages, distinct contexts, source isolation, no mutation authority, complete teach-practice-master objectives, the canonical authored choice and consequence, the next playable action, and voluntary continuation. Its output is:
+The output format is:
 
 ```text
 rodoh-underdrain-role-separated-review-receipt/1
 ```
 
-The receipt cannot accept the product or qualify a physical installation.
+The recorder verifies the complete identity and digest chain, distinct seats, distinct lineages, distinct contexts, source isolation, no mutation authority, teach-practice-master completion, canonical authored choice and consequence, the next playable action, and voluntary continuation. The receipt cannot accept the product or qualify a physical installation.
 
-## 10. Issue fourth-seat Windows software-product acceptance
-
-The acceptance function must have a seat identifier, lineage identifier, and context digest that differ from the player, observer, adjudicator, and presentation-approval seat. It consumes the completed evidence bundle but may not modify the artifact.
+## 12. Issue fourth-seat Windows software-product acceptance
 
 ```powershell
-$Gamepad = "$Embodied\local\scene-jobs\underdrain-unity6000-player-v1\output\player-train\sessions\gamepad\player-session.json"
 $Review = "$ReviewRoot\role-separated-review.json"
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
@@ -261,26 +387,41 @@ windows-software-player-product
 
 The receipt leaves Quest acceptance unissued, physical Quest acceptance open, and human physical evidence separately unrequired for this bounded software scope.
 
-## 11. Preserve optional physical human evidence separately
+## 13. Seal the diagnostic evidence bundle
 
-`scripts/record-underdrain-independent-comprehension.ps1` remains available for an actual human session, accessibility study, household trial, or named physical installation. Its legacy receipt is not consumed by `/2` Windows software-product acceptance. Preserve it as a separately scoped observation and do not relabel cold-seat evidence as human evidence or vice versa.
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File "$World\scripts\export-underdrain-commissioning-evidence.ps1" `
+  -EmbodiedArLabRoot $Embodied `
+  -JobId $JobId
+```
+
+The bundle includes receipts, checksums, state snapshots, text reports, and logs. It excludes the executable, build products, project source assets, and Quest products. Use `-IncludeImages` only when rendered evidence plates must accompany the diagnostic record.
+
+## 14. Preserve optional human and physical evidence separately
+
+`scripts/record-underdrain-independent-comprehension.ps1` remains available for a real human session, accessibility study, household trial, or named physical installation. Its legacy receipt is not consumed by `/2` Windows software-product acceptance. Do not relabel cold-seat evidence as human evidence or vice versa.
 
 ## Failure handling
 
-Do not delete or rewrite a failed receipt. Preserve the exact machine output and correct the first divergent plane:
+Do not delete or rewrite a failed receipt. Do not rerun an interactive device session into a non-empty failed session directory. Preserve the exact attempt and use another `JobId` or review root.
+
+The operator must correct the first divergent plane:
 
 ```text
 source identity
-→ filesystem and asset presence
-→ role-separated review contract
-→ named presentation approval
-→ imported-source intake
-→ Arc projection and cue parity
+→ representation source and role resolution
+→ Unity representation materialization
+→ machine preflight v2
+→ named presentation review and approval
+→ approval-bound intake
+→ ARC projection and cue parity
 → Unity import and serialization
-→ post-serialization audit
+→ post-serialization representation audit
 → Windows build
 → device ingress and presentation
-→ exact Arc replay
+→ exact ARC replay
+→ review kit
 → player packet
 → observer packet
 → adjudicator packet

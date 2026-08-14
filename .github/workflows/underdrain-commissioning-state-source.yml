@@ -1,0 +1,236 @@
+name: UNDERDRAIN commissioning state source
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/underdrain-commissioning-state-source.yml'
+      - 'docs/UNDERDRAIN_UNITY6000_MACHINE_RUNBOOK.md'
+      - 'docs/UNDERDRAIN_WINDOWS_COMMISSIONING_STATE.md'
+      - 'scripts/export-underdrain-commissioning-evidence.ps1'
+      - 'scripts/get-underdrain-commissioning-state.ps1'
+      - 'scripts/invoke-underdrain-commissioning.ps1'
+      - 'scripts/test-underdrain-commissioning-state.ps1'
+      - 'scripts/run-underdrain-player-session.ps1'
+      - 'scripts/new-underdrain-role-separated-review-kit.ps1'
+      - 'scripts/accept-underdrain-player-product.ps1'
+      - 'tests/world/underdrain-commissioning-state.test.ts'
+      - 'tests/world/underdrain-powershell-contract.test.ts'
+  push:
+    branches:
+      - feature/underdrain-unity6000-player-train-v1
+      - repair/underdrain-commissioning-state-closure-v1
+    paths:
+      - '.github/workflows/underdrain-commissioning-state-source.yml'
+      - 'docs/UNDERDRAIN_UNITY6000_MACHINE_RUNBOOK.md'
+      - 'docs/UNDERDRAIN_WINDOWS_COMMISSIONING_STATE.md'
+      - 'scripts/export-underdrain-commissioning-evidence.ps1'
+      - 'scripts/get-underdrain-commissioning-state.ps1'
+      - 'scripts/invoke-underdrain-commissioning.ps1'
+      - 'scripts/test-underdrain-commissioning-state.ps1'
+      - 'scripts/run-underdrain-player-session.ps1'
+      - 'scripts/new-underdrain-role-separated-review-kit.ps1'
+      - 'scripts/accept-underdrain-player-product.ps1'
+      - 'tests/world/underdrain-commissioning-state.test.ts'
+      - 'tests/world/underdrain-powershell-contract.test.ts'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: underdrain-commissioning-state-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARC_ACTION_PLAYER_SHA: aaa5685903a348b3c1ba875622fbe99d90c1da35
+  FLOOR_SHA: 9693cb99694338e72c15d0ffbb87b5a1c5bbf16a
+
+jobs:
+  qualify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Qualify the commissioning contracts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          npm run typecheck
+          if ($LASTEXITCODE -ne 0) { throw "TypeScript typecheck failed." }
+          npm test -- tests/world/underdrain-commissioning-state.test.ts tests/world/underdrain-powershell-contract.test.ts tests/world/underdrain-machine-preflight.test.ts tests/world/underdrain-player-product-acceptance.test.ts tests/world/underdrain-role-separated-review.test.ts
+          if ($LASTEXITCODE -ne 0) { throw "Focused UNDERDRAIN commissioning tests failed." }
+
+      - name: Execute commissioning admission and refusal fixtures
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $output = Join-Path $env:RUNNER_TEMP "underdrain-commissioning-state"
+          & ./scripts/test-underdrain-commissioning-state.ps1 -OutputRoot $output
+          if ($LASTEXITCODE -ne 0) { throw "Commissioning-state fixture failed with exit $LASTEXITCODE." }
+          $receipt = Get-Content (Join-Path $output "underdrain-commissioning-state-fixture-qualification.json") -Raw | ConvertFrom-Json
+          if ($receipt.format -ne "rodoh-underdrain-commissioning-state-fixture-qualification/1" -or $receipt.status -ne "pass") { throw "Commissioning fixture receipt is unsupported or failed." }
+          if ($receipt.executableSessionPathsVerified -ne $true -or $receipt.controllerInspectVerified -ne $true -or $receipt.controllerBlockedAdvanceVerified -ne $true -or $receipt.diagnosticBundleVerified -ne $true) { throw "Commissioning fixture did not prove its complete source boundary." }
+          if ($receipt.unityInvoked -ne $false -or $receipt.productAcceptanceIssued -ne $false -or $receipt.questInvoked -ne $false -or $receipt.physicalAcceptanceIssued -ne $false) { throw "Commissioning source qualification crossed runtime or acceptance authority." }
+
+      - name: Preserve source cleanliness
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-commissioning-state-${{ matrix.os }}
+          path: ${{ runner.temp }}/underdrain-commissioning-state
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+
+  package:
+    needs: qualify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: underdrain-commissioning-state-*
+          path: ${{ runner.temp }}/underdrain-commissioning-qualification
+
+      - name: Assemble the exact commissioning-state kit
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/underdrain-commissioning-state-kit"
+          mkdir -p "$root/scripts" "$root/docs" "$root/qualification"
+          cp scripts/get-underdrain-commissioning-state.ps1 "$root/scripts/"
+          cp scripts/invoke-underdrain-commissioning.ps1 "$root/scripts/"
+          cp scripts/export-underdrain-commissioning-evidence.ps1 "$root/scripts/"
+          cp scripts/test-underdrain-commissioning-state.ps1 "$root/scripts/"
+          cp docs/UNDERDRAIN_WINDOWS_COMMISSIONING_STATE.md "$root/README.md"
+          cp docs/UNDERDRAIN_UNITY6000_MACHINE_RUNBOOK.md "$root/docs/"
+          cp -R "$RUNNER_TEMP/underdrain-commissioning-qualification/." "$root/qualification/"
+
+          WORLD_SHA="$(git rev-parse HEAD)" ROOT="$root" node --input-type=module <<'NODE'
+          import { writeFileSync } from 'node:fs';
+          const binding = {
+            format: 'rodoh-underdrain-commissioning-state-machine-binding/1',
+            status: 'source-qualified',
+            world: { repository: 'BigBirdReturns/axm-world', commit: process.env.WORLD_SHA },
+            arc: { repository: 'BigBirdReturns/axm-arc', commit: process.env.ARC_ACTION_PLAYER_SHA },
+            actionPlayerFloor: { repository: 'BigBirdReturns/tier-bench', commit: process.env.FLOOR_SHA },
+            unityVersion: '6000.0.66f2',
+            productId: 'underdrain-bloom-below-unity6000-v1',
+            challengeId: 'breach-crown-pump',
+            timingProfileId: 'forgiving',
+            stateFormat: 'rodoh-underdrain-windows-commissioning-state/1',
+            runFormat: 'rodoh-underdrain-windows-commissioning-run/1',
+            evidenceBundleFormat: 'rodoh-underdrain-commissioning-evidence-bundle/1',
+            nonClaims: [
+              'Unity execution on the target machine',
+              'production representation materialization',
+              'named presentation approval',
+              'Windows build or device operation',
+              'role-separated review issuance',
+              'Windows software-product acceptance issuance',
+              'human, household, Quest, or physical acceptance'
+            ]
+          };
+          writeFileSync(process.env.ROOT + '/MACHINE_BINDING.json', JSON.stringify(binding, null, 2) + '\n');
+          NODE
+
+          cat > "$root/RUN_STATUS.ps1" <<'PS1'
+          [CmdletBinding()]
+          param(
+              [Parameter(Mandatory=$true)][string]$WorldRoot,
+              [Parameter(Mandatory=$true)][string]$ArcRoot,
+              [Parameter(Mandatory=$true)][string]$EmbodiedArLabRoot,
+              [string]$JobId = "underdrain-unity6000-player-v1"
+          )
+          $ErrorActionPreference = "Stop"
+          $binding = Get-Content (Join-Path $PSScriptRoot "MACHINE_BINDING.json") -Raw | ConvertFrom-Json
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass `
+            -File (Join-Path $PSScriptRoot "scripts\get-underdrain-commissioning-state.ps1") `
+            -WorldRoot $WorldRoot -ArcRoot $ArcRoot -EmbodiedArLabRoot $EmbodiedArLabRoot `
+            -JobId $JobId -ExpectedWorldCommit $binding.world.commit -ExpectedArcCommit $binding.arc.commit
+          exit $LASTEXITCODE
+          PS1
+
+          cat > "$root/RUN_COMMISSIONING.ps1" <<'PS1'
+          [CmdletBinding()]
+          param(
+              [Parameter(Mandatory=$true)][string]$WorldRoot,
+              [Parameter(Mandatory=$true)][string]$ArcRoot,
+              [Parameter(Mandatory=$true)][string]$EmbodiedArLabRoot,
+              [string]$JobId = "underdrain-unity6000-player-v1",
+              [ValidateSet("inspect","advance","auto")][string]$Mode = "inspect",
+              [Parameter(ValueFromRemainingArguments=$true)][object[]]$RemainingArguments
+          )
+          $ErrorActionPreference = "Stop"
+          $binding = Get-Content (Join-Path $PSScriptRoot "MACHINE_BINDING.json") -Raw | ConvertFrom-Json
+          $arguments = @(
+            "-NoProfile", "-ExecutionPolicy", "Bypass",
+            "-File", (Join-Path $PSScriptRoot "scripts\invoke-underdrain-commissioning.ps1"),
+            "-WorldRoot", $WorldRoot,
+            "-ArcRoot", $ArcRoot,
+            "-EmbodiedArLabRoot", $EmbodiedArLabRoot,
+            "-JobId", $JobId,
+            "-Mode", $Mode,
+            "-ExpectedWorldCommit", [string]$binding.world.commit,
+            "-ExpectedArcCommit", [string]$binding.arc.commit
+          )
+          if ($RemainingArguments) { $arguments += @($RemainingArguments) }
+          & powershell.exe @arguments
+          exit $LASTEXITCODE
+          PS1
+
+          cat > "$root/RUN_SEAL_EVIDENCE.ps1" <<'PS1'
+          [CmdletBinding()]
+          param(
+              [Parameter(Mandatory=$true)][string]$EmbodiedArLabRoot,
+              [string]$JobId = "underdrain-unity6000-player-v1",
+              [switch]$IncludeImages
+          )
+          $ErrorActionPreference = "Stop"
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass `
+            -File (Join-Path $PSScriptRoot "scripts\export-underdrain-commissioning-evidence.ps1") `
+            -EmbodiedArLabRoot $EmbodiedArLabRoot -JobId $JobId -IncludeImages:$IncludeImages
+          exit $LASTEXITCODE
+          PS1
+
+          (
+            cd "$root"
+            find . -type f ! -name SHA256SUMS -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS
+          )
+          git diff --check
+          test -z "$(git status --porcelain)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-commissioning-state-kit
+          path: ${{ runner.temp }}/underdrain-commissioning-state-kit
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
