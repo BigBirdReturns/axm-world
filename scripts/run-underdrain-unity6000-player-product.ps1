@@ -239,7 +239,8 @@ $receipt = [ordered]@{
     windowsProductSha256 = if ($buildRun) { $buildRun.productSha256 } else { $null }
     keyboardMouseSession = "open"
     gamepadSession = "open"
-    independentComprehension = "open"
+    roleSeparatedSoftwareReview = "open"
+    physicalHumanEvidence = "separate-open"
     namedPlayerProductAcceptance = "not-issued"
     questAcceptance = "open"
     productionAssetApproval = $approvalPath
@@ -263,5 +264,5 @@ Get-ChildItem $trainRoot -File -Recurse |
     } | Set-Content -Encoding ascii $checksumPath
 
 Write-Host "UNDERDRAIN Unity 6000 player product passed named representation-closure approval, exact representation intake, Arc/C# law, serialized-scene qualification, read-only representation audit, and the requested Windows build boundary."
-Write-Host "Keyboard/mouse, gamepad, independent comprehension, named acceptance, and Quest remain separate evidence gates."
+Write-Host "Keyboard/mouse, gamepad, role-separated software review, separate product acceptance, physical human evidence, and Quest remain separate evidence gates."
 Write-Host $receiptPath
