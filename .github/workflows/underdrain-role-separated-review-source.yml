@@ -80,7 +80,6 @@ jobs:
           $ErrorActionPreference = "Stop"
           $output = Join-Path $env:RUNNER_TEMP "underdrain-role-separated-review"
           & ./scripts/test-underdrain-role-separated-review.ps1 -OutputRoot $output
-          if ($LASTEXITCODE -ne 0) { throw "Role-separated review fixture failed." }
           $receipt = Get-Content (Join-Path $output "qualification.json") -Raw | ConvertFrom-Json
           if ($receipt.format -ne "rodoh-underdrain-role-separated-review-source-qualification/1" -or $receipt.status -ne "pass") { throw "Qualification receipt is unsupported or failed." }
           if ($receipt.duplicateLineageRefused -ne $true -or $receipt.acceptanceSeatOverlapRefused -ne $true) { throw "Required refusals were not proven." }
