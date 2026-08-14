@@ -90,7 +90,7 @@ describe("UNDERDRAIN player-product acceptance chain", () => {
     expect(verify).toContain("markerDependencyClosureSha256");
   });
 
-  it("runs named approval, exact representation intake, Arc and Unity production, then approval-bound post-qualification audit", () => {
+  it("runs named approval, exact representation intake, Arc and Unity production, then leaves explicit review gates open", () => {
     const train = read("scripts/run-underdrain-unity6000-player-product.ps1");
     expect(train).toContain("production-asset-approval.json");
     expect(train).toContain("prepare-underdrain-production-assets.ps1");
@@ -108,11 +108,14 @@ describe("UNDERDRAIN player-product acceptance chain", () => {
     expect(train).toContain("productionAssetSourceDigests");
     expect(train).toContain("exactRepresentationCustody = $true");
     expect(train).toContain('keyboardMouseSession = "open"');
+    expect(train).toContain('gamepadSession = "open"');
+    expect(train).toContain('roleSeparatedSoftwareReview = "open"');
+    expect(train).toContain('physicalHumanEvidence = "separate-open"');
     expect(train).toContain('namedPlayerProductAcceptance = "not-issued"');
     expect(train).not.toContain("GovernedProduction = $true");
   });
 
-  it("uses canonical Arc narrative identities for independent comprehension", () => {
+  it("retains the canonical narrative contract for separately scoped physical human evidence", () => {
     const contract = json("unity/Fixtures/underdrain.comprehension-contract.json");
     expect(contract).toMatchObject({
       format: "rodoh-underdrain-comprehension-contract/1",
@@ -134,27 +137,39 @@ describe("UNDERDRAIN player-product acceptance chain", () => {
       ["practice", "operate-purge-wheel"],
       ["master", "open-crown-sluice"],
     ]);
-    expect(contract.acceptedConsequenceByOutcome.success.expectedId).toBe("fact-pump-seven-balanced");
-    expect(contract.acceptedConsequenceByOutcome.partial.expectedId).toBe("fact-pump-seven-ceasefire");
-    expect(contract.acceptedConsequenceByOutcome.failure.expectedId).toBe("fact-crown-controls-pump-seven");
   });
 
-  it("keeps comprehension human-issued and bound to an exact accepted physical session", () => {
-    const record = read("scripts/record-underdrain-independent-comprehension.ps1");
-    expect(record).toContain('format = "rodoh-underdrain-independent-comprehension/1"');
-    expect(record).toContain('rodoh-underdrain-unity6000-player-product-train/1');
-    expect(record).toContain('rodoh-underdrain-windows-player-session/2');
-    expect(record).toContain('axm-action-receipt/1');
-    expect(record).toContain("$accepted.result.completedObjectiveIds");
-    expect(record).toContain("Independent human evidence requires -Independent");
-    expect(record).toContain("The independent player may not inspect source before adjudication");
-    expect(record).toContain("Observer and adjudicator must be different people");
-    expect(record).toContain("Player could not identify the authored choice they made");
-    expect(record).toContain('runtimeIssued = $false');
-    expect(record).toContain('productAcceptance = "not-issued"');
+  it("publishes a role-separated software-review contract and keeps the legacy human recorder outside software acceptance", () => {
+    const contract = json("unity/Fixtures/underdrain.role-separated-software-review.json");
+    const review = read("scripts/record-underdrain-role-separated-software-review.ps1");
+    const legacy = read("scripts/record-underdrain-independent-comprehension.ps1");
+    const accept = read("scripts/accept-underdrain-player-product.ps1");
+
+    expect(contract).toMatchObject({
+      format: "rodoh-underdrain-role-separated-review/1",
+      reviewReceiptFormat: "rodoh-underdrain-role-separated-review-receipt/1",
+      softwareScope: "windows-player-product",
+      physicalInstallationScope: "separate",
+      independence: {
+        minimumDistinctSeats: 3,
+        minimumDistinctLineages: 3,
+        minimumDistinctContexts: 3,
+        artifactMutationAllowed: false,
+        runtimeMayIssue: false,
+        candidateAuthorMayIssue: false,
+      },
+    });
+    expect(review).toContain("Require-UnderdrainDistinct $seatIds");
+    expect(review).toContain("Require-UnderdrainDistinct $lineageIds");
+    expect(review).toContain("Require-UnderdrainDistinct $contextDigests");
+    expect(review).toContain('runtimeIssued = $false');
+    expect(review).toContain('candidateAuthorIssued = $false');
+    expect(review).toContain('productAcceptance = "not-issued"');
+    expect(legacy).toContain('format = "rodoh-underdrain-independent-comprehension/1"');
+    expect(accept).not.toContain('rodoh-underdrain-independent-comprehension/1');
   });
 
-  it("requires separate art approval, exact representation custody, both device sessions, a rebind, collision, continuation, and comprehension before named acceptance", () => {
+  it("requires separate art approval, exact custody, both device sessions, role-separated review, and a fourth acceptance seat", () => {
     const session = read("scripts/run-underdrain-player-session.ps1");
     const accept = read("scripts/accept-underdrain-player-product.ps1");
     expect(session).toContain('format = "rodoh-underdrain-windows-player-session/2"');
@@ -164,22 +179,24 @@ describe("UNDERDRAIN player-product acceptance chain", () => {
     expect(session).toContain('session.candidateAuthority -ne "Arc replay required"');
     expect(session).toContain("replay-unity-action-candidate.ps1");
 
-    expect(accept).toContain('format = "rodoh-underdrain-player-product-acceptance/1"');
-    expect(accept).toContain('scope = "windows-player-product"');
+    expect(accept).toContain('format = "rodoh-underdrain-player-product-acceptance/2"');
+    expect(accept).toContain('scope = "windows-software-player-product"');
     expect(accept).toContain('rodoh-action-production-asset-approval/2');
     expect(accept).toContain("exactRepresentationCustody");
     expect(accept).toContain("declaredBindingClosureSha256");
-    expect(accept).not.toContain("assetApproval.presentationManifestId -ne $train.presentationManifestId");
-    expect(accept).toContain("assetApproval.approvalAuthorityId -eq $AcceptorId");
-    expect(accept).toContain('authorityAuthentication -ne "not-performed"');
-    expect(accept).toContain("Final player-product acceptor must differ from the presentation-asset approval authority");
+    expect(accept).toContain("RoleSeparatedReviewReceipt");
+    expect(accept).toContain("AcceptanceSeatId");
+    expect(accept).toContain("AcceptanceLineageId");
+    expect(accept).toContain("AcceptanceContextDigest");
+    expect(accept).toContain("Final product-acceptance seat must differ from the presentation-approval seat");
+    expect(accept).toContain("Final acceptance seat participated in the role-separated review");
+    expect(accept).toContain("Final acceptance lineage participated in the role-separated review");
+    expect(accept).toContain("Final acceptance context participated in the role-separated review");
     expect(accept).toContain('rodoh-underdrain-windows-player-session/2');
-    expect(accept).toContain('rodoh-underdrain-independent-comprehension/1');
     expect(accept).toContain("$gamepad.bindingProfileDigest -eq $train.bindingProfileDigest");
     expect(accept).toContain("cameraCollisionAdjustments) -lt 1");
     expect(accept).toContain("voluntarilyContinuedAfterConsequence -ne $true");
-    expect(accept).toContain("observerId -eq $comprehension.observer.adjudicatorId");
-    expect(accept).toContain("namedAssetApproval");
+    expect(accept).toContain('physicalHumanEvidence = "separate-not-required-for-software-scope"');
     expect(accept).toContain('questAcceptance = "not-issued"');
     expect(accept).toContain('physicalQuestAcceptance = "open"');
   });
