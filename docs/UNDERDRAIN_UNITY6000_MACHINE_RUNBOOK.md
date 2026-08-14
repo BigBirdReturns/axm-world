@@ -26,7 +26,7 @@ Use the exact World commit named by `MACHINE_LOCK.json`. Do not run this sequenc
 ## Evidence sequence
 
 ```text
-read-only machine preflight
+read-only machine preflight v2
 → inspect the seven production prefabs in Unity
 → named presentation-asset approval
 → approval-bound read-only source intake
@@ -64,11 +64,11 @@ if (& git -C $Arc status --porcelain) { throw "Arc is dirty." }
 
 Keep Unity Editor closed unless a step explicitly requires visual inspection. Automated runners refuse or deliberately close a live editor rather than racing it.
 
-## 2. Run the read-only machine preflight
+## 2. Run the read-only machine preflight v2
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File "$World\scripts\preflight-underdrain-unity6000-player-product.ps1" `
+  -File "$World\scripts\preflight-underdrain-unity6000-player-product-v2.ps1" `
   -WorldRoot $World `
   -ExpectedWorldCommit $WorldCommit `
   -ArcRoot $Arc `
@@ -76,17 +76,20 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -OutputRoot "$Embodied\local\scene-jobs\underdrain-unity6000-player-v1\preflight"
 ```
 
-The preflight verifies the exact World and Arc identities, clean source custody, Unity 6000.0.66f2 project identity, Unity editor location, required fixtures, all seventeen semantic cues, all five enemy kits, seven core production asset identities, every prefab, controller, VFX, and audio path declared by the authored manifest, stable Unity `.meta` files, allowed asset roots, and role-appropriate extensions.
+Preflight v2 invokes the accepted v1 machine and asset preflight, retains its exact receipt, and adds the role-separated review contract, product-profile review floor, and authority-separation checks. It verifies the exact World and Arc identities, clean source custody, Unity 6000.0.66f2 project identity, Unity editor location, required fixtures, all seventeen semantic cues, all five enemy kits, seven core production asset identities, every prefab, controller, VFX, and audio path declared by the authored manifest, stable Unity `.meta` files, allowed asset roots, role-appropriate extensions, three distinct review functions, a separate fourth acceptance function, and the separation of Windows software scope from physical evidence.
 
 It writes:
 
 ```text
-underdrain-unity6000-machine-preflight.json
-underdrain-unity6000-machine-preflight.json.sha256
-underdrain-unity6000-machine-preflight.txt
+underdrain-unity6000-machine-preflight-v2.json
+underdrain-unity6000-machine-preflight-v2.json.sha256
+underdrain-unity6000-machine-preflight-v2.txt
+legacy-v1/underdrain-unity6000-machine-preflight.json
+legacy-v1/underdrain-unity6000-machine-preflight.json.sha256
+legacy-v1/underdrain-unity6000-machine-preflight.txt
 ```
 
-A `pass` means that the machine is ready for visual review and Unity intake. It does not approve the art or qualify the game. A `held` receipt lists the first machine or filesystem blockers and exits with code 2.
+A v2 `pass` means that the machine is ready for visual review and Unity intake on the exact cited software-review floor. It does not approve the art, issue a review receipt, accept the software product, or qualify a physical installation. A `held` receipt lists the first machine, filesystem, product-contract, or authority blocker and exits with code 2.
 
 ## 3. Review the exact production representation
 
@@ -269,6 +272,7 @@ Do not delete or rewrite a failed receipt. Preserve the exact machine output and
 ```text
 source identity
 → filesystem and asset presence
+→ role-separated review contract
 → named presentation approval
 → imported-source intake
 → Arc projection and cue parity
