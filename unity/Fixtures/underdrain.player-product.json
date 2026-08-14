@@ -62,7 +62,11 @@
   "humanEvidence": {
     "keyboardMouseSessionRequired": true,
     "gamepadSessionRequired": true,
-    "independentComprehensionRequired": true,
-    "runtimeMayIssueComprehensionReceipt": false
+    "roleSeparatedSoftwareReviewRequired": true,
+    "minimumDistinctReviewSeats": 3,
+    "separateAcceptanceSeatRequired": true,
+    "independentComprehensionRequired": false,
+    "runtimeMayIssueComprehensionReceipt": false,
+    "physicalHumanEvidenceRequiredForSoftwareAcceptance": false
   }
 }
