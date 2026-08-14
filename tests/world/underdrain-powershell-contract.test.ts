@@ -8,14 +8,18 @@ const scripts = [
   "scripts/approve-underdrain-production-assets.ps1",
   "scripts/audit-underdrain-production-assets.ps1",
   "scripts/build-unity-action-player.ps1",
+  "scripts/lib/underdrain-role-review-common-v1.ps1",
   "scripts/materialize-underdrain-production-representation.ps1",
+  "scripts/new-underdrain-role-separated-review-kit.ps1",
   "scripts/preflight-underdrain-unity6000-player-product.ps1",
   "scripts/prepare-underdrain-production-assets.ps1",
   "scripts/qualify-unity-action-player-product.ps1",
   "scripts/record-underdrain-independent-comprehension.ps1",
+  "scripts/record-underdrain-role-separated-software-review.ps1",
   "scripts/run-underdrain-player-session.ps1",
   "scripts/run-underdrain-unity6000-player-product.ps1",
   "scripts/run-underdrain-unity6000-player-train.ps1",
+  "scripts/test-underdrain-role-separated-review.ps1",
   "scripts/test-underdrain-unity6000-machine-preflight.ps1",
 ];
 
