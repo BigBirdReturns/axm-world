@@ -11,6 +11,7 @@ on:
       - 'scripts/resolve-underdrain-shine-representation.mjs'
       - 'scripts/materialize-underdrain-production-representation.ps1'
       - 'scripts/preflight-underdrain-unity6000-player-product.ps1'
+      - 'scripts/preflight-underdrain-unity6000-player-product-v2.ps1'
       - 'scripts/accept-underdrain-player-product.ps1'
       - 'scripts/approve-underdrain-production-assets.ps1'
       - 'scripts/audit-underdrain-production-assets.ps1'
@@ -25,6 +26,8 @@ on:
       - 'scripts/run-underdrain-unity6000-player-product.ps1'
       - 'scripts/run-underdrain-unity6000-player-train.ps1'
       - 'scripts/test-underdrain-role-separated-review.ps1'
+      - 'scripts/test-underdrain-unity6000-machine-preflight.ps1'
+      - 'scripts/test-underdrain-unity6000-machine-preflight-v2.ps1'
       - 'tests/world/underdrain-machine-preflight.test.ts'
       - 'tests/world/underdrain-player-product-acceptance.test.ts'
       - 'tests/world/underdrain-powershell-contract.test.ts'
@@ -55,6 +58,7 @@ on:
       - 'scripts/resolve-underdrain-shine-representation.mjs'
       - 'scripts/materialize-underdrain-production-representation.ps1'
       - 'scripts/preflight-underdrain-unity6000-player-product.ps1'
+      - 'scripts/preflight-underdrain-unity6000-player-product-v2.ps1'
       - 'scripts/accept-underdrain-player-product.ps1'
       - 'scripts/approve-underdrain-production-assets.ps1'
       - 'scripts/audit-underdrain-production-assets.ps1'
@@ -69,6 +73,8 @@ on:
       - 'scripts/run-underdrain-unity6000-player-product.ps1'
       - 'scripts/run-underdrain-unity6000-player-train.ps1'
       - 'scripts/test-underdrain-role-separated-review.ps1'
+      - 'scripts/test-underdrain-unity6000-machine-preflight.ps1'
+      - 'scripts/test-underdrain-unity6000-machine-preflight-v2.ps1'
       - 'tests/world/underdrain-machine-preflight.test.ts'
       - 'tests/world/underdrain-player-product-acceptance.test.ts'
       - 'tests/world/underdrain-powershell-contract.test.ts'
@@ -157,6 +163,9 @@ jobs:
           cp scripts/resolve-underdrain-shine-representation.mjs "$root/scripts/"
           cp scripts/materialize-underdrain-production-representation.ps1 "$root/scripts/"
           cp scripts/preflight-underdrain-unity6000-player-product.ps1 "$root/scripts/"
+          cp scripts/preflight-underdrain-unity6000-player-product-v2.ps1 "$root/scripts/"
+          cp scripts/test-underdrain-unity6000-machine-preflight.ps1 "$root/scripts/"
+          cp scripts/test-underdrain-unity6000-machine-preflight-v2.ps1 "$root/scripts/"
           cp scripts/approve-underdrain-production-assets.ps1 "$root/scripts/"
           cp scripts/prepare-underdrain-production-assets.ps1 "$root/scripts/"
           cp scripts/audit-underdrain-production-assets.ps1 "$root/scripts/"
@@ -202,6 +211,10 @@ jobs:
             timingProfileId: profile.timingProfileId,
             presentationAdapterId: profile.presentationAdapterId,
             themeId: manifest.themeId,
+            machinePreflight: {
+              defaultFormat: 'rodoh-underdrain-unity6000-machine-preflight/2',
+              retainedLegacyFormat: 'rodoh-underdrain-unity6000-machine-preflight/1'
+            },
             softwareReview: {
               contractFormat: review.format,
               receiptFormat: review.reviewReceiptFormat,
@@ -231,7 +244,7 @@ jobs:
               'shine-extraction',
               'seven-role-resolution',
               'unity-representation-materialization',
-              'machine-preflight',
+              'machine-preflight-v2',
               'named-asset-review',
               'named-asset-approval',
               'read-only-asset-intake',
@@ -268,7 +281,8 @@ jobs:
           writeFileSync(process.env.ROOT + '/RUN_EXTRACT_SHINE.ps1', `[CmdletBinding()]\nparam([Parameter(Mandatory=$true)][string]$Standalone,[Parameter(Mandatory=$true)][string]$Output)\n$ErrorActionPreference = "Stop"\n$lock = Get-Content (Join-Path $PSScriptRoot "MACHINE_LOCK.json") -Raw | ConvertFrom-Json\nnode (Join-Path $PSScriptRoot "scripts\\extract-underdrain-shine-assets.mjs") --input $Standalone --output $Output --expected-sha256 $lock.shineSource.sha256\nexit $LASTEXITCODE\n`);
           writeFileSync(process.env.ROOT + '/RUN_RESOLVE_SHINE.ps1', `[CmdletBinding()]\nparam([Parameter(Mandatory=$true)][string]$Extraction,[Parameter(Mandatory=$true)][string]$RoleMap,[Parameter(Mandatory=$true)][string]$Output)\n$ErrorActionPreference = "Stop"\nnode (Join-Path $PSScriptRoot "scripts\\resolve-underdrain-shine-representation.mjs") --extraction $Extraction --role-map $RoleMap --output $Output\nexit $LASTEXITCODE\n`);
           writeFileSync(process.env.ROOT + '/RUN_MATERIALIZE.ps1', `[CmdletBinding()]\nparam([Parameter(Mandatory=$true)][string]$WorldRoot,[Parameter(Mandatory=$true)][string]$ArcRoot,[Parameter(Mandatory=$true)][string]$EmbodiedArLabRoot,[Parameter(Mandatory=$true)][string]$SourceManifest,[Parameter(Mandatory=$true)][string]$SourceRoot)\n$ErrorActionPreference = "Stop"\n$script = Join-Path $PSScriptRoot "scripts\\materialize-underdrain-production-representation.ps1"\n& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script -WorldRoot $WorldRoot -ArcRoot $ArcRoot -EmbodiedArLabRoot $EmbodiedArLabRoot -SourceManifest $SourceManifest -SourceRoot $SourceRoot\nexit $LASTEXITCODE\n`);
-          writeFileSync(process.env.ROOT + '/RUN_PREFLIGHT.ps1', `[CmdletBinding()]\nparam([Parameter(Mandatory=$true)][string]$WorldRoot,[Parameter(Mandatory=$true)][string]$ArcRoot,[Parameter(Mandatory=$true)][string]$EmbodiedArLabRoot,[string]$OutputRoot)\n$ErrorActionPreference = "Stop"\n$lock = Get-Content (Join-Path $PSScriptRoot "MACHINE_LOCK.json") -Raw | ConvertFrom-Json\n$script = Join-Path $PSScriptRoot "scripts\\preflight-underdrain-unity6000-player-product.ps1"\n& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script -WorldRoot $WorldRoot -ExpectedWorldCommit $lock.world.commit -ArcRoot $ArcRoot -EmbodiedArLabRoot $EmbodiedArLabRoot -OutputRoot $OutputRoot\nexit $LASTEXITCODE\n`);
+          writeFileSync(process.env.ROOT + '/RUN_PREFLIGHT_V1.ps1', `[CmdletBinding()]\nparam([Parameter(Mandatory=$true)][string]$WorldRoot,[Parameter(Mandatory=$true)][string]$ArcRoot,[Parameter(Mandatory=$true)][string]$EmbodiedArLabRoot,[string]$OutputRoot)\n$ErrorActionPreference = "Stop"\n$lock = Get-Content (Join-Path $PSScriptRoot "MACHINE_LOCK.json") -Raw | ConvertFrom-Json\n$script = Join-Path $PSScriptRoot "scripts\\preflight-underdrain-unity6000-player-product.ps1"\n& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script -WorldRoot $WorldRoot -ExpectedWorldCommit $lock.world.commit -ArcRoot $ArcRoot -EmbodiedArLabRoot $EmbodiedArLabRoot -OutputRoot $OutputRoot\nexit $LASTEXITCODE\n`);
+          writeFileSync(process.env.ROOT + '/RUN_PREFLIGHT.ps1', `[CmdletBinding()]\nparam([Parameter(Mandatory=$true)][string]$WorldRoot,[Parameter(Mandatory=$true)][string]$ArcRoot,[Parameter(Mandatory=$true)][string]$EmbodiedArLabRoot,[string]$OutputRoot)\n$ErrorActionPreference = "Stop"\n$lock = Get-Content (Join-Path $PSScriptRoot "MACHINE_LOCK.json") -Raw | ConvertFrom-Json\n$script = Join-Path $PSScriptRoot "scripts\\preflight-underdrain-unity6000-player-product-v2.ps1"\n& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script -WorldRoot $WorldRoot -ExpectedWorldCommit $lock.world.commit -ArcRoot $ArcRoot -EmbodiedArLabRoot $EmbodiedArLabRoot -OutputRoot $OutputRoot\nexit $LASTEXITCODE\n`);
           NODE
           (
             cd "$root"
