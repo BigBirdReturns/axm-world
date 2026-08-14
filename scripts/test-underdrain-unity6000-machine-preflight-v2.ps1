@@ -89,7 +89,7 @@ $legacyFixtureRoot = Join-Path $OutputRoot "legacy-fixture"
     -WorldRoot $worldPath `
     -ArcRoot $arcPath `
     -OutputRoot $legacyFixtureRoot
-$legacyQualificationPath = Join-Path $legacyFixtureRoot "underdrain-unity6000-machine-preflight-fixture-qualification.json"
+$legacyQualificationPath = Join-Path $legacyFixtureRoot "machine-preflight-fixture-qualification.json"
 if (-not (Test-Path $legacyQualificationPath -PathType Leaf)) {
     throw "Legacy preflight execution fixture did not write its qualification receipt."
 }
