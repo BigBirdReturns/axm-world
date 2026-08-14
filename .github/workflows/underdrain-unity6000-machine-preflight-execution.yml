@@ -76,7 +76,15 @@ jobs:
             -WorldRoot .\axm-world `
             -ArcRoot .\axm-arc `
             -OutputRoot $output
-          if ($LASTEXITCODE -ne 0) { throw "Machine-preflight v2 fixture execution failed with exit $LASTEXITCODE." }
+          $receiptPath = Join-Path $output 'underdrain-unity6000-machine-preflight-v2-fixture-qualification.json'
+          if (-not (Test-Path $receiptPath -PathType Leaf)) { throw 'Machine-preflight v2 fixture did not write its qualification receipt.' }
+          $receipt = Get-Content $receiptPath -Raw | ConvertFrom-Json
+          if ($receipt.format -ne 'rodoh-underdrain-unity6000-machine-preflight-v2-fixture-qualification/1' -or $receipt.status -ne 'pass') {
+            throw 'Machine-preflight v2 fixture qualification is unsupported or failed.'
+          }
+          if ($receipt.productAcceptance -ne 'not-issued' -or $receipt.physicalHumanEvidence -ne 'separate' -or $receipt.questInvoked -ne $false -or $receipt.unityInvoked -ne $false) {
+            throw 'Machine-preflight v2 fixture crossed product, human, Quest, or Unity authority.'
+          }
 
       - name: Retain all exact fixture receipts and diagnostics
         if: always()
@@ -90,8 +98,8 @@ jobs:
             Get-ChildItem $source -File -Recurse |
               Where-Object {
                 $_.Name -in @(
-                  'underdrain-unity6000-machine-preflight-fixture-qualification.json',
-                  'underdrain-unity6000-machine-preflight-fixture-qualification.json.sha256',
+                  'machine-preflight-fixture-qualification.json',
+                  'machine-preflight-fixture-qualification.json.sha256',
                   'underdrain-unity6000-machine-preflight-v2-fixture-qualification.json',
                   'underdrain-unity6000-machine-preflight-v2-fixture-qualification.json.sha256',
                   'underdrain-unity6000-machine-preflight.json',
