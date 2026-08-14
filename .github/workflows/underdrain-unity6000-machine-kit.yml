@@ -6,26 +6,35 @@ on:
       - '.github/workflows/underdrain-unity6000-machine-kit.yml'
       - 'docs/UNDERDRAIN_UNITY6000_MACHINE_RUNBOOK.md'
       - 'docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md'
+      - 'docs/UNDERDRAIN_ROLE_SEPARATED_SOFTWARE_REVIEW.md'
       - 'scripts/extract-underdrain-shine-assets.mjs'
       - 'scripts/resolve-underdrain-shine-representation.mjs'
       - 'scripts/materialize-underdrain-production-representation.ps1'
       - 'scripts/preflight-underdrain-unity6000-player-product.ps1'
-      - 'tests/world/underdrain-machine-preflight.test.ts'
-      - 'tests/world/underdrain-representation-materializer.test.ts'
-      - 'tests/world/underdrain-powershell-contract.test.ts'
       - 'scripts/accept-underdrain-player-product.ps1'
       - 'scripts/approve-underdrain-production-assets.ps1'
       - 'scripts/audit-underdrain-production-assets.ps1'
       - 'scripts/build-unity-action-player.ps1'
+      - 'scripts/lib/underdrain-role-review-common-v1.ps1'
+      - 'scripts/new-underdrain-role-separated-review-kit.ps1'
       - 'scripts/prepare-underdrain-production-assets.ps1'
       - 'scripts/qualify-unity-action-player-product.ps1'
       - 'scripts/record-underdrain-independent-comprehension.ps1'
+      - 'scripts/record-underdrain-role-separated-software-review.ps1'
       - 'scripts/run-underdrain-player-session.ps1'
       - 'scripts/run-underdrain-unity6000-player-product.ps1'
       - 'scripts/run-underdrain-unity6000-player-train.ps1'
+      - 'scripts/test-underdrain-role-separated-review.ps1'
+      - 'tests/world/underdrain-machine-preflight.test.ts'
+      - 'tests/world/underdrain-player-product-acceptance.test.ts'
+      - 'tests/world/underdrain-powershell-contract.test.ts'
+      - 'tests/world/underdrain-representation-materializer.test.ts'
+      - 'tests/world/underdrain-role-separated-review.test.ts'
+      - 'tests/world/underdrain-unity6000-player-train.test.ts'
       - 'unity/Fixtures/underdrain.authored-presentation.template.json'
       - 'unity/Fixtures/underdrain.comprehension-contract.json'
       - 'unity/Fixtures/underdrain.player-product.json'
+      - 'unity/Fixtures/underdrain.role-separated-software-review.json'
       - 'unity/Fixtures/underdrain.shine-source.json'
       - 'unity/Fixtures/underdrain.shine-role-map.template.json'
       - 'unity/Fixtures/underdrain.representation-source.template.json'
@@ -36,30 +45,40 @@ on:
       - feature/underdrain-unity6000-player-train-v1
       - repair/underdrain-unity6000-machine-preflight-v1
       - feature/underdrain-production-representation-materializer-v1
+      - repair/underdrain-role-separated-review-closure-v1
     paths:
       - '.github/workflows/underdrain-unity6000-machine-kit.yml'
       - 'docs/UNDERDRAIN_UNITY6000_MACHINE_RUNBOOK.md'
       - 'docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md'
+      - 'docs/UNDERDRAIN_ROLE_SEPARATED_SOFTWARE_REVIEW.md'
       - 'scripts/extract-underdrain-shine-assets.mjs'
       - 'scripts/resolve-underdrain-shine-representation.mjs'
       - 'scripts/materialize-underdrain-production-representation.ps1'
       - 'scripts/preflight-underdrain-unity6000-player-product.ps1'
-      - 'tests/world/underdrain-machine-preflight.test.ts'
-      - 'tests/world/underdrain-representation-materializer.test.ts'
-      - 'tests/world/underdrain-powershell-contract.test.ts'
       - 'scripts/accept-underdrain-player-product.ps1'
       - 'scripts/approve-underdrain-production-assets.ps1'
       - 'scripts/audit-underdrain-production-assets.ps1'
       - 'scripts/build-unity-action-player.ps1'
+      - 'scripts/lib/underdrain-role-review-common-v1.ps1'
+      - 'scripts/new-underdrain-role-separated-review-kit.ps1'
       - 'scripts/prepare-underdrain-production-assets.ps1'
       - 'scripts/qualify-unity-action-player-product.ps1'
       - 'scripts/record-underdrain-independent-comprehension.ps1'
+      - 'scripts/record-underdrain-role-separated-software-review.ps1'
       - 'scripts/run-underdrain-player-session.ps1'
       - 'scripts/run-underdrain-unity6000-player-product.ps1'
       - 'scripts/run-underdrain-unity6000-player-train.ps1'
+      - 'scripts/test-underdrain-role-separated-review.ps1'
+      - 'tests/world/underdrain-machine-preflight.test.ts'
+      - 'tests/world/underdrain-player-product-acceptance.test.ts'
+      - 'tests/world/underdrain-powershell-contract.test.ts'
+      - 'tests/world/underdrain-representation-materializer.test.ts'
+      - 'tests/world/underdrain-role-separated-review.test.ts'
+      - 'tests/world/underdrain-unity6000-player-train.test.ts'
       - 'unity/Fixtures/underdrain.authored-presentation.template.json'
       - 'unity/Fixtures/underdrain.comprehension-contract.json'
       - 'unity/Fixtures/underdrain.player-product.json'
+      - 'unity/Fixtures/underdrain.role-separated-software-review.json'
       - 'unity/Fixtures/underdrain.shine-source.json'
       - 'unity/Fixtures/underdrain.shine-role-map.template.json'
       - 'unity/Fixtures/underdrain.representation-source.template.json'
@@ -98,7 +117,7 @@ jobs:
 
       - run: npm ci --no-audit --no-fund
 
-      - name: Qualify preflight, materializer, and production PowerShell contracts
+      - name: Qualify preflight, representation, review, and acceptance contracts
         shell: bash
         run: |
           set -euo pipefail
@@ -108,7 +127,10 @@ jobs:
             tests/world/underdrain-representation-materializer.test.ts \
             tests/world/underdrain-powershell-contract.test.ts \
             tests/world/underdrain-player-product-acceptance.test.ts \
+            tests/world/underdrain-role-separated-review.test.ts \
             tests/world/underdrain-unity6000-player-train.test.ts
+          pwsh -NoProfile -File scripts/test-underdrain-role-separated-review.ps1 \
+            -OutputRoot "$RUNNER_TEMP/underdrain-role-separated-review"
 
       - name: Run complete World regression and production build
         shell: bash
@@ -126,9 +148,10 @@ jobs:
         run: |
           set -euo pipefail
           root="$RUNNER_TEMP/underdrain-unity6000-machine-kit"
-          mkdir -p "$root/scripts" "$root/fixtures"
+          mkdir -p "$root/scripts/lib" "$root/fixtures" "$root/qualification"
           cp docs/UNDERDRAIN_UNITY6000_MACHINE_RUNBOOK.md "$root/README.md"
           cp docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md "$root/REPRESENTATION.md"
+          cp docs/UNDERDRAIN_ROLE_SEPARATED_SOFTWARE_REVIEW.md "$root/ROLE_SEPARATED_REVIEW.md"
           cp package.json package-lock.json "$root/"
           cp scripts/extract-underdrain-shine-assets.mjs "$root/scripts/"
           cp scripts/resolve-underdrain-shine-representation.mjs "$root/scripts/"
@@ -142,23 +165,29 @@ jobs:
           cp scripts/qualify-unity-action-player-product.ps1 "$root/scripts/"
           cp scripts/build-unity-action-player.ps1 "$root/scripts/"
           cp scripts/run-underdrain-player-session.ps1 "$root/scripts/"
-          cp scripts/record-underdrain-independent-comprehension.ps1 "$root/scripts/"
+          cp scripts/lib/underdrain-role-review-common-v1.ps1 "$root/scripts/lib/"
+          cp scripts/new-underdrain-role-separated-review-kit.ps1 "$root/scripts/"
+          cp scripts/record-underdrain-role-separated-software-review.ps1 "$root/scripts/"
+          cp scripts/test-underdrain-role-separated-review.ps1 "$root/scripts/"
           cp scripts/accept-underdrain-player-product.ps1 "$root/scripts/"
+          cp scripts/record-underdrain-independent-comprehension.ps1 "$root/scripts/legacy-human-evidence.ps1"
           cp unity/Fixtures/underdrain.authored-presentation.template.json "$root/fixtures/"
           cp unity/Fixtures/underdrain.player-product.json "$root/fixtures/"
-          cp unity/Fixtures/underdrain.comprehension-contract.json "$root/fixtures/"
+          cp unity/Fixtures/underdrain.role-separated-software-review.json "$root/fixtures/"
+          cp unity/Fixtures/underdrain.comprehension-contract.json "$root/fixtures/legacy-human-evidence.json"
           cp unity/Fixtures/underdrain.shine-source.json "$root/fixtures/"
           cp unity/Fixtures/underdrain.shine-role-map.template.json "$root/fixtures/"
           cp unity/Fixtures/underdrain.representation-source.template.json "$root/fixtures/"
+          cp -R "$RUNNER_TEMP/underdrain-role-separated-review/." "$root/qualification/"
           world_sha="$(git rev-parse HEAD)"
           WORLD_SHA="$world_sha" ROOT="$root" node --input-type=module <<'NODE'
           import { readFileSync, writeFileSync } from 'node:fs';
           const profile = JSON.parse(readFileSync('unity/Fixtures/underdrain.player-product.json', 'utf8'));
           const manifest = JSON.parse(readFileSync('unity/Fixtures/underdrain.authored-presentation.template.json', 'utf8'));
-          const contract = JSON.parse(readFileSync('unity/Fixtures/underdrain.comprehension-contract.json', 'utf8'));
+          const review = JSON.parse(readFileSync('unity/Fixtures/underdrain.role-separated-software-review.json', 'utf8'));
           const shine = JSON.parse(readFileSync('unity/Fixtures/underdrain.shine-source.json', 'utf8'));
           const lock = {
-            format: 'rodoh-underdrain-unity6000-machine-lock/2',
+            format: 'rodoh-underdrain-unity6000-machine-lock/3',
             world: { repository: 'BigBirdReturns/axm-world', commit: process.env.WORLD_SHA },
             arc: { repository: 'BigBirdReturns/axm-arc', commit: process.env.ARC_ACTION_PLAYER_SHA },
             actionPlayerFloor: {
@@ -173,6 +202,19 @@ jobs:
             timingProfileId: profile.timingProfileId,
             presentationAdapterId: profile.presentationAdapterId,
             themeId: manifest.themeId,
+            softwareReview: {
+              contractFormat: review.format,
+              receiptFormat: review.reviewReceiptFormat,
+              minimumDistinctSeats: review.independence.minimumDistinctSeats,
+              minimumDistinctLineages: review.independence.minimumDistinctLineages,
+              minimumDistinctContexts: review.independence.minimumDistinctContexts,
+              physicalInstallationScope: review.physicalInstallationScope
+            },
+            softwareAcceptance: {
+              format: 'rodoh-underdrain-player-product-acceptance/2',
+              scope: 'windows-software-player-product',
+              separateFourthSeatRequired: true
+            },
             shineSource: {
               fileName: shine.standaloneFileName,
               sha256: shine.standaloneSha256,
@@ -185,7 +227,6 @@ jobs:
             uniqueTopLevelAssetCount: 23,
             feedbackPrefabCount: 7,
             audioClipCount: 7,
-            nextPlayableActionId: contract.nextPlayableAction.expectedId,
             operatorSequence: [
               'shine-extraction',
               'seven-role-resolution',
@@ -200,8 +241,8 @@ jobs:
               'keyboard-mouse-session',
               'gamepad-rebind-session',
               'exact-arc-replay',
-              'independent-comprehension',
-              'separate-named-windows-product-acceptance'
+              'three-seat-role-separated-software-review',
+              'fourth-seat-windows-software-product-acceptance'
             ],
             nonClaims: [
               'availability of the exact Shine standalone on this machine',
@@ -213,11 +254,14 @@ jobs:
               'Windows build',
               'keyboard and mouse session',
               'gamepad and persisted-rebind session',
-              'independent comprehension',
-              'named Windows product acceptance',
+              'role-separated review receipt',
+              'Windows software-product acceptance',
+              'human physical evidence',
               'Quest or physical Quest acceptance'
             ],
-            productAcceptance: 'not-issued'
+            productAcceptance: 'not-issued',
+            physicalHumanEvidence: 'separate',
+            questAcceptance: 'open'
           };
           writeFileSync(process.env.ROOT + '/MACHINE_LOCK.json', JSON.stringify(lock, null, 2) + '\n');
           writeFileSync(process.env.ROOT + '/INSTALL_SHINE_EXTRACTOR.ps1', `$ErrorActionPreference = "Stop"\nPush-Location $PSScriptRoot\ntry { npm ci --no-audit --no-fund; npx playwright install chromium } finally { Pop-Location }\n`);
