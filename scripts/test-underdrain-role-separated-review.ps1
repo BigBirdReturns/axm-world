@@ -63,7 +63,7 @@ $identity = [ordered]@{
     sceneJobDigest = "scenejob1_$hex64e"
 }
 
-function New-IdentityObject([ordered]$Extra) {
+function New-IdentityObject([System.Collections.IDictionary]$Extra) {
     $value = [ordered]@{}
     foreach ($entry in $identity.GetEnumerator()) { $value[$entry.Key] = $entry.Value }
     foreach ($entry in $Extra.GetEnumerator()) { $value[$entry.Key] = $entry.Value }
