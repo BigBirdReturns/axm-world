@@ -62,7 +62,7 @@ $identity = [ordered]@{
     playerSessionReceiptSha256 = $sessionSha
 }
 
-function With-Identity([ordered]$Body) {
+function With-Identity([System.Collections.IDictionary]$Body) {
     $value = [ordered]@{}
     foreach ($entry in $identity.GetEnumerator()) { $value[$entry.Key] = $entry.Value }
     foreach ($entry in $Body.GetEnumerator()) { $value[$entry.Key] = $entry.Value }
