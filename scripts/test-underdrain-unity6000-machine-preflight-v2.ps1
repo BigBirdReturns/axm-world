@@ -89,7 +89,14 @@ $legacyFixtureRoot = Join-Path $OutputRoot "legacy-fixture"
     -WorldRoot $worldPath `
     -ArcRoot $arcPath `
     -OutputRoot $legacyFixtureRoot
-if ($LASTEXITCODE -ne 0) { throw "Legacy preflight execution fixture failed before v2 qualification." }
+$legacyQualificationPath = Join-Path $legacyFixtureRoot "underdrain-unity6000-machine-preflight-fixture-qualification.json"
+if (-not (Test-Path $legacyQualificationPath -PathType Leaf)) {
+    throw "Legacy preflight execution fixture did not write its qualification receipt."
+}
+$legacyQualification = Get-Content $legacyQualificationPath -Raw | ConvertFrom-Json
+if ($legacyQualification.format -ne "rodoh-underdrain-unity6000-machine-preflight-fixture-qualification/1" -or $legacyQualification.status -ne "pass") {
+    throw "Legacy preflight execution fixture is unsupported or failed."
+}
 
 $projectPath = Join-Path $legacyFixtureRoot "synthetic-unity-project"
 $unityEditor = Join-Path $legacyFixtureRoot "Unity\Hub\Editor\6000.0.66f2\Editor\Unity.exe"
@@ -137,7 +144,7 @@ $qualification = [ordered]@{
     worldCommit = $worldCommit
     arcCommit = (& git -C $arcPath rev-parse HEAD).Trim()
     cases = $cases
-    legacyFixture = Join-Path $legacyFixtureRoot "underdrain-unity6000-machine-preflight-fixture-qualification.json"
+    legacyFixture = $legacyQualificationPath
     productAcceptance = "not-issued"
     physicalHumanEvidence = "separate"
     questInvoked = $false
@@ -148,3 +155,4 @@ Write-Json $receiptPath $qualification
 "$(Sha $receiptPath)  $([System.IO.Path]::GetFileName($receiptPath))" | Set-Content -Encoding ascii ($receiptPath + ".sha256")
 Write-Host "UNDERDRAIN machine preflight v2 pass and refusal fixtures qualified."
 Write-Host $receiptPath
+$global:LASTEXITCODE = 0
