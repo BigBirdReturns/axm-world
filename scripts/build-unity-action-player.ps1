@@ -165,8 +165,10 @@ $runReceipt = [ordered]@{
     playerSmokeLog = $smokeLog
     keyboardMouseSession = "open"
     gamepadSession = "open"
-    independentComprehension = "open"
+    roleSeparatedSoftwareReview = "open"
+    physicalHumanEvidence = "separate-open"
     productAcceptance = "not-issued"
+    questAcceptance = "open"
 }
 $runReceiptPath = Join-Path $receiptRoot "build-run-$Target.json"
 $runReceipt | ConvertTo-Json -Depth 12 | Set-Content -Encoding utf8 $runReceiptPath
