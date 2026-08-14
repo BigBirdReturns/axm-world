@@ -46,19 +46,27 @@ describe("UNDERDRAIN Windows commissioning state", () => {
   });
 
   it("provides bounded one-gate progression and blocks missing human decisions", () => {
-    const source = read("scripts/invoke-underdrain-commissioning.ps1");
+    const entry = read("scripts/invoke-underdrain-commissioning.ps1");
+    const common = read("scripts/lib/underdrain-commissioning-common-v1.ps1");
+    const build = read("scripts/lib/underdrain-commissioning-build-gates-v1.ps1");
+    const review = read("scripts/lib/underdrain-commissioning-review-gates-v1.ps1");
+    const controller = read("scripts/lib/underdrain-commissioning-controller-v1.ps1");
+    const source = [entry, common, build, review, controller].join("\n");
 
-    expect(source).toContain('[ValidateSet("inspect", "advance", "auto")]');
+    expect(entry).toContain('[ValidateSet("inspect", "advance", "auto")]');
+    expect(entry).toContain('Mode = "inspect"');
+    expect(entry).toContain('underdrain-commissioning-controller-v1.ps1');
     expect(source).toContain('format = "rodoh-underdrain-windows-commissioning-run/1"');
-    expect(source).toContain('Mode = "inspect"');
     expect(source).toContain("SourceManifest and SourceRoot are required");
     expect(source).toContain("Visual review is required");
     expect(source).toContain("Complete the three isolated packet functions");
     expect(source).toContain("Fourth-seat acceptance inputs are missing");
     expect(source).toContain("Preserve it and use a new JobId");
-    expect(source).toContain('physicalHumanEvidence = "separate"');
-    expect(source).toContain('questAcceptance = "open"');
-    expect(source).toContain('physicalAcceptance = "not-issued"');
+    expect(common).toContain('$inspectionOutput = @(& $Context.HostPowerShell @arguments 2>&1)');
+    expect(common).toContain('return [pscustomobject]@{');
+    expect(controller).toContain('physicalHumanEvidence = "separate"');
+    expect(controller).toContain('questAcceptance = "open"');
+    expect(controller).toContain('physicalAcceptance = "not-issued"');
   });
 
   it("seals diagnostics without exporting products or source assets", () => {
@@ -98,6 +106,8 @@ describe("UNDERDRAIN Windows commissioning state", () => {
     expect(workflow).toContain("test-underdrain-commissioning-state.ps1");
     expect(workflow).toContain("underdrain-commissioning-state-kit");
     expect(workflow).toContain("MACHINE_BINDING.json");
+    expect(workflow).toContain('[string[]]$ArgumentList');
+    expect(workflow).toContain('if ($ArgumentList) { $arguments += @($ArgumentList) }');
     expect(workflow).toContain("SHA256SUMS");
   });
 

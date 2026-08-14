@@ -9,6 +9,7 @@ on:
       - 'scripts/export-underdrain-commissioning-evidence.ps1'
       - 'scripts/get-underdrain-commissioning-state.ps1'
       - 'scripts/invoke-underdrain-commissioning.ps1'
+      - 'scripts/lib/underdrain-commissioning-*.ps1'
       - 'scripts/test-underdrain-commissioning-state.ps1'
       - 'scripts/run-underdrain-player-session.ps1'
       - 'scripts/new-underdrain-role-separated-review-kit.ps1'
@@ -26,6 +27,7 @@ on:
       - 'scripts/export-underdrain-commissioning-evidence.ps1'
       - 'scripts/get-underdrain-commissioning-state.ps1'
       - 'scripts/invoke-underdrain-commissioning.ps1'
+      - 'scripts/lib/underdrain-commissioning-*.ps1'
       - 'scripts/test-underdrain-commissioning-state.ps1'
       - 'scripts/run-underdrain-player-session.ps1'
       - 'scripts/new-underdrain-role-separated-review-kit.ps1'
@@ -127,6 +129,8 @@ jobs:
           mkdir -p "$root/scripts" "$root/docs" "$root/qualification"
           cp scripts/get-underdrain-commissioning-state.ps1 "$root/scripts/"
           cp scripts/invoke-underdrain-commissioning.ps1 "$root/scripts/"
+          mkdir -p "$root/scripts/lib"
+          cp scripts/lib/underdrain-commissioning-*.ps1 "$root/scripts/lib/"
           cp scripts/export-underdrain-commissioning-evidence.ps1 "$root/scripts/"
           cp scripts/test-underdrain-commissioning-state.ps1 "$root/scripts/"
           cp docs/UNDERDRAIN_WINDOWS_COMMISSIONING_STATE.md "$root/README.md"
@@ -186,7 +190,7 @@ jobs:
               [Parameter(Mandatory=$true)][string]$EmbodiedArLabRoot,
               [string]$JobId = "underdrain-unity6000-player-v1",
               [ValidateSet("inspect","advance","auto")][string]$Mode = "inspect",
-              [Parameter(ValueFromRemainingArguments=$true)][object[]]$RemainingArguments
+              [string[]]$ArgumentList
           )
           $ErrorActionPreference = "Stop"
           $binding = Get-Content (Join-Path $PSScriptRoot "MACHINE_BINDING.json") -Raw | ConvertFrom-Json
@@ -201,7 +205,7 @@ jobs:
             "-ExpectedWorldCommit", [string]$binding.world.commit,
             "-ExpectedArcCommit", [string]$binding.arc.commit
           )
-          if ($RemainingArguments) { $arguments += @($RemainingArguments) }
+          if ($ArgumentList) { $arguments += @($ArgumentList) }
           & powershell.exe @arguments
           exit $LASTEXITCODE
           PS1
