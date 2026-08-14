@@ -40,7 +40,7 @@ describe("UNDERDRAIN Windows commissioning state", () => {
     expect(state).toContain('build\\receipts\\player-session-gamepad\\session-run.json');
     expect(runbook).toContain('build\\receipts\\player-session-keyboard-mouse\\session-run.json');
     expect(runbook).toContain('build\\receipts\\player-session-gamepad\\session-run.json');
-    expect(runbook).toContain("The earlier documentation path under `output\\player-train\\sessions` was incorrect");
+    expect(runbook).toContain("Do not use the obsolete `output\\player-train\\sessions` path");
     expect(runbook).not.toContain('output\\player-train\\sessions\\keyboard-mouse\\player-session.json');
     expect(runbook).not.toContain('output\\player-train\\sessions\\gamepad\\player-session.json');
   });
