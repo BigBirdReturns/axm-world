@@ -6,7 +6,7 @@ const ROOT = resolve(import.meta.dirname, "../..");
 const read = (path: string) => readFileSync(resolve(ROOT, path), "utf8");
 
 describe("UNDERDRAIN Unity 6000 machine preflight", () => {
-  it("pins the accepted source, floor, product, and editor identities", () => {
+  it("retains the exact v1 machine, source, floor, product, and editor boundary", () => {
     const source = read("scripts/preflight-underdrain-unity6000-player-product.ps1");
     expect(source).toContain('$ExpectedArcCommit = "aaa5685903a348b3c1ba875622fbe99d90c1da35"');
     expect(source).toContain('$ExpectedFloorCommit = "9693cb99694338e72c15d0ffbb87b5a1c5bbf16a"');
@@ -17,6 +17,24 @@ describe("UNDERDRAIN Unity 6000 machine preflight", () => {
     expect(source).toContain('$ExpectedTimingProfile = "forgiving"');
     expect(source).toContain('$ExpectedPresentationAdapter = "production.prefab/v1"');
     expect(source).toContain('[string]$UnityVersion = "6000.0.66f2"');
+    expect(source).toContain('format = "rodoh-underdrain-unity6000-machine-preflight/1"');
+  });
+
+  it("adds a v2 wrapper that validates the role-separated review floor without rewriting v1 evidence", () => {
+    const source = read("scripts/preflight-underdrain-unity6000-player-product-v2.ps1");
+    expect(source).toContain("preflight-underdrain-unity6000-player-product.ps1");
+    expect(source).toContain('"-NoFail"');
+    expect(source).toContain("legacyReceiptSha256");
+    expect(source).toContain('format = "rodoh-underdrain-unity6000-machine-preflight/2"');
+    expect(source).toContain('"review.fixture"');
+    expect(source).toContain('"review.identity"');
+    expect(source).toContain('"review.independence"');
+    expect(source).toContain('"review.authority"');
+    expect(source).toContain('"profile.review-floor"');
+    expect(source).toContain('productAcceptance = "not-issued"');
+    expect(source).toContain('physicalHumanEvidence = "separate"');
+    expect(source).toContain('questAcceptance = "open"');
+    expect(source).toContain("no asset, action, review, human, physical, Quest, or product acceptance authority");
   });
 
   it("checks the exact machine and filesystem boundary without invoking Unity or approval", () => {
@@ -30,7 +48,6 @@ describe("UNDERDRAIN Unity 6000 machine preflight", () => {
     expect(source).toContain('"package.source"');
     expect(source).toContain('"manifest.identity"');
     expect(source).toContain('"profile.refusal"');
-    expect(source).toContain('"comprehension.identity"');
     expect(source).toContain('"assets.core-count"');
     expect(source).toContain('"assets.files"');
     expect(source).toContain('"assets.meta"');
@@ -46,39 +63,34 @@ describe("UNDERDRAIN Unity 6000 machine preflight", () => {
     expect(source).not.toContain("ProductionApproved = true");
   });
 
-  it("writes fail-visible custody and cannot issue acceptance", () => {
-    const source = read("scripts/preflight-underdrain-unity6000-player-product.ps1");
-    expect(source).toContain('format = "rodoh-underdrain-unity6000-machine-preflight/1"');
-    expect(source).toContain('status = $status');
-    expect(source).toContain('machineReadyForNamedAssetReview = $machineReadyForNamedAssetReview');
-    expect(source).toContain('productAcceptance = "not-issued"');
-    expect(source).toContain("read-only machine and filesystem preflight");
-    expect(source).toContain('if ($status -ne "pass" -and -not $NoFail) { exit 2 }');
-    expect(source).toContain('($receiptPath + ".sha256")');
-    expect(source).toContain("named production-asset review and approval");
-    expect(source).toContain("independent player comprehension");
-    expect(source).toContain("Quest and physical Quest acceptance");
-  });
+  it("executes v1 and v2 pass and refusal fixtures on Windows", () => {
+    const legacy = read("scripts/test-underdrain-unity6000-machine-preflight.ps1");
+    expect(legacy).toContain('format = "rodoh-underdrain-unity6000-machine-preflight-fixture-qualification/1"');
+    expect(legacy).toContain('Name = "pass-complete-fixture"');
+    expect(legacy).toContain('Name = "held-missing-core-asset"');
+    expect(legacy).toContain('Name = "held-wrong-world-commit"');
+    expect(legacy).toContain('Name = "held-forbidden-generated-root"');
+    expect(legacy).toContain('productAcceptance = "not-issued"');
+    expect(legacy).toContain('unityInvoked = $false');
+    expect(legacy).toContain('approvalIssued = $false');
 
-  it("executes one complete fixture and three fail-closed boundary cases on Windows", () => {
-    const source = read("scripts/test-underdrain-unity6000-machine-preflight.ps1");
-    expect(source).toContain('format = "rodoh-underdrain-unity6000-machine-preflight-fixture-qualification/1"');
-    expect(source).toContain('Name = "pass-complete-fixture"');
-    expect(source).toContain('Name = "held-missing-core-asset"');
-    expect(source).toContain('Name = "held-wrong-world-commit"');
-    expect(source).toContain('Name = "held-forbidden-generated-root"');
-    expect(source).toContain('ExpectedExitCode = 2');
-    expect(source).toContain('productAcceptance = "not-issued"');
-    expect(source).toContain('unityInvoked = $false');
-    expect(source).toContain('approvalIssued = $false');
+    const current = read("scripts/test-underdrain-unity6000-machine-preflight-v2.ps1");
+    expect(current).toContain('format = "rodoh-underdrain-unity6000-machine-preflight-v2-fixture-qualification/1"');
+    expect(current).toContain('Name "pass-complete-role-review-floor"');
+    expect(current).toContain('Name "held-invalid-role-review-independence"');
+    expect(current).toContain('"review.independence"');
+    expect(current).toContain('productAcceptance = "not-issued"');
+    expect(current).toContain('physicalHumanEvidence = "separate"');
+    expect(current).toContain('questInvoked = $false');
+    expect(current).toContain('unityInvoked = $false');
 
     const workflow = read(".github/workflows/underdrain-unity6000-machine-preflight-execution.yml");
     expect(workflow).toContain("runs-on: windows-2025");
-    expect(workflow).toContain("test-underdrain-unity6000-machine-preflight.ps1");
-    expect(workflow).toContain("underdrain-unity6000-machine-preflight-execution");
+    expect(workflow).toContain("test-underdrain-unity6000-machine-preflight-v2.ps1");
+    expect(workflow).toContain("underdrain-unity6000-machine-preflight-v2-execution");
   });
 
-  it("gives a cold operator the complete evidence order and first-divergence procedure", () => {
+  it("gives a cold operator the complete role-separated evidence order and first-divergence procedure", () => {
     const runbook = read("docs/UNDERDRAIN_UNITY6000_MACHINE_RUNBOOK.md");
     expect(runbook).toContain("read-only machine preflight");
     expect(runbook).toContain("named presentation-asset approval");
@@ -86,11 +98,13 @@ describe("UNDERDRAIN Unity 6000 machine preflight", () => {
     expect(runbook).toContain("read-only post-serialization asset audit");
     expect(runbook).toContain("keyboard and mouse session");
     expect(runbook).toContain("gamepad session with a persisted rebind");
-    expect(runbook).toContain("independent comprehension observation");
-    expect(runbook).toContain("separate named Windows player-product acceptance");
-    expect(runbook).toContain("The final Windows acceptor must differ from the presentation-asset approver");
+    expect(runbook).toContain("three-seat role-separated software review");
+    expect(runbook).toContain("fourth-seat Windows software-product acceptance");
+    expect(runbook).toContain("new-underdrain-role-separated-review-kit.ps1");
+    expect(runbook).toContain("record-underdrain-role-separated-software-review.ps1");
+    expect(runbook).toContain("rodoh-underdrain-player-product-acceptance/2");
+    expect(runbook).toContain("Human play, accessibility observation, household use, mounted Quest use");
     expect(runbook).toContain("Do not delete or rewrite a failed receipt");
     expect(runbook).toContain("correct the first divergent plane");
-    expect(runbook).toContain("Quest build, headset operation, tracking, guardian, safety, and physical Quest acceptance remain separate and open");
   });
 });

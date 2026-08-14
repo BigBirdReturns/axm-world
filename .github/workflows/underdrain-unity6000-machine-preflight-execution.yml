@@ -5,24 +5,31 @@ on:
     paths:
       - '.github/workflows/underdrain-unity6000-machine-preflight-execution.yml'
       - 'scripts/preflight-underdrain-unity6000-player-product.ps1'
+      - 'scripts/preflight-underdrain-unity6000-player-product-v2.ps1'
       - 'scripts/test-underdrain-unity6000-machine-preflight.ps1'
+      - 'scripts/test-underdrain-unity6000-machine-preflight-v2.ps1'
       - 'tests/world/underdrain-machine-preflight.test.ts'
       - 'tests/world/underdrain-powershell-contract.test.ts'
       - 'unity/Fixtures/underdrain.authored-presentation.template.json'
       - 'unity/Fixtures/underdrain.player-product.json'
+      - 'unity/Fixtures/underdrain.role-separated-software-review.json'
       - 'unity/Fixtures/underdrain.comprehension-contract.json'
   push:
     branches:
       - feature/underdrain-unity6000-player-train-v1
       - repair/underdrain-machine-preflight-execution-v1
+      - repair/underdrain-role-separated-review-closure-v1
     paths:
       - '.github/workflows/underdrain-unity6000-machine-preflight-execution.yml'
       - 'scripts/preflight-underdrain-unity6000-player-product.ps1'
+      - 'scripts/preflight-underdrain-unity6000-player-product-v2.ps1'
       - 'scripts/test-underdrain-unity6000-machine-preflight.ps1'
+      - 'scripts/test-underdrain-unity6000-machine-preflight-v2.ps1'
       - 'tests/world/underdrain-machine-preflight.test.ts'
       - 'tests/world/underdrain-powershell-contract.test.ts'
       - 'unity/Fixtures/underdrain.authored-presentation.template.json'
       - 'unity/Fixtures/underdrain.player-product.json'
+      - 'unity/Fixtures/underdrain.role-separated-software-review.json'
       - 'unity/Fixtures/underdrain.comprehension-contract.json'
   workflow_dispatch:
 
@@ -39,7 +46,7 @@ env:
 jobs:
   windows-fixtures:
     runs-on: windows-2025
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Check out exact World candidate
         uses: actions/checkout@v4
@@ -58,26 +65,34 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
-      - name: Execute pass and refusal fixtures against the real preflight
+      - name: Execute v1 and v2 pass and refusal fixtures
         id: fixtures
         continue-on-error: true
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $output = Join-Path $env:RUNNER_TEMP 'underdrain-machine-preflight-execution'
-          & .\axm-world\scripts\test-underdrain-unity6000-machine-preflight.ps1 `
+          $output = Join-Path $env:RUNNER_TEMP 'underdrain-machine-preflight-v2-execution'
+          & .\axm-world\scripts\test-underdrain-unity6000-machine-preflight-v2.ps1 `
             -WorldRoot .\axm-world `
             -ArcRoot .\axm-arc `
             -OutputRoot $output
-          if ($LASTEXITCODE -ne 0) { throw "Machine-preflight fixture execution failed with exit $LASTEXITCODE." }
+          $receiptPath = Join-Path $output 'underdrain-unity6000-machine-preflight-v2-fixture-qualification.json'
+          if (-not (Test-Path $receiptPath -PathType Leaf)) { throw 'Machine-preflight v2 fixture did not write its qualification receipt.' }
+          $receipt = Get-Content $receiptPath -Raw | ConvertFrom-Json
+          if ($receipt.format -ne 'rodoh-underdrain-unity6000-machine-preflight-v2-fixture-qualification/1' -or $receipt.status -ne 'pass') {
+            throw 'Machine-preflight v2 fixture qualification is unsupported or failed.'
+          }
+          if ($receipt.productAcceptance -ne 'not-issued' -or $receipt.physicalHumanEvidence -ne 'separate' -or $receipt.questInvoked -ne $false -or $receipt.unityInvoked -ne $false) {
+            throw 'Machine-preflight v2 fixture crossed product, human, Quest, or Unity authority.'
+          }
 
       - name: Retain all exact fixture receipts and diagnostics
         if: always()
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $source = Join-Path $env:RUNNER_TEMP 'underdrain-machine-preflight-execution'
-          $retained = Join-Path $env:RUNNER_TEMP 'underdrain-machine-preflight-execution-evidence'
+          $source = Join-Path $env:RUNNER_TEMP 'underdrain-machine-preflight-v2-execution'
+          $retained = Join-Path $env:RUNNER_TEMP 'underdrain-machine-preflight-v2-execution-evidence'
           New-Item -ItemType Directory -Force $retained | Out-Null
           if (Test-Path $source -PathType Container) {
             Get-ChildItem $source -File -Recurse |
@@ -85,9 +100,14 @@ jobs:
                 $_.Name -in @(
                   'machine-preflight-fixture-qualification.json',
                   'machine-preflight-fixture-qualification.json.sha256',
+                  'underdrain-unity6000-machine-preflight-v2-fixture-qualification.json',
+                  'underdrain-unity6000-machine-preflight-v2-fixture-qualification.json.sha256',
                   'underdrain-unity6000-machine-preflight.json',
                   'underdrain-unity6000-machine-preflight.json.sha256',
-                  'underdrain-unity6000-machine-preflight.txt'
+                  'underdrain-unity6000-machine-preflight.txt',
+                  'underdrain-unity6000-machine-preflight-v2.json',
+                  'underdrain-unity6000-machine-preflight-v2.json.sha256',
+                  'underdrain-unity6000-machine-preflight-v2.txt'
                 )
               } |
               ForEach-Object {
@@ -98,7 +118,7 @@ jobs:
               }
           }
           if (-not (Get-ChildItem $retained -File -Recurse -ErrorAction SilentlyContinue)) {
-            'No receipt was written before the fixture harness failed.' | Set-Content -Encoding utf8 (Join-Path $retained 'NO_RECEIPT.txt')
+            'No receipt was written before the v2 fixture harness failed.' | Set-Content -Encoding utf8 (Join-Path $retained 'NO_RECEIPT.txt')
           }
           $lines = Get-ChildItem $retained -File -Recurse |
             Where-Object { $_.Name -ne 'SHA256SUMS' } |
@@ -115,8 +135,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: underdrain-unity6000-machine-preflight-execution
-          path: ${{ runner.temp }}/underdrain-machine-preflight-execution-evidence
+          name: underdrain-unity6000-machine-preflight-v2-execution
+          path: ${{ runner.temp }}/underdrain-machine-preflight-v2-execution-evidence
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30

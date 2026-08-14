@@ -5,17 +5,25 @@ on:
     paths:
       - '.github/workflows/underdrain-player-product-acceptance-source.yml'
       - 'docs/UNDERDRAIN_PRODUCTION_ASSET_APPROVAL.md'
+      - 'docs/UNDERDRAIN_ROLE_SEPARATED_SOFTWARE_REVIEW.md'
       - 'scripts/accept-underdrain-player-product.ps1'
       - 'scripts/approve-underdrain-production-assets.ps1'
       - 'scripts/audit-underdrain-production-assets.ps1'
+      - 'scripts/lib/underdrain-role-review-common-v1.ps1'
+      - 'scripts/new-underdrain-role-separated-review-kit.ps1'
       - 'scripts/prepare-underdrain-production-assets.ps1'
       - 'scripts/record-underdrain-independent-comprehension.ps1'
+      - 'scripts/record-underdrain-role-separated-software-review.ps1'
       - 'scripts/run-underdrain-player-session.ps1'
       - 'scripts/run-underdrain-unity6000-player-product.ps1'
+      - 'scripts/test-underdrain-role-separated-review.ps1'
       - 'tests/world/underdrain-player-product-acceptance.test.ts'
       - 'tests/world/underdrain-powershell-contract.test.ts'
+      - 'tests/world/underdrain-role-separated-review.test.ts'
       - 'tests/world/underdrain-unity6000-player-train.test.ts'
       - 'unity/Fixtures/underdrain.comprehension-contract.json'
+      - 'unity/Fixtures/underdrain.player-product.json'
+      - 'unity/Fixtures/underdrain.role-separated-software-review.json'
       - 'unity/Conformance/ActionProductionAssetUnityStubs.cs'
       - 'unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetApprovalBatch.cs'
@@ -29,20 +37,29 @@ on:
       - feature/underdrain-unity6000-player-train-v1
       - repair/action-production-asset-approval-v2
       - repair/underdrain-representation-approval-closure-v1
+      - repair/underdrain-role-separated-review-closure-v1
     paths:
       - '.github/workflows/underdrain-player-product-acceptance-source.yml'
       - 'docs/UNDERDRAIN_PRODUCTION_ASSET_APPROVAL.md'
+      - 'docs/UNDERDRAIN_ROLE_SEPARATED_SOFTWARE_REVIEW.md'
       - 'scripts/accept-underdrain-player-product.ps1'
       - 'scripts/approve-underdrain-production-assets.ps1'
       - 'scripts/audit-underdrain-production-assets.ps1'
+      - 'scripts/lib/underdrain-role-review-common-v1.ps1'
+      - 'scripts/new-underdrain-role-separated-review-kit.ps1'
       - 'scripts/prepare-underdrain-production-assets.ps1'
       - 'scripts/record-underdrain-independent-comprehension.ps1'
+      - 'scripts/record-underdrain-role-separated-software-review.ps1'
       - 'scripts/run-underdrain-player-session.ps1'
       - 'scripts/run-underdrain-unity6000-player-product.ps1'
+      - 'scripts/test-underdrain-role-separated-review.ps1'
       - 'tests/world/underdrain-player-product-acceptance.test.ts'
       - 'tests/world/underdrain-powershell-contract.test.ts'
+      - 'tests/world/underdrain-role-separated-review.test.ts'
       - 'tests/world/underdrain-unity6000-player-train.test.ts'
       - 'unity/Fixtures/underdrain.comprehension-contract.json'
+      - 'unity/Fixtures/underdrain.player-product.json'
+      - 'unity/Fixtures/underdrain.role-separated-software-review.json'
       - 'unity/Conformance/ActionProductionAssetUnityStubs.cs'
       - 'unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj'
       - 'unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetApprovalBatch.cs'
@@ -86,16 +103,19 @@ jobs:
 
       - run: npm ci --no-audit --no-fund
 
-      - name: Qualify production approval, custody, PowerShell, comprehension, and acceptance contracts
+      - name: Qualify approval, custody, role review, and acceptance contracts
         shell: bash
         run: |
           set -euo pipefail
           npm run typecheck
           npm test -- \
             tests/world/underdrain-player-product-acceptance.test.ts \
+            tests/world/underdrain-role-separated-review.test.ts \
             tests/world/underdrain-powershell-contract.test.ts \
             tests/world/underdrain-unity6000-player-train.test.ts \
             tests/world/action-natural-player.test.ts
+          pwsh -NoProfile -File scripts/test-underdrain-role-separated-review.ps1 \
+            -OutputRoot "$RUNNER_TEMP/underdrain-role-separated-review"
           dotnet build unity/Conformance/Axm.Rodoh.Action.Cues.csproj --configuration Release
           dotnet build unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj --configuration Release
           dotnet build unity/Conformance/Axm.Rodoh.Action.Conformance.csproj --configuration Release
@@ -116,32 +136,41 @@ jobs:
         run: |
           set -euo pipefail
           root="$RUNNER_TEMP/underdrain-player-product-acceptance-source"
-          mkdir -p "$root/source"
+          mkdir -p "$root/source/scripts/lib" "$root/source/tests" "$root/source/fixtures" "$root/source/unity"
           cp docs/UNDERDRAIN_PRODUCTION_ASSET_APPROVAL.md "$root/source/"
-          cp unity/Fixtures/underdrain.player-product.json "$root/source/"
-          cp unity/Fixtures/underdrain.authored-presentation.template.json "$root/source/"
-          cp unity/Fixtures/underdrain.comprehension-contract.json "$root/source/"
-          cp scripts/approve-underdrain-production-assets.ps1 "$root/source/"
-          cp scripts/run-underdrain-unity6000-player-product.ps1 "$root/source/"
-          cp scripts/prepare-underdrain-production-assets.ps1 "$root/source/"
-          cp scripts/audit-underdrain-production-assets.ps1 "$root/source/"
-          cp scripts/run-underdrain-player-session.ps1 "$root/source/"
-          cp scripts/record-underdrain-independent-comprehension.ps1 "$root/source/"
-          cp scripts/accept-underdrain-player-product.ps1 "$root/source/"
-          cp unity/Conformance/ActionProductionAssetUnityStubs.cs "$root/source/"
-          cp unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj "$root/source/"
-          cp unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetApprovalBatch.cs "$root/source/"
-          cp unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetDigest.cs "$root/source/"
-          cp unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetIntakeBatch.cs "$root/source/"
-          cp unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetAuditBatch.cs "$root/source/"
-          cp unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionAssetMarker.cs "$root/source/"
-          cp unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerSessionEvidence.cs "$root/source/"
+          cp docs/UNDERDRAIN_ROLE_SEPARATED_SOFTWARE_REVIEW.md "$root/source/"
+          cp unity/Fixtures/underdrain.player-product.json "$root/source/fixtures/"
+          cp unity/Fixtures/underdrain.authored-presentation.template.json "$root/source/fixtures/"
+          cp unity/Fixtures/underdrain.role-separated-software-review.json "$root/source/fixtures/"
+          cp unity/Fixtures/underdrain.comprehension-contract.json "$root/source/fixtures/legacy-human-evidence.json"
+          cp scripts/approve-underdrain-production-assets.ps1 "$root/source/scripts/"
+          cp scripts/run-underdrain-unity6000-player-product.ps1 "$root/source/scripts/"
+          cp scripts/prepare-underdrain-production-assets.ps1 "$root/source/scripts/"
+          cp scripts/audit-underdrain-production-assets.ps1 "$root/source/scripts/"
+          cp scripts/run-underdrain-player-session.ps1 "$root/source/scripts/"
+          cp scripts/lib/underdrain-role-review-common-v1.ps1 "$root/source/scripts/lib/"
+          cp scripts/new-underdrain-role-separated-review-kit.ps1 "$root/source/scripts/"
+          cp scripts/record-underdrain-role-separated-software-review.ps1 "$root/source/scripts/"
+          cp scripts/test-underdrain-role-separated-review.ps1 "$root/source/scripts/"
+          cp scripts/accept-underdrain-player-product.ps1 "$root/source/scripts/"
+          cp scripts/record-underdrain-independent-comprehension.ps1 "$root/source/scripts/legacy-human-evidence.ps1"
+          cp tests/world/underdrain-player-product-acceptance.test.ts "$root/source/tests/"
+          cp tests/world/underdrain-role-separated-review.test.ts "$root/source/tests/"
+          cp unity/Conformance/ActionProductionAssetUnityStubs.cs "$root/source/unity/"
+          cp unity/Conformance/Axm.Rodoh.Action.AssetCustody.Source.csproj "$root/source/unity/"
+          cp unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetApprovalBatch.cs "$root/source/unity/"
+          cp unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetDigest.cs "$root/source/unity/"
+          cp unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetIntakeBatch.cs "$root/source/unity/"
+          cp unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetAuditBatch.cs "$root/source/unity/"
+          cp unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionAssetMarker.cs "$root/source/unity/"
+          cp unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerSessionEvidence.cs "$root/source/unity/"
+          cp -R "$RUNNER_TEMP/underdrain-role-separated-review" "$root/executable-qualification"
           WORLD_SHA="$(git rev-parse HEAD)" ROOT="$root" node --input-type=module <<'NODE'
           import { readFileSync, writeFileSync } from 'node:fs';
           const profile = JSON.parse(readFileSync('unity/Fixtures/underdrain.player-product.json', 'utf8'));
-          const contract = JSON.parse(readFileSync('unity/Fixtures/underdrain.comprehension-contract.json', 'utf8'));
+          const contract = JSON.parse(readFileSync('unity/Fixtures/underdrain.role-separated-software-review.json', 'utf8'));
           writeFileSync(process.env.ROOT + '/source-qualification.json', JSON.stringify({
-            format: 'rodoh-underdrain-player-product-acceptance-source-qualification/3',
+            format: 'rodoh-underdrain-player-product-acceptance-source-qualification/4',
             status: 'pass',
             worldCommit: process.env.WORLD_SHA,
             arcActionPlayerCommit: process.env.ARC_ACTION_PLAYER_SHA,
@@ -152,28 +181,28 @@ jobs:
             coreProductionAssetCount: 7,
             declaredBindingCount: 27,
             uniqueDeclaredAssetCount: 23,
-            assetApproval: {
-              format: 'rodoh-action-production-asset-approval/2',
-              namedAuthorityRequired: true,
-              explicitSevenAssetConfirmationRequired: true,
-              recursiveProjectDependencyCustody: true,
-              finalPrefabByteCustody: true,
-              unityMetaAndGuidCustody: true,
-              completeDeclaredBindingClosure: true,
-              effectiveManifestMayChangeIdentityOnlyWhenBindingClosureIsExact: true,
-              authorityAuthentication: 'not-performed',
-              playerProductAcceptance: 'not-issued'
+            presentationApprovalFormat: 'rodoh-action-production-asset-approval/2',
+            roleSeparatedReview: {
+              contractFormat: contract.format,
+              receiptFormat: contract.reviewReceiptFormat,
+              minimumDistinctSeats: contract.independence.minimumDistinctSeats,
+              minimumDistinctLineages: contract.independence.minimumDistinctLineages,
+              minimumDistinctContexts: contract.independence.minimumDistinctContexts,
+              runtimeMayIssue: contract.independence.runtimeMayIssue,
+              candidateAuthorMayIssue: contract.independence.candidateAuthorMayIssue,
+              artifactMutationAllowed: contract.independence.artifactMutationAllowed,
+              physicalInstallationScope: contract.physicalInstallationScope
             },
-            importedSourceCustody: 'named-approval-bound-read-only-intake-plus-read-only-audit',
-            sourceIntakeCreatesApproval: false,
-            sourceAuditCreatesApproval: false,
-            finalAcceptorMustDifferFromAssetApprover: true,
-            keyboardMouseSessionRequired: profile.humanEvidence.keyboardMouseSessionRequired,
-            gamepadSessionRequired: profile.humanEvidence.gamepadSessionRequired,
-            independentComprehensionRequired: profile.humanEvidence.independentComprehensionRequired,
-            runtimeMayIssueComprehensionReceipt: false,
-            nextPlayableActionId: contract.nextPlayableAction.expectedId,
+            softwareAcceptance: {
+              format: 'rodoh-underdrain-player-product-acceptance/2',
+              scope: 'windows-software-player-product',
+              fourthSeatRequired: profile.humanEvidence.separateAcceptanceSeatRequired,
+              physicalHumanEvidenceRequired: profile.humanEvidence.physicalHumanEvidenceRequiredForSoftwareAcceptance,
+              questAcceptance: 'not-issued'
+            },
+            executableAdmissionAndRefusalQualification: true,
             namedProductAcceptance: 'not-issued',
+            physicalHumanEvidence: 'separate',
             questAcceptance: 'open',
             nonClaims: [
               'named production-asset approval',
@@ -184,8 +213,9 @@ jobs:
               'Windows player build',
               'keyboard and mouse physical session',
               'gamepad and rebinding physical session',
-              'independent comprehension',
-              'named player-product acceptance',
+              'role-separated review receipt',
+              'Windows software-product acceptance',
+              'human physical evidence',
               'Quest acceptance'
             ]
           }, null, 2) + '\n');

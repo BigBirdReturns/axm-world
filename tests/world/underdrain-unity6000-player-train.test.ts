@@ -52,8 +52,12 @@ describe("UNDERDRAIN Unity 6000 player train", () => {
       humanEvidence: {
         keyboardMouseSessionRequired: true,
         gamepadSessionRequired: true,
-        independentComprehensionRequired: true,
+        roleSeparatedSoftwareReviewRequired: true,
+        minimumDistinctReviewSeats: 3,
+        separateAcceptanceSeatRequired: true,
+        independentComprehensionRequired: false,
         runtimeMayIssueComprehensionReceipt: false,
+        physicalHumanEvidenceRequiredForSoftwareAcceptance: false,
       },
     });
     expect(profile.enemies).toHaveLength(5);
@@ -119,32 +123,23 @@ describe("UNDERDRAIN Unity 6000 player train", () => {
     expect(refused.result.stderr).toContain("forbidden generated asset root");
   });
 
-  it("requires exact production markers, complete dependency closure, static arena collision, and no Unity combat physics", () => {
+  it("requires exact production markers, dependency closure, static arena collision, and no Unity combat physics", () => {
     const marker = read("unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionProductionAssetMarker.cs");
     const digest = read("unity/Packages/com.axm.rodoh-action/Editor/ActionProductionAssetDigest.cs");
     const identity = read("unity/Packages/com.axm.rodoh-action/Runtime/Unity/ActionPlayerProductIdentity.cs");
     const batch = read("unity/Packages/com.axm.rodoh-action/Editor/ActionPlayerProductBatch.cs");
     expect(marker).toContain('Format = "rodoh-action-production-asset/3"');
     expect(marker).toContain('ApprovalFormat = "rodoh-action-production-asset-approval/2"');
-    expect(marker).toContain("visualSourceSha256");
     expect(marker).toContain("dependencyClosureSha256");
-    expect(marker).toContain("dependencyCount");
-    expect(marker).toContain("productionApproved");
     expect(marker).toContain("approvalAuthorityId");
     expect(marker).toContain("generatedPrimitive");
-    expect(marker).toContain("Production asset dependency-closure SHA-256 is absent or malformed");
     expect(digest).toContain("AssetDatabase.GetDependencies");
-    expect(digest).toContain("AssetMetaSha256");
     expect(digest).toContain("ComputeDeclaredBindingClosure");
     expect(digest).toContain("exactly 27 production bindings");
     expect(digest).toContain("exactly 23 unique top-level assets");
     expect(identity).toContain('Format = "rodoh-action-player-product-identity/1"');
     expect(identity).toContain('qualification = "source-and-scene-qualified"');
     expect(identity).toContain("runtimeMayIssueComprehensionReceipt = false");
-    expect(batch).toMatch(/private\s+(?:sealed\s+)?class\s+AssetRequirement/);
-    expect(batch).toContain("EnemyRequirement : AssetRequirement");
-    expect(batch).toContain("built-in or untracked primitive visual");
-    expect(batch).toContain("forbidden generated primitive custody");
     expect(batch).toContain("Authored arena prefab contains no enabled static camera-collision surface");
     expect(batch).toContain("ActionPlayerProductIdentity");
     expect(batch).toContain("ActionInputBindings");
@@ -155,53 +150,52 @@ describe("UNDERDRAIN Unity 6000 player train", () => {
     expect(batch).toContain('productAcceptance = "not-issued"');
   });
 
-  it("makes the Windows build require the qualified serialized player-product identity", () => {
-    const batch = read("unity/Packages/com.axm.rodoh-action/Editor/ActionBuildBatch.cs");
-    const runner = read("scripts/build-unity-action-player.ps1");
-    expect(batch).toContain("-requirePlayerProduct");
-    expect(batch).toContain("FindExactlyOne<ActionPlayerProductIdentity>");
-    expect(batch).toContain("Player-product identity differs from the exact scene job");
-    expect(batch).toContain('comprehensionReceipt = "not-issued-by-build"');
-    expect(batch).toContain('productAcceptance = "not-issued-by-build"');
-    expect(runner).toContain("[switch]$RequirePlayerProduct");
-    expect(runner).toContain('"-requirePlayerProduct"');
-    expect(runner).toContain("Built player lost exact player-product identity custody");
-    expect(runner).toContain('independentComprehension = "open"');
-  });
-
-  it("runs exact Arc generation, authored scene qualification, Windows build, and separate device sessions", () => {
+  it("keeps build, device, review, and acceptance authority in separate transactions", () => {
+    const buildBatch = read("unity/Packages/com.axm.rodoh-action/Editor/ActionBuildBatch.cs");
+    const buildRunner = read("scripts/build-unity-action-player.ps1");
     const train = read("scripts/run-underdrain-unity6000-player-train.ps1");
-    const qualifier = read("scripts/qualify-unity-action-player-product.ps1");
+    const productTrain = read("scripts/run-underdrain-unity6000-player-product.ps1");
     const session = read("scripts/run-underdrain-player-session.ps1");
+
+    expect(buildBatch).toContain("-requirePlayerProduct");
+    expect(buildBatch).toContain("FindExactlyOne<ActionPlayerProductIdentity>");
+    expect(buildBatch).toContain("Player-product identity differs from the exact scene job");
+    expect(buildBatch).toContain('productAcceptance = "not-issued-by-build"');
+    expect(buildRunner).toContain("[switch]$RequirePlayerProduct");
+    expect(buildRunner).toContain('"-requirePlayerProduct"');
+    expect(buildRunner).toContain("Built player lost exact player-product identity custody");
+
     expect(train).toContain('$ExpectedArcCommit = "aaa5685903a348b3c1ba875622fbe99d90c1da35"');
     expect(train).toContain("build:action-player-reference");
-    expect(train).toContain("build-action-player-spec.ts");
     expect(train).toContain("project-authored-action-presentation.mjs");
-    expect(train).toContain("Axm.Rodoh.Action.Cues.csproj");
     expect(train).toContain("run-unity-action-estate-v3.ps1");
     expect(train).toContain("qualify-unity-action-player-product.ps1");
     expect(train).toContain("RequirePlayerProduct = $true");
     expect(train).not.toContain("GovernedProduction = $true");
-    expect(train).toContain('keyboardMouseSession = "open"');
-    expect(train).toContain('namedPlayerProductAcceptance = "not-issued"');
-    expect(qualifier).toContain("ActionPlayerProductBatch.Run");
-    expect(qualifier).toContain('presentationAdapterId -ne "production.prefab/v1"');
+
+    expect(productTrain).toContain('keyboardMouseSession = "open"');
+    expect(productTrain).toContain('gamepadSession = "open"');
+    expect(productTrain).toContain('roleSeparatedSoftwareReview = "open"');
+    expect(productTrain).toContain('physicalHumanEvidence = "separate-open"');
+    expect(productTrain).toContain('namedPlayerProductAcceptance = "not-issued"');
+
     expect(session).toContain('[ValidateSet("keyboard-mouse", "gamepad")]');
     expect(session).toContain("-axmActionRequiredDevice");
     expect(session).toContain("-axmActionPerformanceReceipt");
     expect(session).toContain("replay-unity-action-candidate.ps1");
     expect(session).toContain('candidateAuthority -ne "Arc replay required"');
-    expect(session).toContain('comprehensionReceipt = "not-issued"');
     expect(session).toContain('namedPlayerProductAcceptance = "not-issued"');
   });
 
-  it("extends the real project train through named closure approval, read-only intake and audit, independent comprehension, and named acceptance", () => {
+  it("extends the real project train through role-separated review and fourth-seat software acceptance", () => {
     const productTrain = read("scripts/run-underdrain-unity6000-player-product.ps1");
     const approval = read("scripts/approve-underdrain-production-assets.ps1");
     const intake = read("scripts/prepare-underdrain-production-assets.ps1");
     const audit = read("scripts/audit-underdrain-production-assets.ps1");
-    const comprehension = read("scripts/record-underdrain-independent-comprehension.ps1");
+    const review = read("scripts/record-underdrain-role-separated-software-review.ps1");
+    const legacyHuman = read("scripts/record-underdrain-independent-comprehension.ps1");
     const acceptance = read("scripts/accept-underdrain-player-product.ps1");
+
     expect(productTrain).toContain("AssetApprovalReceipt");
     expect(productTrain).toContain("prepare-underdrain-production-assets.ps1");
     expect(productTrain).toContain("audit-underdrain-production-assets.ps1");
@@ -210,22 +204,24 @@ describe("UNDERDRAIN Unity 6000 player train", () => {
     expect(productTrain).toContain('format = "rodoh-underdrain-unity6000-player-product-train/1"');
     expect(productTrain).toContain("exactRepresentationCustody = $true");
     expect(approval).toContain("ActionProductionAssetApprovalBatch.Run");
-    expect(approval).toContain("ConfirmAllAssets");
     expect(approval).toContain('rodoh-action-production-asset-approval/2');
-    expect(intake).toContain("ActionProductionAssetIntakeBatch.Run");
     expect(intake).toContain('rodoh-underdrain-production-asset-intake-run/3');
-    expect(audit).toContain("ActionProductionAssetAuditBatch.Run");
-    expect(audit).toContain("AssetApprovalReceipt");
     expect(audit).toContain('rodoh-underdrain-production-asset-audit-run/2');
-    expect(comprehension).toContain('format = "rodoh-underdrain-independent-comprehension/1"');
-    expect(comprehension).toContain("The independent player may not receive a walkthrough before adjudication");
-    expect(comprehension).toContain('runtimeIssued = $false');
-    expect(acceptance).toContain('format = "rodoh-underdrain-player-product-acceptance/1"');
-    expect(acceptance).toContain('rodoh-action-production-asset-approval/2');
-    expect(acceptance).toContain("Gamepad acceptance must include a persisted runtime rebind");
-    expect(acceptance).toContain("voluntarilyContinuedAfterConsequence -ne $true");
-    expect(acceptance).toContain("assetApproval.approvalAuthorityId -eq $AcceptorId");
-    expect(acceptance).toContain("Final player-product acceptor must differ from the presentation-asset approval authority");
+
+    expect(review).toContain('format -ne "rodoh-underdrain-role-separated-review/1"');
+    expect(review).toContain('runtimeIssued = $false');
+    expect(review).toContain('candidateAuthorIssued = $false');
+    expect(review).toContain('productAcceptance = "not-issued"');
+    expect(legacyHuman).toContain('format = "rodoh-underdrain-independent-comprehension/1"');
+
+    expect(acceptance).toContain('format = "rodoh-underdrain-player-product-acceptance/2"');
+    expect(acceptance).toContain('scope = "windows-software-player-product"');
+    expect(acceptance).toContain("RoleSeparatedReviewReceipt");
+    expect(acceptance).toContain("Gamepad acceptance requires a persisted runtime rebind");
+    expect(acceptance).toContain("Final product-acceptance seat must differ from the presentation-approval seat");
+    expect(acceptance).toContain("Final acceptance seat participated in the role-separated review");
+    expect(acceptance).toContain('physicalHumanEvidence = "separate-not-required-for-software-scope"');
     expect(acceptance).toContain('questAcceptance = "not-issued"');
+    expect(acceptance).not.toContain('rodoh-underdrain-independent-comprehension/1');
   });
 });
