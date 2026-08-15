@@ -52,7 +52,9 @@ Set-StrictMode -Version Latest
 
 function Resolve-FullPath([string]$Value, [string]$Base) {
     if ([string]::IsNullOrWhiteSpace($Value)) { return $null }
-    if ([System.IO.Path]::IsPathRooted($Value)) { return [System.IO.Path]::GetFullPath($Value) }
+    if ([System.IO.Path]::IsPathRooted($Value)) {
+        return [System.IO.Path]::GetFullPath($Value)
+    }
     return [System.IO.Path]::GetFullPath((Join-Path $Base $Value))
 }
 
@@ -104,22 +106,30 @@ function Invoke-Child(
     if (-not (Test-Path -LiteralPath $Script -PathType Leaf)) {
         throw "Required target-host child script is absent: $Script"
     }
+
     $arguments = [System.Collections.ArrayList]::new()
-    foreach ($value in @("-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", $Script)) {
+    foreach ($value in @(
+        "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+        "-File", $Script
+    )) {
         [void]$arguments.Add($value)
     }
     foreach ($key in ($Parameters.Keys | Sort-Object)) {
         Add-Argument $arguments $key $Parameters[$key]
     }
+
     New-Item -ItemType Directory -Force ([System.IO.Path]::GetDirectoryName($LogPath)) | Out-Null
     $hostPowerShell = (Get-Process -Id $PID).Path
-    $output = @(& $hostPowerShell @arguments 2>&1)
+    $childOutput = @(& $hostPowerShell @arguments 2>&1)
     $exitCode = $LASTEXITCODE
-    foreach ($line in $output) {
+    foreach ($line in $childOutput) {
         Add-Content -LiteralPath $LogPath -Value ([string]$line) -Encoding utf8
         Write-Host $line
     }
-    return [pscustomobject]@{ exitCode = $exitCode; output = @($output) }
+    return [pscustomobject]@{
+        exitCode = $exitCode
+        output = @($childOutput)
+    }
 }
 
 function Resolve-SourceAuthority {
@@ -139,7 +149,7 @@ function Resolve-SourceAuthority {
             $script:ExpectedArcTree -ne [string]$lock.arc.tree) {
             throw "Target-host starter ARC authority differs from its lock."
         }
-        return $lockPath
+        return
     }
 
     $candidateWorld = if (-not [string]::IsNullOrWhiteSpace($script:WorldRoot)) {
@@ -147,6 +157,7 @@ function Resolve-SourceAuthority {
     } else {
         [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
     }
+
     if ([string]::IsNullOrWhiteSpace($script:ExpectedWorldCommit)) {
         $head = @(& git -C $candidateWorld rev-parse HEAD 2>$null)
         if ($LASTEXITCODE -ne 0 -or $head.Count -ne 1) {
@@ -161,10 +172,9 @@ function Resolve-SourceAuthority {
         }
         $script:ExpectedWorldTree = ([string]$tree[0]).Trim().ToLowerInvariant()
     }
-    return $null
 }
 
-Resolve-SourceAuthority | Out-Null
+Resolve-SourceAuthority
 Require-Hex $ExpectedWorldCommit 40 "Expected World commit"
 Require-Hex $ExpectedWorldTree 40 "Expected World tree"
 Require-Hex $ExpectedArcCommit 40 "Expected ARC commit"
@@ -185,238 +195,4 @@ New-Item -ItemType Directory -Force $output | Out-Null
 $runId = (Get-Date).ToUniversalTime().ToString("yyyyMMddTHHmmssfffZ")
 $runRoot = Join-Path $output "runs\$runId"
 New-Item -ItemType Directory -Force $runRoot | Out-Null
-$logPath = Join-Path $runRoot "target-host-start.log"
-
-$bootstrapScript = Join-Path $^SscriptRoot "bootstrap-underdrain-windows-host.ps1"
-$bootstrapOutput = Join-Path $runRoot "bootstrap"
-$bootstrapParameters = [ordered]@{
-    WorldRoot = $WorldRoot
-    ArcRoot = $ArcRoot
-    EmbodiedArLabRoot = $EmbodiedArLabRoot
-    UnityEditor = $UnityEditor
-    ShineStandalone = $ShineStandalone
-    ResolvedSourceManifest = $ResolvedSourceManifest
-    ResolvedSourceRoot = $ResolvedSourceRoot
-    SearchRoots = $SearchRoots
-    MaxDepth = $MaxDepth
-    JobId = $JobId
-    ExpectedWorldCommit = $ExpectedWorldCommit
-    ExpectedWorldTree = $ExpectedWorldTree
-    ExpectedArcCommit = $ExpectedArcCommit
-    ExpectedArcTree = $ExpectedArcTree
-    OutputRoot = $bootstrapOutput
-    DeepSearch = [bool]$DeepSearch
-    NoFail = $true
-}
-$bootstrapInvocation = Invoke-Child $bootstrapScript $bootstrapArameters $logPath
-$bootstrapReceiptPath = Join-Path $bootstrapOutput "underdrain-windows-host-bootstrap.json"
-if (-not (Test-Path -LiteralPath $bootstrapReceiptPath -PathType Leaf)) {
-    throw "Target-host bootstrap receipt is absent: $bootstrapReceiptPath"
-}
-$bootstrap = Get-Content -LiteralPath $bootstrapReceiptPath -Raw | ConvertFrom-Json
-if ($bootstrap.format -ne "rodoh-underdrain-windows-host-bootstrap/1") {
-    throw "Target-host bootstrap format is unsupported."
-}
-if ($bootstrap.mutation.repositoriesChanged -ne $false -or
-    $bootstrap.mutation.unityInvoked -ne $false -or
-    $bootstrap.mutation.representationMaterialized -ne $false -or
-    $bootstrap.mutation.approvalIssued -ne $false -or
-    $bootstrap.mutation.reviewIssued -ne $false -or
-    $bootstrap.mutation.productAcceptanceIssued -ne $false -or
-    $bootstrap.mutation.questInvoked -ne $false -or
-    $bootstrap.mutation.physicalAcceptanceIssued -ne $false) {
-    throw "Target-host bootstrap crossed its read-only authority boundary."
-}
-
-$delegated = $false
-$commissioningExit = $null
-$commissioningReceiptPath = $null
-$commissioningReceiptSha256 = $null
-$commissioningStatus = "not-invoked"
-$blocked = $null
-
-if ($Mode -eq "inspect") {
-    $blocked = [ordered]@{
-        reason = "Inspect mode completed without requesting a commissioning mutation."
-        gate = if ($bootstrap.commissioning.firstDivergence) { [string]$bootstrap.commissioning.firstDivergence.id } else { $null }
-    }
-} elseif ($mutationConfirmationMissing) {
-    $blocked = [ordered]@{
-        reason = "Mode '$Mode' requires -ConfirmMutation before the commissioning controller may be invoked."
-        gate = if ($bootstrap.commissioning.firstDivergence) { [string]$bootstrap.commissioning.firstDivergence.id } else { "explicit-mutation-confirmation" }
-    }
-} elseif ($bootstrap.status -ne "pass") {
-    $blocked = [ordered]@{
-        reason = "Target-host bootstrap is '$($bootstrap.status)' and cannot delegate a commissioning mutation."
-        gate = if ($bootstrap.commissioning.firstDivergence) { [string]$bootstrap.commissioning.firstDivergence.id } else { "target-host-bootstrap" }
-    }
-} else {
-    $resolvedWorld = [string]$bootstrap.roots.world
-    $resolvedArc = [string]$bootstrap.roots.arc
-    $resolvedProject = [string]$bootstrap.roots.embodiedArLab
-    foreach ($rootEntry in @(
-        [pscustomobject]@{ path = $resolvedWorld; label = "World" },
-        [pscustomobject]@{ path = $resolvedArc; label = "ARC" },
-        [pscustomobject]@{ path = $resolvedProject; label = "Embodied-AR-Lab" }
-    )) {
-        if ([string]::IsNullOrWhiteSpace([string]$rootEntry.path)) {
-            throw "$($rootEntry.label) root was not retained by the target-host bootstrap."
-        }
-    }
-
-    if ([string]::IsNullOrWhiteSpace($SourceManifest) -and
-        -not [string]::IsNullOrWhiteSpace([string]$bootstrap.roots.resolvedSourceManifest)) {
-        $SourceManifest = [string]$bootstrap.roots.resolvedSourceManifest
-    }
-    if ([string]::IsNullOrWhiteSpace($SourceRoot) -and
-        -not [string]::IsNullOrWhiteSpace([string]$bootstrap.roots.resolvedSourceRoot)) {
-        $SourceRoot = [string]$bootstrap.roots.resolvedSourceRoot
-    }
-    if ([string]::IsNullOrWhiteSpace($UnityEditor) -and
-        -not [string]::IsNullOrWhiteSpace([string]$bootstrap.roots.unityEditor)) {
-        $UnityEditor = [string]$bootstrap.roots.unityEditor
-    }
-
-    $commissioningScript = Join-Path $PSScriptRoot "invoke-underdrain-commissioning.ps1"
-    $commissioningParameters = [ordered]@{
-        WorldRoot = $resolvedWorld
-        ArcRoot = $resolvedArc
-        EmbodiedArLabRoot = $resolvedProject
-        JobId = $JobId
-        ExpectedWorldCommit = $ExpectedWorldCommit
-        ExpectedArcCommit = $ExpectedArcCommit
-        Mode = $Mode
-        SourceManifest = $SourceManifest
-        SourceRoot = $SourceRoot
-        ApprovalId = $ApprovalId
-        ApprovalAuthorityId = $ApprovalAuthorityId
-        ApprovalName = $ApprovalName
-        ApprovalAttestation = $ApprovalAttestation
-        ConfirmAllAssets = [bool]$ConfirmAllAssets
-        ReviewSession = $ReviewSession
-        PlayerPacket = $PlayerPacket
-        ObserverPacket = $ObserverPacket
-        AdjudicatorPacket = $AdjudicatorPacket
-        AcceptanceSeatId = $AcceptanceSeatId
-        AcceptanceLineageId = $AcceptanceLineageId
-        AcceptanceContextDigest = $AcceptanceContextDigest
-        AcceptanceName = $AcceptanceName
-        AcceptanceAttestation = $AcceptanceAttestation
-        PreflightRoot = $PreflightRoot
-        ReviewRoot = $ReviewRoot
-        UnityEditor = $UnityEditor
-        ForceCloseUnity = [bool]$ForceCloseUnity
-        SkipNpmInstall = [bool]$SkipNpmInstall
-        SkipUnityTests = [bool]$SkipUnityTests
-        SkipWindowsSmoke = [bool]$SkipWindowsSmoke
-        DevelopmentBuild = [bool]$DevelopmentBuild
-        InstallArcDependencies = [bool]$InstallArcDependencies
-        ForceCloseExistingPlayer = [bool]$ForceCloseExistingPlayer
-        SealEvidence = [bool]$SealEvidence
-    }
-    $stateRoot = Join-Path $resolvedProject "local\scene-jobs\$JobId\output\commissioning-state"
-    $runReceipts = Join-Path $stateRoot "runs"
-    $before = @()
-    if (Test-Path -LiteralPath $runReceipts -PathType Container) {
-        $before = @(Get-ChildItem -LiteralPath $runReceipts -File -Filter "*.json" | ForEach-Object { $_.FullName })
-    }
-    $delegated = $true
-    $commissioningInvocation = Invoke-Child $commissioningScript $commissioningParameters $logPath
-    $commissioningExit = $commissioningInvocation.exitCode
-    $after = @()
-    if (Test-Path -LiteralPath $runReceipts -PathType Container) {
-        $after = @(Get-ChildItem -LiteralPath $runReceipts -File -Filter "*.json" | ForEach-Object { $_.FullName })
-    }
-    $newRuns = @($after | Where-Object { $_ -notin $before })
-    if ($newRuns.Count -ne 1) {
-        throw "Commissioning delegation produced $($newRuns.Count) new run receipts; exactly one is required."
-    }
-    $commissioningReceiptPath = [System.IO.Path]::GetFullPath($newRuns[0])
-    $commissioningReceipt = Get-Content -LiteralPath $commissioningReceiptPath -Raw | ConvertFrom-Json
-    if ($commissioningReceipt.format -ne "rodoh-underdrain-windows-commissioning-run/1") {
-        throw "Commissioning run format is unsupported."
-    }
-    if ($commissioningReceipt.mode -ne $Mode) {
-        throw "Commissioning run mode differs. Expected '$Mode', observed '$($commissioningReceipt.mode)'."
-    }
-    if ($commissioningReceipt.worldCommit -ne $ExpectedWorldCommit -or
-        $commissioningReceipt.arcCommit -ne $ExpectedArcCommit) {
-        throw "Commissioning run lost exact World or ARC custody."
-    }
-    if ($commissioningReceipt.physicalHumanEvidence -ne "separate" -or
-        $commissioningReceipt.questAcceptance -ne "open" -or
-        $commissioningReceipt.physicalAcceptance -ne "not-issued") {
-        throw "Commissioning run crossed human, Quest, or physical authority."
-    }
-    $commissioningStatus = [string]$commissioningReceipt.status
-    $commissioningReceiptSha256 = Get-Sha256 $commissioningReceiptPath
-    if ($commissioningExit -notin @(0, 2)) {
-        throw "Commissioning delegation failed with exit $commissioningExit."
-    }
-}
-
-$status = if ($bootstrap.status -eq "held") {
-    "held"
-} elseif ($Mode -eq "inspect") {
-    [string]$bootstrap.status
-} elseif (-not $delegated) {
-    "blocked"
-} elseif ($commissioningStatus -eq "held") {
-    "held"
-} else {
-    $commissioningStatus
-}
-
-$receipt = [ordered]@{
-    format = "rodoh-underdrain-target-host-start/1"
-    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
-    runId = $runId
-    status = $status
-    mode = $Mode
-    mutationConfirmed = [bool]$ConfirmMutation
-    productId = "underdrain-bloom-below-unity6000-v1"
-    worldCommit = $ExpectedWorldCommit
-    worldTree = $ExpectedWorldTree
-    arcCommit = $ExpectedArcCommit
-    arcTree = $ExpectedArcTree
-    jobId = $JobId
-    bootstrap = [ordered]@{
-        status = [string]$bootstrap.status
-        receipt = $bootstrapReceiptPath
-        receiptSha256 = Get-Sha256 $bootstrapReceiptPath
-        exitCode = $bootstrapInvocation.exitCode
-        firstDivergence = if ($bootstrap.commissioning.firstDivergence) { [string]$bootstrap.commissioning.firstDivergence.id } else { $null }
-        nextCommand = [string]$bootstrap.next.command
-    }
-    commissioning = [ordered]@{
-        delegated = $delegated
-        status = $commissioningStatus
-        receipt = $commissioningReceiptPath
-        receiptSha256 = $commissioningReceiptSha256
-        exitCode = $commissioningExit
-    }
-    blocked = $blocked
-    authority = [ordered]@{
-        discoveryAndInspectionDefault = $true
-        commissioningDelegationRequiresExplicitConfirmation = $true
-        directUnityAuthority = $false
-        reviewAuthority = $false
-        productAcceptanceAuthority = $false
-        humanOrHouseholdAcceptanceAuthority = $false
-        questAuthority = $false
-        physicalAcceptanceAuthority = $false
-    }
-    physicalHumanEvidence = "separate"
-    questAcceptance = "open"
-    physicalAcceptance = "not-issued"
-}
-$receiptPath = Join-Path $runRoot "underdrain-target-host-start.json"
-Write-Json $receiptPath $receipt
-"$(Get-Sha256 $receiptPath)  underdrain-target-host-start.json" | Set-Content -Encoding ascii ($receiptPath + ".sha256")
-Copy-Item -LiteralPath $receiptPath -Destination (Join-Path $output "underdrain-target-host-start.json") -Force
-Copy-Item -LiteralPath ($receiptPath + ".sha256") -Destination (Join-Path $output "underdrain-target-host-start.json.sha256") -Force
-
-Write-Host "UNDERDRAIN target-host start: $status"
-Write-Host $receiptPath
-if ($status -eq "held" -and -not $NoFail) { exit 2 }
-exit 0
+$logPath = Join-Path $runRoot "target-host-start.lo²È="25‰©•ÑuìÁ…Ñ €ô€‘É•Í½±Ù•‘]½É±ì±…‰•°€ô€‰]½É±ˆô°(€€€€€€€mÁÍÕÍÑ½µ½‰©•ÑuìÁ…Ñ €ô€‘É•Í½±Ù•‘ÉŒì±…‰•°€ô€‰Iˆô°(€€€€€€€mÁÍÕÍÑ½µ½‰©•ÑuìÁ…Ñ €ô€‘É•Í½±Ù•‘AÉ½©•Ğì±…‰•°€ô€‰µ‰½‘¥•µHµ1…ˆˆô(€€€€¤¤ì(€€€€€€€¥˜€¡mÍÑÉ¥¹tèé%Í9Õ±±=É]¡¥Ñ•MÁ…”¡mÍÑÉ¥¹t‘É½½Ñ¹ÑÉä¹Á…Ñ ¤¤ì(€€€€€€€€€€€Ñ¡É½Ü€ˆ ‘É½½Ñ¹ÑÉä¹±…‰•°¤É½½Ğİ…Ì¹½ĞÉ•Ñ…¥¹•‰äÑ¡”Ñ…É•Ğµ¡½ÍĞ‰½½ÑÍÑÉ…À¸ˆ(€€€€€€€ô(€€€ô((€€€¥˜€¡mÍÑÉ¥¹tèé%Í9Õ±±=É]¡¥Ñ•MÁ…” ‘M½ÕÉ•5…¹¥™•ÍĞ¤€µ…¹(€€€€€€€€µ¹½ĞmÍÑÉ¥¹tèé%Í9Õ±±=É]¡¥Ñ•MÁ…”¡mÍÑÉ¥¹t‘‰½½ÑÍÑÉ…À¹É½½ÑÌ¹É•Í½±Ù•‘M½ÕÉ•5…¹¥™•ÍĞ¤¤ì(€€€€€€€€‘M½ÕÉ•5…¹¥™•ÍĞ€ômÍÑÉ¥¹t‘‰½½ÑÍÑÉ…À¹É½½ÑÌ¹É•Í½±Ù•‘M½ÕÉ•5…¹¥™•ÍĞ(€€€ô(€€€¥˜€¡mÍÑÉ¥¹tèé%Í9Õ±±=É]¡¥Ñ•MÁ…” ‘M½ÕÉ•I½½Ğ¤€µ…¹(€€€€€€€€µ¹½ĞmÍÑÉ¥¹tèé%Í9Õ±±=É]¡¥Ñ•MÁ…”¡mÍÑÉ¥¹t‘‰½½ÑÍÑÉ…À¹É½½ÑÌ¹É•Í½±Ù•‘M½ÕÉ•I½½Ğ¤¤ì(€€€€€€€€‘M½ÕÉ•I½½Ğ€ômÍÑÉ¥¹t‘‰½½ÑÍÑÉ…À¹É½½ÑÌ¹É•Í½±Ù•‘M½ÕÉ•I½½Ğ(€€€ô(€€€¥˜€¡mÍÑÉ¥¹tèé%Í9Õ±±=É]¡¥Ñ•MÁ…” ‘U¹¥Ñå‘¥Ñ½È¤€µ…¹(€€€€€€€€µ¹½ĞmÍÑÉ¥¹tèé%Í9Õ±±=É]¡¥Ñ•MÁ…”¡mÍÑÉ¥¹t‘‰½½ÑÍÑÉ…À¹É½½ÑÌ¹Õ¹¥Ñå‘¥Ñ½È¤¤ì(€€€€€€€€‘U¹¥Ñå‘¥Ñ½È€ômÍÑÉ¥¹t‘‰½½ÑÍÑÉ…À¹É½½ÑÌ¹Õ¹¥Ñå‘¥Ñ½È(€€€ô((€€€€‘½µµ¥ÍÍ¥½¹¥¹MÉ¥ÁĞ€ô)½¥¸µA…Ñ €‘AMMÉ¥ÁÑI½½Ğ€‰¥¹Ù½­”µÕ¹‘•É‘É…¥¸µ½µµ¥ÍÍ¥½¹¥¹œ¹ÁÌÄˆ(€€€€‘½µµ¥ÍÍ¥½¹¥¹A…É…µ•Ñ•ÉÌ€ôm½É‘•É•‘uì(€€€€€€€]½É±‘I½½Ğ€ô€‘É•Í½±Ù•‘]½É±(€€€€€€€ÉI½½Ğ€ô€‘É•Í½±Ù•‘ÉŒ(€€€€€€€µ‰½‘¥•‘É1…‰I½½Ğ€ô€‘É•Í½±Ù•‘AÉ½©•Ğ(€€€€€€€)½‰%€ô€‘)½‰%(€€€€€€€áÁ•Ñ•‘]½É±‘½µµ¥Ğ€ô€‘áÁ•Ñ•‘]½É±‘½µµ¥Ğ(€€€€€€€áÁ•Ñ•‘É½µµ¥Ğ€ô€‘áÁ•Ñ•‘É½µµ¥Ğ(€€€€€€€5½‘”€ô€‘5½‘”(€€€€€€€M½ÕÉ•5…¹¥™•ÍĞ€ô€‘M½ÕÉ•5…¹¥™•ÍĞ(€€€€€€€M½ÕÉ•I½½Ğ€ô€‘M½ÕÉ•I½½Ğ(€€€€€€€ÁÁÉ½Ù…±%€ô€‘ÁÁÉ½Ù…±%(€€€€€€€ÁÁÉ½Ù…±ÕÑ¡½É¥Ñå%€ô€‘ÁÁÉ½Ù…±ÕÑ¡½É¥Ñå%(€€€€€€€ÁÁÉ½Ù…±9…µ”€ô€‘ÁÁÉ½Ù…±9…µ”(€€€€€€€ÁÁÉ½Ù…±ÑÑ•ÍÑ…Ñ¥½¸€ô€‘ÁÁÉ½Ù…±ÑÑ•ÍÑ…Ñ¥½¸(€€€€€€€½¹™¥Éµ±±ÍÍ•ÑÌ€ôm‰½½±t‘½¹™¥Éµ±±ÍÍ•ÑÌ(€€€€€€€I•Ù¥•İM•ÍÍ¥½¸€ô€‘I•Ù¥•İM•ÍÍ¥½¸(€€€€€€€A±…å•ÉA…­•Ğ€ô€‘A±…å•ÉA…­•Ğ(€€€€€€€=‰Í•ÉÙ•ÉA…­•Ğ€ô€‘=‰Í•ÉÙ•ÉA…­•Ğ(€€€€€€€‘©Õ‘¥…Ñ½ÉA…­•Ğ€ô€‘‘©Õ‘¥…Ñ½ÉA…­•Ğ(€€€€€€€•ÁÑ…¹•M•…Ñ%€ô€‘•ÁÑ…¹•M•…Ñ%(€€€€€€€•ÁÑ…¹•1¥¹•…•%€ô€‘•ÁÑ…¹•1¥¹•…•%(€€€€€€€•ÁÑ…¹•½¹Ñ•áÑ¥•ÍĞ€ô€‘•ÁÑ…¹•½¹Ñ•áÑ¥•ÍĞ(€€€€€€€•ÁÑ…¹•9…µ”€ô€‘•ÁÑ…¹•9…µ”(€€€€€€€•ÁÑ…¹•ÑÑ•ÍÑ…Ñ¥½¸€ô€‘•ÁÑ…¹•ÑÑ•ÍÑ…Ñ¥½¸(€€€€€€€AÉ•™±¥¡ÑI½½Ğ€ô€‘AÉ•™±¥¡ÑI½½Ğ(€€€€€€€I•Ù¥•İI½½Ğ€ô€‘I•Ù¥•İI½½Ğ(€€€€€€€U¹¥Ñå‘¥Ñ½È€ô€‘U¹¥Ñå‘¥Ñ½È(€€€€€€€½É•±½Í•U¹¥Ñä€ôm‰½½±t‘½É•±½Í•U¹¥Ñä(€€€€€€€M­¥Á9Áµ%¹ÍÑ…±°€ôm‰½½±t‘M­¥Á9Áµ%¹ÍÑ…±°(€€€€€€€M­¥ÁU¹¥ÑåQ•ÍÑÌ€ôm‰½½±t‘M­¥ÁU¹¥ÑåQ•ÍÑÌ(€€€€€€€M­¥Á]¥¹‘½İÍMµ½­”€ôm‰½½±t‘M­¥Á]¥¹‘½İÍMµ½­”(€€€€€€€•Ù•±½Áµ•¹Ñ	Õ¥±€ôm‰½½±t‘•Ù•±½Áµ•¹Ñ	Õ¥±(€€€€€€€%¹ÍÑ…±±É•Á•¹‘•¹¥•Ì€ôm‰½½±t‘%¹ÍÑ…±±É•Á•¹‘•¹¥•Ì(€€€€€€€½É•±½Í•á¥ÍÑ¥¹A±…å•È€ôm‰½½±t‘½É•±½Í•á¥ÍÑ¥¹A±…å•È(€€€€€€€M•…±Ù¥‘•¹”€ôm‰½½±t‘M•…±Ù¥‘•¹”(€€€ô((€€€€‘ÍÑ…Ñ•I½½Ğ€ô)½¥¸µA…Ñ €‘É•Í½±Ù•‘AÉ½©•Ğ€‰±½…±qÍ•¹”µ©½‰Íp‘)½‰%‘q½ÕÑÁÕÑq½µµ¥ÍÍ¥½¹¥¹œµÍÑ…Ñ”ˆ(€€€€‘ÉÕ¹I••¥ÁÑÌ€ô)½¥¸µA…Ñ €‘ÍÑ…Ñ•I½½Ğ€‰ÉÕ¹Ìˆ(€€€€‘‰•™½É”€ô  ¤(€€€¥˜€¡Q•ÍĞµA…Ñ €µ1¥Ñ•É…±A…Ñ €‘ÉÕ¹I••¥ÁÑÌ€µA…Ñ¡QåÁ”½¹Ñ…¥¹•È¤ì(€€€€€€€€‘‰•™½É”€ô  (€€€€€€€€€€€•Ğµ¡¥±‘%Ñ•´€µ1¥Ñ•É…±A…Ñ €‘ÉÕ¹I••¥ÁÑÌ€µ¥±”€µ¥±Ñ•È€ˆ¨¹©Í½¸ˆğ(€€€€€€€€€€€€€€€½É… µ=‰©•Ğì€‘|¹Õ±±9…µ”ô(€€€€€€€€¤(€€€ô((€€€€‘‘•±•…Ñ•€ô€‘ÑÉÕ”(€€€€‘½µµ¥ÍÍ¥½¹¥¹%¹Ù½…Ñ¥½¸€ô%¹Ù½­”µ¡¥±€‘½µµ¥ÍÍ¥½¹¥¹MÉ¥ÁĞ€‘½µµ¥ÍÍ¥½¹¥¹A…É…µ•Ñ•ÉÌ€‘±½A…Ñ (€€€€‘½µµ¥ÍÍ¥½¹¥¹á¥Ğ€ô€‘½µµ¥ÍÍ¥½¹¥¹%¹Ù½…Ñ¥½¸¹•á¥Ñ½‘”((€€€€‘…™Ñ•È€ô  ¤(€€€¥˜€¡Q•ÍĞµA…Ñ €µ1¥Ñ•É…±A…Ñ €‘ÉÕ¹I••¥ÁÑÌ€µA…Ñ¡QåÁ”½¹Ñ…¥¹•È¤ì(€€€€€€€€‘…™Ñ•È€ô  (€€€€€€€€€€€•Ğµ¡¥±‘%Ñ•´€µ1¥Ñ•É…±A…Ñ €‘ÉÕ¹I••¥ÁÑÌ€µ¥±”€µ¥±Ñ•È€ˆ¨¹©Í½¸ˆğ(€€€€€€€€€€€€€€€½É… µ=‰©•Ğì€‘|¹Õ±±9…µ”ô(€€€€€€€€¤(€€€ô(€€€€‘¹•İIÕ¹Ì€ô  ‘…™Ñ•Èğ]¡•É”µ=‰©•Ğì€‘|€µ¹½Ñ¥¸€‘‰•™½É”ô¤(€€€¥˜€ ‘¹•İIÕ¹Ì¹½Õ¹Ğ€µ¹”€Ä¤ì(€€€€€€€Ñ¡É½Ü€‰½µµ¥ÍÍ¥½¹¥¹œ‘•±•…Ñ¥½¸ÁÉ½‘Õ•€ ‘¹•İIÕ¹Ì¹½Õ¹Ğ¤¹•ÜÉÕ¸É••¥ÁÑÌì•á…Ñ±ä½¹”¥ÌÉ•ÅÕ¥É•¸ˆ(€€€ô((€€€€‘½µµ¥ÍÍ¥½¹¥¹I••¥ÁÑA…Ñ €ômMåÍÑ•´¹%<¹A…Ñ¡tèé•ÑÕ±±A…Ñ  ‘¹•İIÕ¹ÍlÁt¤(€€€€‘½µµ¥ÍÍ¥½¹¥¹I••¥ÁĞ€ô•Ğµ½¹Ñ•¹Ğ€µ1¥Ñ•É…±A…Ñ €‘½µµ¥ÍÍ¥½¹¥¹I••¥ÁÑA…Ñ €µI…Üğ½¹Ù•ÉÑÉ½´µ)Í½¸(€€€¥˜€ ‘½µµ¥ÍÍ¥½¹¥¹I••¥ÁĞ¹™½Éµ…Ğ€µ¹”€‰É½‘½ µÕ¹‘•É‘É…¥¸µİ¥¹‘½İÌµ½µµ¥ÍÍ¥½¹¥¹œµÉÕ¸¼Äˆ¤ì(€€€€€€€Ñ¡É½Ü€‰½µµ¥ÍÍ¥½¹¥¹œÉÕ¸™½Éµ…Ğ¥ÌÕ¹ÍÕÁÁ½ÉÑ•¸ˆ(€€€ô(€€€¥˜€ ‘½µµ¥ÍÍ¥½¹¥¹I••¥ÁĞ¹µ½‘”€µ¹”€‘5½‘”¤ì(€€€€€€€Ñ¡É½Ü€‰½µµ¥ÍÍ¥½¹¥¹œÉÕ¸µ½‘”‘¥™™•ÉÌ¸áÁ•Ñ•€œ‘5½‘”œ°½‰Í•ÉÙ•€œ ‘½µµ¥ÍÍ¥½¹¥¹I••¥ÁĞ¹µ½‘”¤œ¸ˆ(€€€ô(€€€¥˜€ ‘½µµ¥ÍÍ¥½¹¥¹I••¥ÁĞ¹İ½É±‘½µµ¥Ğ€µ¹”€‘áÁ•Ñ•‘]½É±‘½µµ¥Ğ€µ½È(€€€€€€€€‘½µµ¥ÍÍ¥½¹¥¹I••¥ÁĞ¹…É½µµ¥Ğ€µ¹”€‘áÁ•Ñ•‘É½µµ¥Ğ¤ì(€€€€€€€Ñ¡É½Ü€‰½µµ¥ÍÍ¥½¹¥¹œÉÕ¸±½ÍĞ•á…Ğ]½É±½ÈIÕÍÑ½‘ä¸ˆ(€€€ô(€€€¥˜€ ‘½µµ¥ÍÍ¥½¹¥¹I••¥ÁĞ¹Á¡åÍ¥…±!Õµ…¹Ù¥‘•¹”€µ¹”€‰Í•Á…É…Ñ”ˆ€µ½È(€€€€€€€€‘½µµ¥ÍÍ¥½¹¥¹I••¥ÁĞ¹ÅÕ•ÍÑ•ÁÑ…¹”€µ¹”€‰½Á•¸ˆ€µ½È(€€€€€€€€‘½µµ¥ÍÍ¥½¹¥¹I••¥ÁĞ¹Á¡åÍ¥…±•ÁÑ…¹”€µ¹”€‰¹½Ğµ¥ÍÍÕ•ˆ¤ì(€€€€€€€Ñ¡É½Ü€‰½µµ¥ÍÍ¥½¹¥¹œÉÕ¸É½ÍÍ•¡Õµ…¸°EÕ•ÍĞ°½ÈÁ¡åÍ¥…°…ÕÑ¡½É¥Ñä¸ˆ(€€€ô(€€€¥˜€ ‘½µµ¥ÍÍ¥½¹¥¹á¥Ğ€µ¹½Ñ¥¸  À°€È¤¤ì(€€€€€€€Ñ¡É½Ü€‰½µµ¥ÍÍ¥½¹¥¹œ‘•±•…Ñ¥½¸™…¥±•İ¥Ñ •á¥Ğ€‘½µµ¥ÍÍ¥½¹¥¹á¥Ğ¸ˆ(€€€ô((€€€€‘½µµ¥ÍÍ¥½¹¥¹MÑ…ÑÕÌ€ômÍÑÉ¥¹t‘½µµ¥ÍÍ¥½¹¥¹I••¥ÁĞ¹ÍÑ…ÑÕÌ(€€€€‘½µµ¥ÍÍ¥½¹¥¹I••¥ÁÑM¡„ÈÔØ€ô•ĞµM¡„ÈÔØ€‘½µµ¥ÍÍ¥½¹¥¹I••¥ÁÑA…Ñ )ô((‘ÍÑ…ÑÕÌ€ô¥˜€ ‘‰½½ÑÍÑÉ…À¹ÍÑ…ÑÕÌ€µ•Ä€‰¡•±ˆ¤ì(€€€€‰¡•±ˆ)ô•±Í•¥˜€ ‘5½‘”€µ•Ä€‰¥¹ÍÁ•Ğˆ¤ì(€€€mÍÑÉ¥¹t‘‰½½ÑÍÑÉ…À¹ÍÑ…ÑÕÌ)ô•±Í•¥˜€ µ¹½Ğ€‘‘•±•…Ñ•¤ì(€€€€‰‰±½­•ˆ)ô•±Í•¥˜€ ‘½µµ¥ÍÍ¥½¹¥¹MÑ…ÑÕÌ€µ•Ä€‰¡•±ˆ¤ì(€€€€‰¡•±ˆ)ô•±Í”ì(€€€€‘½µ¥ÍÍ¥½¹¥¹MÑ…ÑÕÌ)ô((‘É••¥ÁĞ€ôm½É‘•É•‘uì(€€€™½Éµ…Ğ€ô€‰É½‘½ µÕ¹‘•É‘É…¥¸µÑ…É•Ğµ¡½ÍĞµÍÑ…ÉĞ¼Äˆ(€€€•¹•É…Ñ•‘Ğ€ô€¡•Ğµ…Ñ”¤¹Q½U¹¥Ù•ÉÍ…±Q¥µ” ¤¹Q½MÑÉ¥¹œ ‰¼ˆ¤(€€€ÉÕ¹%€ô€‘ÉÕ¹%(€€€ÍÑ…ÑÕÌ€ô€‘ÍÑ…ÑÕÌ(€€€µ½‘”€ô€‘5½‘”(€€€µÕÑ…Ñ¥½¹½¹™¥Éµ•€ôm‰½½±t‘½¹™¥Éµ5ÕÑ…Ñ¥½¸(€€€ÁÉ½‘ÕÑ%€ô€‰Õ¹‘•É‘É…¥¸µ‰±½½´µ‰•±½ÜµÕ¹¥ÑäØÀÀÀµØÄˆ(€€€İ½É±‘½µµ¥Ğ€ô€‘áÁ•Ñ•‘]½É±‘½µµ¥Ğ(€€€İ½É±‘QÉ•”€ô€‘áÁ•Ñ•‘]½É±‘QÉ•”(€€€…É½µµ¥Ğ€ô€‘áÁ•Ñ•‘É½µµ¥Ğ(€€€…ÉQÉ•”€ô€‘áÁ•Ñ•‘ÉQÉ•”(€€€©½‰%€ô€‘)½‰%(€€€‰½½ÑÍÑÉ…À€ôm½É‘•É•‘uì(€€€€€€€ÍÑ…ÑÕÌ€ômÍÑÉ¥¹t‘‰½½ÑÍÑÉ…À¹ÍÑ…ÑÕÌ(€€€€€€€É••¥ÁĞ€ô€‘‰½½ÑÍÑÉ…ÁI••¥ÁÑA…Ñ (€€€€€€€É••¥ÁÑM¡„ÈÔØ€ô•ĞµM¡„ÈÔØ€‘‰½½ÑÍÑÉ…ÁI••¥ÁÑA…Ñ (€€€€€€€•á¥Ñ½‘”€ô€‘‰½½ÑÍÑÉ…Á%¹Ù½…Ñ¥½¸¹•á¥Ñ½‘”(€€€€€€€™¥ÉÍÑ¥Ù•É•¹”€ô¥˜€ ‘‰½½ÑÍÑÉ…À¹½µµ¥ÍÍ¥½¹¥¹œ¹™¥ÉÍÑ¥Ù•É•¹”¤ì(€€€€€€€€€€€mÍÑÉ¥¹t‘‰½½ÑÍÑÉ…À¹½µµ¥ÍÍ¥½¹¥¹œ¹™¥ÉÍÑ¥Ù•É•¹”¹¥(€€€€€€€ô•±Í”ì(€€€€€€€€€€€€‘¹Õ±°(€€€€€€€ô(€€€€€€€¹•áÑ½µµ…¹€ômÍÑÉ¥¹t‘‰½½ÑÍÑÉ…À¹¹•áĞ¹½µµ…¹(€€€ô(€€€½µµ¥ÍÍ¥½¹¥¹œ€ôm½É‘•É•‘uì(€€€€€€€‘•±•…Ñ•€ô€‘‘•±•…Ñ•(€€€€€€€ÍÑ…ÑÕÌ€ô€‘½µµ¥ÍÍ¥½¹¥¹MÑ…ÑÕÌ(€€€€€€€É••¥ÁĞ€ô€‘½µµ¥ÍÍ¥½¹¥¹I••¥ÁÑA…Ñ (€€€€€€€É••¥ÁÑM¡„ÈÔØ€ô€‘½µµ¥ÍÍ¥½¹¥¹I••¥ÁÑM¡„ÈÔØ(€€€€€€€•á¥Ñ½‘”€ô€‘½µµ¥ÍÍ¥½¹¥¹á¥Ğ(€€€ô(€€€‰±½­•€ô€‘‰±½­•(€€€…ÕÑ¡½É¥Ñä€ôm½É‘•É•‘uì(€€€€€€€‘¥Í½Ù•Éå¹‘%¹ÍÁ•Ñ¥½¹•™…Õ±Ğ€ô€‘ÑÉÕ”(€€€€€€€½µµ¥ÍÍ¥½¹¥¹•±•…Ñ¥½¹I•ÅÕ¥É•ÍáÁ±¥¥Ñ½¹™¥Éµ…Ñ¥½¸€ô€‘ÑÉÕ”(€€€€€€€‘¥É•ÑU¹¥ÑåÕÑ¡½É¥Ñä€ô€‘™…±Í”(€€€€€€€É•Ù¥•İÕÑ¡½É¥Ñä€ô€‘™…±Í”(€€€€€€€ÁÉ½‘ÕÑ•ÁÑ…¹•ÕÑ¡½É¥Ñä€ô€‘™…±Í”(€€€€€€€¡Õµ…¹=É!½ÕÍ•¡½±‘•ÁÑ…¹•ÕÑ¡½É¥Ñä€ô€‘™…±Í”(€€€€€€€ÅÕ•ÍÑÕÑ¡½É¥Ñä€ô€‘™…±Í”(€€€€€€€Á¡åÍ¥…±•ÁÑ…¹•ÕÑ¡½É¥Ñä€ô€‘™…±Í”(€€€ô(€€€Á¡åÍ¥…±!Õµ…¹Ù¥‘•¹”€ô€‰Í•Á…É…Ñ”ˆ(€€€ÅÕ•ÍÑ•ÁÑ…¹”€ô€‰½Á•¸ˆ(€€€Á¡åÍ¥…±•ÁÑ…¹”€ô€‰¹½Ğµ¥ÍÍÕ•ˆ)ô((‘É••¥ÁÑA…Ñ €ô)½¥¸µA…Ñ €‘ÉÕ¹I½½Ğ€‰Õ¹‘•É‘É…¥¸µÑ…É•Ğµ¡½ÍĞµÍÑ…ÉĞ¹©Í½¸ˆ)]É¥Ñ”µ)Í½¸€‘É••¥ÁÑA…Ñ €‘É••¥ÁĞ(ˆ¡•ĞµM¡„ÈÔØ€‘É••¥ÁÑA…Ñ ¤€Õ¹‘•É‘É…¥¸µÑ…É•Ğµ¡½ÍĞµÍÑ…ÉĞ¹©Í½¸ˆğ(€€€M•Ğµ½¹Ñ•¹Ğ€µ¹½‘¥¹œ…Í¥¤€ ‘É••¥ÁÑA…Ñ €¬€ˆ¹Í¡„ÈÔØˆ¤)½Áäµ%Ñ•´€µ1¥Ñ•É…±A…Ñ €‘É••¥ÁÑA…Ñ €µ•ÍÑ¥¹…Ñ¥½¸€¡)½¥¸µA…Ñ €‘½ÕÑÁÕĞ€‰Õ¹‘•É‘É…¥¸µÑ…É•Ğµ¡½ÍĞµÍÑ…ÉĞ¹©Í½¸ˆ¤€µ½É”)½Áäµ%Ñ•´€µ1¥Ñ•É…±A…Ñ € ‘É••¥ÁÑA…Ñ €¬€ˆ¹Í¡„ÈÔØˆ¤€µ•ÍÑ¥¹…Ñ¥½¸€¡)½¥¸µA…Ñ €‘½ÕÑÁÕĞ€‰Õ¹‘•É‘É…¥¸µÑ…É•Ğµ¡½ÍĞµÍÑ…ÉĞ¹©Í½¸¹Í¡„ÈÔØˆ¤€µ½É”()]É¥Ñ”µ!½ÍĞ€‰U9II%8Ñ…É•Ğµ¡½ÍĞÍÑ…ÉĞè€‘ÍÑ…ÑÕÌˆ)]É¥Ñ”µ!½ÍĞ€‘É••¥ÁÑA…Ñ )¥˜€ ‘ÍÑ…ÑÕÌ€µ•Ä€‰¡•±ˆ€µ…¹€µ¹½Ğ€‘9½…¥°¤ì•á¥Ğ€Èô)•á¥Ğ€À(
