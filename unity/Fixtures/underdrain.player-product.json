@@ -1,0 +1,72 @@
+{
+  "format": "rodoh-action-player-product-profile/1",
+  "productId": "underdrain-bloom-below-unity6000-v1",
+  "challengeId": "breach-crown-pump",
+  "timingProfileId": "forgiving",
+  "themeId": "underdrain-bloom-below",
+  "presentationAdapterId": "production.prefab/v1",
+  "allowDiagnosticPresentation": false,
+  "allowPrimitiveFallback": false,
+  "forbiddenAssetRoots": [
+    "Assets/AXM/Generated/ActionProduction/GovernedV1",
+    "Assets/AXM/Generated/ActionEstate"
+  ],
+  "player": {
+    "assetId": "underdrain:rhea-venn-player",
+    "role": "player:rhea-venn"
+  },
+  "enemies": [
+    { "kit": "skirmisher", "assetId": "underdrain:capling-skirmisher", "role": "enemy:skirmisher" },
+    { "kit": "duelist", "assetId": "underdrain:crown-duelist", "role": "enemy:duelist" },
+    { "kit": "swarm", "assetId": "underdrain:signal-spore-swarm", "role": "enemy:swarm" },
+    { "kit": "hexer", "assetId": "underdrain:discharge-hexer", "role": "enemy:hexer" },
+    { "kit": "breaker", "assetId": "underdrain:root-breaker", "role": "enemy:breaker" }
+  ],
+  "arena": {
+    "assetId": "underdrain:pump-seven-arena",
+    "role": "arena:pump-seven"
+  },
+  "requiredCueIds": [
+    "cue.player-action-started",
+    "cue.player-action-active",
+    "cue.player-action-recovery",
+    "cue.enemy-attack-anticipated",
+    "cue.enemy-attack-active",
+    "cue.enemy-attack-recovery",
+    "cue.defense-window-opened",
+    "cue.defense-window-closed",
+    "cue.parry-succeeded",
+    "cue.dodge-invulnerability",
+    "cue.enemy-stagger-started",
+    "cue.mechanism-available",
+    "cue.mechanism-progress",
+    "cue.work-window-opened",
+    "cue.work-window-closed",
+    "cue.objective-completed",
+    "cue.encounter-completed"
+  ],
+  "input": {
+    "keyboardMouse": true,
+    "gamepad": true,
+    "runtimeRebinding": true
+  },
+  "camera": {
+    "playerFollow": true,
+    "collision": true
+  },
+  "performance": {
+    "targetFps": 60,
+    "maximumP95FrameMilliseconds": 20.0,
+    "maximumP99FrameMilliseconds": 28.0
+  },
+  "humanEvidence": {
+    "keyboardMouseSessionRequired": true,
+    "gamepadSessionRequired": true,
+    "roleSeparatedSoftwareReviewRequired": true,
+    "minimumDistinctReviewSeats": 3,
+    "separateAcceptanceSeatRequired": true,
+    "independentComprehensionRequired": false,
+    "runtimeMayIssueComprehensionReceipt": false,
+    "physicalHumanEvidenceRequiredForSoftwareAcceptance": false
+  }
+}

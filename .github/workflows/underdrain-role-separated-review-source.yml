@@ -1,0 +1,101 @@
+name: UNDERDRAIN role-separated review source
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/underdrain-role-separated-review-source.yml'
+      - 'docs/UNDERDRAIN_ROLE_SEPARATED_SOFTWARE_REVIEW.md'
+      - 'docs/UNDERDRAIN_UNITY6000_MACHINE_RUNBOOK.md'
+      - 'scripts/accept-underdrain-player-product.ps1'
+      - 'scripts/lib/underdrain-role-review-common-v1.ps1'
+      - 'scripts/new-underdrain-role-separated-review-kit.ps1'
+      - 'scripts/record-underdrain-role-separated-software-review.ps1'
+      - 'scripts/run-underdrain-unity6000-player-product.ps1'
+      - 'scripts/test-underdrain-role-separated-review.ps1'
+      - 'tests/world/underdrain-player-product-acceptance.test.ts'
+      - 'tests/world/underdrain-role-separated-review.test.ts'
+      - 'unity/Fixtures/underdrain.player-product.json'
+      - 'unity/Fixtures/underdrain.role-separated-software-review.json'
+  push:
+    branches:
+      - feature/underdrain-unity6000-player-train-v1
+      - repair/underdrain-role-separated-review-closure-v1
+    paths:
+      - '.github/workflows/underdrain-role-separated-review-source.yml'
+      - 'docs/UNDERDRAIN_ROLE_SEPARATED_SOFTWARE_REVIEW.md'
+      - 'docs/UNDERDRAIN_UNITY6000_MACHINE_RUNBOOK.md'
+      - 'scripts/accept-underdrain-player-product.ps1'
+      - 'scripts/lib/underdrain-role-review-common-v1.ps1'
+      - 'scripts/new-underdrain-role-separated-review-kit.ps1'
+      - 'scripts/record-underdrain-role-separated-software-review.ps1'
+      - 'scripts/run-underdrain-unity6000-player-product.ps1'
+      - 'scripts/test-underdrain-role-separated-review.ps1'
+      - 'tests/world/underdrain-player-product-acceptance.test.ts'
+      - 'tests/world/underdrain-role-separated-review.test.ts'
+      - 'unity/Fixtures/underdrain.player-product.json'
+      - 'unity/Fixtures/underdrain.role-separated-software-review.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: underdrain-role-separated-review-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Qualify the source contracts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          npm run typecheck
+          if ($LASTEXITCODE -ne 0) { throw "TypeScript typecheck failed." }
+          npm test -- tests/world/underdrain-player-product-acceptance.test.ts tests/world/underdrain-role-separated-review.test.ts tests/world/underdrain-powershell-contract.test.ts tests/world/underdrain-unity6000-player-train.test.ts
+          if ($LASTEXITCODE -ne 0) { throw "Focused UNDERDRAIN tests failed." }
+
+      - name: Execute review admission and refusal fixtures
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $output = Join-Path $env:RUNNER_TEMP "underdrain-role-separated-review"
+          & ./scripts/test-underdrain-role-separated-review.ps1 -OutputRoot $output
+          $receipt = Get-Content (Join-Path $output "qualification.json") -Raw | ConvertFrom-Json
+          if ($receipt.format -ne "rodoh-underdrain-role-separated-review-source-qualification/1" -or $receipt.status -ne "pass") { throw "Qualification receipt is unsupported or failed." }
+          if ($receipt.duplicateLineageRefused -ne $true -or $receipt.acceptanceSeatOverlapRefused -ne $true) { throw "Required refusals were not proven." }
+          if ($receipt.physicalInstallationPerformed -ne $false -or $receipt.questInvoked -ne $false) { throw "Source qualification crossed physical or Quest authority." }
+
+      - name: Preserve source cleanliness
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-role-separated-review-${{ matrix.os }}
+          path: ${{ runner.temp }}/underdrain-role-separated-review
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,107 @@
+{
+  "$schema": "../Schemas/rodoh-action-presentation-manifest-v1.schema.json",
+  "format": "rodoh-action-presentation-manifest/1",
+  "manifestId": "underdrain-bloom-below-v1",
+  "sourceActionSpecDigest": "actspec1_0000000000000000000000000000000000000000000000000000000000000000",
+  "themeId": "underdrain-bloom-below",
+  "player": {
+    "actorId": "player",
+    "bodyPrefab": "Assets/AXM/Underdrain/Production/Characters/RheaVenn.prefab",
+    "animatorController": "Assets/AXM/Underdrain/Production/Animation/UnderdrainAction.controller",
+    "motionSet": {
+      "idle": "rhea.idle",
+      "move": "rhea.move",
+      "light": "rhea.wrench-sweep",
+      "heavy": "rhea.wrench-crush",
+      "dodge": "rhea.dodge",
+      "parry": "rhea.pipe-parry",
+      "stagger": "rhea.stagger",
+      "defeat": "rhea.down"
+    },
+    "neutralFallback": false,
+    "scale": 1
+  },
+  "enemies": [
+    {
+      "actorId": "enemy-skirmisher",
+      "kit": "skirmisher",
+      "bodyPrefab": "Assets/AXM/Underdrain/Production/Enemies/CaplingSkirmisher.prefab",
+      "animatorController": "Assets/AXM/Underdrain/Production/Animation/UnderdrainEnemy.controller",
+      "motionSet": { "idle": "capling.idle", "move": "capling.move", "light": "capling.strike", "heavy": null, "dodge": null, "parry": null, "stagger": "capling.stagger", "defeat": "capling.defeat" },
+      "neutralFallback": false,
+      "scale": 0.8
+    },
+    {
+      "actorId": "enemy-duelist",
+      "kit": "duelist",
+      "bodyPrefab": "Assets/AXM/Underdrain/Production/Enemies/CrownDuelist.prefab",
+      "animatorController": "Assets/AXM/Underdrain/Production/Animation/UnderdrainEnemy.controller",
+      "motionSet": { "idle": "duelist.idle", "move": "duelist.move", "light": "duelist.strike", "heavy": "duelist.lunge", "dodge": null, "parry": null, "stagger": "duelist.stagger", "defeat": "duelist.defeat" },
+      "neutralFallback": false,
+      "scale": 0.95
+    },
+    {
+      "actorId": "enemy-swarm",
+      "kit": "swarm",
+      "bodyPrefab": "Assets/AXM/Underdrain/Production/Enemies/SignalSporeSwarm.prefab",
+      "animatorController": "Assets/AXM/Underdrain/Production/Animation/UnderdrainEnemy.controller",
+      "motionSet": { "idle": "swarm.idle", "move": "swarm.move", "light": "swarm.surge", "heavy": null, "dodge": null, "parry": null, "stagger": "swarm.disperse", "defeat": "swarm.defeat" },
+      "neutralFallback": false,
+      "scale": 0.7
+    },
+    {
+      "actorId": "enemy-hexer",
+      "kit": "hexer",
+      "bodyPrefab": "Assets/AXM/Underdrain/Production/Enemies/DischargeHexer.prefab",
+      "animatorController": "Assets/AXM/Underdrain/Production/Animation/UnderdrainEnemy.controller",
+      "motionSet": { "idle": "hexer.idle", "move": "hexer.move", "light": "hexer.cast", "heavy": null, "dodge": null, "parry": null, "stagger": "hexer.stagger", "defeat": "hexer.defeat" },
+      "neutralFallback": false,
+      "scale": 0.95
+    },
+    {
+      "actorId": "enemy-breaker",
+      "kit": "breaker",
+      "bodyPrefab": "Assets/AXM/Underdrain/Production/Enemies/RootBreaker.prefab",
+      "animatorController": "Assets/AXM/Underdrain/Production/Animation/UnderdrainEnemy.controller",
+      "motionSet": { "idle": "breaker.idle", "move": "breaker.move", "light": "breaker.slam", "heavy": "breaker.break", "dodge": null, "parry": null, "stagger": "breaker.stagger", "defeat": "breaker.defeat" },
+      "neutralFallback": false,
+      "scale": 1.35
+    }
+  ],
+  "arena": {
+    "kit": "lane",
+    "recipe": "Assets/AXM/Underdrain/Production/Environments/PumpSevenArena.prefab",
+    "neutralFallback": false,
+    "metersPerActionUnit": 0.0005
+  },
+  "feedback": [
+    { "event": "player_action", "vfxPrefab": "Assets/AXM/Underdrain/Production/Feedback/PlayerAction.prefab", "audioClip": "Assets/AXM/Underdrain/Production/Audio/WrenchAir.wav", "haptic": 0.15, "cameraImpulse": 0.05, "hitStopMilliseconds": 0, "neutralFallback": false },
+    { "event": "enemy_hit", "vfxPrefab": "Assets/AXM/Underdrain/Production/Feedback/EnemyHit.prefab", "audioClip": "Assets/AXM/Underdrain/Production/Audio/WrenchImpact.wav", "haptic": 0.35, "cameraImpulse": 0.25, "hitStopMilliseconds": 35, "neutralFallback": false },
+    { "event": "player_hit", "vfxPrefab": "Assets/AXM/Underdrain/Production/Feedback/PlayerHit.prefab", "audioClip": "Assets/AXM/Underdrain/Production/Audio/PlayerImpact.wav", "haptic": 0.55, "cameraImpulse": 0.4, "hitStopMilliseconds": 25, "neutralFallback": false },
+    { "event": "parry", "vfxPrefab": "Assets/AXM/Underdrain/Production/Feedback/Parry.prefab", "audioClip": "Assets/AXM/Underdrain/Production/Audio/Parry.wav", "haptic": 0.5, "cameraImpulse": 0.35, "hitStopMilliseconds": 45, "neutralFallback": false },
+    { "event": "dodge", "vfxPrefab": "Assets/AXM/Underdrain/Production/Feedback/Dodge.prefab", "audioClip": "Assets/AXM/Underdrain/Production/Audio/Dodge.wav", "haptic": 0.2, "cameraImpulse": 0.05, "hitStopMilliseconds": 0, "neutralFallback": false },
+    { "event": "objective_completed", "vfxPrefab": "Assets/AXM/Underdrain/Production/Feedback/ObjectiveComplete.prefab", "audioClip": "Assets/AXM/Underdrain/Production/Audio/MechanismStable.wav", "haptic": 0.3, "cameraImpulse": 0.15, "hitStopMilliseconds": 0, "neutralFallback": false },
+    { "event": "encounter_completed", "vfxPrefab": "Assets/AXM/Underdrain/Production/Feedback/EncounterComplete.prefab", "audioClip": "Assets/AXM/Underdrain/Production/Audio/PumpSevenStable.wav", "haptic": 0.4, "cameraImpulse": 0.2, "hitStopMilliseconds": 0, "neutralFallback": false }
+  ],
+  "qualityProfiles": [
+    { "id": "low", "renderScale": 0.7, "maximumSkinnedActors": 5, "maximumParticles": 96, "shadowMode": "none", "postProcessing": false, "targetFps": 30 },
+    { "id": "standard", "renderScale": 1, "maximumSkinnedActors": 9, "maximumParticles": 384, "shadowMode": "one-directional", "postProcessing": false, "targetFps": 60 },
+    { "id": "high", "renderScale": 1.15, "maximumSkinnedActors": 13, "maximumParticles": 1024, "shadowMode": "baked", "postProcessing": true, "targetFps": 72 }
+  ],
+  "accessibility": {
+    "telegraphScale": 1.5,
+    "reducedMotion": false,
+    "highContrast": false,
+    "hapticsOptional": true,
+    "audioOptional": true,
+    "oneHandedMappings": true
+  },
+  "provenance": {
+    "format": "rodoh-action-presentation-provenance/1",
+    "license": "project-owned or individually recorded compatible licenses",
+    "assetRoots": [
+      "Assets/AXM/Underdrain/Production"
+    ],
+    "remoteRuntimeReferencesAllowed": false
+  }
+}

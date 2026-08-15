@@ -1,0 +1,297 @@
+name: UNDERDRAIN target-host starter
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/underdrain-target-host-starter.yml'
+      - 'docs/UNDERDRAIN_TARGET_HOST_STARTER.md'
+      - 'scripts/start-underdrain-target-host.ps1'
+      - 'scripts/test-underdrain-target-host-starter.ps1'
+      - 'scripts/bootstrap-underdrain-windows-host.ps1'
+      - 'scripts/get-underdrain-commissioning-state.ps1'
+      - 'scripts/invoke-underdrain-commissioning.ps1'
+      - 'scripts/lib/underdrain-commissioning-*.ps1'
+      - 'tests/world/underdrain-target-host-starter.test.ts'
+      - 'tests/world/underdrain-powershell-contract.test.ts'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches:
+      - feature/underdrain-unity6000-player-train-v1
+      - repair/underdrain-target-host-starter-v1
+    paths:
+      - '.github/workflows/underdrain-target-host-starter.yml'
+      - 'docs/UNDERDRAIN_TARGET_HOST_STARTER.md'
+      - 'scripts/start-underdrain-target-host.ps1'
+      - 'scripts/test-underdrain-target-host-starter.ps1'
+      - 'scripts/bootstrap-underdrain-windows-host.ps1'
+      - 'scripts/get-underdrain-commissioning-state.ps1'
+      - 'scripts/invoke-underdrain-commissioning.ps1'
+      - 'scripts/lib/underdrain-commissioning-*.ps1'
+      - 'tests/world/underdrain-target-host-starter.test.ts'
+      - 'tests/world/underdrain-powershell-contract.test.ts'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: underdrain-target-host-starter-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARC_ACTION_PLAYER_SHA: aaa5685903a348b3c1ba875622fbe99d90c1da35
+  ARC_ACTION_PLAYER_TREE: 9b28737462ae0aecd8ab0ffab5537d12e8892364
+  FLOOR_SHA: 9693cb99694338e72c15d0ffbb87b5a1c5bbf16a
+  FLOOR_CATALOG: actionfloor1_55eb8869417b3b36a28a309263624fe04ad07028f2254337a2f1548cd03b47d8
+  PLAYER_INTENT: playerintent1_91647652ca3f387b114d5fa7cfab416e2d99c5f307098b6426a17f624cdfbe6c
+
+jobs:
+  qualify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Qualify target-host starter contracts and PowerShell syntax
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          npm run typecheck
+          if ($LASTEXITCODE -ne 0) { throw "TypeScript typecheck failed." }
+          npm test -- tests/world/underdrain-target-host-starter.test.ts tests/world/underdrain-windows-host-bootstrap.test.ts tests/world/underdrain-commissioning-state.test.ts tests/world/underdrain-powershell-contract.test.ts
+          if ($LASTEXITCODE -ne 0) { throw "Focused target-host starter tests failed." }
+
+      - name: Execute target-host starter admission and refusal fixtures
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $output = Join-Path $env:RUNNER_TEMP "underdrain-target-host-starter"
+          & ./scripts/test-underdrain-target-host-starter.ps1 -OutputRoot $output
+          if ($LASTEXITCODE -ne 0) { throw "Target-host starter fixture failed with exit $LASTEXITCODE." }
+          $receipt = Get-Content (Join-Path $output "underdrain-target-host-starter-fixture-qualification.json") -Raw | ConvertFrom-Json
+          if ($receipt.format -ne "rodoh-underdrain-target-host-starter-fixture-qualification/1" -or $receipt.status -ne "pass") {
+            throw "Target-host starter qualification receipt is unsupported or failed."
+          }
+          if ($receipt.inspectDefaultVerified -ne $true -or
+              $receipt.explicitMutationConfirmationVerified -ne $true -or
+              $receipt.openBootstrapRefusalVerified -ne $true -or
+              $receipt.oneCommissioningDelegationVerified -ne $true -or
+              $receipt.dirtyCheckoutRefusalVerified -ne $true) {
+            throw "Target-host starter qualification did not prove its complete admission and refusal boundary."
+          }
+          if ($receipt.directUnityAuthority -ne $false -or
+              $receipt.reviewAuthority -ne $false -or
+              $receipt.productAcceptanceAuthority -ne $false -or
+              $receipt.questAuthority -ne $false -or
+              $receipt.physicalAcceptanceAuthority -ne $false) {
+            throw "Target-host starter qualification crossed runtime or acceptance authority."
+          }
+
+      - name: Preserve source cleanliness
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-target-host-starter-${{ matrix.os }}
+          path: ${{ runner.temp }}/underdrain-target-host-starter
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+
+  package:
+    needs: qualify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: underdrain-target-host-starter-*
+          path: ${{ runner.temp }}/underdrain-target-host-starter-qualification
+
+      - name: Assemble source-qualified target-host starter kit
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/underdrain-target-host-starter-kit"
+          mkdir -p "$root/scripts/lib" "$root/qualification"
+          cp docs/UNDERDRAIN_TARGET_HOST_STARTER.md "$root/README.md"
+          cp scripts/start-underdrain-target-host.ps1 "$root/scripts/"
+          cp scripts/bootstrap-underdrain-windows-host.ps1 "$root/scripts/"
+          cp scripts/get-underdrain-commissioning-state.ps1 "$root/scripts/"
+          cp scripts/invoke-underdrain-commissioning.ps1 "$root/scripts/"
+          cp scripts/export-underdrain-commissioning-evidence.ps1 "$root/scripts/"
+          cp scripts/materialize-underdrain-production-representation.ps1 "$root/scripts/"
+          cp scripts/preflight-underdrain-unity6000-player-product.ps1 "$root/scripts/"
+          cp scripts/preflight-underdrain-unity6000-player-product-v2.ps1 "$root/scripts/"
+          cp scripts/approve-underdrain-production-assets.ps1 "$root/scripts/"
+          cp scripts/run-underdrain-unity6000-player-product.ps1 "$root/scripts/"
+          cp scripts/run-underdrain-player-session.ps1 "$root/scripts/"
+          cp scripts/new-underdrain-role-separated-review-kit.ps1 "$root/scripts/"
+          cp scripts/record-underdrain-role-separated-software-review.ps1 "$root/scripts/"
+          cp scripts/accept-underdrain-player-product.ps1 "$root/scripts/"
+          cp scripts/prepare-underdrain-production-assets.ps1 "$root/scripts/"
+          cp scripts/audit-underdrain-production-assets.ps1 "$root/scripts/"
+          cp scripts/qualify-unity-action-player-product.ps1 "$root/scripts/"
+          cp scripts/build-unity-action-player.ps1 "$root/scripts/"
+          cp scripts/run-underdrain-unity6000-player-train.ps1 "$root/scripts/"
+          cp scripts/lib/underdrain-commissioning-common-v1.ps1 "$root/scripts/lib/"
+          cp scripts/lib/underdrain-commissioning-build-gates-v1.ps1 "$root/scripts/lib/"
+          cp scripts/lib/underdrain-commissioning-review-gates-v1.ps1 "$root/scripts/lib/"
+          cp scripts/lib/underdrain-commissioning-controller-v1.ps1 "$root/scripts/lib/"
+          cp scripts/lib/underdrain-role-review-common-v1.ps1 "$root/scripts/lib/"
+
+          for os in ubuntu-24.04 windows-2025; do
+            source="$RUNNER_TEMP/underdrain-target-host-starter-qualification/underdrain-target-host-starter-$os"
+            destination="$root/qualification/$os"
+            mkdir -p "$destination"
+            cp "$source/underdrain-target-host-starter-fixture-qualification.json" "$destination/"
+            cp "$source/underdrain-target-host-starter-fixture-qualification.json.sha256" "$destination/"
+          done
+
+          WORLD_SHA="$(git rev-parse HEAD)"
+          WORLD_TREE="$(git rev-parse 'HEAD^{tree}')"
+          WORLD_SHA="$WORLD_SHA" WORLD_TREE="$WORLD_TREE" ROOT="$root" node --input-type=module <<'NODE'
+          import { writeFileSync } from 'node:fs';
+          const lock = {
+            format: 'rodoh-underdrain-target-host-starter-lock/1',
+            status: 'source-qualified',
+            world: {
+              repository: 'BigBirdReturns/axm-world',
+              commit: process.env.WORLD_SHA,
+              tree: process.env.WORLD_TREE,
+            },
+            arc: {
+              repository: 'BigBirdReturns/axm-arc',
+              commit: process.env.ARC_ACTION_PLAYER_SHA,
+              tree: process.env.ARC_ACTION_PLAYER_TREE,
+            },
+            actionPlayerFloor: {
+              repository: 'BigBirdReturns/tier-bench',
+              commit: process.env.FLOOR_SHA,
+              catalogId: process.env.FLOOR_CATALOG,
+              playerIntentId: process.env.PLAYER_INTENT,
+            },
+            productId: 'underdrain-bloom-below-unity6000-v1',
+            unityVersion: '6000.0.66f2',
+            starterFormat: 'rodoh-underdrain-target-host-start/1',
+            bootstrapFormat: 'rodoh-underdrain-windows-host-bootstrap/1',
+            commissioningRunFormat: 'rodoh-underdrain-windows-commissioning-run/1',
+            defaultMode: 'inspect',
+            mutationConfirmationRequired: true,
+            targetExecution: 'not-performed',
+            authority: 'host discovery, inspection, and explicitly confirmed delegation to the existing bounded commissioning controller only',
+            nonClaims: [
+              'target household execution',
+              'direct Unity authority',
+              'representation materialization',
+              'representation approval',
+              'software review',
+              'product acceptance',
+              'human or household acceptance',
+              'Quest or physical acceptance',
+            ],
+          };
+          writeFileSync(process.env.ROOT + '/TARGET_HOST_STARTER_LOCK.json', `${JSON.stringify(lock, null, 2)}\n`);
+          NODE
+
+          cat > "$root/RUN_TARGET_HOST.ps1" <<'PS1'
+          [CmdletBinding()]
+          param(
+              [string]$WorldRoot,
+              [string]$ArcRoot,
+              [string]$EmbodiedArLabRoot,
+              [string]$UnityEditor,
+              [string]$ShineStandalone,
+              [string]$ResolvedSourceManifest,
+              [string]$ResolvedSourceRoot,
+              [string[]]$SearchRoots,
+              [ValidateRange(1,12)][int]$MaxDepth = 6,
+              [string]$JobId = "underdrain-unity6000-player-v1",
+              [ValidateSet("inspect","advance","auto")][string]$Mode = "inspect",
+              [switch]$ConfirmMutation,
+              [string]$OutputRoot,
+              [switch]$DeepSearch,
+              [switch]$NoFail
+          )
+          $ErrorActionPreference = "Stop"
+          $lock = Get-Content (Join-Path $PSScriptRoot "TARGET_HOST_STARTER_LOCK.json") -Raw | ConvertFrom-Json
+          $parameters = @{
+              ExpectedWorldCommit = [string]$lock.world.commit
+              ExpectedWorldTree = [string]$lock.world.tree
+              ExpectedArcCommit = [string]$lock.arc.commit
+              ExpectedArcTree = [string]$lock.arc.tree
+              JobId = $JobId
+              MaxDepth = $MaxDepth
+              Mode = $Mode
+          }
+          foreach ($entry in @{
+              WorldRoot = $WorldRoot
+              ArcRoot = $ArcRoot
+              EmbodiedArLabRoot = $EmbodiedArLabRoot
+              UnityEditor = $UnityEditor
+              ShineStandalone = $ShineStandalone
+              ResolvedSourceManifest = $ResolvedSourceManifest
+              ResolvedSourceRoot = $ResolvedSourceRoot
+              OutputRoot = $OutputRoot
+          }.GetEnumerator()) {
+              if (-not [string]::IsNullOrWhiteSpace([string]$entry.Value)) {
+                  $parameters[$entry.Key] = [string]$entry.Value
+              }
+          }
+          if ($SearchRoots) { $parameters.SearchRoots = @($SearchRoots) }
+          if ($ConfirmMutation) { $parameters.ConfirmMutation = $true }
+          if ($DeepSearch) { $parameters.DeepSearch = $true }
+          if ($NoFail) { $parameters.NoFail = $true }
+          & (Join-Path $PSScriptRoot "scripts\start-underdrain-target-host.ps1") @parameters
+          exit $LASTEXITCODE
+          PS1
+
+          test -z "$(find "$root/qualification" -type d -name estate -print -quit)"
+          test -z "$(find "$root/qualification" -type f -path '*/.git/*' -print -quit)"
+          test -z "$(find "$root/qualification" -type f -name Unity.exe -print -quit)"
+          test -z "$(find "$root/qualification" -type f -name invoke-underdrain-commissioning.ps1 -print -quit)"
+
+          (
+            cd "$root"
+            find . -type f ! -name SHA256SUMS -printf '%P\0' |
+              sort -z |
+              xargs -0 sha256sum > SHA256SUMS
+          )
+          git diff --check
+          test -z "$(git status --porcelain)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-target-host-starter-kit
+          path: ${{ runner.temp }}/underdrain-target-host-starter-kit
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

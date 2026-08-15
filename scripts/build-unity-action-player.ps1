@@ -13,6 +13,7 @@ param(
     [string]$UnityVersion = "6000.0.66f2",
     [string]$UnityEditor,
     [switch]$DevelopmentBuild,
+    [switch]$RequirePlayerProduct,
     [switch]$SkipWindowsSmoke,
     [int]$SmokeTimeoutSeconds = 240,
     [switch]$ForceCloseUnity
@@ -33,6 +34,7 @@ $outputRoot = Join-Path $jobRoot "output"
 $logRoot = Join-Path $jobRoot "logs"
 $buildRoot = Join-Path $jobRoot "build"
 $localRunPath = Join-Path $outputRoot "local-run-v2.json"
+$playerProductPath = Join-Path $outputRoot "player-product-run.json"
 $sceneJobPath = Join-Path $inputRoot "action.scene-job.json"
 if (-not (Test-Path $localRunPath)) { throw "Unity action estate v2 receipt is absent: $localRunPath" }
 if (-not (Test-Path $sceneJobPath)) { throw "Unity action scene job is absent: $sceneJobPath" }
@@ -40,6 +42,15 @@ $localRun = Get-Content $localRunPath -Raw | ConvertFrom-Json
 if ($localRun.status -ne "pass") { throw "Unity action estate v2 has not passed." }
 $scenePath = [string]$localRun.scenePath
 if ([string]::IsNullOrWhiteSpace($scenePath)) { throw "Unity action estate v2 receipt lacks scenePath." }
+$playerProduct = $null
+if ($RequirePlayerProduct) {
+    if (-not (Test-Path $playerProductPath)) { throw "Qualified Unity player-product receipt is absent: $playerProductPath" }
+    $playerProduct = Get-Content $playerProductPath -Raw | ConvertFrom-Json
+    if ($playerProduct.status -ne "pass" -or $playerProduct.buildEligible -ne $true) { throw "Unity player product is not build-eligible." }
+    if ($playerProduct.scenePath -ne $scenePath -or $playerProduct.actionSpecDigest -ne $localRun.actionSpecDigest -or $playerProduct.arcDigest -ne $localRun.arcDigest) {
+        throw "Unity player-product receipt differs from the build scene or action authority."
+    }
+}
 
 if ([string]::IsNullOrWhiteSpace($UnityEditor)) { $UnityEditor = "C:\Program Files\Unity\Hub\Editor\$UnityVersion\Editor\Unity.exe" }
 $unityPath = [System.IO.Path]::GetFullPath($UnityEditor)
@@ -73,6 +84,7 @@ $arguments = @(
     "-outputPath", $buildOutput,
     "-receiptRoot", $receiptRoot,
     "-development", $(if ($DevelopmentBuild) { "true" } else { "false" }),
+    "-requirePlayerProduct", $(if ($RequirePlayerProduct) { "true" } else { "false" }),
     "-logFile", $buildLog
 )
 Write-Host "Building the exact RODOH action player for $Target..."
@@ -83,6 +95,18 @@ if (-not (Test-Path $buildReceiptPath)) { throw "Unity did not write the build r
 $buildReceipt = Get-Content $buildReceiptPath -Raw | ConvertFrom-Json
 if ($buildReceipt.status -ne "pass") { throw "Unity build receipt reports $($buildReceipt.status): $($buildReceipt.error)" }
 if (-not (Test-Path $buildOutput)) { throw "Built action product is absent: $buildOutput" }
+if ($RequirePlayerProduct) {
+    $identityMatches = (
+        $buildReceipt.playerProductRequired -eq $true -and
+        $buildReceipt.playerProductId -eq $playerProduct.productId -and
+        $buildReceipt.playerProductProfileSha256 -eq $playerProduct.productProfileSha256 -and
+        $buildReceipt.playerProductWorldCommit -eq $playerProduct.worldCommit -and
+        $buildReceipt.playerProductArcCommit -eq $playerProduct.arcCommit
+    )
+    if (-not $identityMatches) {
+        throw "Built player lost exact player-product identity custody."
+    }
+}
 
 $smokeStatus = "not-applicable"
 $smokeReceiptPath = $null
@@ -117,7 +141,7 @@ if ($Target -eq "windows" -and -not $SkipWindowsSmoke) {
 }
 
 $runReceipt = [ordered]@{
-    format = "rodoh-unity-action-build-run/1"
+    format = "rodoh-unity-action-build-run/2"
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
     status = "pass"
     target = $Target
@@ -127,6 +151,9 @@ $runReceipt = [ordered]@{
     sceneJob = $sceneJobPath
     actionSpecDigest = $localRun.actionSpecDigest
     arcDigest = $localRun.arcDigest
+    playerProductRequired = [bool]$RequirePlayerProduct
+    playerProductId = if ($RequirePlayerProduct) { $playerProduct.productId } else { $null }
+    playerProductProfileSha256 = if ($RequirePlayerProduct) { $playerProduct.productProfileSha256 } else { $null }
     product = $buildOutput
     productSha256 = $buildReceipt.productSha256
     productFiles = $buildReceipt.productFiles
@@ -136,8 +163,14 @@ $runReceipt = [ordered]@{
     playerSmoke = $smokeStatus
     playerSmokeReceipt = $smokeReceiptPath
     playerSmokeLog = $smokeLog
+    keyboardMouseSession = "open"
+    gamepadSession = "open"
+    roleSeparatedSoftwareReview = "open"
+    physicalHumanEvidence = "separate-open"
+    productAcceptance = "not-issued"
+    questAcceptance = "open"
 }
 $runReceiptPath = Join-Path $receiptRoot "build-run-$Target.json"
-$runReceipt | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf8 $runReceiptPath
+$runReceipt | ConvertTo-Json -Depth 12 | Set-Content -Encoding utf8 $runReceiptPath
 Write-Host "RODOH action player build passed."
 Write-Host $runReceiptPath

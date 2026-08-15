@@ -1,0 +1,143 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$EmbodiedArLabRoot,
+
+    [Parameter(Mandatory = $true)]
+    [string]$JobId,
+
+    [Parameter(Mandatory = $true)]
+    [string]$ProductProfile,
+
+    [Parameter(Mandatory = $true)]
+    [string]$WorldCommit,
+
+    [Parameter(Mandatory = $true)]
+    [string]$ArcCommit,
+
+    [string]$PresentationManifest,
+    [string]$UnityVersion = "6000.0.66f2",
+    [string]$UnityEditor,
+    [switch]$ForceCloseUnity
+)
+
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
+
+function Resolve-FullPath([string]$Value, [string]$Base) {
+    if ([System.IO.Path]::IsPathRooted($Value)) { return [System.IO.Path]::GetFullPath($Value) }
+    return [System.IO.Path]::GetFullPath((Join-Path $Base $Value))
+}
+
+if ($WorldCommit -notmatch '^[0-9a-f]{40}$') { throw "World commit identity is malformed: $WorldCommit" }
+if ($ArcCommit -notmatch '^[0-9a-f]{40}$') { throw "Arc commit identity is malformed: $ArcCommit" }
+
+$worldRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+$projectRoot = Resolve-FullPath $EmbodiedArLabRoot (Get-Location).Path
+foreach ($directory in @("Assets", "Packages", "ProjectSettings")) {
+    if (-not (Test-Path (Join-Path $projectRoot $directory))) { throw "Embodied-AR-Lab $directory directory is absent: $projectRoot" }
+}
+if ([string]::IsNullOrWhiteSpace($UnityEditor)) { $UnityEditor = "C:\Program Files\Unity\Hub\Editor\$UnityVersion\Editor\Unity.exe" }
+$unityPath = [System.IO.Path]::GetFullPath($UnityEditor)
+if (-not (Test-Path $unityPath)) { throw "Unity Editor is absent: $unityPath" }
+
+$profilePath = Resolve-FullPath $ProductProfile $worldRoot
+if (-not (Test-Path $profilePath)) { throw "Player-product profile is absent: $profilePath" }
+$jobRoot = Join-Path $projectRoot "local\scene-jobs\$JobId"
+$inputRoot = Join-Path $jobRoot "input"
+$outputRoot = Join-Path $jobRoot "output"
+$logRoot = Join-Path $jobRoot "logs"
+$sceneJobPath = Join-Path $inputRoot "action.scene-job.json"
+$v3ReceiptPath = Join-Path $outputRoot "local-run-v3.json"
+foreach ($path in @($sceneJobPath, $v3ReceiptPath)) { if (-not (Test-Path $path)) { throw "Required completed-estate file is absent: $path" } }
+$v3 = Get-Content $v3ReceiptPath -Raw | ConvertFrom-Json
+if ($v3.status -ne "pass") { throw "Unity action estate v3 did not pass." }
+$scenePath = [string]$v3.scenePath
+if ([string]::IsNullOrWhiteSpace($scenePath)) { throw "Unity action estate did not retain its scene path." }
+if ([string]::IsNullOrWhiteSpace($PresentationManifest)) { $PresentationManifest = [string]$v3.presentationManifest }
+$presentationPath = Resolve-FullPath $PresentationManifest $projectRoot
+if (-not (Test-Path $presentationPath)) { throw "Effective authored presentation manifest is absent: $presentationPath" }
+New-Item -ItemType Directory -Force $outputRoot, $logRoot | Out-Null
+
+$unityProcesses = Get-Process Unity -ErrorAction SilentlyContinue
+if ($unityProcesses) {
+    if (-not $ForceCloseUnity) { throw "Unity Editor is running. Close it first or pass -ForceCloseUnity." }
+    $unityProcesses | Stop-Process -Force
+    Start-Sleep -Seconds 2
+}
+
+$logPath = Join-Path $logRoot "unity-action-player-product.log"
+$arguments = @(
+    "-batchmode",
+    "-nographics",
+    "-quit",
+    "-projectPath", $projectRoot,
+    "-executeMethod", "Axm.Rodoh.Action.Editor.ActionPlayerProductBatch.Run",
+    "-scenePath", $scenePath,
+    "-sceneJob", $sceneJobPath,
+    "-presentation", $presentationPath,
+    "-productProfile", $profilePath,
+    "-worldCommit", $WorldCommit,
+    "-arcCommit", $ArcCommit,
+    "-outputRoot", $outputRoot,
+    "-logFile", $logPath
+)
+Write-Host "Qualifying the exact serialized Unity player product..."
+$process = Start-Process -FilePath $unityPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow
+if ($process.ExitCode -ne 0) { throw "Unity player-product qualification failed with exit $($process.ExitCode). See $logPath" }
+
+$qualificationPath = Join-Path $outputRoot "player-product-qualification.json"
+if (-not (Test-Path $qualificationPath)) { throw "Unity did not write the player-product qualification receipt: $qualificationPath" }
+$qualification = Get-Content $qualificationPath -Raw | ConvertFrom-Json
+if ($qualification.status -ne "pass" -or $qualification.buildEligible -ne $true) { throw "Unity player-product receipt reports $($qualification.status): $($qualification.error)" }
+if ($qualification.worldCommit -ne $WorldCommit -or $qualification.arcCommit -ne $ArcCommit) { throw "Unity player-product receipt lost exact World or Arc custody." }
+if ($qualification.presentationAdapterId -ne "production.prefab/v1" -or $qualification.diagnosticPresentation -ne $false -or $qualification.primitiveFallback -ne $false) { throw "Unity player product did not retain its production presentation boundary." }
+if ($qualification.activePhysicsAuthority -ne $false) { throw "Unity player product retained active Unity combat physics authority." }
+if ($qualification.exactCueCoverage -ne $true -or $qualification.cameraCollision -ne $true -or $qualification.runtimeRebinding -ne $true) { throw "Unity player product lacks cue, camera, or input coverage." }
+if ($qualification.productionAssetIds.Count -lt 7) { throw "Unity player product did not bind its complete player/enemy/arena asset floor." }
+
+$receipt = [ordered]@{
+    format = "rodoh-unity-action-player-product-local-run/1"
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    status = "pass"
+    projectRoot = $projectRoot
+    unityEditor = $unityPath
+    unityVersion = $qualification.unityVersion
+    jobId = $JobId
+    productId = $qualification.productId
+    productProfile = $profilePath
+    productProfileSha256 = $qualification.productProfileSha256
+    worldCommit = $WorldCommit
+    arcCommit = $ArcCommit
+    actionSpecDigest = $qualification.actionSpecDigest
+    arcDigest = $qualification.arcDigest
+    challengeId = $qualification.challengeId
+    timingProfileId = $qualification.timingProfileId
+    presentationManifest = $presentationPath
+    presentationManifestId = $qualification.presentationManifestId
+    presentationManifestSha256 = $qualification.presentationManifestSha256
+    scenePath = $qualification.scenePath
+    sceneSha256 = $qualification.sceneSha256
+    sceneJobDigest = $qualification.sceneJobDigest
+    productionAssetIds = $qualification.productionAssetIds
+    exactCueCoverage = $qualification.exactCueCoverage
+    cameraCollision = $qualification.cameraCollision
+    arenaCollisionSurfaces = $qualification.arenaCollisionSurfaces
+    keyboardMouse = $qualification.keyboardMouse
+    gamepad = $qualification.gamepad
+    runtimeRebinding = $qualification.runtimeRebinding
+    bindingProfileDigest = $qualification.bindingProfileDigest
+    playerSessionEvidence = $qualification.playerSessionEvidence
+    performanceRecorder = $qualification.performanceRecorder
+    activePhysicsAuthority = $qualification.activePhysicsAuthority
+    buildEligible = $qualification.buildEligible
+    keyboardMouseSession = "open"
+    gamepadSession = "open"
+    independentComprehension = "open"
+    productAcceptance = "not-issued"
+    qualificationReceipt = $qualificationPath
+}
+$receiptPath = Join-Path $outputRoot "player-product-run.json"
+$receipt | ConvertTo-Json -Depth 20 | Set-Content -Encoding utf8 $receiptPath
+Write-Host "RODOH Unity action player-product source and scene qualification passed."
+Write-Host $receiptPath

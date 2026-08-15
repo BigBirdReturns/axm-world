@@ -1,0 +1,300 @@
+name: UNDERDRAIN Unity 6000 machine kit
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/underdrain-unity6000-machine-kit.yml'
+      - 'docs/UNDERDRAIN_UNITY6000_MACHINE_RUNBOOK.md'
+      - 'docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md'
+      - 'docs/UNDERDRAIN_ROLE_SEPARATED_SOFTWARE_REVIEW.md'
+      - 'scripts/extract-underdrain-shine-assets.mjs'
+      - 'scripts/resolve-underdrain-shine-representation.mjs'
+      - 'scripts/materialize-underdrain-production-representation.ps1'
+      - 'scripts/preflight-underdrain-unity6000-player-product.ps1'
+      - 'scripts/preflight-underdrain-unity6000-player-product-v2.ps1'
+      - 'scripts/accept-underdrain-player-product.ps1'
+      - 'scripts/approve-underdrain-production-assets.ps1'
+      - 'scripts/audit-underdrain-production-assets.ps1'
+      - 'scripts/build-unity-action-player.ps1'
+      - 'scripts/lib/underdrain-role-review-common-v1.ps1'
+      - 'scripts/new-underdrain-role-separated-review-kit.ps1'
+      - 'scripts/prepare-underdrain-production-assets.ps1'
+      - 'scripts/qualify-unity-action-player-product.ps1'
+      - 'scripts/record-underdrain-independent-comprehension.ps1'
+      - 'scripts/record-underdrain-role-separated-software-review.ps1'
+      - 'scripts/run-underdrain-player-session.ps1'
+      - 'scripts/run-underdrain-unity6000-player-product.ps1'
+      - 'scripts/run-underdrain-unity6000-player-train.ps1'
+      - 'scripts/test-underdrain-role-separated-review.ps1'
+      - 'scripts/test-underdrain-unity6000-machine-preflight.ps1'
+      - 'scripts/test-underdrain-unity6000-machine-preflight-v2.ps1'
+      - 'tests/world/underdrain-machine-preflight.test.ts'
+      - 'tests/world/underdrain-player-product-acceptance.test.ts'
+      - 'tests/world/underdrain-powershell-contract.test.ts'
+      - 'tests/world/underdrain-representation-materializer.test.ts'
+      - 'tests/world/underdrain-role-separated-review.test.ts'
+      - 'tests/world/underdrain-unity6000-player-train.test.ts'
+      - 'unity/Fixtures/underdrain.authored-presentation.template.json'
+      - 'unity/Fixtures/underdrain.comprehension-contract.json'
+      - 'unity/Fixtures/underdrain.player-product.json'
+      - 'unity/Fixtures/underdrain.role-separated-software-review.json'
+      - 'unity/Fixtures/underdrain.shine-source.json'
+      - 'unity/Fixtures/underdrain.shine-role-map.template.json'
+      - 'unity/Fixtures/underdrain.representation-source.template.json'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches:
+      - feature/underdrain-unity6000-player-train-v1
+      - repair/underdrain-unity6000-machine-preflight-v1
+      - feature/underdrain-production-representation-materializer-v1
+      - repair/underdrain-role-separated-review-closure-v1
+    paths:
+      - '.github/workflows/underdrain-unity6000-machine-kit.yml'
+      - 'docs/UNDERDRAIN_UNITY6000_MACHINE_RUNBOOK.md'
+      - 'docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md'
+      - 'docs/UNDERDRAIN_ROLE_SEPARATED_SOFTWARE_REVIEW.md'
+      - 'scripts/extract-underdrain-shine-assets.mjs'
+      - 'scripts/resolve-underdrain-shine-representation.mjs'
+      - 'scripts/materialize-underdrain-production-representation.ps1'
+      - 'scripts/preflight-underdrain-unity6000-player-product.ps1'
+      - 'scripts/preflight-underdrain-unity6000-player-product-v2.ps1'
+      - 'scripts/accept-underdrain-player-product.ps1'
+      - 'scripts/approve-underdrain-production-assets.ps1'
+      - 'scripts/audit-underdrain-production-assets.ps1'
+      - 'scripts/build-unity-action-player.ps1'
+      - 'scripts/lib/underdrain-role-review-common-v1.ps1'
+      - 'scripts/new-underdrain-role-separated-review-kit.ps1'
+      - 'scripts/prepare-underdrain-production-assets.ps1'
+      - 'scripts/qualify-unity-action-player-product.ps1'
+      - 'scripts/record-underdrain-independent-comprehension.ps1'
+      - 'scripts/record-underdrain-role-separated-software-review.ps1'
+      - 'scripts/run-underdrain-player-session.ps1'
+      - 'scripts/run-underdrain-unity6000-player-product.ps1'
+      - 'scripts/run-underdrain-unity6000-player-train.ps1'
+      - 'scripts/test-underdrain-role-separated-review.ps1'
+      - 'scripts/test-underdrain-unity6000-machine-preflight.ps1'
+      - 'scripts/test-underdrain-unity6000-machine-preflight-v2.ps1'
+      - 'tests/world/underdrain-machine-preflight.test.ts'
+      - 'tests/world/underdrain-player-product-acceptance.test.ts'
+      - 'tests/world/underdrain-powershell-contract.test.ts'
+      - 'tests/world/underdrain-representation-materializer.test.ts'
+      - 'tests/world/underdrain-role-separated-review.test.ts'
+      - 'tests/world/underdrain-unity6000-player-train.test.ts'
+      - 'unity/Fixtures/underdrain.authored-presentation.template.json'
+      - 'unity/Fixtures/underdrain.comprehension-contract.json'
+      - 'unity/Fixtures/underdrain.player-product.json'
+      - 'unity/Fixtures/underdrain.role-separated-software-review.json'
+      - 'unity/Fixtures/underdrain.shine-source.json'
+      - 'unity/Fixtures/underdrain.shine-role-map.template.json'
+      - 'unity/Fixtures/underdrain.representation-source.template.json'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: underdrain-unity6000-machine-kit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARC_ACTION_PLAYER_SHA: aaa5685903a348b3c1ba875622fbe99d90c1da35
+  FLOOR_SHA: 9693cb99694338e72c15d0ffbb87b5a1c5bbf16a
+  FLOOR_CATALOG: actionfloor1_55eb8869417b3b36a28a309263624fe04ad07028f2254337a2f1548cd03b47d8
+  PLAYER_INTENT: playerintent1_91647652ca3f387b114d5fa7cfab416e2d99c5f307098b6426a17f624cdfbe6c
+
+jobs:
+  qualify-and-package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Qualify preflight, representation, review, and acceptance contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run typecheck
+          npm test -- \
+            tests/world/underdrain-machine-preflight.test.ts \
+            tests/world/underdrain-representation-materializer.test.ts \
+            tests/world/underdrain-powershell-contract.test.ts \
+            tests/world/underdrain-player-product-acceptance.test.ts \
+            tests/world/underdrain-role-separated-review.test.ts \
+            tests/world/underdrain-unity6000-player-train.test.ts
+          pwsh -NoProfile -File scripts/test-underdrain-role-separated-review.ps1 \
+            -OutputRoot "$RUNNER_TEMP/underdrain-role-separated-review"
+
+      - name: Run complete World regression and production build
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test
+          npm run build
+          if git ls-files -- docs/game | grep -q .; then
+            git restore --source=HEAD --staged --worktree -- docs/game
+          fi
+          git clean -fdx -- docs/game
+
+      - name: Assemble the exact machine operator kit
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/underdrain-unity6000-machine-kit"
+          mkdir -p "$root/scripts/lib" "$root/fixtures" "$root/qualification"
+          cp docs/UNDERDRAIN_UNITY6000_MACHINE_RUNBOOK.md "$root/README.md"
+          cp docs/UNDERDRAIN_REPRESENTATION_MATERIALIZATION.md "$root/REPRESENTATION.md"
+          cp docs/UNDERDRAIN_ROLE_SEPARATED_SOFTWARE_REVIEW.md "$root/ROLE_SEPARATED_REVIEW.md"
+          cp package.json package-lock.json "$root/"
+          cp scripts/extract-underdrain-shine-assets.mjs "$root/scripts/"
+          cp scripts/resolve-underdrain-shine-representation.mjs "$root/scripts/"
+          cp scripts/materialize-underdrain-production-representation.ps1 "$root/scripts/"
+          cp scripts/preflight-underdrain-unity6000-player-product.ps1 "$root/scripts/"
+          cp scripts/preflight-underdrain-unity6000-player-product-v2.ps1 "$root/scripts/"
+          cp scripts/test-underdrain-unity6000-machine-preflight.ps1 "$root/scripts/"
+          cp scripts/test-underdrain-unity6000-machine-preflight-v2.ps1 "$root/scripts/"
+          cp scripts/approve-underdrain-production-assets.ps1 "$root/scripts/"
+          cp scripts/prepare-underdrain-production-assets.ps1 "$root/scripts/"
+          cp scripts/audit-underdrain-production-assets.ps1 "$root/scripts/"
+          cp scripts/run-underdrain-unity6000-player-product.ps1 "$root/scripts/"
+          cp scripts/run-underdrain-unity6000-player-train.ps1 "$root/scripts/"
+          cp scripts/qualify-unity-action-player-product.ps1 "$root/scripts/"
+          cp scripts/build-unity-action-player.ps1 "$root/scripts/"
+          cp scripts/run-underdrain-player-session.ps1 "$root/scripts/"
+          cp scripts/lib/underdrain-role-review-common-v1.ps1 "$root/scripts/lib/"
+          cp scripts/new-underdrain-role-separated-review-kit.ps1 "$root/scripts/"
+          cp scripts/record-underdrain-role-separated-software-review.ps1 "$root/scripts/"
+          cp scripts/test-underdrain-role-separated-review.ps1 "$root/scripts/"
+          cp scripts/accept-underdrain-player-product.ps1 "$root/scripts/"
+          cp scripts/record-underdrain-independent-comprehension.ps1 "$root/scripts/legacy-human-evidence.ps1"
+          cp unity/Fixtures/underdrain.authored-presentation.template.json "$root/fixtures/"
+          cp unity/Fixtures/underdrain.player-product.json "$root/fixtures/"
+          cp unity/Fixtures/underdrain.role-separated-software-review.json "$root/fixtures/"
+          cp unity/Fixtures/underdrain.comprehension-contract.json "$root/fixtures/legacy-human-evidence.json"
+          cp unity/Fixtures/underdrain.shine-source.json "$root/fixtures/"
+          cp unity/Fixtures/underdrain.shine-role-map.template.json "$root/fixtures/"
+          cp unity/Fixtures/underdrain.representation-source.template.json "$root/fixtures/"
+          cp -R "$RUNNER_TEMP/underdrain-role-separated-review/." "$root/qualification/"
+          world_sha="$(git rev-parse HEAD)"
+          WORLD_SHA="$world_sha" ROOT="$root" node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const profile = JSON.parse(readFileSync('unity/Fixtures/underdrain.player-product.json', 'utf8'));
+          const manifest = JSON.parse(readFileSync('unity/Fixtures/underdrain.authored-presentation.template.json', 'utf8'));
+          const review = JSON.parse(readFileSync('unity/Fixtures/underdrain.role-separated-software-review.json', 'utf8'));
+          const shine = JSON.parse(readFileSync('unity/Fixtures/underdrain.shine-source.json', 'utf8'));
+          const lock = {
+            format: 'rodoh-underdrain-unity6000-machine-lock/3',
+            world: { repository: 'BigBirdReturns/axm-world', commit: process.env.WORLD_SHA },
+            arc: { repository: 'BigBirdReturns/axm-arc', commit: process.env.ARC_ACTION_PLAYER_SHA },
+            actionPlayerFloor: {
+              repository: 'BigBirdReturns/tier-bench',
+              commit: process.env.FLOOR_SHA,
+              catalogId: process.env.FLOOR_CATALOG,
+              playerIntentId: process.env.PLAYER_INTENT
+            },
+            unityVersion: '6000.0.66f2',
+            productId: profile.productId,
+            challengeId: profile.challengeId,
+            timingProfileId: profile.timingProfileId,
+            presentationAdapterId: profile.presentationAdapterId,
+            themeId: manifest.themeId,
+            machinePreflight: {
+              defaultFormat: 'rodoh-underdrain-unity6000-machine-preflight/2',
+              retainedLegacyFormat: 'rodoh-underdrain-unity6000-machine-preflight/1'
+            },
+            softwareReview: {
+              contractFormat: review.format,
+              receiptFormat: review.reviewReceiptFormat,
+              minimumDistinctSeats: review.independence.minimumDistinctSeats,
+              minimumDistinctLineages: review.independence.minimumDistinctLineages,
+              minimumDistinctContexts: review.independence.minimumDistinctContexts,
+              physicalInstallationScope: review.physicalInstallationScope
+            },
+            softwareAcceptance: {
+              format: 'rodoh-underdrain-player-product-acceptance/2',
+              scope: 'windows-software-player-product',
+              separateFourthSeatRequired: true
+            },
+            shineSource: {
+              fileName: shine.standaloneFileName,
+              sha256: shine.standaloneSha256,
+              assetObject: shine.assetObject
+            },
+            requiredCueCount: profile.requiredCueIds.length,
+            enemyKitCount: profile.enemies.length,
+            coreProductionAssetCount: 7,
+            declaredBindingCount: 27,
+            uniqueTopLevelAssetCount: 23,
+            feedbackPrefabCount: 7,
+            audioClipCount: 7,
+            operatorSequence: [
+              'shine-extraction',
+              'seven-role-resolution',
+              'unity-representation-materialization',
+              'machine-preflight-v2',
+              'named-asset-review',
+              'named-asset-approval',
+              'read-only-asset-intake',
+              'unity-import-and-scene-qualification',
+              'read-only-post-serialization-audit',
+              'windows-build',
+              'keyboard-mouse-session',
+              'gamepad-rebind-session',
+              'exact-arc-replay',
+              'three-seat-role-separated-software-review',
+              'fourth-seat-windows-software-product-acceptance'
+            ],
+            nonClaims: [
+              'availability of the exact Shine standalone on this machine',
+              'resolved seven-role production PNGs',
+              'Embodied-AR-Lab asset existence',
+              'named production-asset approval',
+              'Unity import',
+              'serialized scene acceptance',
+              'Windows build',
+              'keyboard and mouse session',
+              'gamepad and persisted-rebind session',
+              'role-separated review receipt',
+              'Windows software-product acceptance',
+              'human physical evidence',
+              'Quest or physical Quest acceptance'
+            ],
+            productAcceptance: 'not-issued',
+            physicalHumanEvidence: 'separate',
+            questAcceptance: 'open'
+          };
+          writeFileSync(process.env.ROOT + '/MACHINE_LOCK.json', JSON.stringify(lock, null, 2) + '\n');
+          writeFileSync(process.env.ROOT + '/INSTALL_SHINE_EXTRACTOR.ps1', `$ErrorActionPreference = "Stop"\nPush-Location $PSScriptRoot\ntry { npm ci --no-audit --no-fund; npx playwright install chromium } finally { Pop-Location }\n`);
+          writeFileSync(process.env.ROOT + '/RUN_EXTRACT_SHINE.ps1', `[CmdletBinding()]\nparam([Parameter(Mandatory=$true)][string]$Standalone,[Parameter(Mandatory=$true)][string]$Output)\n$ErrorActionPreference = "Stop"\n$lock = Get-Content (Join-Path $PSScriptRoot "MACHINE_LOCK.json") -Raw | ConvertFrom-Json\nnode (Join-Path $PSScriptRoot "scripts\\extract-underdrain-shine-assets.mjs") --input $Standalone --output $Output --expected-sha256 $lock.shineSource.sha256\nexit $LASTEXITCODE\n`);
+          writeFileSync(process.env.ROOT + '/RUN_RESOLVE_SHINE.ps1', `[CmdletBinding()]\nparam([Parameter(Mandatory=$true)][string]$Extraction,[Parameter(Mandatory=$true)][string]$RoleMap,[Parameter(Mandatory=$true)][string]$Output)\n$ErrorActionPreference = "Stop"\nnode (Join-Path $PSScriptRoot "scripts\\resolve-underdrain-shine-representation.mjs") --extraction $Extraction --role-map $RoleMap --output $Output\nexit $LASTEXITCODE\n`);
+          writeFileSync(process.env.ROOT + '/RUN_MATERIALIZE.ps1', `[CmdletBinding()]\nparam([Parameter(Mandatory=$true)][string]$WorldRoot,[Parameter(Mandatory=$true)][string]$ArcRoot,[Parameter(Mandatory=$true)][string]$EmbodiedArLabRoot,[Parameter(Mandatory=$true)][string]$SourceManifest,[Parameter(Mandatory=$true)][string]$SourceRoot)\n$ErrorActionPreference = "Stop"\n$script = Join-Path $PSScriptRoot "scripts\\materialize-underdrain-production-representation.ps1"\n& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script -WorldRoot $WorldRoot -ArcRoot $ArcRoot -EmbodiedArLabRoot $EmbodiedArLabRoot -SourceManifest $SourceManifest -SourceRoot $SourceRoot\nexit $LASTEXITCODE\n`);
+          writeFileSync(process.env.ROOT + '/RUN_PREFLIGHT_V1.ps1', `[CmdletBinding()]\nparam([Parameter(Mandatory=$true)][string]$WorldRoot,[Parameter(Mandatory=$true)][string]$ArcRoot,[Parameter(Mandatory=$true)][string]$EmbodiedArLabRoot,[string]$OutputRoot)\n$ErrorActionPreference = "Stop"\n$lock = Get-Content (Join-Path $PSScriptRoot "MACHINE_LOCK.json") -Raw | ConvertFrom-Json\n$script = Join-Path $PSScriptRoot "scripts\\preflight-underdrain-unity6000-player-product.ps1"\n& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script -WorldRoot $WorldRoot -ExpectedWorldCommit $lock.world.commit -ArcRoot $ArcRoot -EmbodiedArLabRoot $EmbodiedArLabRoot -OutputRoot $OutputRoot\nexit $LASTEXITCODE\n`);
+          writeFileSync(process.env.ROOT + '/RUN_PREFLIGHT.ps1', `[CmdletBinding()]\nparam([Parameter(Mandatory=$true)][string]$WorldRoot,[Parameter(Mandatory=$true)][string]$ArcRoot,[Parameter(Mandatory=$true)][string]$EmbodiedArLabRoot,[string]$OutputRoot)\n$ErrorActionPreference = "Stop"\n$lock = Get-Content (Join-Path $PSScriptRoot "MACHINE_LOCK.json") -Raw | ConvertFrom-Json\n$script = Join-Path $PSScriptRoot "scripts\\preflight-underdrain-unity6000-player-product-v2.ps1"\n& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script -WorldRoot $WorldRoot -ExpectedWorldCommit $lock.world.commit -ArcRoot $ArcRoot -EmbodiedArLabRoot $EmbodiedArLabRoot -OutputRoot $OutputRoot\nexit $LASTEXITCODE\n`);
+          NODE
+          (
+            cd "$root"
+            find . -type f ! -name SHA256SUMS -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS
+          )
+          git diff --check
+          test -z "$(git status --porcelain)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-unity6000-machine-kit
+          path: ${{ runner.temp }}/underdrain-unity6000-machine-kit
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

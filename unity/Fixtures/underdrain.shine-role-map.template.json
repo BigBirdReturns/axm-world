@@ -1,0 +1,16 @@
+{
+  "format": "rodoh-underdrain-shine-role-map/1",
+  "productId": "underdrain-bloom-below-unity6000-v1",
+  "roles": [
+    { "role": "player:rhea-venn", "sourceKey": "<assign-rhea-key>" },
+    { "role": "enemy:skirmisher", "sourceKey": "<assign-capling-key>" },
+    { "role": "enemy:duelist", "sourceKey": "<assign-duelist-key>" },
+    { "role": "enemy:swarm", "sourceKey": "<assign-swarm-key>" },
+    { "role": "enemy:hexer", "sourceKey": "<assign-hexer-key>" },
+    { "role": "enemy:breaker", "sourceKey": "<assign-breaker-key>" },
+    { "role": "arena:pump-seven", "sourceKey": "<assign-pump-seven-key>" }
+  ],
+  "reviewRequired": true,
+  "approvalIssued": false,
+  "productAcceptance": "not-issued"
+}

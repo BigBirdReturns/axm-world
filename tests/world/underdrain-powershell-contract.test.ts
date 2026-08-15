@@ -1,0 +1,70 @@
+import { resolve } from "node:path";
+import { spawnSync } from "node:child_process";
+import { describe, expect, it } from "vitest";
+
+const ROOT = resolve(import.meta.dirname, "../..");
+const scripts = [
+  "scripts/accept-underdrain-player-product.ps1",
+  "scripts/approve-underdrain-production-assets.ps1",
+  "scripts/audit-underdrain-production-assets.ps1",
+  "scripts/bootstrap-underdrain-windows-host.ps1",
+  "scripts/build-unity-action-player.ps1",
+  "scripts/export-underdrain-commissioning-evidence.ps1",
+  "scripts/get-underdrain-commissioning-state.ps1",
+  "scripts/invoke-underdrain-commissioning.ps1",
+  "scripts/lib/underdrain-commissioning-build-gates-v1.ps1",
+  "scripts/lib/underdrain-commissioning-common-v1.ps1",
+  "scripts/lib/underdrain-commissioning-controller-v1.ps1",
+  "scripts/lib/underdrain-commissioning-review-gates-v1.ps1",
+  "scripts/lib/underdrain-role-review-common-v1.ps1",
+  "scripts/materialize-underdrain-production-representation.ps1",
+  "scripts/new-underdrain-role-separated-review-kit.ps1",
+  "scripts/preflight-underdrain-unity6000-player-product.ps1",
+  "scripts/preflight-underdrain-unity6000-player-product-v2.ps1",
+  "scripts/prepare-underdrain-production-assets.ps1",
+  "scripts/qualify-unity-action-player-product.ps1",
+  "scripts/record-underdrain-independent-comprehension.ps1",
+  "scripts/record-underdrain-role-separated-software-review.ps1",
+  "scripts/run-underdrain-player-session.ps1",
+  "scripts/run-underdrain-unity6000-player-product.ps1",
+  "scripts/run-underdrain-unity6000-player-train.ps1",
+  "scripts/start-underdrain-target-host.ps1",
+  "scripts/test-underdrain-commissioning-state.ps1",
+  "scripts/test-underdrain-role-separated-review.ps1",
+  "scripts/test-underdrain-target-host-starter.ps1",
+  "scripts/test-underdrain-unity6000-machine-preflight.ps1",
+  "scripts/test-underdrain-unity6000-machine-preflight-v2.ps1",
+  "scripts/test-underdrain-windows-host-bootstrap.ps1",
+];
+
+const parser = String.raw`
+$ErrorActionPreference = 'Stop'
+$tokens = $null
+$errors = $null
+[System.Management.Automation.Language.Parser]::ParseFile(
+  $env:AXM_POWERSHELL_SOURCE,
+  [ref]$tokens,
+  [ref]$errors
+) | Out-Null
+if (@($errors).Count -gt 0) {
+  @($errors) | ForEach-Object {
+    [Console]::Error.WriteLine(('{0}:{1}:{2}: {3}' -f $env:AXM_POWERSHELL_SOURCE, $_.Extent.StartLineNumber, $_.Extent.StartColumnNumber, $_.Message))
+  }
+  exit 1
+}
+`;
+
+describe("UNDERDRAIN Windows production PowerShell", () => {
+  for (const relative of scripts) {
+    it(`parses ${relative}`, () => {
+      const absolute = resolve(ROOT, relative);
+      const result = spawnSync("pwsh", ["-NoProfile", "-NonInteractive", "-Command", parser], {
+        cwd: ROOT,
+        encoding: "utf8",
+        env: { ...process.env, AXM_POWERSHELL_SOURCE: absolute },
+      });
+      expect(result.error, `PowerShell 7 is required to parse ${relative}: ${String(result.error)}`).toBeUndefined();
+      expect(result.status, result.stderr || result.stdout).toBe(0);
+    });
+  }
+});

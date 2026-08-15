@@ -1,0 +1,271 @@
+name: UNDERDRAIN Windows host bootstrap
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/underdrain-windows-host-bootstrap.yml'
+      - 'docs/UNDERDRAIN_WINDOWS_HOST_BOOTSTRAP.md'
+      - 'scripts/bootstrap-underdrain-windows-host.ps1'
+      - 'scripts/get-underdrain-commissioning-state.ps1'
+      - 'scripts/test-underdrain-windows-host-bootstrap.ps1'
+      - 'tests/world/underdrain-windows-host-bootstrap.test.ts'
+      - 'tests/world/underdrain-powershell-contract.test.ts'
+  push:
+    branches:
+      - feature/underdrain-unity6000-player-train-v1
+      - repair/underdrain-windows-host-bootstrap-v1
+    paths:
+      - '.github/workflows/underdrain-windows-host-bootstrap.yml'
+      - 'docs/UNDERDRAIN_WINDOWS_HOST_BOOTSTRAP.md'
+      - 'scripts/bootstrap-underdrain-windows-host.ps1'
+      - 'scripts/get-underdrain-commissioning-state.ps1'
+      - 'scripts/test-underdrain-windows-host-bootstrap.ps1'
+      - 'tests/world/underdrain-windows-host-bootstrap.test.ts'
+      - 'tests/world/underdrain-powershell-contract.test.ts'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: underdrain-windows-host-bootstrap-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARC_ACTION_PLAYER_SHA: aaa5685903a348b3c1ba875622fbe99d90c1da35
+  ARC_ACTION_PLAYER_TREE: 9b28737462ae0aecd8ab0ffab5537d12e8892364
+  FLOOR_SHA: 9693cb99694338e72c15d0ffbb87b5a1c5bbf16a
+  FLOOR_CATALOG: actionfloor1_55eb8869417b3b36a28a309263624fe04ad07028f2254337a2f1548cd03b47d8
+  PLAYER_INTENT: playerintent1_91647652ca3f387b114d5fa7cfab416e2d99c5f307098b6426a17f624cdfbe6c
+
+jobs:
+  qualify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Qualify bootstrap contracts and PowerShell syntax
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          npm run typecheck
+          if ($LASTEXITCODE -ne 0) { throw "TypeScript typecheck failed." }
+          npm test -- tests/world/underdrain-windows-host-bootstrap.test.ts tests/world/underdrain-powershell-contract.test.ts tests/world/underdrain-commissioning-state.test.ts
+          if ($LASTEXITCODE -ne 0) { throw "Focused host-bootstrap tests failed." }
+
+      - name: Execute host-bootstrap admission and refusal fixtures
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $output = Join-Path $env:RUNNER_TEMP "underdrain-windows-host-bootstrap"
+          & ./scripts/test-underdrain-windows-host-bootstrap.ps1 -OutputRoot $output
+          if ($LASTEXITCODE -ne 0) { throw "Host-bootstrap fixture failed with exit $LASTEXITCODE." }
+          $receipt = Get-Content (Join-Path $output "underdrain-windows-host-bootstrap-fixture-qualification.json") -Raw | ConvertFrom-Json
+          if ($receipt.format -ne "rodoh-underdrain-windows-host-bootstrap-fixture-qualification/1" -or $receipt.status -ne "pass") {
+            throw "Host-bootstrap qualification receipt is unsupported or failed."
+          }
+          if ($receipt.exactRootsVerified -ne $true -or
+              $receipt.boundedDiscoveryVerified -ne $true -or
+              $receipt.resolvedSourceAdmissionVerified -ne $true -or
+              $receipt.dirtyCheckoutRefusalVerified -ne $true -or
+              $receipt.identityAmbiguityRefusalVerified -ne $true -or
+              $receipt.staleSourceRefusalVerified -ne $true -or
+              $receipt.commissioningStateVerified -ne $true) {
+            throw "Host-bootstrap qualification did not prove its complete discovery and refusal boundary."
+          }
+          if ($receipt.unityInvoked -ne $false -or
+              $receipt.representationMaterialized -ne $false -or
+              $receipt.approvalIssued -ne $false -or
+              $receipt.reviewIssued -ne $false -or
+              $receipt.productAcceptanceIssued -ne $false -or
+              $receipt.questInvoked -ne $false -or
+              $receipt.physicalAcceptanceIssued -ne $false) {
+            throw "Host-bootstrap qualification crossed runtime or acceptance authority."
+          }
+
+      - name: Preserve source cleanliness
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-windows-host-bootstrap-${{ matrix.os }}
+          path: ${{ runner.temp }}/underdrain-windows-host-bootstrap
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+
+  package:
+    needs: qualify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          show-progress: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: underdrain-windows-host-bootstrap-*
+          path: ${{ runner.temp }}/underdrain-windows-host-bootstrap-qualification
+
+      - name: Assemble source-qualified host-bootstrap kit
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/underdrain-windows-host-bootstrap-kit"
+          mkdir -p "$root/scripts" "$root/qualification"
+          cp scripts/bootstrap-underdrain-windows-host.ps1 "$root/scripts/"
+          cp scripts/get-underdrain-commissioning-state.ps1 "$root/scripts/"
+          cp docs/UNDERDRAIN_WINDOWS_HOST_BOOTSTRAP.md "$root/README.md"
+          cp -R "$RUNNER_TEMP/underdrain-windows-host-bootstrap-qualification/." "$root/qualification/"
+
+          # Retain the case receipts and qualification ledgers, but never ship the
+          # synthetic fixture estate inside the portable discovery kit. Otherwise
+          # a deep search launched from the extracted kit could discover its own
+          # fake Unity project or editor and create a false ambiguity.
+          find "$root/qualification" -type d -name estate -prune -exec rm -rf {} +
+          test -z "$(find "$root/qualification" -type d -name estate -print -quit)"
+          test -z "$(find "$root/qualification" -type f -path '*/.git/*' -print -quit)"
+          test -z "$(find "$root/qualification" -type f -name Unity.exe -print -quit)"
+
+          WORLD_SHA="$(git rev-parse HEAD)"
+          WORLD_TREE="$(git rev-parse 'HEAD^{tree}')"
+          WORLD_SHA="$WORLD_SHA" WORLD_TREE="$WORLD_TREE" ROOT="$root" node --input-type=module <<'NODE'
+          import { writeFileSync } from 'node:fs';
+          const lock = {
+            format: 'rodoh-underdrain-windows-host-bootstrap-lock/1',
+            status: 'source-qualified',
+            world: {
+              repository: 'BigBirdReturns/axm-world',
+              commit: process.env.WORLD_SHA,
+              tree: process.env.WORLD_TREE,
+            },
+            arc: {
+              repository: 'BigBirdReturns/axm-arc',
+              commit: process.env.ARC_ACTION_PLAYER_SHA,
+              tree: process.env.ARC_ACTION_PLAYER_TREE,
+            },
+            actionPlayerFloor: {
+              repository: 'BigBirdReturns/tier-bench',
+              commit: process.env.FLOOR_SHA,
+              catalogId: process.env.FLOOR_CATALOG,
+              playerIntentId: process.env.PLAYER_INTENT,
+            },
+            productId: 'underdrain-bloom-below-unity6000-v1',
+            unityVersion: '6000.0.66f2',
+            shine: {
+              fileName: 'UNDERDRAIN_The_Bloom_Below_Shine_v0.4.html',
+              bytes: 828259,
+              sha256: 'ab9e1a542f89d66733d0b9946fd9f2b724e5e09395a74611fa760d336c209311',
+            },
+            bootstrapFormat: 'rodoh-underdrain-windows-host-bootstrap/1',
+            commissioningStateFormat: 'rodoh-underdrain-windows-commissioning-state/1',
+            authority: 'read-only target-host discovery and commissioning-state inspection only',
+            targetExecution: 'not-performed',
+            nonClaims: [
+              'software installation',
+              'repository mutation',
+              'Unity invocation',
+              'representation materialization',
+              'representation approval',
+              'device session',
+              'software review',
+              'product acceptance',
+              'Quest or physical acceptance',
+            ],
+          };
+          writeFileSync(process.env.ROOT + '/HOST_BOOTSTRAP_LOCK.json', `${JSON.stringify(lock, null, 2)}\n`);
+          NODE
+
+          cat > "$root/RUN_HOST_BOOTSTRAP.ps1" <<'PS1'
+          [CmdletBinding()]
+          param(
+              [string]$WorldRoot,
+              [string]$ArcRoot,
+              [string]$EmbodiedArLabRoot,
+              [string]$UnityEditor,
+              [string]$ShineStandalone,
+              [string]$ResolvedSourceManifest,
+              [string]$ResolvedSourceRoot,
+              [string[]]$SearchRoots,
+              [ValidateRange(1,12)][int]$MaxDepth = 6,
+              [string]$JobId = "underdrain-unity6000-player-v1",
+              [string]$OutputRoot,
+              [switch]$DeepSearch,
+              [switch]$NoStateInspect,
+              [switch]$NoFail
+          )
+          $ErrorActionPreference = "Stop"
+          $lock = Get-Content (Join-Path $PSScriptRoot "HOST_BOOTSTRAP_LOCK.json") -Raw | ConvertFrom-Json
+          $parameters = @{
+              ExpectedWorldCommit = [string]$lock.world.commit
+              ExpectedWorldTree = [string]$lock.world.tree
+              ExpectedArcCommit = [string]$lock.arc.commit
+              ExpectedArcTree = [string]$lock.arc.tree
+              ExpectedUnityVersion = [string]$lock.unityVersion
+              ExpectedShineFileName = [string]$lock.shine.fileName
+              ExpectedShineBytes = [long]$lock.shine.bytes
+              ExpectedShineSha256 = [string]$lock.shine.sha256
+              JobId = $JobId
+              MaxDepth = $MaxDepth
+          }
+          foreach ($entry in @{
+              WorldRoot = $WorldRoot
+              ArcRoot = $ArcRoot
+              EmbodiedArLabRoot = $EmbodiedArLabRoot
+              UnityEditor = $UnityEditor
+              ShineStandalone = $ShineStandalone
+              ResolvedSourceManifest = $ResolvedSourceManifest
+              ResolvedSourceRoot = $ResolvedSourceRoot
+              OutputRoot = $OutputRoot
+          }.GetEnumerator()) {
+              if (-not [string]::IsNullOrWhiteSpace([string]$entry.Value)) {
+                  $parameters[$entry.Key] = [string]$entry.Value
+              }
+          }
+          if ($SearchRoots) { $parameters.SearchRoots = @($SearchRoots) }
+          if ($DeepSearch) { $parameters.DeepSearch = $true }
+          if ($NoStateInspect) { $parameters.NoStateInspect = $true }
+          if ($NoFail) { $parameters.NoFail = $true }
+          & (Join-Path $PSScriptRoot "scripts\bootstrap-underdrain-windows-host.ps1") @parameters
+          exit $LASTEXITCODE
+          PS1
+
+          (
+            cd "$root"
+            find . -type f ! -name SHA256SUMS -printf '%P\0' |
+              sort -z |
+              xargs -0 sha256sum > SHA256SUMS
+          )
+          git diff --check
+          test -z "$(git status --porcelain)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: underdrain-windows-host-bootstrap-kit
+          path: ${{ runner.temp }}/underdrain-windows-host-bootstrap-kit
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
