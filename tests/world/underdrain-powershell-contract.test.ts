@@ -28,11 +28,13 @@ const scripts = [
   "scripts/run-underdrain-player-session.ps1",
   "scripts/run-underdrain-unity6000-player-product.ps1",
   "scripts/run-underdrain-unity6000-player-train.ps1",
+  "scripts/start-underdrain-target-host.ps1",
   "scripts/test-underdrain-commissioning-state.ps1",
-  "scripts/test-underdrain-windows-host-bootstrap.ps1",
   "scripts/test-underdrain-role-separated-review.ps1",
+  "scripts/test-underdrain-target-host-starter.ps1",
   "scripts/test-underdrain-unity6000-machine-preflight.ps1",
   "scripts/test-underdrain-unity6000-machine-preflight-v2.ps1",
+  "scripts/test-underdrain-windows-host-bootstrap.ps1",
 ];
 
 const parser = String.raw`
