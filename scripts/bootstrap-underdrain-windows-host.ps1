@@ -387,7 +387,7 @@ function Resolve-UnityEditor(
         $programFiles = [Environment]::GetEnvironmentVariable("ProgramFiles")
         $programFilesX86 = [Environment]::GetEnvironmentVariable("ProgramFiles(x86)")
         foreach ($base in @($programFiles, $programFilesX86, "D:\Program Files")) {
-            if (-not [string]::IsNullOrWhiteSpace($base)) {
+            if (-not [string]::IsNullOrWhiteSpace($base) -and (Test-Path -LiteralPath $base -PathType Container)) {
                 Add-UniquePath $paths $seen (Join-Path $base "Unity\Hub\Editor\$ExpectedVersion\Editor\Unity.exe")
             }
         }
