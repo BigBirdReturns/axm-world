@@ -1,0 +1,131 @@
+{
+  "$defs": {
+    "hex40": { "pattern": "^[0-9a-f]{40}$", "type": "string" },
+    "hex64": { "pattern": "^[0-9a-f]{64}$", "type": "string" }
+  },
+  "$id": "https://axm.tools/schemas/rodoh-underdrain-shape-field-shadow-0.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "authority": {
+      "additionalProperties": false,
+      "properties": {
+        "candidateAuthority": { "const": "Arc replay required" },
+        "namedRepresentationApproval": { "const": "not-issued" },
+        "physicalAcceptance": { "const": "not-issued" },
+        "questAcceptance": { "const": "not-issued" },
+        "windowsPlayerProductAcceptance": { "const": "not-issued" }
+      },
+      "required": [
+        "candidateAuthority",
+        "namedRepresentationApproval",
+        "windowsPlayerProductAcceptance",
+        "questAcceptance",
+        "physicalAcceptance"
+      ],
+      "type": "object"
+    },
+    "baseline": {
+      "additionalProperties": false,
+      "properties": {
+        "actionPlayerFloorCommit": { "$ref": "#/$defs/hex40" },
+        "arcActionPlayerCommit": { "$ref": "#/$defs/hex40" },
+        "challengeId": { "const": "breach-crown-pump" },
+        "currentCommissioningStateFormat": { "const": "rodoh-underdrain-windows-commissioning-state/1" },
+        "currentHostBootstrapFormat": { "const": "rodoh-underdrain-windows-host-bootstrap/1" },
+        "currentPresentationSchemaBlob": { "$ref": "#/$defs/hex40" },
+        "currentPresentationTemplateBlob": { "$ref": "#/$defs/hex40" },
+        "currentSoftwareReviewFormat": { "const": "rodoh-underdrain-role-separated-review-receipt/1" },
+        "currentTargetHostStarterFormat": { "const": "rodoh-underdrain-target-host-start/1" },
+        "currentWindowsAcceptanceFormat": { "const": "rodoh-underdrain-player-product-acceptance/2" },
+        "currentWorldHead": { "$ref": "#/$defs/hex40" },
+        "currentWorldTree": { "$ref": "#/$defs/hex40" },
+        "presentationAdapterId": { "const": "production.prefab/v1" },
+        "presentationManifestFormat": { "const": "rodoh-action-presentation-manifest/1" },
+        "productId": { "const": "underdrain-bloom-below-unity6000-v1" },
+        "retainedSourceQualificationWorldCommit": { "$ref": "#/$defs/hex40" }
+      },
+      "required": [
+        "currentWorldHead",
+        "currentWorldTree",
+        "currentPresentationTemplateBlob",
+        "currentPresentationSchemaBlob",
+        "currentTargetHostStarterFormat",
+        "currentHostBootstrapFormat",
+        "currentCommissioningStateFormat",
+        "currentSoftwareReviewFormat",
+        "currentWindowsAcceptanceFormat",
+        "retainedSourceQualificationWorldCommit",
+        "arcActionPlayerCommit",
+        "actionPlayerFloorCommit",
+        "productId",
+        "challengeId",
+        "presentationAdapterId",
+        "presentationManifestFormat"
+      ],
+      "type": "object"
+    },
+    "format": { "const": "rodoh-underdrain-shape-field-shadow/0" },
+    "isolation": {
+      "additionalProperties": false,
+      "properties": {
+        "changesArcLaw": { "const": false },
+        "changesInputTrace": { "const": false },
+        "changesInteractionGeometry": { "const": false },
+        "changesRegistration": { "const": false },
+        "entersCurrentProductAcceptanceDenominator": { "const": false },
+        "mutatesPresentationManifestV1": { "const": false },
+        "sidecarOnly": { "const": true }
+      },
+      "required": [
+        "sidecarOnly",
+        "mutatesPresentationManifestV1",
+        "changesArcLaw",
+        "changesInteractionGeometry",
+        "changesRegistration",
+        "changesInputTrace",
+        "entersCurrentProductAcceptanceDenominator"
+      ],
+      "type": "object"
+    },
+    "requiredNextEvidence": {
+      "items": { "minLength": 1, "type": "string" },
+      "minItems": 6,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "shapeFieldRelease": {
+      "additionalProperties": false,
+      "properties": {
+        "profileId": { "const": "quest3-opaque-geometric-v1" },
+        "releaseManifestSha256": { "$ref": "#/$defs/hex64" },
+        "selectedAsset": { "type": "null" },
+        "sourceZipSha256": { "$ref": "#/$defs/hex64" },
+        "syntheticDonorOnly": { "minLength": 1, "type": "string" },
+        "version": { "const": "0.1.1" }
+      },
+      "required": [
+        "version",
+        "sourceZipSha256",
+        "releaseManifestSha256",
+        "profileId",
+        "selectedAsset",
+        "syntheticDonorOnly"
+      ],
+      "type": "object"
+    },
+    "state": { "const": "contract-only" }
+  },
+  "required": [
+    "format",
+    "state",
+    "baseline",
+    "shapeFieldRelease",
+    "isolation",
+    "requiredNextEvidence",
+    "authority"
+  ],
+  "title": "UNDERDRAIN Shape Field shadow trial",
+  "type": "object"
+}
