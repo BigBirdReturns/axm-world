@@ -82,6 +82,9 @@ describe("UNDERDRAIN Windows host bootstrap", () => {
     expect(workflow).toContain("RUN_HOST_BOOTSTRAP.ps1");
     expect(workflow).toContain("SHA256SUMS");
     expect(workflow).toContain("targetExecution: 'not-performed'");
+    expect(workflow).toContain('find "$root/qualification" -type d -name estate -prune -exec rm -rf {} +');
+    expect(workflow).toContain("-path '*/.git/*'");
+    expect(workflow).toContain("-name Unity.exe");
   });
 
   it("documents the receipt, bounded search, status semantics, and non-claims", () => {

@@ -24,6 +24,8 @@ The portable kit records those values in:
 HOST_BOOTSTRAP_LOCK.json
 ```
 
+The portable kit retains the Windows and Ubuntu case receipts and qualification ledgers but excludes the synthetic fixture estates, fake Unity editors, and fixture Git repositories. This prevents discovery launched from the extracted kit from treating its own test material as a target project or creating false ambiguity against the real estate. The complete synthetic estates remain available only in the separate operating-system qualification artifacts.
+
 The script refuses a conflicting ARC authority, Unity version, or Shine identity. When the lock is absent, the caller must supply the exact World commit and tree. This supports synthetic qualification without allowing an unbound production run.
 
 ## Receipt

@@ -141,6 +141,15 @@ jobs:
           cp docs/UNDERDRAIN_WINDOWS_HOST_BOOTSTRAP.md "$root/README.md"
           cp -R "$RUNNER_TEMP/underdrain-windows-host-bootstrap-qualification/." "$root/qualification/"
 
+          # Retain the case receipts and qualification ledgers, but never ship the
+          # synthetic fixture estate inside the portable discovery kit. Otherwise
+          # a deep search launched from the extracted kit could discover its own
+          # fake Unity project or editor and create a false ambiguity.
+          find "$root/qualification" -type d -name estate -prune -exec rm -rf {} +
+          test -z "$(find "$root/qualification" -type d -name estate -print -quit)"
+          test -z "$(find "$root/qualification" -type f -path '*/.git/*' -print -quit)"
+          test -z "$(find "$root/qualification" -type f -name Unity.exe -print -quit)"
+
           WORLD_SHA="$(git rev-parse HEAD)"
           WORLD_TREE="$(git rev-parse 'HEAD^{tree}')"
           WORLD_SHA="$WORLD_SHA" WORLD_TREE="$WORLD_TREE" ROOT="$root" node --input-type=module <<'NODE'
