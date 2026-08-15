@@ -1,0 +1,55 @@
+{
+  "$schema": "../Schemas/candidate/rodoh-underdrain-shape-field-shadow-v0.schema.json",
+  "authority": {
+    "candidateAuthority": "Arc replay required",
+    "namedRepresentationApproval": "not-issued",
+    "physicalAcceptance": "not-issued",
+    "questAcceptance": "not-issued",
+    "windowsPlayerProductAcceptance": "not-issued"
+  },
+  "baseline": {
+    "actionPlayerFloorCommit": "9693cb99694338e72c15d0ffbb87b5a1c5bbf16a",
+    "arcActionPlayerCommit": "aaa5685903a348b3c1ba875622fbe99d90c1da35",
+    "challengeId": "breach-crown-pump",
+    "currentCommissioningStateFormat": "rodoh-underdrain-windows-commissioning-state/1",
+    "currentHostBootstrapFormat": "rodoh-underdrain-windows-host-bootstrap/1",
+    "currentPresentationSchemaBlob": "857cd8b72691d53211070d7930591ac1abdc81ad",
+    "currentPresentationTemplateBlob": "40ec9b87ff9efb3a1b24bf0db0e60eb975794390",
+    "currentSoftwareReviewFormat": "rodoh-underdrain-role-separated-review-receipt/1",
+    "currentTargetHostStarterFormat": "rodoh-underdrain-target-host-start/1",
+    "currentWindowsAcceptanceFormat": "rodoh-underdrain-player-product-acceptance/2",
+    "currentWorldHead": "7130afd86dc8bf0796db529e43ad4707c76f8627",
+    "currentWorldTree": "6266da333c1ab65cbc3b1f348f06f88e8bd1625c",
+    "presentationAdapterId": "production.prefab/v1",
+    "presentationManifestFormat": "rodoh-action-presentation-manifest/1",
+    "productId": "underdrain-bloom-below-unity6000-v1",
+    "retainedSourceQualificationWorldCommit": "786fb453a7b1f524bca88dbf4d7df2d73cab9a3a"
+  },
+  "format": "rodoh-underdrain-shape-field-shadow/0",
+  "isolation": {
+    "changesArcLaw": false,
+    "changesInputTrace": false,
+    "changesInteractionGeometry": false,
+    "changesRegistration": false,
+    "entersCurrentProductAcceptanceDenominator": false,
+    "mutatesPresentationManifestV1": false,
+    "sidecarOnly": true
+  },
+  "requiredNextEvidence": [
+    "current UNDERDRAIN representation and Windows software-product baseline accepted independently through the role-separated review floor",
+    "one named opaque geometric source asset selected by its presentation owner",
+    "AXSF plus fallback generated and digest-bound to a new surface asset record",
+    "Unity 6000.0.66f2 imported lookup bytes matched to the Python and TypeScript vector",
+    "Windows Arms A, B, and C preserve identical semantic actions and accepted Arc receipt",
+    "Quest 3 Arms A, B, and C produce resource, timing, thermal, and visual receipts"
+  ],
+  "shapeFieldRelease": {
+    "profileId": "quest3-opaque-geometric-v1",
+    "releaseManifestSha256": "586934572262d08250573bb25f25cb25ff27e3f5b861027a62947733b72cdefa",
+    "selectedAsset": null,
+    "sourceZipSha256": "2caeaa9a1384c6649e6dcfa3602f78adfb69fe7fd62fdf08d308ddbb6c543bb1",
+    "syntheticDonorOnly": "examples/underdrain-shadow/surface-asset.synthetic-donor.json",
+    "version": "0.1.1"
+  },
+  "state": "contract-only"
+}
