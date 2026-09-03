@@ -26,22 +26,52 @@ function SurfaceAnchor({ position, children }: { position: THREE.Vector3; childr
   return <group position={position} quaternion={rotation}>{children}</group>;
 }
 
-function OrbitCamera({ moment }: Pick<WorldShowcaseProps, "moment">): null {
+interface OrbitCameraProps extends Pick<WorldShowcaseProps, "moment"> {
+  focus: THREE.Vector3;
+}
+
+function OrbitCamera({ moment, focus }: OrbitCameraProps): null {
   const { camera } = useThree();
   const target = useRef(new THREE.Vector3());
+  const desired = useRef(new THREE.Vector3());
+  const normal = useRef(new THREE.Vector3());
+  const tangent = useRef(new THREE.Vector3());
+  const bitangent = useRef(new THREE.Vector3());
+  const worldUp = useMemo(() => new THREE.Vector3(0, 1, 0), []);
+  const worldForward = useMemo(() => new THREE.Vector3(0, 0, 1), []);
 
   useFrame(({ clock }, delta) => {
     const time = clock.elapsedTime;
+    if (moment === "village" || moment === "rain") {
+      normal.current.copy(focus).normalize();
+      const reference = Math.abs(normal.current.dot(worldUp)) > 0.92 ? worldForward : worldUp;
+      tangent.current.crossVectors(reference, normal.current).normalize();
+      bitangent.current.crossVectors(normal.current, tangent.current).normalize();
+      desired.current
+        .copy(focus)
+        .addScaledVector(normal.current, moment === "rain" ? 14.8 : 13.4)
+        .addScaledVector(tangent.current, 10.8)
+        .addScaledVector(bitangent.current, 3.8 + Math.sin(time * 0.22) * 1.1);
+      camera.position.lerp(desired.current, 1 - Math.exp(-delta * 3.4));
+      target.current.lerp(
+        focus.clone().addScaledVector(normal.current, 1.25),
+        1 - Math.exp(-delta * 5.2),
+      );
+      camera.up.lerp(normal.current, 1 - Math.exp(-delta * 5.4)).normalize();
+      camera.lookAt(target.current);
+      return;
+    }
+
     const speed = moment === "root" ? 0.17 : 0.11;
-    const radius = moment === "village" || moment === "rain" ? 42 : 48;
-    const height = moment === "rain" ? 18 : 15;
-    const desired = new THREE.Vector3(
+    const radius = 48;
+    desired.current.set(
       Math.cos(time * speed) * radius,
-      height + Math.sin(time * 0.13) * 4,
+      15 + Math.sin(time * 0.13) * 4,
       Math.sin(time * speed) * radius,
     );
-    camera.position.lerp(desired, 1 - Math.exp(-delta * 2.8));
+    camera.position.lerp(desired.current, 1 - Math.exp(-delta * 2.8));
     target.current.lerp(new THREE.Vector3(0, 0, 0), 1 - Math.exp(-delta * 4));
+    camera.up.lerp(worldUp, 1 - Math.exp(-delta * 4.6)).normalize();
     camera.lookAt(target.current);
   });
   return null;
@@ -58,14 +88,14 @@ function PlanetDecor(): JSX.Element {
       const theta = random() * Math.PI * 2;
       const y = random() * 1.82 - 0.91;
       const radial = Math.sqrt(1 - y * y);
-      const normal = new THREE.Vector3(
+      const normalValue = new THREE.Vector3(
         Math.cos(theta) * radial,
         y,
         Math.sin(theta) * radial,
       );
       return {
         id: index,
-        position: normal.multiplyScalar(RADIUS + 0.25),
+        position: normalValue.multiplyScalar(RADIUS + 0.25),
         size: 0.45 + random() * 1.4,
         tree: random() > 0.48,
       };
@@ -183,16 +213,19 @@ function RevisionOrbit({ count }: { count: number }): JSX.Element {
 
 function Scene({ world, moment, intensity = 1 }: WorldShowcaseProps): JSX.Element {
   const villageCell = world.cells.find((cell) => cell.id === "cell:village:north");
-  const villagePosition = villageCell
-    ? normalizedPosition(villageCell.space.anchor, 0.5)
-    : normalizedPosition([0.52, 0.81, 0.27], 0.5);
+  const villagePosition = useMemo(
+    () => villageCell
+      ? normalizedPosition(villageCell.space.anchor, 0.5)
+      : normalizedPosition([0.52, 0.81, 0.27], 0.5),
+    [villageCell],
+  );
   const hasVillage = moment === "village" || moment === "rain";
   const hasStar = moment !== "root";
   const rain = moment === "rain";
 
   return (
     <>
-      <OrbitCamera moment={moment} />
+      <OrbitCamera moment={moment} focus={villagePosition} />
       <color attach="background" args={["#03050b"]} />
       <fog attach="fog" args={["#060812", 62, 145]} />
       <ambientLight intensity={0.72 * intensity} />
