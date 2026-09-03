@@ -16,6 +16,7 @@ const chapters = [
   "providers-rotate",
   "take-it-home",
 ];
+const chapterCaptureMs = [2400, 1900, 5400, 2400, 5400, 2400, 2200, 2400];
 
 await rm(outputRoot, { recursive: true, force: true });
 await mkdir(videoScratch, { recursive: true });
@@ -67,16 +68,25 @@ for (let index = 0; index < chapters.length; index += 1) {
     chapter,
     { timeout: 15_000 },
   );
-  await page.waitForTimeout(index === 0 ? 1500 : 900);
+
+  // Resume only long enough to animate this chapter into its representative
+  // state, then freeze it before the automatic chapter boundary. This gives the
+  // MAKE plate a complete prompt and meaningful operation set without allowing
+  // recording or screenshot latency to move the timeline underneath the capture.
+  await page.keyboard.press("Space");
+  await page.waitForTimeout(chapterCaptureMs[index] ?? 2200);
+  await page.keyboard.press("Space");
+  await page.waitForTimeout(260);
+
   if ([0, 2, 3, 4, 5, 7].includes(index)) {
     const name = `${String(index).padStart(2, "0")}-${chapter}.png`;
     await page.screenshot({ path: resolve(outputRoot, name), fullPage: true });
     stills.push(name);
   }
-  await page.waitForTimeout(index === 4 ? 2600 : 1500);
+  await page.waitForTimeout(480);
   if (index < chapters.length - 1) await page.keyboard.press("ArrowRight");
 }
-await page.waitForTimeout(1800);
+await page.waitForTimeout(1200);
 
 const video = page.video();
 await context.close();
@@ -94,6 +104,7 @@ const receipt = {
   baseUrl,
   viewport: [1920, 1080],
   chapters,
+  chapterCaptureMs,
   stills,
   video: {
     path: "axm-infinite-fabric-showcase.webm",
