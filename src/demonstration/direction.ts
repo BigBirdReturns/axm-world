@@ -5,7 +5,7 @@ import {
   type DirectionCompilation,
 } from "./contracts.js";
 
-const FOCUS_CHAPTERS: Readonly<Record<string, readonly string[]>> = {
+const FOCUS_CHAPTERS = {
   custody: ["one-world", "world-remembers", "providers-rotate", "take-it-home"],
   generation: ["one-world", "say-the-change", "world-grows", "providers-rotate", "take-it-home"],
   games: ["one-world", "play-the-story", "world-remembers", "take-it-home"],
@@ -24,7 +24,7 @@ const FOCUS_CHAPTERS: Readonly<Record<string, readonly string[]>> = {
     "world-remembers",
     "take-it-home",
   ],
-};
+} as const;
 
 function boundedHash(value: string): string {
   let hash = 0x811c9dc5;
