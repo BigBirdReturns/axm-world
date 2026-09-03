@@ -79,19 +79,37 @@ async function describeFile(path, relativePath) {
   };
 }
 
+async function waitForAttribute(page, selector, attribute, predicate, timeoutMs, label) {
+  const deadline = Date.now() + timeoutMs;
+  const locator = page.locator(selector);
+  while (Date.now() < deadline) {
+    const value = await locator.getAttribute(attribute).catch(() => null);
+    if (predicate(value)) return value;
+    await page.waitForTimeout(100);
+  }
+  throw new Error(`Timed out waiting for ${label}`);
+}
+
 async function waitForRuntime(page, expected) {
   await page.getByTestId("infinite-fabric-showcase").waitFor({
     state: "visible",
     timeout: 30_000,
   });
-  await page.waitForFunction(
-    () => {
-      const html = document.documentElement;
-      return html.dataset.demoReady === "true"
-        && /^[0-9a-f]{64}$/u.test(html.dataset.demoDigest ?? "");
-    },
-    undefined,
-    { timeout: 30_000 },
+  await waitForAttribute(
+    page,
+    "html",
+    "data-demo-ready",
+    (value) => value === "true",
+    30_000,
+    "the showcase runtime to become ready",
+  );
+  await waitForAttribute(
+    page,
+    "html",
+    "data-demo-digest",
+    (value) => /^[0-9a-f]{64}$/u.test(value ?? ""),
+    30_000,
+    "the showcase runtime digest",
   );
   const runtime = await page.evaluate(() => window.AxmShowcaseRuntime);
   if (runtime.editionId !== expected.edition) {
@@ -130,12 +148,13 @@ async function captureVideo(browser, configuration) {
   const runtime = await waitForRuntime(page, configuration.expected);
   const lastChapter = runtime.chapterIds.at(-1);
   if (!lastChapter) throw new Error(`Video ${configuration.id} has no chapters`);
-  await page.waitForFunction(
-    (chapterId) => document
-      .querySelector("[data-testid='infinite-fabric-showcase']")
-      ?.getAttribute("data-chapter") === chapterId,
-    lastChapter,
-    { timeout: runtime.totalDurationMs + 30_000 },
+  await waitForAttribute(
+    page,
+    "[data-testid='infinite-fabric-showcase']",
+    "data-chapter",
+    (value) => value === lastChapter,
+    runtime.totalDurationMs + 30_000,
+    `the final chapter ${lastChapter}`,
   );
   await page.waitForTimeout(configuration.finalHoldMs);
   const video = page.video();
@@ -174,12 +193,13 @@ async function captureStill(browser, configuration) {
   watchPage(page, `still:${configuration.id}`);
   await page.goto(configuration.url, { waitUntil: "domcontentloaded" });
   const runtime = await waitForRuntime(page, configuration.expected);
-  await page.waitForFunction(
-    (chapterId) => document
-      .querySelector("[data-testid='infinite-fabric-showcase']")
-      ?.getAttribute("data-chapter") === chapterId,
-    configuration.chapter,
-    { timeout: 15_000 },
+  await waitForAttribute(
+    page,
+    "[data-testid='infinite-fabric-showcase']",
+    "data-chapter",
+    (value) => value === configuration.chapter,
+    15_000,
+    `chapter ${configuration.chapter}`,
   );
   await page.waitForTimeout(configuration.captureMs);
   const destination = resolve(outputRoot, configuration.filename);
