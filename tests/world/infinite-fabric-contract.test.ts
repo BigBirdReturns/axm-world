@@ -1,19 +1,27 @@
 import { describe, expect, it } from "vitest";
 import {
   InfiniteFabricPatchSchema,
+  type InfiniteFabricPatch,
+  type InfiniteFabricWorld,
   validateInfiniteFabricPatch,
   validateInfiniteFabricWorld,
 } from "../../src/fabric/contracts.js";
 
 const digest = (character: string) => character.repeat(64);
 
-const tinyWorld = {
+const tinyWorld: InfiniteFabricWorld = {
   format: "axm-infinite-fabric-world/0",
   id: "world:tiny-planet",
   title: "Tiny World",
   branchId: "branch:home",
   revisionSha256: digest("a"),
   rootCellId: "cell:planet:root",
+  law: {
+    mode: "arc",
+    authorityRef: "arc:first-charter",
+    authorityDigestSha256: digest("0"),
+    receiverMayAuthorOutcomes: false,
+  },
   runtime: {
     renderer: "threejs",
     providerRequiredDuringPlay: false,
@@ -101,7 +109,7 @@ const tinyWorld = {
   },
 };
 
-const villagePatch = {
+const villagePatch: InfiniteFabricPatch = {
   format: "axm-infinite-fabric-patch/0",
   id: "patch:add-north-village",
   worldId: "world:tiny-planet",
@@ -164,6 +172,7 @@ const villagePatch = {
   authority: {
     proposalOnly: true,
     requiresHostAcceptance: true,
+    changesLaw: false,
     modifiesLedgerDirectly: false,
     arbitraryRuntimeCode: false,
     networkRequiredDuringPlay: false,
@@ -171,10 +180,12 @@ const villagePatch = {
 };
 
 describe("AXM Infinite Fabric contracts", () => {
-  it("admits the original Tiny World shape as a provider-independent persistent world", () => {
+  it("admits the original Tiny World shape as an ARC-bound provider-independent persistent world", () => {
     const result = validateInfiniteFabricWorld(tinyWorld);
     expect(result.success).toBe(true);
     expect(result.issues).toEqual([]);
+    expect(result.value?.law.mode).toBe("arc");
+    expect(result.value?.law.receiverMayAuthorOutcomes).toBe(false);
     expect(result.value?.runtime.providerRequiredDuringPlay).toBe(false);
     expect(result.value?.ledger.appendOnly).toBe(true);
   });
@@ -183,24 +194,39 @@ describe("AXM Infinite Fabric contracts", () => {
     const result = validateInfiniteFabricPatch(tinyWorld, villagePatch);
     expect(result.success).toBe(true);
     expect(result.value?.authority.proposalOnly).toBe(true);
+    expect(result.value?.authority.changesLaw).toBe(false);
     expect(result.value?.authority.arbitraryRuntimeCode).toBe(false);
     expect(result.value?.operations.some((operation) => operation.op === "add-cell")).toBe(true);
   });
 
-  it("refuses a model proposal that asks to become runtime code", () => {
-    const unsafe = structuredClone(villagePatch);
-    unsafe.authority.arbitraryRuntimeCode = true;
-    expect(() => InfiniteFabricPatchSchema.parse(unsafe)).toThrow();
+  it("refuses a model proposal that asks to become runtime code or change law", () => {
+    const unsafeCode: unknown = {
+      ...structuredClone(villagePatch),
+      authority: {
+        ...villagePatch.authority,
+        arbitraryRuntimeCode: true,
+      },
+    };
+    expect(() => InfiniteFabricPatchSchema.parse(unsafeCode)).toThrow();
+
+    const unsafeLaw: unknown = {
+      ...structuredClone(villagePatch),
+      authority: {
+        ...villagePatch.authority,
+        changesLaw: true,
+      },
+    };
+    expect(() => InfiniteFabricPatchSchema.parse(unsafeLaw)).toThrow();
   });
 
   it("refuses stale patches and unknown behavior schemas", () => {
-    const stale = structuredClone(villagePatch);
+    const stale: InfiniteFabricPatch = structuredClone(villagePatch);
     stale.parentRevisionSha256 = digest("9");
     const staleResult = validateInfiniteFabricPatch(tinyWorld, stale);
     expect(staleResult.success).toBe(false);
     expect(staleResult.issues.some((issue) => issue.path === "parentRevisionSha256")).toBe(true);
 
-    const unknown = structuredClone(villagePatch);
+    const unknown: InfiniteFabricPatch = structuredClone(villagePatch);
     const upsert = unknown.operations.find((operation) => operation.op === "upsert-entity");
     if (!upsert || upsert.op !== "upsert-entity") throw new Error("fixture upsert is absent");
     upsert.entity.schemaRef = "schema:unknown";
