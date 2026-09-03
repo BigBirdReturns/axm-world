@@ -41,9 +41,6 @@ page.on("console", (message) => {
   if (message.type() === "error") errors.push(`console: ${message.text()}`);
 });
 
-// Capture owns chapter timing. Starting with autoplay disabled prevents network and
-// cold WebGL initialization from advancing past the first chapter before the
-// recorder has established custody of the timeline.
 await page.goto(`${baseUrl}/showcase.html?autoplay=0&loop=0&clean=1`, {
   waitUntil: "domcontentloaded",
 });
@@ -51,19 +48,22 @@ await page.getByTestId("infinite-fabric-showcase").waitFor({ state: "visible", t
 await page.getByRole("button", { name: "start muted" }).click();
 await page.getByTestId("showcase-start").waitFor({ state: "detached", timeout: 10_000 });
 
-const pauseDirector = async () => {
-  await page.getByRole("button", { name: "pause", exact: true }).click({ force: true });
-};
-const playDirector = async () => {
-  await page.getByRole("button", { name: "play", exact: true }).click({ force: true });
+// The second button in the first control group is the stable director toggle.
+// Clicking that seat avoids depending on its dynamic Play/Pause accessible name.
+const directorToggle = page.locator(".showcase-control-group").first().locator("button").nth(1);
+const nextButton = page.locator(".showcase-control-group").first().locator("button").nth(2);
+const toggleDirector = async () => {
+  await directorToggle.click({ force: true });
+  await page.waitForTimeout(80);
 };
 const nextChapter = async () => {
-  await page.getByRole("button", { name: "next →", exact: true }).click({ force: true });
+  await nextButton.click({ force: true });
+  await page.waitForTimeout(80);
 };
 
-// The start action enables the normal automatic director. Pause it immediately so
-// every captured cut is advanced exclusively by this script.
-await pauseDirector();
+// Start enters ordinary autoplay. Freeze the first chapter before the capture
+// script takes exclusive custody of chapter progression and representative timing.
+await toggleDirector();
 await page.waitForFunction(
   () => document.querySelector("[data-testid='infinite-fabric-showcase']")?.getAttribute("data-chapter") === "one-world",
   undefined,
@@ -79,12 +79,12 @@ for (let index = 0; index < chapters.length; index += 1) {
     { timeout: 15_000 },
   );
 
-  // Resume only long enough to animate this chapter into its representative
-  // state, then freeze it before the automatic chapter boundary. The explicit
-  // Play/Pause controls avoid keyboard-focus ambiguity in capture mode.
-  await playDirector();
+  // Run this chapter into a representative state and freeze it before the
+  // screenshot. The chapter durations are longer than these bounded intervals,
+  // so automatic progression cannot cross the capture boundary.
+  await toggleDirector();
   await page.waitForTimeout(chapterCaptureMs[index] ?? 2200);
-  await pauseDirector();
+  await toggleDirector();
   await page.waitForTimeout(260);
 
   if ([0, 2, 3, 4, 5, 7].includes(index)) {
@@ -114,7 +114,7 @@ const receipt = {
   viewport: [1920, 1080],
   chapters,
   chapterCaptureMs,
-  directorControl: "explicit-play-pause-next",
+  directorControl: "stable-control-seat-toggle",
   stills,
   video: {
     path: "axm-infinite-fabric-showcase.webm",
