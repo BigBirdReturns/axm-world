@@ -8,6 +8,7 @@ on:
       - 'src/fabric/classics/**'
       - 'src/fabric/runtime/**'
       - 'src/fabric/tiny-world/**'
+      - 'tests/world/infinite-fabric-showcase-state.test.ts'
       - 'e2e/infinite-fabric-showcase.spec.ts'
       - 'scripts/capture-infinite-fabric-showcase.mjs'
       - 'vite.config.ts'
@@ -43,6 +44,7 @@ jobs:
           npm test -- \
             tests/world/infinite-fabric-contract.test.ts \
             tests/world/infinite-fabric-runtime.test.ts \
+            tests/world/infinite-fabric-showcase-state.test.ts \
             tests/world/infinite-fabric-acceptance.test.ts \
             tests/world/classic-suite-engine.test.ts
       - name: Build Rodoh, Fabric, Classic Trials, and Showcase
@@ -69,7 +71,7 @@ jobs:
           trap cleanup EXIT
           ready=0
           for attempt in $(seq 1 90); do
-            if curl -fsS "http://127.0.0.1:5173/showcase.html?autoplay=1&clean=1" >/dev/null; then
+            if curl -fsS "http://127.0.0.1:5173/showcase.html?autoplay=0&clean=1" >/dev/null; then
               ready=1
               break
             fi
