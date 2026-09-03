@@ -1,0 +1,142 @@
+name: First Charter Classic Trials
+
+on:
+  pull_request:
+    paths:
+      - 'classics.html'
+      - 'fabric.html'
+      - 'src/fabric/classics/**'
+      - 'src/fabric/runtime/**'
+      - 'src/fabric/tiny-world/**'
+      - 'tests/world/classic-suite-engine.test.ts'
+      - 'e2e/classic-suite.spec.ts'
+      - 'scripts/start-classic-trials.ps1'
+      - 'RODOH_CLASSIC_TRIALS.cmd'
+      - 'vite.config.ts'
+      - '.github/workflows/classic-trials-preview.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: classic-trials-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-play-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install the locked product dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck the complete World product
+        run: npm run typecheck
+      - name: Execute Classic Trials and Fabric unit transactions
+        run: |
+          npm test -- \
+            tests/world/classic-suite-engine.test.ts \
+            tests/world/infinite-fabric-contract.test.ts \
+            tests/world/infinite-fabric-runtime.test.ts
+      - name: Build Rodoh, Infinite Fabric, and Classic Trials
+        run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Execute the Classic Trials browser transaction
+        env:
+          PW_BASE_URL: http://127.0.0.1:5173
+        run: npx playwright test e2e/classic-suite.spec.ts --project=desktop --workers=1 --reporter=list
+      - name: Assemble the portable static preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="first-charter-classic-trials-preview"
+          rm -rf "$root"
+          mkdir -p "$root"
+          cp -a docs/game/. "$root/"
+          cat > "$root/serve.mjs" <<'NODE'
+          import { createReadStream, statSync } from 'node:fs';
+          import { createServer } from 'node:http';
+          import { extname, join, normalize } from 'node:path';
+
+          const root = process.cwd();
+          const port = Number(process.env.PORT || 8765);
+          const mime = new Map([
+            ['.html', 'text/html; charset=utf-8'],
+            ['.js', 'text/javascript; charset=utf-8'],
+            ['.css', 'text/css; charset=utf-8'],
+            ['.json', 'application/json; charset=utf-8'],
+            ['.png', 'image/png'],
+            ['.svg', 'image/svg+xml'],
+            ['.woff2', 'font/woff2'],
+          ]);
+
+          createServer((request, response) => {
+            const raw = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`).pathname;
+            const relative = raw === '/' ? 'classics.html' : decodeURIComponent(raw).replace(/^\/+/, '');
+            const normalized = normalize(relative);
+            if (normalized.startsWith('..')) {
+              response.writeHead(403).end('Forbidden');
+              return;
+            }
+            const path = join(root, normalized);
+            try {
+              if (!statSync(path).isFile()) throw new Error('not a file');
+              response.writeHead(200, {
+                'Content-Type': mime.get(extname(path)) || 'application/octet-stream',
+                'Cache-Control': 'no-store',
+              });
+              createReadStream(path).pipe(response);
+            } catch {
+              response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('Not found');
+            }
+          }).listen(port, '127.0.0.1', () => {
+            console.log(`The First Charter Classic Trials: http://127.0.0.1:${port}/classics.html`);
+          });
+          NODE
+          cat > "$root/RUN_CLASSIC_TRIALS.cmd" <<'CMD'
+          @echo off
+          setlocal
+          cd /d "%~dp0"
+          where node >nul 2>nul || (
+            echo Node.js is required to serve this static preview.
+            pause
+            exit /b 1
+          )
+          start "" "http://127.0.0.1:8765/classics.html"
+          node serve.mjs
+          CMD
+          cat > "$root/README.txt" <<'TXT'
+          THE FIRST CHARTER CLASSIC TRIALS
+
+          Windows:
+            Double-click RUN_CLASSIC_TRIALS.cmd
+
+          Any platform with Node.js:
+            node serve.mjs
+            open http://127.0.0.1:8765/classics.html
+
+          The package contains five playable games, the Infinite Fabric Tiny World,
+          and the Rodoh browser product. Runtime play requires no model provider.
+          TXT
+          find "$root" -type f -print0 | sort -z | xargs -0 sha256sum > "$root/SHA256SUMS"
+          zip -X -r "${root}.zip" "$root"
+          sha256sum "${root}.zip" > "${root}.zip.sha256"
+      - name: Upload the playable preview and receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: first-charter-classic-trials-preview
+          path: |
+            first-charter-classic-trials-preview.zip
+            first-charter-classic-trials-preview.zip.sha256
+            test-results
+          if-no-files-found: error
+          retention-days: 14
