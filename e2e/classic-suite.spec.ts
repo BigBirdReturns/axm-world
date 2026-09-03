@@ -25,8 +25,8 @@ test("The First Charter exposes five playable classic trials", async ({ page }) 
 
   await page.getByRole("button", { name: "ENTER TRIAL" }).first().click();
   await expect(page.getByTestId("classic-game-balance-of-oaths")).toBeVisible();
-  await page.keyboard.press("KeyS");
-  await page.keyboard.press("KeyR");
+  await page.keyboard.press("s");
+  await page.keyboard.press("r");
   await page.getByRole("button", { name: "ARCHIVE" }).click();
   await expect(page.getByTestId("first-charter-classic-suite")).toBeVisible();
 
