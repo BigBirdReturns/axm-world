@@ -1,0 +1,20 @@
+.showcase-center-stage {
+  width: auto !important;
+  height: auto !important;
+  min-width: 0;
+  min-height: 0;
+}
+
+.showcase-center-stage > * {
+  min-width: 0;
+  min-height: 0;
+}
+
+.showcase-make-grid,
+.showcase-projection-grid,
+.showcase-ledger,
+.showcase-provider-grid,
+.showcase-custody {
+  width: auto !important;
+  height: auto !important;
+}
