@@ -1,0 +1,11 @@
+@media (min-width: 1000px) {
+  .showcase-root[data-chapter="world-grows"] .showcase-world canvas {
+    transform: translateY(10vh) scale(0.94);
+    transform-origin: 58% 44%;
+  }
+
+  .showcase-root[data-chapter="world-grows"] .showcase-accept-flash {
+    left: 62%;
+    top: 66%;
+  }
+}
