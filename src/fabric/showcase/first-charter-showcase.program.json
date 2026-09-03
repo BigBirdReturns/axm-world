@@ -1,0 +1,385 @@
+{
+  "format": "axm-demonstration-program/1",
+  "id": "demo:first-charter-infinite-fabric",
+  "version": "1.0.0",
+  "productId": "product:axm-world:first-charter",
+  "title": "AXM Infinite Fabric",
+  "description": "A source-bound demonstration program for the First Charter Tiny World, its generated revisions, playable trials, durable memory, provider boundaries, and portable custody.",
+  "defaultEditionId": "executive",
+  "evidence": [
+    {
+      "id": "evidence:root-world",
+      "kind": "runtime",
+      "tier": "executable runtime state",
+      "title": "First Charter Tiny World",
+      "claim": "The demonstration begins from the real creator-owned Tiny World constructor and sealed world revision.",
+      "locator": "src/fabric/tiny-world/first-charter-world.ts#createFirstCharterTinyWorld"
+    },
+    {
+      "id": "evidence:semantic-action",
+      "kind": "source",
+      "tier": "transaction implementation",
+      "title": "Semantic action transaction",
+      "claim": "The First Star is collected through the same schema-bound semantic action path used by play.",
+      "locator": "src/fabric/runtime/action-transaction.ts#applyFabricSemanticAction"
+    },
+    {
+      "id": "evidence:projection-parity",
+      "kind": "runtime",
+      "tier": "shared canonical state",
+      "title": "Board, Map, Planet, and Play parity",
+      "claim": "Every projection reads the same stable cells, entities, law binding, and append-only ledger.",
+      "locator": "src/fabric/tiny-world/TinyWorldRoute.tsx"
+    },
+    {
+      "id": "evidence:patch-contract",
+      "kind": "source",
+      "tier": "validated data contract",
+      "title": "Bounded Infinite Fabric patch",
+      "claim": "Generation output is constrained to known data operations and cannot carry arbitrary canonical runtime code.",
+      "locator": "src/fabric/contracts.ts#InfiniteFabricPatchSchema"
+    },
+    {
+      "id": "evidence:village-proposal",
+      "kind": "source",
+      "tier": "deterministic provider fixture",
+      "title": "North village proposal",
+      "claim": "The village proposal is a real structured patch compiled against the current world revision.",
+      "locator": "src/fabric/tiny-world/canary-patches.ts#compileTinyWorldCanaryPatch"
+    },
+    {
+      "id": "evidence:patch-acceptance",
+      "kind": "source",
+      "tier": "host-controlled transaction",
+      "title": "Accepted immutable revision",
+      "claim": "Only the host acceptance transaction may materialize the proposal and append its attributable event.",
+      "locator": "src/fabric/runtime/patch-transaction.ts#applyAcceptedInfiniteFabricPatch"
+    },
+    {
+      "id": "evidence:classic-engines",
+      "kind": "runtime",
+      "tier": "playable deterministic engines",
+      "title": "First Charter Classic Trials",
+      "claim": "The montage runs the same five Canvas game engines exposed by the playable Classic Trials product.",
+      "locator": "src/fabric/classics"
+    },
+    {
+      "id": "evidence:world-memory",
+      "kind": "runtime",
+      "tier": "append-only event ledger",
+      "title": "Durable world memory",
+      "claim": "Collected objects, accepted patches, completed trials, and consequences retain stable identities and attribution.",
+      "locator": "world.ledger.events"
+    },
+    {
+      "id": "evidence:provider-boundary",
+      "kind": "boundary",
+      "tier": "enforced product policy",
+      "title": "Replaceable generation providers",
+      "claim": "Providers may propose bounded content but cannot become law, ledger authority, or a dependency during play.",
+      "locator": "src/fabric/showcase/first-charter-showcase.program.json#policy"
+    },
+    {
+      "id": "evidence:portable-package",
+      "kind": "workflow",
+      "tier": "content-addressed release assembly",
+      "title": "Portable showcase package",
+      "claim": "The static product, capture outputs, program, receipts, and SHA-256 ledger are assembled and verified together.",
+      "locator": ".github/workflows/infinite-fabric-showcase.yml"
+    },
+    {
+      "id": "evidence:browser-transaction",
+      "kind": "workflow",
+      "tier": "real Chromium transaction",
+      "title": "Presenter control qualification",
+      "claim": "A browser transaction traverses the actual world, patch, game, memory, provider, and custody stages without page errors.",
+      "locator": "e2e/infinite-fabric-showcase.spec.ts"
+    },
+    {
+      "id": "evidence:claim-boundary",
+      "kind": "boundary",
+      "tier": "explicit non-claim",
+      "title": "Demonstration authority boundary",
+      "claim": "The demonstration does not issue human enjoyment, live-provider generation, household hardware, or product acceptance.",
+      "locator": "SHOWCASE_MANIFEST.json#authority"
+    }
+  ],
+  "chapters": [
+    {
+      "id": "one-world",
+      "indexLabel": "00",
+      "eyebrow": "AXM INFINITE FABRIC",
+      "title": "One world. Every game. Still yours.",
+      "body": "The First Charter begins as a creator-owned cartridge and becomes a living planet, a game suite, and a persistent memory without surrendering custody to a model or platform.",
+      "claim": "CARTRIDGE → WORLD → PLAY → MEMORY",
+      "scene": "hero",
+      "durationMs": 7800,
+      "worldMoment": "root",
+      "evidenceRefs": [
+        "evidence:root-world",
+        "evidence:claim-boundary"
+      ],
+      "focusTags": [
+        "category",
+        "ownership",
+        "world"
+      ]
+    },
+    {
+      "id": "one-revision",
+      "indexLabel": "01",
+      "eyebrow": "ONE CANONICAL REVISION",
+      "title": "Board, Map, Planet, and Play are the same world.",
+      "body": "Every projection reads the same stable entities, law binding, relationships, quests, and append-only event ledger.",
+      "claim": "NO SECOND GAME STATE",
+      "scene": "projections",
+      "durationMs": 7600,
+      "worldMoment": "star",
+      "evidenceRefs": [
+        "evidence:semantic-action",
+        "evidence:projection-parity"
+      ],
+      "focusTags": [
+        "architecture",
+        "state",
+        "projections"
+      ]
+    },
+    {
+      "id": "say-the-change",
+      "indexLabel": "02",
+      "eyebrow": "MAKE INSIDE THE WORLD",
+      "title": "Describe a place. Receive a bounded proposal.",
+      "body": "Generation providers propose structured cells, entities, assets, and known behaviors. They cannot rewrite law, inject canonical runtime code, or mutate the ledger directly.",
+      "claim": "PROPOSAL ONLY · HOST ACCEPTANCE REQUIRED",
+      "scene": "make",
+      "durationMs": 9000,
+      "worldMoment": "star",
+      "evidenceRefs": [
+        "evidence:patch-contract",
+        "evidence:village-proposal",
+        "evidence:provider-boundary"
+      ],
+      "focusTags": [
+        "generation",
+        "authoring",
+        "governance"
+      ]
+    },
+    {
+      "id": "world-grows",
+      "indexLabel": "03",
+      "eyebrow": "ACCEPTED REVISION",
+      "title": "The village becomes part of the running world.",
+      "body": "A new cell, bridge, shopkeeper, and quest appear through a content-addressed revision while the previous world remains recoverable.",
+      "claim": "FUNCTIONAL CELL · IMMUTABLE BRANCH",
+      "scene": "materialize",
+      "durationMs": 8400,
+      "worldMoment": "village",
+      "evidenceRefs": [
+        "evidence:village-proposal",
+        "evidence:patch-acceptance"
+      ],
+      "focusTags": [
+        "generation",
+        "revision",
+        "world"
+      ]
+    },
+    {
+      "id": "play-the-story",
+      "indexLabel": "04",
+      "eyebrow": "THE FIVE CLASSIC TRIALS",
+      "title": "A story can contain an entire game shelf.",
+      "body": "Five recognizable arcade forms become chapters of The First Charter. Their victories restore seals and alter the same Tiny World memory.",
+      "claim": "FIVE GAMES · ONE STORY LEDGER",
+      "scene": "classics",
+      "durationMs": 11000,
+      "worldMoment": "village",
+      "evidenceRefs": [
+        "evidence:classic-engines",
+        "evidence:world-memory"
+      ],
+      "focusTags": [
+        "games",
+        "story",
+        "play"
+      ]
+    },
+    {
+      "id": "world-remembers",
+      "indexLabel": "05",
+      "eyebrow": "CONSEQUENCE CUSTODY",
+      "title": "Play leaves durable marks on the world.",
+      "body": "Collected objects, completed trials, relationships, accepted patches, weather, and bridge state remain attributable across every projection.",
+      "claim": "APPEND-ONLY MEMORY · STABLE IDENTITIES",
+      "scene": "memory",
+      "durationMs": 8600,
+      "worldMoment": "rain",
+      "evidenceRefs": [
+        "evidence:world-memory",
+        "evidence:projection-parity"
+      ],
+      "focusTags": [
+        "memory",
+        "consequence",
+        "provenance"
+      ]
+    },
+    {
+      "id": "providers-rotate",
+      "indexLabel": "06",
+      "eyebrow": "COMMODITY PROVIDERS",
+      "title": "Models compete. The world does not move.",
+      "body": "Muse, OpenAI, Anthropic, Gemini, local models, voxel generators, splats, and future systems all meet the same bounded world and asset contracts.",
+      "claim": "SAME PATCH CONTRACT · PROVIDER ABSENT DURING PLAY",
+      "scene": "providers",
+      "durationMs": 8600,
+      "worldMoment": "rain",
+      "evidenceRefs": [
+        "evidence:provider-boundary",
+        "evidence:patch-contract"
+      ],
+      "focusTags": [
+        "providers",
+        "portability",
+        "architecture"
+      ]
+    },
+    {
+      "id": "take-it-home",
+      "indexLabel": "07",
+      "eyebrow": "CREATOR-OWNED CUSTODY",
+      "title": "Export the branch. Kill the network. Keep playing.",
+      "body": "The world package carries its accepted revisions, behavior identities, assets, controls, and memory. The originating provider is provenance, never a runtime dependency.",
+      "claim": "PROVIDER OFF · NETWORK OFF · WORLD CONTINUES",
+      "scene": "custody",
+      "durationMs": 9800,
+      "worldMoment": "rain",
+      "evidenceRefs": [
+        "evidence:portable-package",
+        "evidence:browser-transaction",
+        "evidence:claim-boundary"
+      ],
+      "focusTags": [
+        "custody",
+        "offline",
+        "portability"
+      ]
+    }
+  ],
+  "editions": [
+    {
+      "id": "executive",
+      "label": "Executive",
+      "audience": "Leadership, investors, partners, and first-contact viewers",
+      "summary": "The complete category, mechanism, play, memory, provider, and custody story in one controlled pass.",
+      "chapterIds": [
+        "one-world",
+        "one-revision",
+        "say-the-change",
+        "world-grows",
+        "play-the-story",
+        "world-remembers",
+        "providers-rotate",
+        "take-it-home"
+      ],
+      "durationScale": 1.0,
+      "autoplay": false,
+      "loop": false,
+      "clean": false,
+      "sound": true,
+      "aspect": "16:9"
+    },
+    {
+      "id": "technical",
+      "label": "Technical",
+      "audience": "Engineers, technical diligence, and implementation partners",
+      "summary": "A slower presenter-controlled pass with every mechanism and proof surface available.",
+      "chapterIds": [
+        "one-world",
+        "one-revision",
+        "say-the-change",
+        "world-grows",
+        "play-the-story",
+        "world-remembers",
+        "providers-rotate",
+        "take-it-home"
+      ],
+      "durationScale": 1.35,
+      "autoplay": false,
+      "loop": false,
+      "clean": false,
+      "sound": false,
+      "aspect": "16:9"
+    },
+    {
+      "id": "booth",
+      "label": "Booth",
+      "audience": "Unattended exhibition, lobby, and continuous television display",
+      "summary": "A compressed clean loop that preserves the product arc without operator dependence.",
+      "chapterIds": [
+        "one-world",
+        "say-the-change",
+        "world-grows",
+        "play-the-story",
+        "world-remembers",
+        "take-it-home"
+      ],
+      "durationScale": 0.82,
+      "autoplay": true,
+      "loop": true,
+      "clean": true,
+      "sound": false,
+      "aspect": "16:9"
+    },
+    {
+      "id": "social",
+      "label": "Social",
+      "audience": "Vertical short-form distribution and mobile viewing",
+      "summary": "A fast visual cut centered on prompt, materialization, play, and custody.",
+      "chapterIds": [
+        "one-world",
+        "say-the-change",
+        "world-grows",
+        "play-the-story",
+        "take-it-home"
+      ],
+      "durationScale": 0.58,
+      "autoplay": true,
+      "loop": false,
+      "clean": true,
+      "sound": false,
+      "aspect": "9:16"
+    },
+    {
+      "id": "proof",
+      "label": "Proof",
+      "audience": "Reviewers, auditors, and skeptical technical buyers",
+      "summary": "The shortest route through canonical state, bounded generation, accepted revision, memory, and portable custody.",
+      "chapterIds": [
+        "one-revision",
+        "say-the-change",
+        "world-grows",
+        "world-remembers",
+        "providers-rotate",
+        "take-it-home"
+      ],
+      "durationScale": 1.1,
+      "autoplay": false,
+      "loop": false,
+      "clean": false,
+      "sound": false,
+      "aspect": "16:9"
+    }
+  ],
+  "policy": {
+    "proposalOnly": true,
+    "claimTextMutable": false,
+    "evidenceMutable": false,
+    "runtimeCodeGeneration": false,
+    "providerRuntimeDependency": false,
+    "telemetryDefault": "off",
+    "publishDefault": "local"
+  }
+}

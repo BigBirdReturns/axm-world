@@ -4,10 +4,12 @@ on:
   pull_request:
     paths:
       - 'showcase.html'
+      - 'src/demonstration/**'
       - 'src/fabric/showcase/**'
       - 'src/fabric/classics/**'
       - 'src/fabric/runtime/**'
       - 'src/fabric/tiny-world/**'
+      - 'tests/world/demonstration-program.test.ts'
       - 'tests/world/infinite-fabric-showcase-state.test.ts'
       - 'e2e/infinite-fabric-showcase.spec.ts'
       - 'scripts/capture-infinite-fabric-showcase.mjs'
@@ -39,9 +41,10 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Typecheck the complete World product
         run: npm run typecheck
-      - name: Execute the Infinite Fabric and Classic Trials substrate
+      - name: Execute the Demonstration, Infinite Fabric, and Classic Trials substrate
         run: |
           npm test -- \
+            tests/world/demonstration-program.test.ts \
             tests/world/infinite-fabric-contract.test.ts \
             tests/world/infinite-fabric-runtime.test.ts \
             tests/world/infinite-fabric-showcase-state.test.ts \
@@ -91,6 +94,7 @@ jobs:
           cp -a docs/game/. "$root/"
           cp -a showcase-capture/. "$root/capture/"
           cp showcase-vite.log "$root/capture/showcase-vite.log"
+          cp src/fabric/showcase/first-charter-showcase.program.json "$root/DEMONSTRATION_PROGRAM.json"
           cat > "$root/serve.mjs" <<'NODE'
           import { createReadStream, statSync } from 'node:fs';
           import { createServer } from 'node:http';
@@ -123,6 +127,9 @@ jobs:
               response.writeHead(200, {
                 'Content-Type': mime.get(extname(path)) || 'application/octet-stream',
                 'Cache-Control': 'no-store',
+                'Cross-Origin-Resource-Policy': 'same-origin',
+                'Referrer-Policy': 'no-referrer',
+                'X-Content-Type-Options': 'nosniff',
               });
               createReadStream(path).pipe(response);
             } catch {
@@ -161,6 +168,9 @@ jobs:
             F              fullscreen
             R              restart
 
+          Governed demonstration source:
+            DEMONSTRATION_PROGRAM.json
+
           Capture outputs:
             capture/axm-infinite-fabric-showcase.webm
             capture/00-one-world.png
@@ -181,6 +191,7 @@ jobs:
             "format": "axm-infinite-fabric-showcase/0",
             "status": "source-and-browser-qualified",
             "sourceCommit": "$CANDIDATE_SHA",
+            "program": "DEMONSTRATION_PROGRAM.json",
             "entry": "showcase.html",
             "video": "capture/axm-infinite-fabric-showcase.webm",
             "providerInvokedDuringCapture": false,
