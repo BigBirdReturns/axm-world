@@ -58,6 +58,7 @@ export default defineConfig({
       input: {
         rodoh: resolve(__dirname, "index.html"),
         fabric: resolve(__dirname, "fabric.html"),
+        classics: resolve(__dirname, "classics.html"),
       },
     },
   },
