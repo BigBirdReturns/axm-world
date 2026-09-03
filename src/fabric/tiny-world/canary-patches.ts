@@ -153,7 +153,7 @@ async function rainPatch(world: InfiniteFabricWorld, prompt: string): Promise<In
         op: "set-entity-state",
         cellId: "cell:planet:root",
         entityId: "entity:bridge:control",
-        key: "requiresRepair",
+        key: "requires-repair",
         value: true,
       },
       {
