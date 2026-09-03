@@ -50,10 +50,20 @@ await page.goto(`${baseUrl}/showcase.html?autoplay=0&loop=0&clean=1`, {
 await page.getByTestId("infinite-fabric-showcase").waitFor({ state: "visible", timeout: 30_000 });
 await page.getByRole("button", { name: "start muted" }).click();
 await page.getByTestId("showcase-start").waitFor({ state: "detached", timeout: 10_000 });
+
+const pauseDirector = async () => {
+  await page.getByRole("button", { name: "pause", exact: true }).click({ force: true });
+};
+const playDirector = async () => {
+  await page.getByRole("button", { name: "play", exact: true }).click({ force: true });
+};
+const nextChapter = async () => {
+  await page.getByRole("button", { name: "next →", exact: true }).click({ force: true });
+};
+
 // The start action enables the normal automatic director. Pause it immediately so
-// every captured cut is advanced exclusively by this script and cannot race a
-// chapter-duration timer while screenshots or video frames are being written.
-await page.keyboard.press("Space");
+// every captured cut is advanced exclusively by this script.
+await pauseDirector();
 await page.waitForFunction(
   () => document.querySelector("[data-testid='infinite-fabric-showcase']")?.getAttribute("data-chapter") === "one-world",
   undefined,
@@ -70,12 +80,11 @@ for (let index = 0; index < chapters.length; index += 1) {
   );
 
   // Resume only long enough to animate this chapter into its representative
-  // state, then freeze it before the automatic chapter boundary. This gives the
-  // MAKE plate a complete prompt and meaningful operation set without allowing
-  // recording or screenshot latency to move the timeline underneath the capture.
-  await page.keyboard.press("Space");
+  // state, then freeze it before the automatic chapter boundary. The explicit
+  // Play/Pause controls avoid keyboard-focus ambiguity in capture mode.
+  await playDirector();
   await page.waitForTimeout(chapterCaptureMs[index] ?? 2200);
-  await page.keyboard.press("Space");
+  await pauseDirector();
   await page.waitForTimeout(260);
 
   if ([0, 2, 3, 4, 5, 7].includes(index)) {
@@ -84,7 +93,7 @@ for (let index = 0; index < chapters.length; index += 1) {
     stills.push(name);
   }
   await page.waitForTimeout(480);
-  if (index < chapters.length - 1) await page.keyboard.press("ArrowRight");
+  if (index < chapters.length - 1) await nextChapter();
 }
 await page.waitForTimeout(1200);
 
@@ -105,6 +114,7 @@ const receipt = {
   viewport: [1920, 1080],
   chapters,
   chapterCaptureMs,
+  directorControl: "explicit-play-pause-next",
   stills,
   video: {
     path: "axm-infinite-fabric-showcase.webm",
