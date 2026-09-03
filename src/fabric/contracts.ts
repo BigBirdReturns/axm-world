@@ -5,6 +5,13 @@ const Sha256Schema = z.string().regex(/^[0-9a-f]{64}$/);
 const NumberSchema = z.number().finite();
 const Vec3Schema = z.tuple([NumberSchema, NumberSchema, NumberSchema]);
 const QuaternionSchema = z.tuple([NumberSchema, NumberSchema, NumberSchema, NumberSchema]);
+const LocalPathSchema = z.string().min(1).max(512).refine((value) => {
+  const normalized = value.replaceAll("\\", "/");
+  return !normalized.startsWith("/")
+    && !/^[a-zA-Z]:/.test(normalized)
+    && !/^[a-zA-Z]+:\/\//.test(normalized)
+    && !normalized.split("/").includes("..");
+}, "Path must remain relative and beneath the world package");
 
 const StateScalarSchema = z.union([
   z.string().max(512),
@@ -32,6 +39,13 @@ export const FABRIC_V0_BEHAVIOR_KINDS = [
   "weather",
 ] as const;
 
+export const FabricLawSchema = z.object({
+  mode: z.enum(["arc", "fabric-schema"]),
+  authorityRef: FabricIdSchema,
+  authorityDigestSha256: Sha256Schema,
+  receiverMayAuthorOutcomes: z.literal(false),
+}).strict();
+
 export const FabricBehaviorSchemaRefSchema = z.object({
   id: FabricIdSchema,
   kind: z.enum(FABRIC_V0_BEHAVIOR_KINDS),
@@ -51,7 +65,7 @@ export const FabricAssetRefSchema = z.object({
     "audio",
   ]),
   digestSha256: Sha256Schema,
-  path: z.string().min(1).max(512),
+  path: LocalPathSchema,
   collisionAssetRef: FabricIdSchema.optional(),
 }).strict();
 
@@ -107,6 +121,7 @@ export const InfiniteFabricWorldSchema = z.object({
   branchId: FabricIdSchema,
   revisionSha256: Sha256Schema,
   rootCellId: FabricIdSchema,
+  law: FabricLawSchema,
   runtime: z.object({
     renderer: z.enum(["threejs", "playcanvas", "unity"]),
     providerRequiredDuringPlay: z.literal(false),
@@ -130,6 +145,11 @@ export const InfiniteFabricWorldSchema = z.object({
     provider: z.string().min(1).max(128),
     promptSha256: Sha256Schema,
   }).strict(),
+}).strict();
+
+const AddAssetOperationSchema = z.object({
+  op: z.literal("add-asset"),
+  asset: FabricAssetRefSchema,
 }).strict();
 
 const AddCellOperationSchema = z.object({
@@ -164,6 +184,7 @@ const SetEntityStateOperationSchema = z.object({
 }).strict();
 
 export const FabricPatchOperationSchema = z.discriminatedUnion("op", [
+  AddAssetOperationSchema,
   AddCellOperationSchema,
   UpsertEntityOperationSchema,
   RemoveEntityOperationSchema,
@@ -190,6 +211,7 @@ export const InfiniteFabricPatchSchema = z.object({
   authority: z.object({
     proposalOnly: z.literal(true),
     requiresHostAcceptance: z.literal(true),
+    changesLaw: z.literal(false),
     modifiesLedgerDirectly: z.literal(false),
     arbitraryRuntimeCode: z.literal(false),
     networkRequiredDuringPlay: z.literal(false),
@@ -229,15 +251,26 @@ export function validateInfiniteFabricWorld(input: unknown): FabricValidationRes
   const entityIds = new Set<string>();
 
   for (const schema of world.behaviorSchemas) {
-    if (schemaIds.has(schema.id)) issues.push({ path: "behaviorSchemas", message: `Duplicate behavior schema: ${schema.id}` });
+    if (schemaIds.has(schema.id)) {
+      issues.push({ path: "behaviorSchemas", message: `Duplicate behavior schema: ${schema.id}` });
+    }
     schemaIds.add(schema.id);
   }
   for (const asset of world.assets) {
-    if (assetIds.has(asset.id)) issues.push({ path: "assets", message: `Duplicate asset: ${asset.id}` });
+    if (assetIds.has(asset.id)) {
+      issues.push({ path: "assets", message: `Duplicate asset: ${asset.id}` });
+    }
     assetIds.add(asset.id);
   }
+  for (const asset of world.assets) {
+    if (asset.collisionAssetRef && !assetIds.has(asset.collisionAssetRef)) {
+      issues.push({ path: `assets.${asset.id}.collisionAssetRef`, message: `Unknown collision asset: ${asset.collisionAssetRef}` });
+    }
+  }
   for (const cell of world.cells) {
-    if (cellIds.has(cell.id)) issues.push({ path: "cells", message: `Duplicate cell: ${cell.id}` });
+    if (cellIds.has(cell.id)) {
+      issues.push({ path: "cells", message: `Duplicate cell: ${cell.id}` });
+    }
     cellIds.add(cell.id);
   }
   if (!cellIds.has(world.rootCellId)) {
@@ -259,7 +292,9 @@ export function validateInfiniteFabricWorld(input: unknown): FabricValidationRes
       if (entity.cellId !== cell.id) {
         issues.push({ path: `cells.${cell.id}.entities.${entity.id}.cellId`, message: `Entity cellId ${entity.cellId} differs from containing cell ${cell.id}` });
       }
-      if (entityIds.has(entity.id)) issues.push({ path: "cells.entities", message: `Duplicate entity: ${entity.id}` });
+      if (entityIds.has(entity.id)) {
+        issues.push({ path: "cells.entities", message: `Duplicate entity: ${entity.id}` });
+      }
       entityIds.add(entity.id);
       if (!schemaIds.has(entity.schemaRef)) {
         issues.push({ path: `cells.${cell.id}.entities.${entity.id}.schemaRef`, message: `Unknown behavior schema: ${entity.schemaRef}` });
@@ -295,34 +330,71 @@ export function validateInfiniteFabricPatch(
   const world = worldResult.value;
   const patch = parsed.data;
   const issues: FabricValidationIssue[] = [];
-  if (patch.worldId !== world.id) issues.push({ path: "worldId", message: `Patch targets ${patch.worldId}, expected ${world.id}` });
-  if (patch.parentRevisionSha256 !== world.revisionSha256) issues.push({ path: "parentRevisionSha256", message: "Patch parent revision is stale" });
+  if (patch.worldId !== world.id) {
+    issues.push({ path: "worldId", message: `Patch targets ${patch.worldId}, expected ${world.id}` });
+  }
+  if (patch.parentRevisionSha256 !== world.revisionSha256) {
+    issues.push({ path: "parentRevisionSha256", message: "Patch parent revision is stale" });
+  }
 
   const knownSchemas = new Set(world.behaviorSchemas.map((schema) => schema.id));
   const existingCells = new Map(world.cells.map((cell) => [cell.id, cell]));
   const stagedCells = new Set(existingCells.keys());
+  const stagedAssets = new Set(world.assets.map((asset) => asset.id));
 
   for (const operation of patch.operations) {
+    if (operation.op === "add-asset") {
+      if (stagedAssets.has(operation.asset.id)) {
+        issues.push({ path: "operations.add-asset", message: `Asset already exists: ${operation.asset.id}` });
+      }
+      stagedAssets.add(operation.asset.id);
+    }
+    if (operation.op === "add-cell") stagedCells.add(operation.cell.id);
+  }
+
+  for (const operation of patch.operations) {
+    if (operation.op === "add-asset") continue;
     if (operation.op === "add-cell") {
-      if (stagedCells.has(operation.cell.id)) issues.push({ path: "operations.add-cell", message: `Cell already exists: ${operation.cell.id}` });
-      stagedCells.add(operation.cell.id);
+      if (existingCells.has(operation.cell.id)) {
+        issues.push({ path: "operations.add-cell", message: `Cell already exists: ${operation.cell.id}` });
+      }
       for (const entity of operation.cell.entities) {
         if (!knownSchemas.has(entity.schemaRef)) {
           issues.push({ path: `operations.add-cell.${operation.cell.id}.entities.${entity.id}.schemaRef`, message: `Unknown behavior schema: ${entity.schemaRef}` });
+        }
+        for (const assetRef of entity.assetRefs) {
+          if (!stagedAssets.has(assetRef)) {
+            issues.push({ path: `operations.add-cell.${operation.cell.id}.entities.${entity.id}.assetRefs`, message: `Unknown asset: ${assetRef}` });
+          }
         }
       }
       continue;
     }
     if (operation.op === "upsert-entity") {
-      if (!stagedCells.has(operation.cellId)) issues.push({ path: "operations.upsert-entity.cellId", message: `Unknown cell: ${operation.cellId}` });
-      if (operation.entity.cellId !== operation.cellId) issues.push({ path: "operations.upsert-entity.entity.cellId", message: "Entity cellId differs from operation cellId" });
-      if (!knownSchemas.has(operation.entity.schemaRef)) issues.push({ path: "operations.upsert-entity.entity.schemaRef", message: `Unknown behavior schema: ${operation.entity.schemaRef}` });
+      if (!stagedCells.has(operation.cellId)) {
+        issues.push({ path: "operations.upsert-entity.cellId", message: `Unknown cell: ${operation.cellId}` });
+      }
+      if (operation.entity.cellId !== operation.cellId) {
+        issues.push({ path: "operations.upsert-entity.entity.cellId", message: "Entity cellId differs from operation cellId" });
+      }
+      if (!knownSchemas.has(operation.entity.schemaRef)) {
+        issues.push({ path: "operations.upsert-entity.entity.schemaRef", message: `Unknown behavior schema: ${operation.entity.schemaRef}` });
+      }
+      for (const assetRef of operation.entity.assetRefs) {
+        if (!stagedAssets.has(assetRef)) {
+          issues.push({ path: "operations.upsert-entity.entity.assetRefs", message: `Unknown asset: ${assetRef}` });
+        }
+      }
       continue;
     }
     if (operation.op === "link-cells") {
-      if (operation.fromCellId === operation.toCellId) issues.push({ path: "operations.link-cells", message: "A cell cannot link to itself" });
+      if (operation.fromCellId === operation.toCellId) {
+        issues.push({ path: "operations.link-cells", message: "A cell cannot link to itself" });
+      }
       for (const cellId of [operation.fromCellId, operation.toCellId]) {
-        if (!stagedCells.has(cellId)) issues.push({ path: "operations.link-cells", message: `Unknown cell: ${cellId}` });
+        if (!stagedCells.has(cellId)) {
+          issues.push({ path: "operations.link-cells", message: `Unknown cell: ${cellId}` });
+        }
       }
       continue;
     }
