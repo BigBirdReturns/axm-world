@@ -256,23 +256,30 @@ export function validateInfiniteFabricWorld(input: unknown): FabricValidationRes
     }
     schemaIds.add(schema.id);
   }
+
   for (const asset of world.assets) {
     if (assetIds.has(asset.id)) {
       issues.push({ path: "assets", message: `Duplicate asset: ${asset.id}` });
     }
     assetIds.add(asset.id);
   }
+
   for (const asset of world.assets) {
     if (asset.collisionAssetRef && !assetIds.has(asset.collisionAssetRef)) {
-      issues.push({ path: `assets.${asset.id}.collisionAssetRef`, message: `Unknown collision asset: ${asset.collisionAssetRef}` });
+      issues.push({
+        path: `assets.${asset.id}.collisionAssetRef`,
+        message: `Unknown collision asset: ${asset.collisionAssetRef}`,
+      });
     }
   }
+
   for (const cell of world.cells) {
     if (cellIds.has(cell.id)) {
       issues.push({ path: "cells", message: `Duplicate cell: ${cell.id}` });
     }
     cellIds.add(cell.id);
   }
+
   if (!cellIds.has(world.rootCellId)) {
     issues.push({ path: "rootCellId", message: `Root cell does not exist: ${world.rootCellId}` });
   }
@@ -285,36 +292,55 @@ export function validateInfiniteFabricWorld(input: unknown): FabricValidationRes
       }
       const reciprocal = cellsById.get(neighbor);
       if (reciprocal && !reciprocal.neighbors.includes(cell.id)) {
-        issues.push({ path: `cells.${cell.id}.neighbors`, message: `Neighbor link is not reciprocal: ${cell.id} -> ${neighbor}` });
+        issues.push({
+          path: `cells.${cell.id}.neighbors`,
+          message: `Neighbor link is not reciprocal: ${cell.id} -> ${neighbor}`,
+        });
       }
     }
+
     for (const entity of cell.entities) {
       if (entity.cellId !== cell.id) {
-        issues.push({ path: `cells.${cell.id}.entities.${entity.id}.cellId`, message: `Entity cellId ${entity.cellId} differs from containing cell ${cell.id}` });
+        issues.push({
+          path: `cells.${cell.id}.entities.${entity.id}.cellId`,
+          message: `Entity cellId ${entity.cellId} differs from containing cell ${cell.id}`,
+        });
       }
       if (entityIds.has(entity.id)) {
         issues.push({ path: "cells.entities", message: `Duplicate entity: ${entity.id}` });
       }
       entityIds.add(entity.id);
       if (!schemaIds.has(entity.schemaRef)) {
-        issues.push({ path: `cells.${cell.id}.entities.${entity.id}.schemaRef`, message: `Unknown behavior schema: ${entity.schemaRef}` });
+        issues.push({
+          path: `cells.${cell.id}.entities.${entity.id}.schemaRef`,
+          message: `Unknown behavior schema: ${entity.schemaRef}`,
+        });
       }
       for (const assetRef of entity.assetRefs) {
         if (!assetIds.has(assetRef)) {
-          issues.push({ path: `cells.${cell.id}.entities.${entity.id}.assetRefs`, message: `Unknown asset: ${assetRef}` });
+          issues.push({
+            path: `cells.${cell.id}.entities.${entity.id}.assetRefs`,
+            message: `Unknown asset: ${assetRef}`,
+          });
         }
       }
     }
   }
 
-  for (let index = 0; index < world.ledger.events.length; index += 1) {
-    const event = world.ledger.events[index];
+  for (const [index, event] of world.ledger.events.entries()) {
     if (event.sequence !== index) {
-      issues.push({ path: `ledger.events.${index}.sequence`, message: `Ledger sequence must be contiguous from zero; observed ${event.sequence}` });
+      issues.push({
+        path: `ledger.events.${index}.sequence`,
+        message: `Ledger sequence must be contiguous from zero; observed ${event.sequence}`,
+      });
     }
   }
 
-  return { success: issues.length === 0, value: issues.length === 0 ? world : undefined, issues };
+  return {
+    success: issues.length === 0,
+    value: issues.length === 0 ? world : undefined,
+    issues,
+  };
 }
 
 export function validateInfiniteFabricPatch(
@@ -322,7 +348,9 @@ export function validateInfiniteFabricPatch(
   patchInput: unknown,
 ): FabricValidationResult<InfiniteFabricPatch> {
   const worldResult = validateInfiniteFabricWorld(worldInput);
-  if (!worldResult.success || !worldResult.value) return { success: false, issues: worldResult.issues };
+  if (!worldResult.success || !worldResult.value) {
+    return { success: false, issues: worldResult.issues };
+  }
 
   const parsed = InfiniteFabricPatchSchema.safeParse(patchInput);
   if (!parsed.success) return { success: false, issues: zodIssues(parsed.error) };
@@ -330,6 +358,7 @@ export function validateInfiniteFabricPatch(
   const world = worldResult.value;
   const patch = parsed.data;
   const issues: FabricValidationIssue[] = [];
+
   if (patch.worldId !== world.id) {
     issues.push({ path: "worldId", message: `Patch targets ${patch.worldId}, expected ${world.id}` });
   }
@@ -354,39 +383,60 @@ export function validateInfiniteFabricPatch(
 
   for (const operation of patch.operations) {
     if (operation.op === "add-asset") continue;
+
     if (operation.op === "add-cell") {
       if (existingCells.has(operation.cell.id)) {
         issues.push({ path: "operations.add-cell", message: `Cell already exists: ${operation.cell.id}` });
       }
       for (const entity of operation.cell.entities) {
         if (!knownSchemas.has(entity.schemaRef)) {
-          issues.push({ path: `operations.add-cell.${operation.cell.id}.entities.${entity.id}.schemaRef`, message: `Unknown behavior schema: ${entity.schemaRef}` });
+          issues.push({
+            path: `operations.add-cell.${operation.cell.id}.entities.${entity.id}.schemaRef`,
+            message: `Unknown behavior schema: ${entity.schemaRef}`,
+          });
         }
         for (const assetRef of entity.assetRefs) {
           if (!stagedAssets.has(assetRef)) {
-            issues.push({ path: `operations.add-cell.${operation.cell.id}.entities.${entity.id}.assetRefs`, message: `Unknown asset: ${assetRef}` });
+            issues.push({
+              path: `operations.add-cell.${operation.cell.id}.entities.${entity.id}.assetRefs`,
+              message: `Unknown asset: ${assetRef}`,
+            });
           }
         }
       }
       continue;
     }
+
     if (operation.op === "upsert-entity") {
       if (!stagedCells.has(operation.cellId)) {
-        issues.push({ path: "operations.upsert-entity.cellId", message: `Unknown cell: ${operation.cellId}` });
+        issues.push({
+          path: "operations.upsert-entity.cellId",
+          message: `Unknown cell: ${operation.cellId}`,
+        });
       }
       if (operation.entity.cellId !== operation.cellId) {
-        issues.push({ path: "operations.upsert-entity.entity.cellId", message: "Entity cellId differs from operation cellId" });
+        issues.push({
+          path: "operations.upsert-entity.entity.cellId",
+          message: "Entity cellId differs from operation cellId",
+        });
       }
       if (!knownSchemas.has(operation.entity.schemaRef)) {
-        issues.push({ path: "operations.upsert-entity.entity.schemaRef", message: `Unknown behavior schema: ${operation.entity.schemaRef}` });
+        issues.push({
+          path: "operations.upsert-entity.entity.schemaRef",
+          message: `Unknown behavior schema: ${operation.entity.schemaRef}`,
+        });
       }
       for (const assetRef of operation.entity.assetRefs) {
         if (!stagedAssets.has(assetRef)) {
-          issues.push({ path: "operations.upsert-entity.entity.assetRefs", message: `Unknown asset: ${assetRef}` });
+          issues.push({
+            path: "operations.upsert-entity.entity.assetRefs",
+            message: `Unknown asset: ${assetRef}`,
+          });
         }
       }
       continue;
     }
+
     if (operation.op === "link-cells") {
       if (operation.fromCellId === operation.toCellId) {
         issues.push({ path: "operations.link-cells", message: "A cell cannot link to itself" });
@@ -401,13 +451,23 @@ export function validateInfiniteFabricPatch(
 
     const cell = existingCells.get(operation.cellId);
     if (!cell) {
-      issues.push({ path: `operations.${operation.op}.cellId`, message: `Unknown existing cell: ${operation.cellId}` });
+      issues.push({
+        path: `operations.${operation.op}.cellId`,
+        message: `Unknown existing cell: ${operation.cellId}`,
+      });
       continue;
     }
     if (!cell.entities.some((entity) => entity.id === operation.entityId)) {
-      issues.push({ path: `operations.${operation.op}.entityId`, message: `Unknown existing entity: ${operation.entityId}` });
+      issues.push({
+        path: `operations.${operation.op}.entityId`,
+        message: `Unknown existing entity: ${operation.entityId}`,
+      });
     }
   }
 
-  return { success: issues.length === 0, value: issues.length === 0 ? patch : undefined, issues };
+  return {
+    success: issues.length === 0,
+    value: issues.length === 0 ? patch : undefined,
+    issues,
+  };
 }
