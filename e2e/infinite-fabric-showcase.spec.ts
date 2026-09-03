@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+const BASE_URL = process.env.PW_BASE_URL ?? "http://127.0.0.1:5173";
+
 test("the showcase drives the actual world, patch, classic, memory, provider, and custody stages", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -7,7 +9,7 @@ test("the showcase drives the actual world, patch, classic, memory, provider, an
     if (message.type() === "error") errors.push(message.text());
   });
 
-  await page.goto("/showcase.html?autoplay=0&loop=0");
+  await page.goto(`${BASE_URL}/showcase.html?autoplay=0&loop=0`);
   const root = page.getByTestId("infinite-fabric-showcase");
   await expect(root).toBeVisible();
   await expect(page.getByTestId("showcase-start")).toBeVisible();
