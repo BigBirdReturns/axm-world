@@ -18,3 +18,33 @@
   width: auto !important;
   height: auto !important;
 }
+
+@media (min-width: 1000px) {
+  .showcase-root[data-chapter="take-it-home"] .showcase-custody {
+    display: block;
+    overflow: hidden;
+  }
+
+  .showcase-root[data-chapter="take-it-home"] .showcase-package {
+    position: absolute;
+    inset: 0 332px 0 0;
+    overflow: hidden;
+  }
+
+  .showcase-root[data-chapter="take-it-home"] .showcase-offline {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 310px;
+    overflow: hidden;
+  }
+
+  .showcase-root[data-chapter="take-it-home"] .showcase-package-line {
+    min-width: 0;
+  }
+
+  .showcase-root[data-chapter="take-it-home"] .showcase-offline-state {
+    min-width: 0;
+  }
+}
