@@ -49,6 +49,15 @@ await page.goto(`${baseUrl}/showcase.html?autoplay=0&loop=0&clean=1`, {
 await page.getByTestId("infinite-fabric-showcase").waitFor({ state: "visible", timeout: 30_000 });
 await page.getByRole("button", { name: "start muted" }).click();
 await page.getByTestId("showcase-start").waitFor({ state: "detached", timeout: 10_000 });
+// The start action enables the normal automatic director. Pause it immediately so
+// every captured cut is advanced exclusively by this script and cannot race a
+// chapter-duration timer while screenshots or video frames are being written.
+await page.keyboard.press("Space");
+await page.waitForFunction(
+  () => document.querySelector("[data-testid='infinite-fabric-showcase']")?.getAttribute("data-chapter") === "one-world",
+  undefined,
+  { timeout: 10_000 },
+);
 
 const stills = [];
 for (let index = 0; index < chapters.length; index += 1) {
