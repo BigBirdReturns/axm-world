@@ -13,7 +13,15 @@ test("the showcase drives the actual world, patch, classic, memory, provider, an
   await page.goto(`${BASE_URL}/showcase.html?autoplay=0&loop=0`, { waitUntil: "domcontentloaded" });
   await expect(page).toHaveTitle(/AXM Infinite Fabric/, { timeout: 15_000 });
   const root = page.getByTestId("infinite-fabric-showcase");
-  await expect(root).toBeVisible({ timeout: 25_000 });
+  try {
+    await expect(root).toBeVisible({ timeout: 25_000 });
+  } catch (error) {
+    console.log(`SHOWCASE_URL=${page.url()}`);
+    console.log(`SHOWCASE_TITLE=${await page.title()}`);
+    console.log(`SHOWCASE_BODY=${(await page.locator("body").innerText()).slice(0, 6000)}`);
+    console.log(`SHOWCASE_ERRORS=${JSON.stringify(errors)}`);
+    throw error;
+  }
   await expect(page.getByTestId("showcase-start")).toBeVisible();
   await page.getByRole("button", { name: "start muted" }).click();
   await expect(root).toHaveAttribute("data-chapter", "one-world");
