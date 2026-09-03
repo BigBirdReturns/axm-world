@@ -40,10 +40,15 @@ page.on("console", (message) => {
   if (message.type() === "error") errors.push(`console: ${message.text()}`);
 });
 
-await page.goto(`${baseUrl}/showcase.html?autoplay=1&loop=0&clean=1`, {
-  waitUntil: "networkidle",
+// Capture owns chapter timing. Starting with autoplay disabled prevents network and
+// cold WebGL initialization from advancing past the first chapter before the
+// recorder has established custody of the timeline.
+await page.goto(`${baseUrl}/showcase.html?autoplay=0&loop=0&clean=1`, {
+  waitUntil: "domcontentloaded",
 });
-await page.getByTestId("infinite-fabric-showcase").waitFor({ state: "visible" });
+await page.getByTestId("infinite-fabric-showcase").waitFor({ state: "visible", timeout: 30_000 });
+await page.getByRole("button", { name: "start muted" }).click();
+await page.getByTestId("showcase-start").waitFor({ state: "detached", timeout: 10_000 });
 
 const stills = [];
 for (let index = 0; index < chapters.length; index += 1) {
@@ -51,6 +56,7 @@ for (let index = 0; index < chapters.length; index += 1) {
   await page.waitForFunction(
     (expected) => document.querySelector("[data-testid='infinite-fabric-showcase']")?.getAttribute("data-chapter") === expected,
     chapter,
+    { timeout: 15_000 },
   );
   await page.waitForTimeout(index === 0 ? 1500 : 900);
   if ([0, 2, 3, 4, 5, 7].includes(index)) {
