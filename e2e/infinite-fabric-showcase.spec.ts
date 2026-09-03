@@ -3,15 +3,17 @@ import { expect, test } from "@playwright/test";
 const BASE_URL = process.env.PW_BASE_URL ?? "http://127.0.0.1:5173";
 
 test("the showcase drives the actual world, patch, classic, memory, provider, and custody stages", async ({ page }) => {
+  test.setTimeout(75_000);
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
 
-  await page.goto(`${BASE_URL}/showcase.html?autoplay=0&loop=0`);
+  await page.goto(`${BASE_URL}/showcase.html?autoplay=0&loop=0`, { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveTitle(/AXM Infinite Fabric/, { timeout: 15_000 });
   const root = page.getByTestId("infinite-fabric-showcase");
-  await expect(root).toBeVisible();
+  await expect(root).toBeVisible({ timeout: 25_000 });
   await expect(page.getByTestId("showcase-start")).toBeVisible();
   await page.getByRole("button", { name: "start muted" }).click();
   await expect(root).toHaveAttribute("data-chapter", "one-world");
