@@ -127,7 +127,11 @@ jobs:
           The package contains five playable games, the Infinite Fabric Tiny World,
           and the Rodoh browser product. Runtime play requires no model provider.
           TXT
-          find "$root" -type f -print0 | sort -z | xargs -0 sha256sum > "$root/SHA256SUMS"
+          (
+            cd "$root"
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
           zip -X -r "${root}.zip" "$root"
           sha256sum "${root}.zip" > "${root}.zip.sha256"
       - name: Upload the playable preview and receipts
