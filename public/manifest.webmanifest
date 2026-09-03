@@ -1,19 +1,83 @@
 {
   "name": "Rodoh Cartridge Runtime",
   "short_name": "Rodoh",
-  "description": "An offline-capable runtime for creator-owned cartridges and holder-owned runs.",
+  "description": "An offline-capable runtime and demonstration foundry for creator-owned cartridges, worlds, and holder-owned runs.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
   "background_color": "#0b0a08",
   "theme_color": "#0b0a08",
+  "categories": [
+    "games",
+    "developer tools",
+    "entertainment"
+  ],
   "icons": [
     {
       "src": "./rodoh-mark.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Demonstration Foundry",
+      "short_name": "Foundry",
+      "description": "Direct, preview, version, and publish a bounded demonstration.",
+      "url": "./studio.html",
+      "icons": [
+        {
+          "src": "./rodoh-mark.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Infinite Fabric Showcase",
+      "short_name": "Showcase",
+      "description": "Run the source-bound First Charter product demonstration.",
+      "url": "./showcase.html",
+      "icons": [
+        {
+          "src": "./rodoh-mark.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "First Charter Tiny World",
+      "short_name": "Tiny World",
+      "description": "Open Board, Map, Planet, Play, and Make.",
+      "url": "./fabric.html",
+      "icons": [
+        {
+          "src": "./rodoh-mark.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Classic Trials",
+      "short_name": "Trials",
+      "description": "Open the five playable First Charter trials.",
+      "url": "./classics.html",
+      "icons": [
+        {
+          "src": "./classic-trials-icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
     }
   ]
 }

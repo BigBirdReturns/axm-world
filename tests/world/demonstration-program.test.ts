@@ -17,6 +17,7 @@ import {
   DEFAULT_SHOWCASE,
   SHOWCASE_PROGRAM,
   compileShowcaseProgram,
+  resolveShowcaseProgram,
 } from "../../src/fabric/showcase/timeline.js";
 
 const scenes = [
@@ -122,6 +123,18 @@ describe("governed demonstration program", () => {
       allowedScenes: scenes,
       allowedWorldMoments: moments,
     })).toThrow(/claimTextMutable/u);
+  });
+
+  it("resolves a URL edition and refuses tampered encoded proposals without blanking the product", () => {
+    const social = resolveShowcaseProgram("?edition=social");
+    expect(social.status).toBe("edition");
+    expect(social.compiled.edition.id).toBe("social");
+    expect(social.compiled.chapters).toHaveLength(5);
+
+    const refused = resolveShowcaseProgram("?proposal=not-valid-base64url-%%%%");
+    expect(refused.status).toBe("refused");
+    expect(refused.compiled.edition.id).toBe("executive");
+    expect(refused.error).toMatch(/refused|valid/u);
   });
 
   it("refuses proposal fields outside the bounded direction surface", () => {

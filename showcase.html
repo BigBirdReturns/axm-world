@@ -1,21 +1,25 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#03050a" />
-    <meta name="description" content="AXM Infinite Fabric deterministic product showcase" />
-    <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="/src/fabric/showcase/showcase-layout.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' ws: wss:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="referrer" content="no-referrer" />
     <title>AXM Infinite Fabric · Product Showcase</title>
-    <style>
-      html, body, #root { width: 100%; height: 100%; margin: 0; }
-      body { overflow: hidden; background: #03050a; }
-      * { box-sizing: border-box; }
-    </style>
+    <meta name="theme-color" content="#03050a" />
+    <meta
+      name="description"
+      content="A source-bound executable showcase of one creator-owned world, bounded generation, playable stories, durable memory, replaceable providers, and offline custody."
+    />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./rodoh-mark.svg" type="image/svg+xml" />
   </head>
   <body>
     <div id="root"></div>
+    <noscript>This executable demonstration requires JavaScript. The packaged capture remains available under capture/.</noscript>
     <script type="module" src="/src/fabric/showcase/main.tsx"></script>
   </body>
 </html>

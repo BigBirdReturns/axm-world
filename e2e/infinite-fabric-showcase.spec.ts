@@ -2,13 +2,18 @@ import { expect, test } from "@playwright/test";
 
 const BASE_URL = process.env.PW_BASE_URL ?? "http://127.0.0.1:5173";
 
-test("the showcase drives the actual world, patch, classic, memory, provider, and custody stages", async ({ page }) => {
-  test.setTimeout(75_000);
+function collectBrowserErrors(page: import("@playwright/test").Page): string[] {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
+  return errors;
+}
+
+test("the showcase drives the actual world, patch, classic, memory, provider, and custody stages", async ({ page }) => {
+  test.setTimeout(75_000);
+  const errors = collectBrowserErrors(page);
 
   await page.goto(`${BASE_URL}/showcase.html?autoplay=0&loop=0`, { waitUntil: "domcontentloaded" });
   await expect(page).toHaveTitle(/AXM Infinite Fabric/, { timeout: 15_000 });
@@ -22,6 +27,8 @@ test("the showcase drives the actual world, patch, classic, memory, provider, an
     console.log(`SHOWCASE_ERRORS=${JSON.stringify(errors)}`);
     throw error;
   }
+  await expect(page.locator("html")).toHaveAttribute("data-demo-ready", "true");
+  await expect(page.locator("html")).toHaveAttribute("data-demo-digest", /^[0-9a-f]{64}$/u);
   await expect(page.getByTestId("showcase-start")).toBeVisible();
   await page.getByRole("button", { name: "start muted" }).click();
   await expect(root).toHaveAttribute("data-chapter", "one-world");
@@ -64,6 +71,47 @@ test("the showcase drives the actual world, patch, classic, memory, provider, an
   await expect(root).toHaveClass(/showcase-clean/);
   await page.keyboard.press("KeyC");
   await expect(root).not.toHaveClass(/showcase-clean/);
+
+  expect(errors).toEqual([]);
+});
+
+test("a named edition and an encoded proposal resolve to source-bound runtime cuts", async ({ page }) => {
+  test.setTimeout(75_000);
+  const errors = collectBrowserErrors(page);
+
+  await page.goto(`${BASE_URL}/showcase.html?edition=proof&autoplay=1&loop=0&clean=1`, {
+    waitUntil: "domcontentloaded",
+  });
+  const html = page.locator("html");
+  const root = page.getByTestId("infinite-fabric-showcase");
+  await expect(root).toBeVisible({ timeout: 25_000 });
+  await expect(html).toHaveAttribute("data-demo-edition", "proof");
+  await expect(html).toHaveAttribute("data-demo-proposal-status", "edition");
+  await expect(html).toHaveAttribute("data-demo-aspect", "16:9");
+  await expect(html).toHaveAttribute("data-demo-ready", "true");
+  await expect(html).toHaveAttribute("data-demo-digest", /^[0-9a-f]{64}$/u);
+  await expect(root).toHaveAttribute("data-chapter", "one-revision");
+
+  const runtime = await page.evaluate(() => window.AxmShowcaseRuntime);
+  expect(runtime.chapterIds).toEqual([
+    "one-revision",
+    "say-the-change",
+    "world-grows",
+    "world-remembers",
+    "providers-rotate",
+    "take-it-home",
+  ]);
+  expect(runtime.evidenceIds.length).toBeGreaterThanOrEqual(7);
+  expect(runtime.digest).toMatch(/^[0-9a-f]{64}$/u);
+
+  await page.goto(`${BASE_URL}/showcase.html?proposal=%25%25%25%25&autoplay=0`, {
+    waitUntil: "domcontentloaded",
+  });
+  await expect(page.getByTestId("infinite-fabric-showcase")).toBeVisible({ timeout: 25_000 });
+  await expect(page.locator("html")).toHaveAttribute("data-demo-proposal-status", "refused");
+  await expect(page.locator("html")).toHaveAttribute("data-demo-edition", "executive");
+  await expect(page.getByTestId("showcase-start")).toBeVisible();
+  await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
 
   expect(errors).toEqual([]);
 });

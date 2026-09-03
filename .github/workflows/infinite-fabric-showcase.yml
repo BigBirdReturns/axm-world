@@ -4,15 +4,23 @@ on:
   pull_request:
     paths:
       - 'showcase.html'
+      - 'studio.html'
+      - 'public/manifest.webmanifest'
+      - 'public/service-worker.js'
       - 'src/demonstration/**'
       - 'src/fabric/showcase/**'
       - 'src/fabric/classics/**'
       - 'src/fabric/runtime/**'
       - 'src/fabric/tiny-world/**'
       - 'tests/world/demonstration-program.test.ts'
+      - 'tests/world/demonstration-run-ledger.test.ts'
       - 'tests/world/infinite-fabric-showcase-state.test.ts'
       - 'e2e/infinite-fabric-showcase.spec.ts'
+      - 'e2e/infinite-fabric-studio.spec.ts'
       - 'scripts/capture-infinite-fabric-showcase.mjs'
+      - 'scripts/assemble-infinite-fabric-showcase.mjs'
+      - 'scripts/serve-infinite-fabric-showcase.mjs'
+      - 'scripts/verify-infinite-fabric-showcase-package.mjs'
       - 'vite.config.ts'
       - '.github/workflows/infinite-fabric-showcase.yml'
   workflow_dispatch:
@@ -27,7 +35,7 @@ permissions:
 jobs:
   build-capture-package:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,21 +53,29 @@ jobs:
         run: |
           npm test -- \
             tests/world/demonstration-program.test.ts \
+            tests/world/demonstration-run-ledger.test.ts \
             tests/world/infinite-fabric-contract.test.ts \
             tests/world/infinite-fabric-runtime.test.ts \
             tests/world/infinite-fabric-showcase-state.test.ts \
             tests/world/infinite-fabric-acceptance.test.ts \
             tests/world/classic-suite-engine.test.ts
-      - name: Build Rodoh, Fabric, Classic Trials, and Showcase
+      - name: Build Rodoh, Fabric, Classic Trials, Showcase, and Demonstration Foundry
         run: npm run build
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Execute the presenter-control transaction
+      - name: Execute the presenter and Foundry browser transactions
         env:
           PW_BASE_URL: http://127.0.0.1:5173
-        run: npx playwright test e2e/infinite-fabric-showcase.spec.ts --project=desktop --workers=1 --reporter=list
-      - name: Capture the 1920 by 1080 showcase reel and evidence plates
+        run: |
+          npx playwright test \
+            e2e/infinite-fabric-showcase.spec.ts \
+            e2e/infinite-fabric-studio.spec.ts \
+            --project=desktop \
+            --workers=1 \
+            --reporter=list
+      - name: Capture the 16:9, 9:16, and 4:5 production matrix
         env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           SHOWCASE_BASE_URL: http://127.0.0.1:5173
           SHOWCASE_CAPTURE_DIR: showcase-capture
         shell: bash
@@ -74,7 +90,7 @@ jobs:
           trap cleanup EXIT
           ready=0
           for attempt in $(seq 1 90); do
-            if curl -fsS "http://127.0.0.1:5173/showcase.html?autoplay=0&clean=1" >/dev/null; then
+            if curl -fsS "http://127.0.0.1:5173/studio.html" >/dev/null; then
               ready=1
               break
             fi
@@ -82,139 +98,28 @@ jobs:
           done
           test "$ready" -eq 1
           node scripts/capture-infinite-fabric-showcase.mjs
-      - name: Assemble the portable showcase product
-        shell: bash
+      - name: Assemble the production demonstration product
         env:
           CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: |
-          set -euo pipefail
-          root="axm-infinite-fabric-showcase-preview"
-          rm -rf "$root"
-          mkdir -p "$root/capture"
-          cp -a docs/game/. "$root/"
-          cp -a showcase-capture/. "$root/capture/"
-          cp showcase-vite.log "$root/capture/showcase-vite.log"
-          cp src/fabric/showcase/first-charter-showcase.program.json "$root/DEMONSTRATION_PROGRAM.json"
-          cat > "$root/serve.mjs" <<'NODE'
-          import { createReadStream, statSync } from 'node:fs';
-          import { createServer } from 'node:http';
-          import { extname, join, normalize } from 'node:path';
-
-          const root = process.cwd();
-          const port = Number(process.env.PORT || 8765);
-          const mime = new Map([
-            ['.html', 'text/html; charset=utf-8'],
-            ['.js', 'text/javascript; charset=utf-8'],
-            ['.css', 'text/css; charset=utf-8'],
-            ['.json', 'application/json; charset=utf-8'],
-            ['.png', 'image/png'],
-            ['.svg', 'image/svg+xml'],
-            ['.webm', 'video/webm'],
-            ['.woff2', 'font/woff2'],
-          ]);
-
-          createServer((request, response) => {
-            const raw = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`).pathname;
-            const relative = raw === '/' ? 'showcase.html' : decodeURIComponent(raw).replace(/^\/+/, '');
-            const normalized = normalize(relative);
-            if (normalized.startsWith('..')) {
-              response.writeHead(403).end('Forbidden');
-              return;
-            }
-            const path = join(root, normalized);
-            try {
-              if (!statSync(path).isFile()) throw new Error('not a file');
-              response.writeHead(200, {
-                'Content-Type': mime.get(extname(path)) || 'application/octet-stream',
-                'Cache-Control': 'no-store',
-                'Cross-Origin-Resource-Policy': 'same-origin',
-                'Referrer-Policy': 'no-referrer',
-                'X-Content-Type-Options': 'nosniff',
-              });
-              createReadStream(path).pipe(response);
-            } catch {
-              response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('Not found');
-            }
-          }).listen(port, '127.0.0.1', () => {
-            console.log(`AXM Infinite Fabric Showcase: http://127.0.0.1:${port}/showcase.html`);
-          });
-          NODE
-          cat > "$root/RUN_SHOWCASE.cmd" <<'CMD'
-          @echo off
-          setlocal
-          cd /d "%~dp0"
-          where node >nul 2>nul || (
-            echo Node.js is required to serve this static showcase.
-            pause
-            exit /b 1
-          )
-          start "" "http://127.0.0.1:8765/showcase.html"
-          node serve.mjs
-          CMD
-          cat > "$root/README.txt" <<TXT
-          AXM INFINITE FABRIC SHOWCASE
-
-          Windows:
-            Double-click RUN_SHOWCASE.cmd
-
-          Any platform with Node.js:
-            node serve.mjs
-            open http://127.0.0.1:8765/showcase.html
-
-          Presenter controls:
-            Right / Left   next or previous chapter
-            Space          play or pause
-            C              clean capture mode
-            F              fullscreen
-            R              restart
-
-          Governed demonstration source:
-            DEMONSTRATION_PROGRAM.json
-
-          Capture outputs:
-            capture/axm-infinite-fabric-showcase.webm
-            capture/00-one-world.png
-            capture/02-say-the-change.png
-            capture/03-world-grows.png
-            capture/04-play-the-story.png
-            capture/05-world-remembers.png
-            capture/07-take-it-home.png
-
-          Exact source head:
-            $CANDIDATE_SHA
-
-          The package runs without a generation provider. The showcase uses the
-          actual Fabric world, patch, revision, classic-game, and ledger code.
-          TXT
-          cat > "$root/SHOWCASE_MANIFEST.json" <<JSON
-          {
-            "format": "axm-infinite-fabric-showcase/0",
-            "status": "source-and-browser-qualified",
-            "sourceCommit": "$CANDIDATE_SHA",
-            "program": "DEMONSTRATION_PROGRAM.json",
-            "entry": "showcase.html",
-            "video": "capture/axm-infinite-fabric-showcase.webm",
-            "providerInvokedDuringCapture": false,
-            "networkRequiredDuringPackagedPlayback": false,
-            "productAcceptanceIssued": false
-          }
-          JSON
-          find "$root" -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > "$root/SHA256SUMS"
-          while IFS= read -r line; do
-            digest="${line%% *}"
-            path="${line#*  }"
-            test "$(sha256sum "$path" | cut -d' ' -f1)" = "$digest"
-          done < "$root/SHA256SUMS"
-          zip -X -r "${root}.zip" "$root"
-          sha256sum "${root}.zip" > "${root}.zip.sha256"
-      - name: Upload the complete showcase and capture receipts
+          SHOWCASE_BUILD_ROOT: docs/game
+          SHOWCASE_CAPTURE_DIR: showcase-capture
+          SHOWCASE_OUTPUT_ROOT: axm-infinite-fabric-showcase-preview
+        run: node scripts/assemble-infinite-fabric-showcase.mjs
+      - name: Execute the portable package and verify its custody
+        env:
+          SHOWCASE_OUTPUT_ROOT: axm-infinite-fabric-showcase-preview
+        run: node scripts/verify-infinite-fabric-showcase-package.mjs
+      - name: Upload the complete showcase, Foundry, capture matrix, and receipts
         uses: actions/upload-artifact@v4
         with:
           name: axm-infinite-fabric-showcase-preview
           path: |
             axm-infinite-fabric-showcase-preview.zip
             axm-infinite-fabric-showcase-preview.zip.sha256
+            axm-ininite-fabric-showcase-preview.release.json
+            axm-infinite-fabric-showcase-preview.verification.json
             showcase-capture
+            showcase-vite.log
             test-results
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30

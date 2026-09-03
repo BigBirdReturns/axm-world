@@ -7,6 +7,7 @@ import type {
 import {
   compileDemonstrationProgram,
   createEditionProposal,
+  decodeDemonstrationProposal,
   validateDemonstrationProgram,
 } from "../../demonstration/compiler.js";
 import rawShowcaseProgram from "./first-charter-showcase.program.json";
@@ -27,6 +28,14 @@ export type ShowcaseChapter = DemonstrationChapter<
   ShowcaseSceneKind,
   ShowcaseWorldMoment
 >;
+
+export type ShowcaseProposalStatus = "base" | "edition" | "encoded" | "refused";
+
+export interface ShowcaseProgramResolution {
+  readonly compiled: CompiledDemonstration<ShowcaseSceneKind, ShowcaseWorldMoment>;
+  readonly status: ShowcaseProposalStatus;
+  readonly error?: string;
+}
 
 const SHOWCASE_SCENES: readonly ShowcaseSceneKind[] = [
   "hero",
@@ -70,9 +79,6 @@ export function compileShowcaseProgram(
 
 export const DEFAULT_SHOWCASE = compileShowcaseProgram();
 
-export const SHOWCASE_CHAPTERS: readonly ShowcaseChapter[] =
-  DEFAULT_SHOWCASE.chapters;
-
 export function showcaseEditionById(id: string | null): DemonstrationEdition {
   if (id) {
     const edition = SHOWCASE_EDITIONS.find((entry) => entry.id === id);
@@ -82,6 +88,57 @@ export function showcaseEditionById(id: string | null): DemonstrationEdition {
     (entry) => entry.id === SHOWCASE_PROGRAM.defaultEditionId,
   ) ?? SHOWCASE_EDITIONS[0]!;
 }
+
+export function resolveShowcaseProgram(search: string): ShowcaseProgramResolution {
+  const params = new URLSearchParams(search);
+  const encoded = params.get("proposal");
+  if (encoded) {
+    try {
+      const proposal = decodeDemonstrationProposal(encoded, SHOWCASE_PROGRAM);
+      return {
+        compiled: compileShowcaseProgram(proposal),
+        status: "encoded",
+      };
+    } catch (error) {
+      return {
+        compiled: DEFAULT_SHOWCASE,
+        status: "refused",
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  const requestedEdition = params.get("edition");
+  if (requestedEdition) {
+    const edition = SHOWCASE_EDITIONS.find((entry) => entry.id === requestedEdition);
+    if (!edition) {
+      return {
+        compiled: DEFAULT_SHOWCASE,
+        status: "refused",
+        error: `Unknown demonstration edition ${requestedEdition}`,
+      };
+    }
+    return {
+      compiled: compileShowcaseProgram(
+        createEditionProposal(SHOWCASE_PROGRAM, edition.id),
+      ),
+      status: "edition",
+    };
+  }
+
+  return {
+    compiled: DEFAULT_SHOWCASE,
+    status: "base",
+  };
+}
+
+const ACTIVE_SEARCH =
+  typeof globalThis.location === "undefined" ? "" : globalThis.location.search;
+
+export const ACTIVE_SHOWCASE_RESOLUTION = resolveShowcaseProgram(ACTIVE_SEARCH);
+export const ACTIVE_SHOWCASE = ACTIVE_SHOWCASE_RESOLUTION.compiled;
+export const SHOWCASE_CHAPTERS: readonly ShowcaseChapter[] =
+  ACTIVE_SHOWCASE.chapters;
 
 export function clampShowcaseIndex(
   index: number,

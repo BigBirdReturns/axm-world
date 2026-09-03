@@ -95,6 +95,7 @@ export default defineConfig({
         fabric: resolve(__dirname, "fabric.html"),
         classics: resolve(__dirname, "classics.html"),
         showcase: resolve(__dirname, "showcase.html"),
+        studio: resolve(__dirname, "studio.html"),
       },
     },
   },
