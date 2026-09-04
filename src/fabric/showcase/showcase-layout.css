@@ -1,0 +1,151 @@
+@media (min-width: 1000px) {
+  .showcase-root[data-chapter="one-revision"] .showcase-copy,
+  .showcase-root[data-chapter="say-the-change"] .showcase-copy,
+  .showcase-root[data-chapter="play-the-story"] .showcase-copy,
+  .showcase-root[data-chapter="world-remembers"] .showcase-copy,
+  .showcase-root[data-chapter="providers-rotate"] .showcase-copy,
+  .showcase-root[data-chapter="take-it-home"] .showcase-copy {
+    width: min(500px, 27vw);
+  }
+
+  .showcase-root[data-chapter="one-revision"] .showcase-copy[data-wide="true"],
+  .showcase-root[data-chapter="say-the-change"] .showcase-copy[data-wide="true"],
+  .showcase-root[data-chapter="play-the-story"] .showcase-copy[data-wide="true"],
+  .showcase-root[data-chapter="world-remembers"] .showcase-copy[data-wide="true"],
+  .showcase-root[data-chapter="providers-rotate"] .showcase-copy[data-wide="true"],
+  .showcase-root[data-chapter="take-it-home"] .showcase-copy[data-wide="true"] {
+    width: min(500px, 27vw);
+  }
+
+  .showcase-root[data-chapter="one-revision"] .showcase-title,
+  .showcase-root[data-chapter="say-the-change"] .showcase-title,
+  .showcase-root[data-chapter="play-the-story"] .showcase-title,
+  .showcase-root[data-chapter="world-remembers"] .showcase-title,
+  .showcase-root[data-chapter="providers-rotate"] .showcase-title,
+  .showcase-root[data-chapter="take-it-home"] .showcase-title {
+    max-width: 10.5ch;
+    font-size: clamp(42px, 4.35vw, 72px);
+    line-height: 0.94;
+  }
+
+  .showcase-root[data-chapter="one-revision"] .showcase-body,
+  .showcase-root[data-chapter="say-the-change"] .showcase-body,
+  .showcase-root[data-chapter="play-the-story"] .showcase-body,
+  .showcase-root[data-chapter="world-remembers"] .showcase-body,
+  .showcase-root[data-chapter="providers-rotate"] .showcase-body,
+  .showcase-root[data-chapter="take-it-home"] .showcase-body {
+    max-width: 42ch;
+    font-size: clamp(14px, 1.02vw, 17px);
+    line-height: 1.48;
+  }
+
+  .showcase-root[data-chapter="one-revision"] .showcase-claim,
+  .showcase-root[data-chapter="say-the-change"] .showcase-claim,
+  .showcase-root[data-chapter="play-the-story"] .showcase-claim,
+  .showcase-root[data-chapter="world-remembers"] .showcase-claim,
+  .showcase-root[data-chapter="providers-rotate"] .showcase-claim,
+  .showcase-root[data-chapter="take-it-home"] .showcase-claim {
+    margin-top: 16px;
+    max-width: 100%;
+    font-size: 9px;
+    line-height: 1.25;
+  }
+
+  .showcase-root[data-chapter="one-revision"] .showcase-center-stage,
+  .showcase-root[data-chapter="say-the-change"] .showcase-center-stage,
+  .showcase-root[data-chapter="play-the-story"] .showcase-center-stage,
+  .showcase-root[data-chapter="world-remembers"] .showcase-center-stage,
+  .showcase-root[data-chapter="providers-rotate"] .showcase-center-stage,
+  .showcase-root[data-chapter="take-it-home"] .showcase-center-stage {
+    left: 33vw;
+    right: 3.8vw;
+    top: 118px;
+    bottom: 94px;
+  }
+
+  .showcase-root[data-chapter="one-revision"] .showcase-projection-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+
+  .showcase-root[data-chapter="one-revision"] .showcase-projection-card {
+    min-height: 0;
+  }
+
+  .showcase-root[data-chapter="play-the-story"] .showcase-center-stage {
+    left: 31vw;
+  }
+
+  .showcase-root[data-chapter="play-the-story"] [data-testid="showcase-classic-montage"] {
+    grid-template-columns: minmax(0, 1fr) minmax(190px, 0.3fr) !important;
+  }
+
+  .showcase-root[data-chapter="world-remembers"] .showcase-ledger {
+    grid-template-columns: minmax(230px, 0.72fr) minmax(0, 1.28fr);
+  }
+
+  .showcase-root[data-chapter="providers-rotate"] .showcase-provider-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .showcase-root[data-chapter="take-it-home"] .showcase-custody {
+    grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
+  }
+
+  .showcase-root[data-chapter="take-it-home"] .showcase-package-line {
+    grid-template-columns: 104px minmax(0, 1fr);
+  }
+
+  .showcase-root[data-chapter="take-it-home"] .showcase-package-line span:last-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .showcase-root[data-chapter="take-it-home"] .showcase-offline-state {
+    min-width: 0;
+    gap: 12px;
+  }
+
+  .showcase-root[data-chapter="take-it-home"] .showcase-offline-state strong {
+    flex: 0 0 auto;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .showcase-root:not([data-chapter="one-world"]):not([data-chapter="world-grows"]) .showcase-proof-rail {
+    top: auto;
+    right: auto;
+    left: clamp(28px, 5vw, 78px);
+    bottom: 86px;
+    width: min(500px, 27vw);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .showcase-root:not([data-chapter="one-world"]):not([data-chapter="world-grows"]) .showcase-proof {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
+
+@media (min-width: 1000px) and (max-height: 820px) {
+  .showcase-root[data-chapter="one-revision"] .showcase-title,
+  .showcase-root[data-chapter="say-the-change"] .showcase-title,
+  .showcase-root[data-chapter="play-the-story"] .showcase-title,
+  .showcase-root[data-chapter="world-remembers"] .showcase-title,
+  .showcase-root[data-chapter="providers-rotate"] .showcase-title,
+  .showcase-root[data-chapter="take-it-home"] .showcase-title {
+    font-size: clamp(36px, 4vw, 58px);
+  }
+
+  .showcase-root[data-chapter="one-revision"] .showcase-center-stage,
+  .showcase-root[data-chapter="say-the-change"] .showcase-center-stage,
+  .showcase-root[data-chapter="play-the-story"] .showcase-center-stage,
+  .showcase-root[data-chapter="world-remembers"] .showcase-center-stage,
+  .showcase-root[data-chapter="providers-rotate"] .showcase-center-stage,
+  .showcase-root[data-chapter="take-it-home"] .showcase-center-stage {
+    top: 92px;
+    bottom: 76px;
+  }
+}

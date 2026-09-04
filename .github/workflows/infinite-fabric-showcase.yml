@@ -1,0 +1,125 @@
+name: Infinite Fabric Showcase
+
+on:
+  pull_request:
+    paths:
+      - 'showcase.html'
+      - 'studio.html'
+      - 'public/manifest.webmanifest'
+      - 'public/service-worker.js'
+      - 'src/demonstration/**'
+      - 'src/fabric/showcase/**'
+      - 'src/fabric/classics/**'
+      - 'src/fabric/runtime/**'
+      - 'src/fabric/tiny-world/**'
+      - 'tests/world/demonstration-program.test.ts'
+      - 'tests/world/demonstration-run-ledger.test.ts'
+      - 'tests/world/infinite-fabric-showcase-state.test.ts'
+      - 'e2e/infinite-fabric-showcase.spec.ts'
+      - 'e2e/infinite-fabric-studio.spec.ts'
+      - 'scripts/capture-infinite-fabric-showcase.mjs'
+      - 'scripts/assemble-infinite-fabric-showcase.mjs'
+      - 'scripts/serve-infinite-fabric-showcase.mjs'
+      - 'scripts/verify-infinite-fabric-showcase-package.mjs'
+      - 'vite.config.ts'
+      - '.github/workflows/infinite-fabric-showcase.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: infinite-fabric-showcase-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-capture-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install the locked product dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck the complete World product
+        run: npm run typecheck
+      - name: Execute the Demonstration, Infinite Fabric, and Classic Trials substrate
+        run: |
+          npm test -- \
+            tests/world/demonstration-program.test.ts \
+            tests/world/demonstration-run-ledger.test.ts \
+            tests/world/infinite-fabric-contract.test.ts \
+            tests/world/infinite-fabric-runtime.test.ts \
+            tests/world/infinite-fabric-showcase-state.test.ts \
+            tests/world/infinite-fabric-acceptance.test.ts \
+            tests/world/classic-suite-engine.test.ts
+      - name: Build Rodoh, Fabric, Classic Trials, Showcase, and Demonstration Foundry
+        run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Execute the presenter and Foundry browser transactions
+        env:
+          PW_BASE_URL: http://127.0.0.1:5173
+        run: |
+          npx playwright test \
+            e2e/infinite-fabric-showcase.spec.ts \
+            e2e/infinite-fabric-studio.spec.ts \
+            --project=desktop \
+            --workers=1 \
+            --reporter=list
+      - name: Capture the 16:9, 9:16, and 4:5 production matrix
+        env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          SHOWCASE_BASE_URL: http://127.0.0.1:5173
+          SHOWCASE_CAPTURE_DIR: showcase-capture
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run dev -- --host 127.0.0.1 --port 5173 --strictPort >showcase-vite.log 2>&1 &
+          vite_pid=$!
+          cleanup() {
+            kill "$vite_pid" 2>/dev/null || true
+            wait "$vite_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          ready=0
+          for attempt in $(seq 1 90); do
+            if curl -fsS "http://127.0.0.1:5173/studio.html" >/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          test "$ready" -eq 1
+          node scripts/capture-infinite-fabric-showcase.mjs
+      - name: Assemble the production demonstration product
+        env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          SHOWCASE_BUILD_ROOT: docs/game
+          SHOWCASE_CAPTURE_DIR: showcase-capture
+          SHOWCASE_OUTPUT_ROOT: axm-infinite-fabric-showcase-preview
+        run: node scripts/assemble-infinite-fabric-showcase.mjs
+      - name: Execute the portable package and verify its custody
+        env:
+          SHOWCASE_OUTPUT_ROOT: axm-infinite-fabric-showcase-preview
+        run: node scripts/verify-infinite-fabric-showcase-package.mjs
+      - name: Upload the complete showcase, Foundry, capture matrix, and receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: axm-infinite-fabric-showcase-preview
+          path: |
+            axm-infinite-fabric-showcase-preview.zip
+            axm-infinite-fabric-showcase-preview.zip.sha256
+            axm-ininite-fabric-showcase-preview.release.json
+            axm-infinite-fabric-showcase-preview.verification.json
+            showcase-capture
+            showcase-vite.log
+            test-results
+          if-no-files-found: error
+          retention-days: 30
