@@ -18,7 +18,9 @@
     "estate:validate": "node scripts/local-estate/estate-tools.mjs validate-lock --lock estate/estate.lock.json",
     "estate:contract": "vitest run tests/world/local-estate-contract.test.ts",
     "estate:status": "node scripts/estate/generate-current-status.mjs",
-    "performance:audit": "node scripts/performance/audit-static-build.mjs --build docs/game --budgets docs/performance/RODOH_PERFORMANCE_BUDGETS.json"
+    "performance:audit": "node scripts/performance/audit-static-build.mjs --build docs/game --budgets docs/performance/RODOH_PERFORMANCE_BUDGETS.json",
+    "world-forge:plan": "vite-node scripts/world-forge/emit-plan.ts",
+    "world-forge:audit": "vite-node scripts/world-forge/audit-pack.ts"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",
@@ -38,6 +40,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",
+    "vite-node": "^2.1.9",
     "vitest": "^2.1.5"
   }
 }
