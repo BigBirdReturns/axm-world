@@ -27,5 +27,8 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Scaffold circulation
+        run: npm run scaffold:check
+
       - name: Test
         run: npm test
