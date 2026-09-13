@@ -1,6 +1,11 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { validateWorldExpressionPack, type WorldForgePlan } from "../../src/world/forge/index.js";
+import {
+  validateWorldExpressionPack,
+  validateWorldExpressionPackV2,
+  type WorldForgePlan,
+  type WorldForgePlanV2,
+} from "../../src/world/forge/index.js";
 import { readContainedFile, readReceiptFile } from "./receipt-files.js";
 
 const args = process.argv.slice(2);
@@ -21,8 +26,7 @@ function parseGlb(bytes: Buffer, label: string): Record<string, unknown> {
   if (bytes.readUInt32LE(8) !== bytes.length) fail(`${label} declares the wrong GLB byte length`);
   const jsonLength = bytes.readUInt32LE(12);
   if (bytes.readUInt32LE(16) !== 0x4e4f534a) fail(`${label} has no leading JSON chunk`);
-  const jsonEnd = 20 + jsonLength;
-  if (jsonEnd > bytes.length) fail(`${label} has a truncated JSON chunk`);
+  const jsonEnd = 20 + jsonLength;  if (jsonEnd > bytes.length) fail(`${label} has a truncated JSON chunk`);
   const text = bytes.toString("utf8", 20, jsonEnd).replace(/[\u0000 ]+$/g, "");
   const json = JSON.parse(text) as Record<string, unknown>;
   const meshes = json.meshes;
@@ -51,8 +55,7 @@ function assertSvg(bytes: Buffer, label: string): void {
   if (!/<svg\b/i.test(text) || !/\bviewBox\s*=/i.test(text) || !/<title\b/i.test(text) || !/<desc\b/i.test(text)) {
     fail(`${label} lacks SVG root, viewBox, title, or description metadata`);
   }
-  if (/<script\b|<foreignObject\b|\son[a-z]+\s*=/i.test(text)) fail(`${label} contains executable SVG content`);
-  if (/\b(?:href|xlink:href|src)\s*=\s*["'](?:https?:)?\/\//i.test(text)) fail(`${label} contains a remote SVG reference`);
+  if (/<script\b|<foreignObject\b|\son[a-z]+\s*=/i.test(text)) fail(`${label} contains executable SVG content`);  if (/\b(?:href|xlink:href|src)\s*=\s*["'](?:https?:)?\/\//i.test(text)) fail(`${label} contains a remote SVG reference`);
 }
 
 const planArg = option("--plan");
@@ -61,9 +64,11 @@ const rootArg = option("--root");
 if (!planArg || !packArg || !rootArg) {
   fail("Usage: world-forge:audit -- --plan <plan.json> --pack <pack.json> --root <asset-root>");
 }
-const plan = JSON.parse(readFileSync(resolve(planArg), "utf8")) as WorldForgePlan;
+const plan = JSON.parse(readFileSync(resolve(planArg), "utf8")) as WorldForgePlan | WorldForgePlanV2;
 const packValue = JSON.parse(readFileSync(resolve(packArg), "utf8"));
-const structural = validateWorldExpressionPack(packValue, plan, "complete");
+const structural = plan.format === "rodoh-world-forge-plan/2"
+  ? validateWorldExpressionPackV2(packValue, plan, "complete")
+  : validateWorldExpressionPack(packValue, plan, "complete");
 if (!structural.ok || !structural.pack) fail(structural.errors.join("\n"));
 const root = resolve(rootArg);
 
@@ -78,7 +83,6 @@ console.log(JSON.stringify({
   format: structural.pack.format,
   cartridgeDigest: structural.pack.cartridgeDigest,
   planDigest: structural.pack.planDigest,
-  assets: structural.pack.assets.length,
-  assetRoot: root,
+  assets: structural.pack.assets.length,  assetRoot: root,
   status: "pass",
 }, null, 2));
