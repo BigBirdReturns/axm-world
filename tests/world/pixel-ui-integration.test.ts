@@ -168,11 +168,13 @@ describe("Rodoh pixel-ui integration", () => {
 
   it("the five-beat experience receives one stable Arc world instance", () => {
     const host = read("src/world/WorldHost.tsx");
-    expect(host).toContain("const world = useArcWorld(cartridge)");
-    expect(host).toContain("<RuntimeRouter world={world} onExit={onExit}");
+    expect(host).toContain("<RuntimeRouter {...props}");
     const router = read("src/world/runtime/RuntimeRouter.tsx");
-    expect(router).toContain("<ExperienceHost world={world}");
-    expect(router).toContain("<ShellRuntime");
+    expect(router).toContain("const world = useArcWorld(cartridge)");
+    expect(router).toContain("<SimulationRuntime world={world} onExit={onExit}");
+    const simulation = read("src/world/runtime/SimulationRuntime.tsx");
+    expect(simulation).toContain("<ExperienceHost world={world}");
+    expect(simulation).toContain("<ShellRuntime");
     expect(host).not.toContain("key=");
   });
 
