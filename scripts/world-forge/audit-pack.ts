@@ -1,7 +1,7 @@
-import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
-import { isAbsolute, resolve, relative } from "node:path";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { validateWorldExpressionPack, type WorldForgePlan } from "../../src/world/forge/index.js";
+import { readContainedFile, readReceiptFile } from "./receipt-files.js";
 
 const args = process.argv.slice(2);
 function option(name: string): string | null {
@@ -14,16 +14,6 @@ function option(name: string): string | null {
 function fail(message: string): never {
   console.error(message);
   process.exit(1);
-}
-function sha256(bytes: Buffer): string {
-  return createHash("sha256").update(bytes).digest("hex");
-}
-function contained(root: string, path: string): string {
-  if (isAbsolute(path)) fail(`Receipt path must be relative: ${path}`);
-  const absolute = resolve(root, path);
-  const rel = relative(root, absolute);
-  if (rel.startsWith("..") || isAbsolute(rel)) fail(`Receipt path escapes asset root: ${path}`);
-  return absolute;
 }
 function parseGlb(bytes: Buffer, label: string): Record<string, unknown> {
   if (bytes.length < 20 || bytes.toString("ascii", 0, 4) !== "glTF") fail(`${label} is not a GLB file`);
@@ -78,17 +68,11 @@ if (!structural.ok || !structural.pack) fail(structural.errors.join("\n"));
 const root = resolve(rootArg);
 
 for (const asset of structural.pack.assets) {
-  const assetPath = contained(root, asset.path);
-  const previewPath = contained(root, asset.previewPath);
-  if (!existsSync(assetPath)) fail(`Missing asset: ${asset.path}`);
-  if (!existsSync(previewPath)) fail(`Missing preview: ${asset.previewPath}`);
-  const bytes = readFileSync(assetPath);
-  if (bytes.length !== asset.bytes) fail(`Byte length mismatch for ${asset.path}`);
-  if (sha256(bytes) !== asset.sha256) fail(`SHA-256 mismatch for ${asset.path}`);
+  const bytes = readReceiptFile(root, asset);
   if (asset.mediaType === "model/gltf-binary") parseGlb(bytes, asset.path);
   else if (asset.mediaType === "image/png") assertPng(bytes, asset.path);
   else if (asset.mediaType === "image/svg+xml") assertSvg(bytes, asset.path);
-  assertPng(readFileSync(previewPath), asset.previewPath);
+  assertPng(readContainedFile(root, asset.previewPath), asset.previewPath);
 }
 console.log(JSON.stringify({
   format: structural.pack.format,
