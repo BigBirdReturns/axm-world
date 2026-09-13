@@ -1,95 +1,32 @@
-import { useCallback, useMemo, useState } from "react";
-import type { ArcWorld } from "../useArcWorld.js";
-import { useArcInteraction } from "../useArcInteraction.js";
-import { ExperienceHost } from "../experience/ExperienceHost.js";
-import { Shell } from "../shell/Shell.js";
-import { isCostumeId, loadCostume, type CostumeId } from "../presentation-prefs.js";
-import { programForCartridge } from "../program-of-record.js";
-import {
-  RODOH_EXPERIENCE_EXTENSION,
-  RODOH_RUNTIME_EXTENSION,
-  rodohRuntimeExtensionValue,
-  rodohRuntimeMemory,
-  type RodohRuntimeMemory,
-} from "../portable-run.js";
-import { checkpointKey } from "../experience/checkpoint.js";
+import type { WorldHostProps } from "../WorldHost.js";
+import { useArcWorld } from "../useArcWorld.js";
+import { SequenceHost } from "../sequence/SequenceHost.js";
+import { SimulationRuntime } from "./SimulationRuntime.js";
+import { RuntimeRefusal } from "./RuntimeRefusal.js";
+import { resolveRuntimeHost, type RuntimeSelection } from "./host-registry.js";
 
-interface Props {
-  world: ArcWorld;
-  onExit: () => void;
+// Retain the public helper for existing callers; memory is simulation-specific.
+export { initialRuntimeMemory } from "./SimulationRuntime.js";
+
+function SimulationHost({ cartridge, onExit }: WorldHostProps): JSX.Element {
+  const world = useArcWorld(cartridge);
+  return <SimulationRuntime world={world} onExit={onExit} />;
 }
 
-export function initialRuntimeMemory(world: ArcWorld): RodohRuntimeMemory {
-  const restored = rodohRuntimeMemory(world.extensions);
-  if (restored) return restored;
-  const preferred = world.cartridge.manifest.preferredCostume;
-  const representation: CostumeId = isCostumeId(preferred) ? preferred : loadCostume(world.arc);
-  // Entry direction is presentation metadata bound to the cartridge's computed
-  // authored identity. A same-id import cannot inherit Program 001 direction.
-  const program = programForCartridge(world.cartridge);
-  // The guided opening stays the holder's route for as long as its checkpoint
-  // exists: the first recorded resolution must not eject a reload into the
-  // shell while the experience still holds an unfinished moment (a required
-  // reward choice survives reload — the checkpoint is the durable evidence).
-  // Leaving guided is an explicit decision (enterShell records mode "shell"
-  // above via the runtime extension), never a ledger side effect.
-  const guidedCheckpoint = world.extensions[RODOH_EXPERIENCE_EXTENSION] !== undefined
-    || (typeof localStorage !== "undefined"
-      && localStorage.getItem(checkpointKey(world.cartridgeDigest)) !== null);
-  const guided = program?.entryExperience === "guided-first-contract"
-    && !world.arcComplete
-    && (world.ledger.entries.length === 0 || guidedCheckpoint);
-  return { version: 1, mode: guided ? "guided" : "shell", representation };
-}
+type SelectedHostProps = WorldHostProps & { selection: RuntimeSelection };
 
-function ShellRuntime(props: {
-  world: ArcWorld;
-  onExit: () => void;
-  memory: RodohRuntimeMemory;
-  onRepresentationChange: (id: CostumeId) => void;
-}): JSX.Element {
-  const interaction = useArcInteraction(props.world);
-  return (
-    <Shell
-      world={props.world}
-      interaction={interaction}
-      onExit={props.onExit}
-      initialCostumeId={props.memory.representation}
-      onCostumeChange={props.onRepresentationChange}
-    />
-  );
-}
+const HOSTS = {
+  simulation: SimulationHost,
+  "canonical-story": ({ selection, ...props }: SelectedHostProps) => {
+    if (selection.host !== "canonical-story") throw new Error("Incompatible runtime host selection.");
+    return <SequenceHost {...props} story={selection.story} timedMedia={selection.timedMedia} />;
+  },
+} satisfies Record<RuntimeSelection["host"], (props: SelectedHostProps) => JSX.Element>;
 
-/** Composition root for one continuing run. The guided opening teaches the
- * object; the reusable shell then carries the same ArcWorld through every
- * representation and the remainder of the campaign. */
-export function RuntimeRouter({ world, onExit }: Props): JSX.Element {
-  const initial = useMemo(() => initialRuntimeMemory(world), [world.cartridgeDigest]);
-  const [memory, setMemory] = useState<RodohRuntimeMemory>(initial);
-
-  const commitMemory = useCallback((next: RodohRuntimeMemory) => {
-    setMemory(next);
-    world.setExtension(RODOH_RUNTIME_EXTENSION, rodohRuntimeExtensionValue(next));
-  }, [world]);
-
-  const enterShell = useCallback(() => {
-    commitMemory({ version: 1, mode: "shell", representation: "hall" });
-  }, [commitMemory]);
-
-  const changeRepresentation = useCallback((representation: CostumeId) => {
-    commitMemory({ version: 1, mode: "shell", representation });
-  }, [commitMemory]);
-
-  if (memory.mode === "guided") {
-    return <ExperienceHost world={world} onExit={onExit} onEnterRuntime={enterShell} />;
-  }
-
-  return (
-    <ShellRuntime
-      world={world}
-      onExit={onExit}
-      memory={memory}
-      onRepresentationChange={changeRepresentation}
-    />
-  );
+/** Generic dispatch owns no simulation state, story cursor, or adjudication. */
+export function RuntimeRouter(props: WorldHostProps): JSX.Element {
+  const result = resolveRuntimeHost(props.cartridge.arc);
+  if (!result.ok) return <RuntimeRefusal {...result.refusal} onExit={props.onExit} />;
+  const Host = HOSTS[result.selection.host];
+  return <Host {...props} selection={result.selection} />;
 }
