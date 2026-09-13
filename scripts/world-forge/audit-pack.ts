@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, resolve, relative } from "node:path";
-import { validateWorldExpressionPack, type WorldForgePlan } from "../../src/world/forge/index.js";
+import { validateWorldExpressionPack, validateWorldExpressionPackV2, type WorldForgePlan, type WorldForgePlanV2 } from "../../src/world/forge/index.js";
 
 const args = process.argv.slice(2);
 function option(name: string): string | null {
@@ -71,9 +71,11 @@ const rootArg = option("--root");
 if (!planArg || !packArg || !rootArg) {
   fail("Usage: world-forge:audit -- --plan <plan.json> --pack <pack.json> --root <asset-root>");
 }
-const plan = JSON.parse(readFileSync(resolve(planArg), "utf8")) as WorldForgePlan;
+const plan = JSON.parse(readFileSync(resolve(planArg), "utf8")) as WorldForgePlan | WorldForgePlanV2;
 const packValue = JSON.parse(readFileSync(resolve(packArg), "utf8"));
-const structural = validateWorldExpressionPack(packValue, plan, "complete");
+const structural = plan.format === "rodoh-world-forge-plan/2"
+  ? validateWorldExpressionPackV2(packValue, plan, "complete")
+  : validateWorldExpressionPack(packValue, plan, "complete");
 if (!structural.ok || !structural.pack) fail(structural.errors.join("\n"));
 const root = resolve(rootArg);
 
