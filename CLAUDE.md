@@ -64,6 +64,8 @@ amending the constitution.
 ## Commands
 
 - `npm run check` — typecheck + vitest (CI gate).
+- `npm run scaffold:check` — offline circulation boundary and regression tests;
+  lifecycle and exception review: `docs/SCAFFOLD_LIFECYCLE.md`.
 - `npm run test:e2e` — Playwright receipts (desktop + mobile; NOT CI-gated).
 - `npm run dev` / `npm run build` — Vite; Pages deploys `docs/game` on main push.
 
