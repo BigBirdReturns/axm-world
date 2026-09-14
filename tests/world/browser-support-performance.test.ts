@@ -11,6 +11,9 @@ const VENDORED_ARC_COMMIT = /^commit:\s+([0-9a-f]{40})$/m.exec(
   readFileSync(resolve(ROOT, "src/engine/VENDORED_FROM"), "utf8"),
 )?.[1];
 if (!VENDORED_ARC_COMMIT) throw new Error("VENDORED_FROM does not name an Arc commit");
+const ESTATE_ARC = (JSON.parse(readFileSync(resolve(ROOT, "estate/estate.lock.json"), "utf8")) as {
+  repositories: { arc: { requiredCommit: string; productAuthorityCommit: string } };
+}).repositories.arc;
 
 function runNode(script: string, args: string[]) {
   return spawnSync(process.execPath, [script, ...args], { cwd: ROOT, encoding: "utf8" });
@@ -248,8 +251,8 @@ describe("browser support and performance custody", () => {
   });
   expect(status.repositories.arc).toMatchObject({
     vendoredCommit: VENDORED_ARC_COMMIT,
-    productAuthorityCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
-    releaseEvidenceCommit: "318faaab6fb1c4b0eefe66516d3573bdb8f97369",
+    productAuthorityCommit: ESTATE_ARC.productAuthorityCommit,
+    releaseEvidenceCommit: ESTATE_ARC.requiredCommit,
   });
   expect(status.repositories.world.commit).toBe(git("rev-parse", "HEAD"));
 });
@@ -258,7 +261,7 @@ it("rejects structurally incomplete pass receipts even when their commits are ex
   const estateRoot = mkdtempSync(join(tmpdir(), "rodoh-status-incomplete-"));
   const receipts = resolve(estateRoot, ".rodoh-estate/receipts");
   const exactWorld = git("rev-parse", "HEAD");
-  const exactArc = "318faaab6fb1c4b0eefe66516d3573bdb8f97369";
+  const exactArc = ESTATE_ARC.requiredCommit;
   writeReceipt(resolve(receipts, "windows-replication.json"), {
     format: "rodoh-windows-replication-receipt/1",
     status: "pass",

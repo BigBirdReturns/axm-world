@@ -25,7 +25,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ARC_LOCAL_ESTATE_REF: 318faaab6fb1c4b0eefe66516d3573bdb8f97369
   WORLD_REQUIRED_ANCESTOR: 466ead00a64af07e85d034ad3d6a6ebd7c3e4998
   SOURCE_DATE_EPOCH: '0'
 
@@ -43,11 +42,22 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
+      - name: Resolve exact Arc local-estate candidate
+        id: estate-lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          arc_ref="$(python3 -c "import json; print(json.load(open('axm-world/estate/estate.lock.json', encoding='utf-8'))['repositories']['arc']['requiredCommit'], end='')")"
+          vendored_ref="$(awk '/^commit:/ {print $2}' axm-world/src/engine/VENDORED_FROM)"
+          [[ "$arc_ref" =~ ^[0-9a-f]{40}$ ]]
+          test "$arc_ref" = "$vendored_ref"
+          echo "arc_ref=$arc_ref" >> "$GITHUB_OUTPUT"
+
       - name: Check out exact Arc local-estate candidate
         uses: actions/checkout@v4
         with:
           repository: BigBirdReturns/axm-arc
-          ref: ${{ env.ARC_LOCAL_ESTATE_REF }}
+          ref: ${{ steps.estate-lock.outputs.arc_ref }}
           path: axm-arc
           fetch-depth: 0
           show-progress: false
@@ -89,7 +99,7 @@ jobs:
             --output local-estate-receipt/vendored-plane.json \
             | tee local-estate-receipt/vendored-plane.log
           git -C axm-world merge-base --is-ancestor "$WORLD_REQUIRED_ANCESTOR" HEAD
-          test "$(git -C axm-arc rev-parse HEAD)" = "$ARC_LOCAL_ESTATE_REF"
+          test "$(git -C axm-arc rev-parse HEAD)" = "${{ steps.estate-lock.outputs.arc_ref }}"
 
       - name: Build both products twice and require identical trees
         run: |
@@ -176,11 +186,23 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
+      - name: Resolve exact Arc local-estate candidate
+        id: estate-lock
+        shell: pwsh
+        run: |
+          $lock = Get-Content -Raw .\axm-world\estate\estate.lock.json | ConvertFrom-Json
+          $arcRef = [string]$lock.repositories.arc.requiredCommit
+          $vendored = Get-Content .\axm-world\src\engine\VENDORED_FROM | Where-Object { $_ -match '^commit:\s+([0-9a-f]{40})$' }
+          if ($vendored.Count -ne 1) { throw 'VENDORED_FROM must name exactly one Arc commit.' }
+          $vendoredRef = ([regex]::Match([string]$vendored, '^commit:\s+([0-9a-f]{40})$')).Groups[1].Value
+          if ($arcRef -notmatch '^[0-9a-f]{40}$' -or $arcRef -ne $vendoredRef) { throw "Estate Arc $arcRef does not match vendored Arc $vendoredRef." }
+          "arc_ref=$arcRef" | Add-Content -Encoding utf8 $env:GITHUB_OUTPUT
+
       - name: Check out exact Arc local-estate candidate
         uses: actions/checkout@v4
         with:
           repository: BigBirdReturns/axm-arc
-          ref: ${{ env.ARC_LOCAL_ESTATE_REF }}
+          ref: ${{ steps.estate-lock.outputs.arc_ref }}
           path: axm-arc
           fetch-depth: 0
           show-progress: false

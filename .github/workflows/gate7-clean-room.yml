@@ -51,7 +51,9 @@ jobs:
           printf '%s\n' "$CANDIDATE_SHA" > gate7-clean-room-receipt/world-candidate-sha.txt
           cat src/engine/VENDORED_FROM > gate7-clean-room-receipt/arc-source-plane.txt
           cp cartridges/clean-room/manifest.json gate7-clean-room-receipt/clean-room-manifest.json
-          grep -F '4b07539a06d40b131591f1e9c7d5b90a96ceec31' src/engine/VENDORED_FROM
+          vendored_arc="$(awk '/^commit:/ {print $2}' src/engine/VENDORED_FROM)"
+          [[ "$vendored_arc" =~ ^[0-9a-f]{40}$ ]]
+          printf '%s\n' "$vendored_arc" > gate7-clean-room-receipt/arc-vendored-sha.txt
           git diff --check
       - name: Exact Arc provenance
         env:
