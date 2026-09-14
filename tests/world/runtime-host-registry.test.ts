@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { BUNDLED_CARTRIDGES, parseCartridge } from "../../src/world/cartridge.js";
 import { WorldHost } from "../../src/world/WorldHost.js";
 import { resolveRuntimeHost, selectRuntimeHost } from "../../src/world/runtime/host-registry.js";
+import { readRuntimeFamilyContract } from "../../src/engine/runtime-family.js";
 import { CANONICAL_STORY_EXTENSION_KEY } from "../../src/canonical-story/index.js";
 import { CANONICAL_STORY_TIMED_MEDIA_EXTENSION_KEY } from "../../src/canonical-story/timed-media.js";
 import { cartridgeFixture, storyFixture, timedMediaFixture } from "./aperture/fixtures.js";
@@ -27,15 +28,18 @@ describe("runtime host registry", () => {
     ]) expect(selectRuntimeHost(requirements)).toBeNull();
   });
 
-  it("routes every bundled and clean-room cartridge without changing authored law", () => {
+  it("routes every bundled and clean-room cartridge by authored runtime family without changing law", () => {
     for (const cartridge of [...BUNDLED_CARTRIDGES, cleanRoom]) {
       const before = JSON.stringify(cartridge);
-      expect(resolveRuntimeHost(cartridge.arc)).toEqual({ ok: true, selection: { host: "simulation" } });
-      expect(resolveRuntimeHost(structuredClone(cartridge.arc))).toEqual(resolveRuntimeHost(cartridge.arc));
+      const family = readRuntimeFamilyContract(cartridge.arc)?.family ?? null;
+      const expectedHost = family === "strategy-board" ? "strategy-board" : "simulation";
+      const resolved = resolveRuntimeHost(cartridge.arc);
+      expect(resolved).toMatchObject({ ok: true, selection: { host: expectedHost } });
+      expect(resolveRuntimeHost(structuredClone(cartridge.arc))).toEqual(resolved);
       expect(JSON.stringify(cartridge)).toBe(before);
       const renamed = structuredClone(cartridge.arc);
       renamed.meta.id = "unregistered-runtime-proof";
-      expect(resolveRuntimeHost(renamed)).toEqual(resolveRuntimeHost(cartridge.arc));
+      expect(resolveRuntimeHost(renamed)).toEqual(resolved);
     }
   });
 

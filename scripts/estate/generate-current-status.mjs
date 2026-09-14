@@ -186,8 +186,12 @@ if (typeof arcPackageVersion !== "string" || arcPackageVersion.length === 0) {
   fail("estate.lock.json does not name the Arc package version.");
 }
 
+const bundledProducts = parseBundledDigests(text("src/world/bundled-digests.ts"));
 const capabilities = {
-  fiveFirstPartyPrograms: Object.keys(parseBundledDigests(text("src/world/bundled-digests.ts"))).length === 5,
+  firstPartyProgramsPinned:
+    Object.keys(bundledProducts).length > 0 &&
+    Object.keys(lock.products).filter((id) => id !== "orchard-at-low-tide").length === Object.keys(bundledProducts).length &&
+    Object.entries(bundledProducts).every(([id, digest]) => lock.products[id] === digest),
   cleanRoomCartridge: has("cartridges/clean-room/orchard-at-low-tide.arc.json"),
   secondRecension: has("src/godscar/second-recension.ts") && has("docs/SECOND_RECENSION_BOOKS_I-III_ALIGNMENT.md"),
   localEstateReplication: has("RODOH.cmd") && has("scripts/local-estate/Invoke-RodohEstate.ps1"),
@@ -241,8 +245,8 @@ reconcileReceipt("Local operator", localOperator);
 reconcileReceipt("Windows replication", windowsReplication);
 reconcileReceipt("NVDA and Edge", nvdaEdge);
 
-if (vendored.commit !== arcProductAuthority) {
-  blockers.push(`Vendored Arc product authority ${vendored.commit} does not match estate lock ${arcProductAuthority}.`);
+if (vendored.commit !== arcReleaseEvidence) {
+  blockers.push(`Vendored Arc source ${vendored.commit} does not match exact estate head ${arcReleaseEvidence}.`);
 }
 if (!Object.values(capabilities).every(Boolean)) blockers.push("One or more required estate capabilities are not present in this checkout.");
 

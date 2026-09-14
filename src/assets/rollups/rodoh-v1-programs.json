@@ -136,6 +136,37 @@
       "releaseBoundary": "The motif set exposes Pocket, faction, evidence, and consequence relations already carried by Arc; World does not infer missing canon."
     },
     {
+      "id": "program-006-ilyon-crown-tides",
+      "name": "Program 006: Ilyon: Crown Tides",
+      "cartridgeId": "ilyon-crown-tides",
+      "cartridgeDigest": "cart1_6a238e5e1d5a0285138f54792c971d469050071c157ecb83ab8e5f7bd0a0ec3c",
+      "status": "production-dignity-complete",
+      "historicalManifests": [
+        "docs/design/ILYON_ASSET_BIBLE.md",
+        "src/assets/ilyon/observatory/provenance.json"
+      ],
+      "assetRoots": [
+        "src/assets/ilyon"
+      ],
+      "presentationRoots": [
+        "src/world/runtime",
+        "src/world/themes/ilyon"
+      ],
+      "requiredRoles": [
+        "strategy-board spatial legibility",
+        "Ilyon cast and world motifs",
+        "ending-race and milestone stakes",
+        "action, ownership, and reaction state"
+      ],
+      "denseDescriptions": [],
+      "acceptance": [
+        "tests/engine/ilyon-crown-tides.test.ts",
+        "tests/world/strategy-board-play-surface.test.ts",
+        "tests/world/runtime-host-registry.test.ts"
+      ],
+      "releaseBoundary": "Crown Tides reuses governed Ilyon visual material through the generic Strategy Board host; presentation never creates an action, outcome, or ending."
+    },
+    {
       "id": "program-004-lamp-district",
       "name": "Program 004: The Lamp District",
       "cartridgeId": "lamp-district",

@@ -20,6 +20,7 @@
     "first-charter",
     "karazhan",
     "kind-gods-of-ilyon",
+    "ilyon-crown-tides",
     "lamp-district",
     "relief-circuit"
   ],
@@ -27,7 +28,7 @@
     {
       "file": "src/world/bundled-digests.ts",
       "rule": "cartridge-dispatch",
-      "sha256": "3132154d705cb1557933a40aa370e69e4f3c915b253e88230704041ffec4adee",
+      "sha256": "b588c8699c0c767b13f9c907dd7ad33c95c0dcd0db8cee2646fba84c4d26d1d6",
       "owner": "AXM World maintainers",
       "reason": "Golden authored digest data, not executable title routing.",
       "removeWhen": "Replace with a promoted generated manifest while retaining exact digest conformance."

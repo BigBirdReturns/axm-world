@@ -6,7 +6,7 @@
 import type { Arc, AuthoredOpening, TrustLabel } from "../engine/types.js";
 import { validateArc } from "../engine/schema.js";
 import { canonicalizeArc } from "../engine/cartridge-digest.js";
-import { FIRST_CHARTER, KARAZHAN, KIND_GODS_OF_ILYON, LAMP_DISTRICT, RELIEF_CIRCUIT } from "../arcs/index.js";
+import { FIRST_CHARTER, ILYON_CROWN_TIDES, KARAZHAN, KIND_GODS_OF_ILYON, LAMP_DISTRICT, RELIEF_CIRCUIT } from "../arcs/index.js";
 import { isCostumeId, type CostumeId } from "./presentation-prefs.js";
 
 export type TrustLevel = TrustLabel;
@@ -195,6 +195,12 @@ export const KIND_GODS_OF_ILYON_CARTRIDGE: Cartridge = {
   people: KIND_GODS_OF_ILYON_PEOPLE,
 };
 
+export const ILYON_CROWN_TIDES_CARTRIDGE: Cartridge = {
+  manifest: manifestForArc(ILYON_CROWN_TIDES, "bundled"),
+  arc: ILYON_CROWN_TIDES,
+  people: KIND_GODS_OF_ILYON_PEOPLE,
+};
+
 export const LAMP_DISTRICT_CARTRIDGE: Cartridge = {
   manifest: manifestForArc(LAMP_DISTRICT, "bundled", "underworld"),
   arc: LAMP_DISTRICT,
@@ -211,6 +217,7 @@ export const BUNDLED_CARTRIDGES: Cartridge[] = [
   FIRST_CHARTER_CARTRIDGE,
   KARAZHAN_CARTRIDGE,
   KIND_GODS_OF_ILYON_CARTRIDGE,
+  ILYON_CROWN_TIDES_CARTRIDGE,
   LAMP_DISTRICT_CARTRIDGE,
   RELIEF_CIRCUIT_CARTRIDGE,
 ];

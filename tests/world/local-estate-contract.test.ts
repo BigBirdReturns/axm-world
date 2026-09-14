@@ -39,7 +39,7 @@ describe("local estate replication contract", () => {
     expect(lock.repositories.arc).toMatchObject({
       branch: "main",
       requiredAncestor: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
-      requiredCommit: "6fe9f7d45f78b19d4ca549e1f1ba1585af903ae0",
+      requiredCommit: "0b2a527b7bab1404aa5c31f5e07ff7d9000d21e3",
       productAuthorityCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
     });
     expect(lock.repositories.world.branch).toBe("main");
@@ -52,6 +52,7 @@ describe("local estate replication contract", () => {
       "first-charter": "cart1_d8888842c6a7a7ba758a8eea567c71fcc8f998ff8af75208ed44ef4eee74edeb",
       karazhan: "cart1_776adac1b9372d0331ddd774af8b94c80b46bd6bbc4763334cf01def46111144",
       "kind-gods-of-ilyon": "cart1_17054e128dc6fd517fc47f163d92da58d72f9302a84d9d3b04589083afc10f0e",
+      "ilyon-crown-tides": "cart1_6a238e5e1d5a0285138f54792c971d469050071c157ecb83ab8e5f7bd0a0ec3c",
       "lamp-district": "cart1_05530ae780a30f2f79fb0ddf030ba0e92321d736f146e8e16ddb325ae948b23e",
       "relief-circuit": "cart1_15a9f3792ff8a68948053a06cefcbf586e9960158ca051a187e1ab341b7a2e65",
       "orchard-at-low-tide": "cart1_3be11e31edc0d7674abf930aad1027281089ca5c2ec2a34f4edb83168b6b86bb",

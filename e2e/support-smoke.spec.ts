@@ -58,7 +58,7 @@ test("supported browser can boot, receive an exact run, and render neutral state
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await expect(page.getByTestId("rodoh-cartridge-bay")).toBeVisible();
-  await expect(page.locator('[data-testid^="cartridge-entry-"]')).toHaveCount(5);
+  await expect(page.locator('[data-testid^="cartridge-entry-"]')).toHaveCount(6);
 
   await page.getByTestId("open-cartridge").setInputFiles(ORCHARD_RUN);
   await expect(page.getByTestId("import-success")).toContainText(/Exact run restored/i);

@@ -12,9 +12,9 @@
     "rodoh-original-asset-provenance/1"
   ],
   "summary": {
-    "programs": 6,
-    "assets": 84,
-    "bytes": 382067,
+    "programs": 7,
+    "assets": 91,
+    "bytes": 430858,
     "svgAssets": 23,
     "vectorElements": 1531,
     "longDescriptions": 4,
@@ -148,6 +148,37 @@
         "e2e/production-asset-wave-one.spec.ts"
       ],
       "releaseBoundary": "The motif set exposes Pocket, faction, evidence, and consequence relations already carried by Arc; World does not infer missing canon."
+    },
+    {
+      "id": "program-006-ilyon-crown-tides",
+      "name": "Program 006: Ilyon: Crown Tides",
+      "cartridgeId": "ilyon-crown-tides",
+      "cartridgeDigest": "cart1_6a238e5e1d5a0285138f54792c971d469050071c157ecb83ab8e5f7bd0a0ec3c",
+      "status": "production-dignity-complete",
+      "historicalManifests": [
+        {
+          "path": "docs/design/ILYON_ASSET_BIBLE.md",
+          "format": "human-authority"
+        },
+        {
+          "path": "src/assets/ilyon/observatory/provenance.json",
+          "format": "axm-runtime-asset-provenance/1"
+        }
+      ],
+      "assetCount": 17,
+      "denseDescriptions": [],
+      "requiredRoles": [
+        "strategy-board spatial legibility",
+        "Ilyon cast and world motifs",
+        "ending-race and milestone stakes",
+        "action, ownership, and reaction state"
+      ],
+      "acceptance": [
+        "tests/engine/ilyon-crown-tides.test.ts",
+        "tests/world/strategy-board-play-surface.test.ts",
+        "tests/world/runtime-host-registry.test.ts"
+      ],
+      "releaseBoundary": "Crown Tides reuses governed Ilyon visual material through the generic Strategy Board host; presentation never creates an action, outcome, or ending."
     },
     {
       "id": "program-004-lamp-district",
@@ -429,7 +460,8 @@
     {
       "path": "src/assets/ilyon/observatory/aster-neral-portrait.svg",
       "owners": [
-        "program-003-kind-gods-of-ilyon"
+        "program-003-kind-gods-of-ilyon",
+        "program-006-ilyon-crown-tides"
       ],
       "kind": "svg",
       "bytes": 3935,
@@ -445,7 +477,8 @@
     {
       "path": "src/assets/ilyon/observatory/ilyon-observatory-environment.svg",
       "owners": [
-        "program-003-kind-gods-of-ilyon"
+        "program-003-kind-gods-of-ilyon",
+        "program-006-ilyon-crown-tides"
       ],
       "kind": "svg",
       "bytes": 5548,
@@ -461,7 +494,8 @@
     {
       "path": "src/assets/ilyon/observatory/ilyon-observatory-foreground.svg",
       "owners": [
-        "program-003-kind-gods-of-ilyon"
+        "program-003-kind-gods-of-ilyon",
+        "program-006-ilyon-crown-tides"
       ],
       "kind": "svg",
       "bytes": 2318,
@@ -477,7 +511,8 @@
     {
       "path": "src/assets/ilyon/observatory/provenance.json",
       "owners": [
-        "program-003-kind-gods-of-ilyon"
+        "program-003-kind-gods-of-ilyon",
+        "program-006-ilyon-crown-tides"
       ],
       "kind": "json",
       "bytes": 2121,
@@ -1307,6 +1342,118 @@
       "executableSvg": false
     },
     {
+      "path": "src/world/runtime/RuntimeRefusal.tsx",
+      "owners": [
+        "program-006-ilyon-crown-tides"
+      ],
+      "kind": "tsx",
+      "bytes": 1139,
+      "sha256": "69a208f6e9853f77506753e082051cc4f7376d50c6ca284080843059220ca714",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/runtime/RuntimeRouter.tsx",
+      "owners": [
+        "program-006-ilyon-crown-tides"
+      ],
+      "kind": "tsx",
+      "bytes": 1955,
+      "sha256": "3b464b86d0ddc6657d8eb5497564eae27ec802fbeb14dbc765009c38ffac979d",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/runtime/SimulationRuntime.tsx",
+      "owners": [
+        "program-006-ilyon-crown-tides"
+      ],
+      "kind": "tsx",
+      "bytes": 3841,
+      "sha256": "56b5197ba5eb941522329d1802952e56d75beb3b4dadc3d6e302089f6f989345",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/runtime/StrategyBoardRuntime.tsx",
+      "owners": [
+        "program-006-ilyon-crown-tides"
+      ],
+      "kind": "tsx",
+      "bytes": 20371,
+      "sha256": "6ea29e3c5f10d370cfde8e2fcc581827347e00875ba876880ec142ca99e832eb",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/runtime/host-registry.ts",
+      "owners": [
+        "program-006-ilyon-crown-tides"
+      ],
+      "kind": "ts",
+      "bytes": 6413,
+      "sha256": "3d26b3bfb61152d0e5b496c380677c136be60cfe7de8e179e81844f6f6a1f20f",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/runtime/strategy-board-runtime.css",
+      "owners": [
+        "program-006-ilyon-crown-tides"
+      ],
+      "kind": "css",
+      "bytes": 8484,
+      "sha256": "c9979174800699d5b0b067e8e30fc05a0dba2a979e95285bb2c7822d23ed029a",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/runtime/strategy-board-session.ts",
+      "owners": [
+        "program-006-ilyon-crown-tides"
+      ],
+      "kind": "ts",
+      "bytes": 6588,
+      "sha256": "cc7a9812810e348d0d58b12a4aa2e6a777898c26c213442030211a9d6ae3ad37",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
       "path": "src/world/themes/first-charter/first-charter.css",
       "owners": [
         "program-001-first-charter"
@@ -1405,7 +1552,8 @@
     {
       "path": "src/world/themes/ilyon/ilyon.css",
       "owners": [
-        "program-003-kind-gods-of-ilyon"
+        "program-003-kind-gods-of-ilyon",
+        "program-006-ilyon-crown-tides"
       ],
       "kind": "css",
       "bytes": 12891,
@@ -1421,7 +1569,8 @@
     {
       "path": "src/world/themes/ilyon/index.ts",
       "owners": [
-        "program-003-kind-gods-of-ilyon"
+        "program-003-kind-gods-of-ilyon",
+        "program-006-ilyon-crown-tides"
       ],
       "kind": "ts",
       "bytes": 99,
@@ -1437,7 +1586,8 @@
     {
       "path": "src/world/themes/ilyon/motif-icons.tsx",
       "owners": [
-        "program-003-kind-gods-of-ilyon"
+        "program-003-kind-gods-of-ilyon",
+        "program-006-ilyon-crown-tides"
       ],
       "kind": "tsx",
       "bytes": 9190,
@@ -1453,7 +1603,8 @@
     {
       "path": "src/world/themes/ilyon/portrait-icons.tsx",
       "owners": [
-        "program-003-kind-gods-of-ilyon"
+        "program-003-kind-gods-of-ilyon",
+        "program-006-ilyon-crown-tides"
       ],
       "kind": "tsx",
       "bytes": 10494,
@@ -1469,7 +1620,8 @@
     {
       "path": "src/world/themes/ilyon/production-assets.css",
       "owners": [
-        "program-003-kind-gods-of-ilyon"
+        "program-003-kind-gods-of-ilyon",
+        "program-006-ilyon-crown-tides"
       ],
       "kind": "css",
       "bytes": 3405,
@@ -1485,7 +1637,8 @@
     {
       "path": "src/world/themes/ilyon/theme.ts",
       "owners": [
-        "program-003-kind-gods-of-ilyon"
+        "program-003-kind-gods-of-ilyon",
+        "program-006-ilyon-crown-tides"
       ],
       "kind": "ts",
       "bytes": 2016,
