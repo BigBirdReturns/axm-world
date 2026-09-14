@@ -10,6 +10,7 @@ SHARED_PATHS=(
   "src/godscar"
   "src/dark-tomb"
   "src/common-ship"
+  "src/burn-protocol"
   "src/source-planes"
   "tests/engine"
   "tests/fixtures"

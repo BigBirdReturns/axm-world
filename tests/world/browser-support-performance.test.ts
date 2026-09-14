@@ -7,6 +7,10 @@ import { describe, expect, it } from "vitest";
 const ROOT = resolve(import.meta.dirname, "../..");
 const STATIC_AUDIT = resolve(ROOT, "scripts/performance/audit-static-build.mjs");
 const STATUS_GENERATOR = resolve(ROOT, "scripts/estate/generate-current-status.mjs");
+const VENDORED_ARC_COMMIT = /^commit:\s+([0-9a-f]{40})$/m.exec(
+  readFileSync(resolve(ROOT, "src/engine/VENDORED_FROM"), "utf8"),
+)?.[1];
+if (!VENDORED_ARC_COMMIT) throw new Error("VENDORED_FROM does not name an Arc commit");
 
 function runNode(script: string, args: string[]) {
   return spawnSync(process.execPath, [script, ...args], { cwd: ROOT, encoding: "utf8" });
@@ -243,7 +247,7 @@ describe("browser support and performance custody", () => {
     arcPackageVersion: "1.0.0",
   });
   expect(status.repositories.arc).toMatchObject({
-    vendoredCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
+    vendoredCommit: VENDORED_ARC_COMMIT,
     productAuthorityCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
     releaseEvidenceCommit: "318faaab6fb1c4b0eefe66516d3573bdb8f97369",
   });

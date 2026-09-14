@@ -196,7 +196,7 @@ function ProgramPlaque({ entry, cartridge, program, save, legacySave, digest, on
           variant="primary"
           data-testid={`play-cartridge-${entry.arc.meta.id}`}
           onClick={onEnter}
-          style={{ minHeight: 40, padding: "6px 16px", display: "flex", alignItems: "center", gap: 7, fontFamily: condensed, fontWeight: 700, fontSize: 15 }}
+          style={{ minHeight: 45, padding: "6px 16px", display: "flex", alignItems: "center", gap: 7, fontFamily: condensed, fontWeight: 700, fontSize: 15 }}
         >
           <PixelIcon name={resumable ? "recorded" : "available"} />
           <span>{resumable ? t("boot.resume") : t("boot.enter")} →</span>
@@ -311,7 +311,7 @@ function ClassicRow({ entry, cartridge, digest, save, legacySave, onEnter, onRem
         <button
           data-testid={`play-cartridge-${entry.arc.meta.id}`}
           onClick={onEnter}
-          style={{ background: "rgba(11,10,8,0.72)", border: "1px solid currentColor", borderRadius: 4, cursor: "pointer", fontFamily: condensed, fontWeight: 700, fontSize: 16, color: "#b01c18", minHeight: 44, minWidth: 96, padding: "8px 12px", position: "relative", zIndex: 3, touchAction: "manipulation" }}
+          style={{ background: "rgba(11,10,8,0.72)", border: "1px solid currentColor", borderRadius: 4, cursor: "pointer", fontFamily: condensed, fontWeight: 700, fontSize: 16, color: "#b01c18", minHeight: 45, minWidth: 96, padding: "8px 12px", position: "relative", zIndex: 3, touchAction: "manipulation" }}
         >
           {t("boot.enter")} →
         </button>

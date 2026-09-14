@@ -14,6 +14,7 @@ These paths are byte-identical copies of the Arc commit recorded in
 - `src/godscar/` — Book I Pocket source grammar and compiler;
 - `src/dark-tomb/` — Book II Dark Tomb source grammar and compiler;
 - `src/common-ship/` — Book III Common Ship source grammar and compiler;
+- `src/burn-protocol/` — canonical Burn Protocol source grammar and compiler used by the registered source plane;
 - `src/source-planes/` — the canonical registry joining formats, extension keys, starters, validators, compilers, and exact recovery;
 - `tests/engine/`, `tests/fixtures/`, `tests/godscar/`, `tests/dark-tomb/`, `tests/common-ship/`, and `tests/source-planes/` — the shared conformance surface;
 - `cartridges/` — published creator sources and compiled portable examples.

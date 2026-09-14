@@ -64,6 +64,7 @@ describe("presentation projection and World Forge v2", () => {
 
   it("only offers a coherent authored spend lever and hides private state", () => {
     const arc = structuredClone(FIRST_CHARTER);
+    arc.meta.engineVersion = "1.3.0";
     const challenge = arc.challenges[0]!;
     challenge.resourceSpend = { maxTokens: 2, minSteadiness: 0.5, steadinessPerToken: 0.2 };
     arc.stateDefinitions = [{ id: "secret", label: "Private", description: "Hidden fact", kind: "boolean", initial: false, visibility: "private" }];

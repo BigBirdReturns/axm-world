@@ -59,7 +59,7 @@
     {
       "file": "src/world/components/CartridgeBayCard.tsx",
       "rule": "cartridge-dispatch",
-      "sha256": "4d99788eb4b893bd5e970379daadc20d7b8d7715e8e787c856ccf5c92f942a5b",
+      "sha256": "2ff955564016bd0a1eb83f0064b70101a43502243cbc4e1a7858728650962989",
       "owner": "AXM World maintainers",
       "reason": "Existing Waking Tower visual dignity seam in the legacy bay row.",
       "removeWhen": "Move the row styling into the promoted expression/theme contract with unknown-cartridge coverage."

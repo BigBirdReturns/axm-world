@@ -43,6 +43,7 @@ export function compileWorldForgePlanV2(value: unknown): WorldForgePlanV2 {
     }
     const select = <T extends { id: string }>(entries: T[]) => entries.filter((entry) => ids.has(entry.id));
     const requirements = {
+      runtime: manifest.runtime,
       contexts: select(manifest.contexts), verbs: select(manifest.verbs),
       interactables: select(manifest.interactables), signals: select(manifest.signals),
       feedback: select(manifest.feedback), terminalConditions: select(manifest.terminalConditions),

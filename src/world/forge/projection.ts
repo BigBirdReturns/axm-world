@@ -3,17 +3,34 @@ import type { Arc } from "../../engine/types.js";
 import "../../engine/abi13.js";
 import { cartridgeDigest } from "../../engine/cartridge-digest.js";
 import { spendLeverFor } from "../encounter/compile-encounter.js";
+import { RuntimeFamilyContractSchema, selectRuntimeFamily, RUNTIME_FAMILIES } from "../../engine/runtime-family.js";
+import { resolveRuntimeHost } from "../runtime/host-registry.js";
+import { CANONICAL_STORY_EXTENSION_KEY } from "../../canonical-story/index.js";
+
+const runtimeBindingSchema = z.object({
+  family: z.enum(["encounter-simulation", "fixed-canonical-sequence"]),
+  authority: z.enum(["runCycle", "axm.canonical-story@1"]),
+  selection: z.enum(["legacy", "explicit"]),
+  contract: RuntimeFamilyContractSchema.optional(),
+}).strict().superRefine((binding, ctx) => {
+  const authority = binding.family === "encounter-simulation" ? "runCycle" : CANONICAL_STORY_EXTENSION_KEY;
+  if (binding.authority !== authority || (binding.selection === "explicit"
+    ? binding.contract?.family !== binding.family : binding.contract !== undefined)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Contradictory runtime family/authority declaration" });
+  }
+});
 
 export const PROJECTION_MANIFEST_FORMAT = "axm-world-projection/1" as const;
 const ref = z.object({ authority: z.enum(["authored", "runtime"]), path: z.string().min(1) }).strict();
 const identified = { id: z.string().min(1), label: z.string(), source: ref };
 const verb = z.object({
   ...identified, contextId: z.string(), targetId: z.string(),
-  operation: z.enum(["inspect", "select-party", "select-mode", "allocate-resource", "commit", "review-result", "choose-decision", "claim-reward"]),
+  operation: z.enum(["inspect", "next", "previous", "select-party", "select-mode", "allocate-resource", "commit", "review-result", "choose-decision", "claim-reward"]),
   input: z.string(), guards: z.array(z.string()), feedbackIds: z.array(z.string()).min(1),
 }).strict();
 export const projectionManifestSchema = z.object({
   format: z.literal(PROJECTION_MANIFEST_FORMAT), scope: z.literal("presentation-only"),
+  runtime: runtimeBindingSchema,
   cartridge: z.object({ id: z.string(), digest: z.string().regex(/^cart1_[0-9a-f]{64}$/), name: z.string() }).strict(),
   contexts: z.array(z.object({ ...identified, parentId: z.string().nullable(), description: z.string() }).strict()),
   verbs: z.array(verb),
@@ -32,12 +49,49 @@ const pointer = (value: string) => value.replaceAll("~", "~0").replaceAll("/", "
 /** Data requirements, not a run snapshot or executable law. JSON pointers address
  * authored records; runtime paths name existing derivations, not callable code. */
 export function compileProjectionManifest(arc: Arc): ProjectionManifest {
+  const resolution = resolveRuntimeHost(arc);
+  if (!resolution.ok) throw new Error(resolution.refusal.message);
+  const selection = selectRuntimeFamily(arc, RUNTIME_FAMILIES);
+  const storyHost = resolution.selection.host === "canonical-story";
   const manifest: ProjectionManifest = {
     format: PROJECTION_MANIFEST_FORMAT, scope: "presentation-only",
+    runtime: {
+      family: storyHost ? "fixed-canonical-sequence" : "encounter-simulation",
+      authority: storyHost ? CANONICAL_STORY_EXTENSION_KEY : "runCycle",
+      selection: selection.kind === "selected" ? "explicit" : "legacy",
+      ...(selection.kind === "selected" ? { contract: selection.contract } : {}),
+    },
     cartridge: { id: arc.meta.id, name: arc.meta.name, digest: cartridgeDigest(arc) },
     contexts: [{ id: "world", label: arc.meta.name, source: authored("/meta"), parentId: null, description: arc.meta.description }],
     verbs: [], interactables: [], signals: [], feedback: [], terminalConditions: [], expressionSlots: [],
   };
+  if (resolution.selection.host === "canonical-story") {
+    const story = resolution.selection.story;
+    manifest.contexts[0]!.source = authored(`/extensions/${CANONICAL_STORY_EXTENSION_KEY}`);
+    manifest.contexts[0]!.label = story.identity.title;
+    manifest.contexts[0]!.description = "Present the canonical fixed sequence and exact source; unresolved source remains visibly unavailable.";
+    story.episodes.forEach((episode, ei) => episode.chapters.forEach((chapter, ci) => chapter.panels.forEach((panel, pi) => {
+      const contextId = `panel:${panel.id}`;
+      const source = authored(`/extensions/${CANONICAL_STORY_EXTENSION_KEY}/episodes/${ei}/chapters/${ci}/panels/${pi}`);
+      manifest.contexts.push({ id: contextId, label: panel.id, source, parentId: "world", description: "Render the authored panel, exact text and asset availability; no generated replacement source." });
+      const feedbackId = `${contextId}:feedback`;
+      manifest.feedback.push({ id: feedbackId, label: "Canonical cursor", contextId, source, trigger: "input-change", requirement: "Show the canonical cursor and transition receipt. At the published extent show completion or the declared unavailable continuation; never fabricate a branch." });
+      for (const operation of ["inspect", "next", "previous"] as const) {
+        const id = `${contextId}:${operation}`;
+        const targetId = `${id}:target`;
+        manifest.verbs.push({ id, label: operation, contextId, targetId, operation, source,
+          input: operation === "inspect" ? "canonicalStoryPanel(story, panelId)" : operation === "next" ? "advanceCanonicalStory(story, cursor)" : "retreatCanonicalStory(story, cursor)",
+          guards: ["validated canonical-story authority", "cursor belongs to this story", "navigation follows authored panel links and published extent"], feedbackIds: [feedbackId] });
+        manifest.interactables.push({ id: targetId, label: operation, contextId, source, verbIds: [id] });
+      }
+      manifest.signals.push({ id: `${contextId}:receipt`, label: "Canonical transition", contextId, source, binding: runtime("CanonicalStoryTransitionReceipt"), semantics: "receipt", description: "Canonical navigation receipt, not a simulation outcome." });
+    })));
+    for (const context of manifest.contexts) {
+      manifest.expressionSlots.push({ id: `expression:${context.id}`, contextId: context.id, brief: context.description,
+        requirementIds: [context.id, ...[...manifest.verbs, ...manifest.interactables, ...manifest.feedback, ...manifest.signals].filter((entry) => entry.contextId === context.id).map((entry) => entry.id)] });
+    }
+    return validateProjectionManifest(manifest);
+  }
   arc.progressionTiers.forEach((tier, index) => manifest.contexts.push({
     id: `tier:${tier.id}`, label: tier.name, source: authored(`/progressionTiers/${index}`), parentId: "world", description: tier.flavorText,
   }));
@@ -105,8 +159,15 @@ export function compileProjectionManifest(arc: Arc): ProjectionManifest {
 }
 
 /** Reject malformed graphs before sending any production work to a provider. */
-export function validateProjectionManifest(value: unknown): ProjectionManifest {
+export function validateProjectionManifest(value: unknown, arc?: Arc): ProjectionManifest {
   const manifest = projectionManifestSchema.parse(value);
+  if (arc) {
+    const expected = compileProjectionManifest(arc);
+    if (manifest.cartridge.digest !== expected.cartridge.digest || JSON.stringify(manifest.runtime) !== JSON.stringify(expected.runtime)) throw new Error("Projection runtime family/authority does not match cartridge");
+  }
+  const story = manifest.runtime.family === "fixed-canonical-sequence";
+  if (manifest.verbs.some((verb) => story ? !["inspect", "next", "previous"].includes(verb.operation) : ["next", "previous"].includes(verb.operation))
+    || (story && manifest.terminalConditions.length > 0)) throw new Error("Projection verbs contradict runtime family authority");
   const entries = [...manifest.contexts, ...manifest.verbs, ...manifest.interactables, ...manifest.signals, ...manifest.feedback, ...manifest.terminalConditions, ...manifest.expressionSlots];
   const ids = new Set(entries.map((entry) => entry.id));
   if (ids.size !== entries.length) throw new Error("Duplicate projection id");

@@ -1,5 +1,8 @@
 import { compareCodepoints } from "../engine/determinism.js";
 import type { Arc } from "../engine/types.js";
+import { RUNTIME_FAMILY_EXTENSION_KEY } from "../engine/runtime-family.js";
+import { CANONICAL_STORY_EXTENSION_KEY } from "../canonical-story/index.js";
+import { CANONICAL_STORY_TIMED_MEDIA_EXTENSION_KEY } from "../canonical-story/timed-media.js";
 import {
   inspectArcSourcePlanes,
   SOURCE_PLANE_REGISTRY,
@@ -42,9 +45,14 @@ export function inspectWorldSourcePlanes(arc: Arc): WorldSourcePlaneInspection {
     errors: inspection.errors ?? [],
   }));
 
-  const registeredKeys = new Set(SOURCE_PLANE_REGISTRY.map((definition) => definition.extensionKey));
+  const knownExtensionKeys = new Set([
+    ...SOURCE_PLANE_REGISTRY.map((definition) => definition.extensionKey),
+    RUNTIME_FAMILY_EXTENSION_KEY,
+    CANONICAL_STORY_EXTENSION_KEY,
+    CANONICAL_STORY_TIMED_MEDIA_EXTENSION_KEY,
+  ]);
   const unknownExtensionKeys = Object.keys(arc.extensions ?? {})
-    .filter((extensionKey) => !registeredKeys.has(extensionKey))
+    .filter((extensionKey) => !knownExtensionKeys.has(extensionKey))
     .sort(compareCodepoints);
 
   return { known, unknownExtensionKeys };
