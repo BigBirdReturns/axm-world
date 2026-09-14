@@ -22,9 +22,9 @@ const HOSTS = {
     if (selection.host !== "canonical-story") throw new Error("Incompatible runtime host selection.");
     return <SequenceHost {...props} story={selection.story} timedMedia={selection.timedMedia} />;
   },
-  "strategy-board": ({ selection, onExit }: SelectedHostProps) => {
+  "strategy-board": ({ selection, cartridge, onExit }: SelectedHostProps) => {
     if (selection.host !== "strategy-board") throw new Error("Incompatible runtime host selection.");
-    return <StrategyBoardRuntime program={selection.program} onExit={onExit} />;
+    return <StrategyBoardRuntime arc={cartridge.arc} program={selection.program} onExit={onExit} />;
   },
 } satisfies Record<RuntimeSelection["host"], (props: SelectedHostProps) => JSX.Element>;
 
