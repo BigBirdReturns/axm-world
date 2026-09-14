@@ -63,12 +63,14 @@ honest ledger of what exists so nobody mistakes a scaffold for a runtime.
   (vendored byte-identically into axm-world, drift-guarded): the object model of
   §2 as TypeScript types plus zod validation (`validateStrategyBoard`), and the
   `StrategyPhase` / `StrategyLedgerEventKind` vocabularies of §3.
-- **Turn-machine decision + enumeration scaffold** (`strategy-board/turn.ts`,
-  vendored; see axm-arc `docs/design/STRATEGY_BOARD_TURN_MACHINE_DECISION.md`):
-  the canonical **phase order** (§3), the **legal-action envelope** (choices live
-  only in `buyAuctionPass` / `programAction` / `reactionInterference`), a
-  deterministic seed-free `initialStrategyState`, and a **pure `listLegalActions`
-  enumerator** with `isActionLegal`. It enumerates choices; it **resolves nothing**.
+- **Turn-machine law + bounded deterministic executor** (`strategy-board/turn.ts`
+  and `strategy-board/executor.ts`, vendored from axm-arc): canonical phase order,
+  legal-action enumeration, movement, purchase/auction/pass, program actions,
+  reaction/interference, income, tolls, obligations, milestones, endings,
+  receipts, and deterministic replay. Outcome law remains entirely Arc-owned.
+- **Authored program authority** (`axm.strategy-board@1`): a selected
+  `strategy-board` runtime must carry its exact board definition and execution
+  rules. The pair is validated together before World may mount a host.
 - **Two invariants enforced now** (§6 in miniature): every resource change is a
   declared ledger mutation carrying an event kind (no hidden cost), and every
   player-facing choice object names — and must name the *correct* — phase that
@@ -82,33 +84,35 @@ honest ledger of what exists so nobody mistakes a scaffold for a runtime.
   (deterministic initial state, phase-valid legal actions, illegal actions
   rejected, enumeration mutates nothing, every action names a resolver).
 
-### What is NOT implemented (still proposal-only)
+### What is NOT implemented yet
 
-- **No executor / no resolution behavior.** Nothing advances a phase, moves a
-  seat, resolves a buy/auction/pass, executes a program action, resolves
-  reaction/interference, evaluates a milestone/ending, or posts
-  income/tolls/obligations. The scaffold lists legal choices; it never applies one.
-- **No opponent driver / CPU personality.**
-- **No world projection** — no board, turn, auction, interference, or receipt
-  surfaces; the vendored code is data + enumeration only, with zero UI.
-- **No behavioral property tests** (§5) — those gate the *executor*, which does
-  not exist yet.
+- **No opponent driver / CPU personality.** The generic host is currently local
+  pass-and-play; all acting seats take the same legal-action path.
+- **No promoted portable Strategy Board run record yet.** The executor is
+  deterministic and replayable, but World must not squeeze its state into the
+  simulation-specific `run3` organization save. Portable custody is the next
+  authority seam.
+- **No shipped Strategy Board cartridge yet.** The reference fixture remains a
+  conformance object, not product content.
 
-### What remains blocked (by design, until authorized)
+### What is now real in World
 
-- **The turn-machine executor** — the next real boundary (`advancePhase`,
-  `applyStrategyAction`, `resolveAuction`, `resolveInterference`, `settleTolls`,
-  `settleObligations`, `evaluateMilestone`, `emitStrategyLedgerEvents`). Held for
-  explicit review; not started.
-- **The Program of Record port.** Still intake-accepted only; not imported, not
-  ported, no bundle surgery. It waits for the runtime, then authors as data.
-- **Any shipped strategy-board content** and any player-facing strategy surface.
+- **Generic Strategy Board host.** World selects it from authored runtime-family
+  + `axm.strategy-board@1` authority, with no cartridge-id branch and no fallback
+  through the legacy simulation shell.
+- **Projection contract.** Strategy spaces, movement, purchase, auctions,
+  program actions, interference, pass, ledger state, and run endings compile into
+  the same provider-neutral projection / World Forge path used by other families.
+- **Browser-visible executor surface.** Board position, ownership, resource
+  ledgers, legal actions, explicit bid sequences, receipts and endings are
+  projections of Arc state; World does not adjudicate outcomes.
 
 ### Next step
 
-Per §7: the axm-arc **turn-machine executor** — its own memo + behavioral
-property tests (§5), proposal-first and proven before any world surface. Until
-that lands, the scaffolds change no runtime and no player-facing behavior anywhere.
+Promote **portable runtime custody** for Strategy Board decisions as an Arc-owned,
+deterministically replayable record, then wire the generic host to save/resume and
+holder-estate export/import. After that, author the first real Strategy Board
+cartridge as data and prove it through the same host without a title-specific path.
 
 ---
 

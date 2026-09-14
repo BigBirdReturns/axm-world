@@ -1,13 +1,15 @@
 import type { Arc } from "../../engine/types.js";
 import { validateArc } from "../../engine/schema.js";
 import { selectRuntimeFamily, RUNTIME_FAMILIES } from "../../engine/runtime-family.js";
+import { requireSelectedStrategyBoardProgram, STRATEGY_BOARD_PROGRAM_EXTENSION_KEY, type StrategyBoardProgram } from "../../engine/strategy-board/program.js";
 import { CANONICAL_STORY_EXTENSION_KEY, readCanonicalStoryExtension, type CanonicalStorySource } from "../../canonical-story/index.js";
 import { CANONICAL_STORY_TIMED_MEDIA_EXTENSION_KEY, type CanonicalStoryTimedMedia } from "../../canonical-story/timed-media.js";
 import { arcCarriesApertureTimedMedia, readApertureTimedMediaForStory } from "../timed-media/receiver.js";
 
 export type RuntimeSelection =
   | { host: "simulation" }
-  | { host: "canonical-story"; story: CanonicalStorySource; timedMedia: CanonicalStoryTimedMedia | null };
+  | { host: "canonical-story"; story: CanonicalStorySource; timedMedia: CanonicalStoryTimedMedia | null }
+  | { host: "strategy-board"; program: StrategyBoardProgram };
 
 type HostId = RuntimeSelection["host"];
 
@@ -15,6 +17,7 @@ type HostId = RuntimeSelection["host"];
 const HOST_CAPABILITIES: Readonly<Record<HostId, readonly string[]>> = {
   simulation: ["simulation"],
   "canonical-story": ["canonical-story", "canonical-story.timed-media"],
+  "strategy-board": ["strategy-board"],
 };
 
 /** All requirements must fit exactly one host. No priority or fallback host. */
@@ -50,14 +53,18 @@ export function resolveRuntimeHost(arc: Arc): RuntimeResolution {
   }
   const explicit = family.kind === "selected" ? family.contract.family : null;
   if (explicit === "strategy-board") {
-    return refuse(
-      "Unsupported runtime host",
-      "strategy-board is recognized, but its World projection contract and host are not implemented. Fallback is disabled.",
-      "unsupported-runtime-host",
-    );
+    try {
+      validateArc(arc);
+      const program = requireSelectedStrategyBoardProgram(arc);
+      const host = selectRuntimeHost(["strategy-board"]);
+      if (host !== "strategy-board") return refuse("Runtime capability refused", "No compatible strategy-board host.", "invalid-runtime-capability");
+      return { ok: true, selection: { host, program } };
+    } catch (error) {
+      return refuse("Strategy-board authority refused", error, "invalid-strategy-board-authority");
+    }
   }
 
-  const known = [CANONICAL_STORY_EXTENSION_KEY, CANONICAL_STORY_TIMED_MEDIA_EXTENSION_KEY];
+  const known = [CANONICAL_STORY_EXTENSION_KEY, CANONICAL_STORY_TIMED_MEDIA_EXTENSION_KEY, STRATEGY_BOARD_PROGRAM_EXTENSION_KEY];
   const unsupported = Object.keys(arc.extensions ?? {}).sort().filter((key) =>
     known.some((supported) => key.startsWith(supported.split("@")[0] + "@") && key !== supported));
   if (unsupported.length) {

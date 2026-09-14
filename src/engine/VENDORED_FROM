@@ -11,5 +11,5 @@
 
 repo: BigBirdReturns/axm-arc
 paths: src/engine src/arcs src/godscar src/dark-tomb src/common-ship src/burn-protocol src/source-planes tests/engine tests/fixtures tests/godscar tests/dark-tomb tests/common-ship tests/source-planes docs/conformance cartridges
-commit: 1f9d628a575c1ae32379af0d8032837169597e34
+commit: 78a6cc0647a2202eea10489a1f0495bff2621051
 synced: 2026-09-14

@@ -4,16 +4,21 @@ import "../../engine/abi13.js";
 import { cartridgeDigest } from "../../engine/cartridge-digest.js";
 import { spendLeverFor } from "../encounter/compile-encounter.js";
 import { RuntimeFamilyContractSchema, selectRuntimeFamily, RUNTIME_FAMILIES } from "../../engine/runtime-family.js";
+import { STRATEGY_BOARD_PROGRAM_EXTENSION_KEY } from "../../engine/strategy-board/program.js";
 import { resolveRuntimeHost } from "../runtime/host-registry.js";
 import { CANONICAL_STORY_EXTENSION_KEY } from "../../canonical-story/index.js";
 
 const runtimeBindingSchema = z.object({
-  family: z.enum(["encounter-simulation", "fixed-canonical-sequence"]),
-  authority: z.enum(["runCycle", "axm.canonical-story@1"]),
+  family: z.enum(["encounter-simulation", "fixed-canonical-sequence", "strategy-board"]),
+  authority: z.enum(["runCycle", "axm.canonical-story@1", "axm.strategy-board@1"]),
   selection: z.enum(["legacy", "explicit"]),
   contract: RuntimeFamilyContractSchema.optional(),
 }).strict().superRefine((binding, ctx) => {
-  const authority = binding.family === "encounter-simulation" ? "runCycle" : CANONICAL_STORY_EXTENSION_KEY;
+  const authority = binding.family === "encounter-simulation"
+    ? "runCycle"
+    : binding.family === "strategy-board"
+      ? STRATEGY_BOARD_PROGRAM_EXTENSION_KEY
+      : CANONICAL_STORY_EXTENSION_KEY;
   if (binding.authority !== authority || (binding.selection === "explicit"
     ? binding.contract?.family !== binding.family : binding.contract !== undefined)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Contradictory runtime family/authority declaration" });
@@ -25,7 +30,7 @@ const ref = z.object({ authority: z.enum(["authored", "runtime"]), path: z.strin
 const identified = { id: z.string().min(1), label: z.string(), source: ref };
 const verb = z.object({
   ...identified, contextId: z.string(), targetId: z.string(),
-  operation: z.enum(["inspect", "next", "previous", "select-party", "select-mode", "allocate-resource", "commit", "review-result", "choose-decision", "claim-reward"]),
+  operation: z.enum(["inspect", "next", "previous", "select-party", "select-mode", "allocate-resource", "commit", "review-result", "choose-decision", "claim-reward", "move", "purchase", "auction", "pass", "program-action", "interfere", "review-ledger"]),
   input: z.string(), guards: z.array(z.string()), feedbackIds: z.array(z.string()).min(1),
 }).strict();
 export const projectionManifestSchema = z.object({
@@ -37,7 +42,7 @@ export const projectionManifestSchema = z.object({
   interactables: z.array(z.object({ ...identified, contextId: z.string(), verbIds: z.array(z.string()).min(1) }).strict()),
   signals: z.array(z.object({ ...identified, contextId: z.string(), binding: ref, semantics: z.enum(["access", "readiness", "composition", "state", "receipt"]), description: z.string() }).strict()),
   feedback: z.array(z.object({ ...identified, contextId: z.string(), trigger: z.enum(["inspect", "input-change", "resolution"]), requirement: z.string() }).strict()),
-  terminalConditions: z.array(z.object({ ...identified, contextId: z.string(), scope: z.literal("encounter"), resultSource: ref }).strict()),
+  terminalConditions: z.array(z.object({ ...identified, contextId: z.string(), scope: z.enum(["encounter", "run"]), resultSource: ref }).strict()),
   expressionSlots: z.array(z.object({ id: z.string(), contextId: z.string(), brief: z.string(), requirementIds: z.array(z.string()).min(1) }).strict()),
 }).strict();
 export type ProjectionManifest = z.infer<typeof projectionManifestSchema>;
@@ -53,11 +58,12 @@ export function compileProjectionManifest(arc: Arc): ProjectionManifest {
   if (!resolution.ok) throw new Error(resolution.refusal.message);
   const selection = selectRuntimeFamily(arc, RUNTIME_FAMILIES);
   const storyHost = resolution.selection.host === "canonical-story";
+  const strategyHost = resolution.selection.host === "strategy-board";
   const manifest: ProjectionManifest = {
     format: PROJECTION_MANIFEST_FORMAT, scope: "presentation-only",
     runtime: {
-      family: storyHost ? "fixed-canonical-sequence" : "encounter-simulation",
-      authority: storyHost ? CANONICAL_STORY_EXTENSION_KEY : "runCycle",
+      family: storyHost ? "fixed-canonical-sequence" : strategyHost ? "strategy-board" : "encounter-simulation",
+      authority: storyHost ? CANONICAL_STORY_EXTENSION_KEY : strategyHost ? STRATEGY_BOARD_PROGRAM_EXTENSION_KEY : "runCycle",
       selection: selection.kind === "selected" ? "explicit" : "legacy",
       ...(selection.kind === "selected" ? { contract: selection.contract } : {}),
     },
@@ -89,6 +95,57 @@ export function compileProjectionManifest(arc: Arc): ProjectionManifest {
     for (const context of manifest.contexts) {
       manifest.expressionSlots.push({ id: `expression:${context.id}`, contextId: context.id, brief: context.description,
         requirementIds: [context.id, ...[...manifest.verbs, ...manifest.interactables, ...manifest.feedback, ...manifest.signals].filter((entry) => entry.contextId === context.id).map((entry) => entry.id)] });
+    }
+    return validateProjectionManifest(manifest);
+  }
+  if (resolution.selection.host === "strategy-board") {
+    const program = resolution.selection.program;
+    const def = program.definition;
+    const root = `/extensions/${STRATEGY_BOARD_PROGRAM_EXTENSION_KEY}`;
+    manifest.contexts[0]!.source = authored(root);
+    manifest.contexts[0]!.label = def.name;
+    manifest.contexts[0]!.description = def.description;
+    const worldFeedbackId = "world:strategy-feedback";
+    manifest.feedback.push({
+      id: worldFeedbackId, label: "Authoritative turn receipt", contextId: "world",
+      source: runtime("StrategyExecutionState.execution.ledger"), trigger: "resolution",
+      requirement: "Show the exact phase, acting seat, resource mutations, ownership changes, milestone locks and terminal receipt emitted by the Strategy Board executor.",
+    });
+    const addVerb = (contextId: string, label: string, operation: ProjectionManifest["verbs"][number]["operation"], source: Ref, input: string, guards: string[], feedbackId = worldFeedbackId) => {
+      const id = `${contextId}:verb:${operation}:${manifest.verbs.length}`;
+      const targetId = `${id}:target`;
+      manifest.verbs.push({ id, label, contextId, targetId, operation, source, input, guards, feedbackIds: [feedbackId] });
+      manifest.interactables.push({ id: targetId, label, contextId, source, verbIds: [id] });
+    };
+    def.spaces.forEach((space, index) => {
+      const contextId = `space:${space.id}`;
+      const source = authored(`${root}/definition/spaces/${index}`);
+      const feedbackId = `${contextId}:feedback`;
+      manifest.contexts.push({ id: contextId, label: space.name, source, parentId: "world", description: `${space.region} · ${space.type}` });
+      manifest.feedback.push({ id: feedbackId, label: "Space resolution", contextId, source: runtime("StrategyExecutionState.positions/ownership"), trigger: "resolution", requirement: "Show authoritative occupancy, ownership and any toll or acquisition result after resolution." });
+      addVerb(contextId, `Inspect ${space.name}`, "inspect", source, "spaceId", [], feedbackId);
+      addVerb(contextId, `Move to ${space.name}`, "move", source, "destinationSpaceId", ["phase is movementResolution", "destination is adjacent to active seat position"], feedbackId);
+      manifest.signals.push({ id: `${contextId}:state`, label: "Space state", contextId, source, binding: runtime("StrategyExecutionState.positions/ownership"), semantics: "state", description: "Current occupants and authoritative asset owner, if any." });
+    });
+    def.controlAssets.forEach((asset, index) => {
+      if (asset.ownershipModel !== "buyable") return;
+      const contextId = `space:${asset.sitedOnSpaceId}`;
+      addVerb(contextId, `Buy ${asset.name}`, "purchase", authored(`${root}/definition/controlAssets/${index}`), "assetId", ["listed by listExecutableStrategyActions", "acting seat can pay authored acquisition cost"]);
+    });
+    def.auctions.forEach((auction, index) => {
+      const asset = def.controlAssets.find((item) => item.id === auction.assetId)!;
+      addVerb(`space:${asset.sitedOnSpaceId}`, `Auction ${asset.name}`, "auction", authored(`${root}/definition/auctions/${index}`), "explicit bid sequence", ["listed by listExecutableStrategyActions", "each bid is valid and payable"]);
+    });
+    def.programActions.forEach((action, index) => addVerb("world", action.name, "program-action", authored(`${root}/definition/programActions/${index}`), "program action id", ["phase is programAction", "doctrine permits action", "acting seat can afford complete authored mutation set"]));
+    def.interferences.forEach((interference, index) => addVerb("world", interference.name, "interfere", authored(`${root}/definition/interferences/${index}`), "interference id", ["phase is reactionInterference", "action is authored as interferable", "reacting seat can pay cost"]));
+    addVerb("world", "Pass", "pass", authored(`${root}/definition`), "null", ["pass is listed as a legal action for the current choice phase"]);
+    addVerb("world", "Review ledger", "review-ledger", runtime("StrategyExecutionState.execution.ledger"), "ledger cursor", ["recorded events exist"]);
+    manifest.signals.push({ id: "world:turn-state", label: "Turn state", contextId: "world", source: authored(root), binding: runtime("StrategyExecutionState.quarter/phase/activeSeatIndex"), semantics: "state", description: "Quarter, authoritative phase and active/acting seats." });
+    manifest.signals.push({ id: "world:resource-state", label: "Resource ledgers", contextId: "world", source: authored(`${root}/definition/resources`), binding: runtime("StrategyExecutionState.seats[].balances"), semantics: "state", description: "Exact per-seat balances after recorded mutations." });
+    def.endings.forEach((ending, index) => manifest.terminalConditions.push({ id: `ending:${ending.id}`, label: ending.name, contextId: "world", scope: "run", source: authored(`${root}/definition/endings/${index}`), resultSource: runtime("StrategyExecutionState.execution.terminal") }));
+    for (const context of manifest.contexts) {
+      const requirements = [...manifest.verbs, ...manifest.interactables, ...manifest.signals, ...manifest.feedback, ...manifest.terminalConditions].filter((entry) => entry.contextId === context.id);
+      manifest.expressionSlots.push({ id: `expression:${context.id}`, contextId: context.id, brief: context.description, requirementIds: [context.id, ...requirements.map((entry) => entry.id)] });
     }
     return validateProjectionManifest(manifest);
   }
@@ -165,9 +222,20 @@ export function validateProjectionManifest(value: unknown, arc?: Arc): Projectio
     const expected = compileProjectionManifest(arc);
     if (manifest.cartridge.digest !== expected.cartridge.digest || JSON.stringify(manifest.runtime) !== JSON.stringify(expected.runtime)) throw new Error("Projection runtime family/authority does not match cartridge");
   }
-  const story = manifest.runtime.family === "fixed-canonical-sequence";
-  if (manifest.verbs.some((verb) => story ? !["inspect", "next", "previous"].includes(verb.operation) : ["next", "previous"].includes(verb.operation))
-    || (story && manifest.terminalConditions.length > 0)) throw new Error("Projection verbs contradict runtime family authority");
+  const allowedOperations: Record<ProjectionManifest["runtime"]["family"], ReadonlySet<ProjectionManifest["verbs"][number]["operation"]>> = {
+    "fixed-canonical-sequence": new Set(["inspect", "next", "previous"]),
+    "encounter-simulation": new Set(["inspect", "select-party", "select-mode", "allocate-resource", "commit", "review-result", "choose-decision", "claim-reward"]),
+    "strategy-board": new Set(["inspect", "move", "purchase", "auction", "pass", "program-action", "interfere", "review-ledger"]),
+  };
+  const family = manifest.runtime.family;
+  if (manifest.verbs.some((verb) => !allowedOperations[family].has(verb.operation))) {
+    throw new Error("Projection verbs contradict runtime family authority");
+  }
+  if ((family === "fixed-canonical-sequence" && manifest.terminalConditions.length > 0)
+    || (family === "encounter-simulation" && manifest.terminalConditions.some((entry) => entry.scope !== "encounter"))
+    || (family === "strategy-board" && manifest.terminalConditions.some((entry) => entry.scope !== "run"))) {
+    throw new Error("Projection terminal conditions contradict runtime family authority");
+  }
   const entries = [...manifest.contexts, ...manifest.verbs, ...manifest.interactables, ...manifest.signals, ...manifest.feedback, ...manifest.terminalConditions, ...manifest.expressionSlots];
   const ids = new Set(entries.map((entry) => entry.id));
   if (ids.size !== entries.length) throw new Error("Duplicate projection id");
