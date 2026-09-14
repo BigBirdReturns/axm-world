@@ -84,7 +84,7 @@
 
   .rodoh-bay-shell [data-testid^="play-cartridge-"] {
     min-width: 84px;
-    min-height: 44px;
+    min-height: 45px;
   }
 }
 

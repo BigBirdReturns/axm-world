@@ -1,0 +1,116 @@
+{
+  "productionRoots": [
+    "src"
+  ],
+  "compositionRoots": [
+    "src/world/",
+    "src/game/",
+    "src/spoke/",
+    "src/play-pipeline/"
+  ],
+  "probeSegments": [
+    "demo",
+    "demos",
+    "lab",
+    "labs",
+    "experiment",
+    "experiments"
+  ],
+  "cartridgeIds": [
+    "first-charter",
+    "karazhan",
+    "kind-gods-of-ilyon",
+    "lamp-district",
+    "relief-circuit"
+  ],
+  "exceptions": [
+    {
+      "file": "src/world/bundled-digests.ts",
+      "rule": "cartridge-dispatch",
+      "sha256": "3132154d705cb1557933a40aa370e69e4f3c915b253e88230704041ffec4adee",
+      "owner": "AXM World maintainers",
+      "reason": "Golden authored digest data, not executable title routing.",
+      "removeWhen": "Replace with a promoted generated manifest while retaining exact digest conformance."
+    },
+    {
+      "file": "src/world/cartridge-bay.ts",
+      "rule": "cartridge-dispatch",
+      "sha256": "56caaa5c9d1d866855d4b4b1ccb55dd206b95ed48fab201e3b3ef7843cf0dffd",
+      "owner": "AXM World maintainers",
+      "reason": "Generic held-cartridge identity comparison combined with bundled provenance; conservative lexical match, no concrete title branch.",
+      "removeWhen": "Narrow the guard with regression fixtures that prove generic identity comparison remains safe."
+    },
+    {
+      "file": "src/world/common-ship/CommonShipScene.tsx",
+      "rule": "cartridge-dispatch",
+      "sha256": "0eca2372a63ee9fb5d63710aea74882aff0bdf76bb2111f91e95451d693de204",
+      "owner": "AXM World maintainers",
+      "reason": "Existing digest-bound Relief Circuit art with a neutral unbundled fallback.",
+      "removeWhen": "Promote cartridge-owned expression-pack selection and preserve neutral fallback tests."
+    },
+    {
+      "file": "src/world/common-ship/connected-relief.ts",
+      "rule": "cartridge-dispatch",
+      "sha256": "fe7f15b542c910b1320a31ea79d2cf988e70253dd2c4ddd6619001efa05be802",
+      "owner": "AXM World maintainers",
+      "reason": "Existing accepted Gate 5 connected-operation fixture projection; preserve current carried-run behavior.",
+      "removeWhen": "Promote an Arc-owned connected-operation capability contract with exact outbound/return custody parity."
+    },
+    {
+      "file": "src/world/components/CartridgeBayCard.tsx",
+      "rule": "cartridge-dispatch",
+      "sha256": "2ff955564016bd0a1eb83f0064b70101a43502243cbc4e1a7858728650962989",
+      "owner": "AXM World maintainers",
+      "reason": "Existing Waking Tower visual dignity seam in the legacy bay row.",
+      "removeWhen": "Move the row styling into the promoted expression/theme contract with unknown-cartridge coverage."
+    },
+    {
+      "file": "src/world/holder-estate.ts",
+      "rule": "cartridge-dispatch",
+      "sha256": "30293bbcd33296d1d524401877938e5a2ddf2cc3090742b56b0653648837334f",
+      "owner": "AXM World maintainers",
+      "reason": "Generic custody identity validation compares held Arc id, version and digest; conservative lexical match.",
+      "removeWhen": "Narrow the guard with generic custody-validation fixtures without allowing concrete title routing."
+    },
+    {
+      "file": "src/world/legacy-revisions.ts",
+      "rule": "cartridge-dispatch",
+      "sha256": "d5b7c780f1c760ce6e7eef0ac19c06239e54d2f7c88e2a34549e0647b64606df",
+      "owner": "AXM World maintainers",
+      "reason": "Historical digest data retained for held-run compatibility, not executable dispatch.",
+      "removeWhen": "Promote versioned compatibility data without losing recovery of existing carried runs."
+    },
+    {
+      "file": "src/world/Player.tsx",
+      "rule": "cartridge-dispatch",
+      "sha256": "c937c5bf51d231c73001f49d35a3a9ac449bc618a8c9de9630ea3294595b7278",
+      "owner": "AXM World maintainers",
+      "reason": "Existing bundled legacy-digest lookup protects preflight and held-run compatibility.",
+      "removeWhen": "Promote a compatibility manifest API with import/resume parity."
+    },
+    {
+      "file": "src/world/sensory-prefs.ts",
+      "rule": "cartridge-dispatch",
+      "sha256": "91097cb47f4426d000024cd29507bae689c2bb66d5b0a48c519da3d2151e4675",
+      "owner": "AXM World maintainers",
+      "reason": "Existing local procedural audio identity palette with neutral fallback; no adjudication authority.",
+      "removeWhen": "Promote expression-pack audio data and preserve offline and reduced-sensory behavior."
+    },
+    {
+      "file": "src/world/themes/CartridgeMotif.tsx",
+      "rule": "cartridge-dispatch",
+      "sha256": "65482e632d4c6af60715c26d2ba4bfe9da023c3b064bb637de3438491a834c64",
+      "owner": "AXM World maintainers",
+      "reason": "Existing bundled motif/portrait/sprite dispatch seam with null fallback for unknown cartridges.",
+      "removeWhen": "Promote a cartridge-owned appearance registry and retain unbundled fallback receipts."
+    },
+    {
+      "file": "src/world/themes/select.ts",
+      "rule": "cartridge-dispatch",
+      "sha256": "5398813905d62a778d256ae0753cb014044eb707d9e10e341eb7a5264c953ae0",
+      "owner": "AXM World maintainers",
+      "reason": "Existing theme and planet palette seam with neutral Rodoh fallback.",
+      "removeWhen": "Promote capability-based expression selection and preserve all existing appearance/fallback tests."
+    }
+  ]
+}

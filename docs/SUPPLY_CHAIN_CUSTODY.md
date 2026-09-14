@@ -47,7 +47,7 @@ The action's bundles are copied into the evidence set rather than left only in w
 
 Arc must produce its own signed release attestation from the Arc repository. World may assemble and checksum an Arc build for coordinated reproducibility, but a World signature must never be represented as Arc repository provenance.
 
-The coordinated estate checks out Arc release-evidence head `318faaab6fb1c4b0eefe66516d3573bdb8f97369`. The byte-identical product, engine, and creator source plane remain governed by product-authority commit `4b07539a06d40b131591f1e9c7d5b90a96ceec31`.
+The coordinated estate checks out the exact Arc local-estate head named by `estate/estate.lock.json`; this candidate currently resolves to `1f9d628a575c1ae32379af0d8032837169597e34`. The v1.0 product-authority baseline remains `4b07539a06d40b131591f1e9c7d5b90a96ceec31`. Vendored Arc bytes must match the exact local-estate head even when product-authority provenance intentionally points at the older accepted baseline.
 
 ## Online verification
 

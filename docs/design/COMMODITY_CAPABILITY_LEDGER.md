@@ -22,6 +22,14 @@ Arc law + cart1 digest
 ## Preserved commodity lanes
 
 These branches are evidence sources, not instructions to merge their entire historical trees into current main.
+
+The [exact donor harvest matrix](COMMODITY_DONOR_HARVEST.md) records resolved
+branch/full-head/path evidence, extraction boundaries, and retirement conditions.
+Its 2026-09-13 audit qualifies the shorthand below: Shape Field is contract-only;
+MotionDeck retains synthetic qualification rather than live product acceptance;
+QuestStage's retained latest hosted attempt failed and contains no APK or
+hosted-build acceptance receipt.
+
 | Lane | Exact branch head | What is already real | Reuse rule |
 | --- | --- | --- | --- |
 | Local representation authoring | `cd6f6ed` | Loopback-only browser crop/cutout authoring, source/hash/crop verification, distinct-byte product refusal, staging receipt | Generalize the transaction and validators; do not carry UNDERDRAIN role literals |

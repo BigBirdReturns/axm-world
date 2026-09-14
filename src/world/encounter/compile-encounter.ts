@@ -379,7 +379,7 @@ export function compileEncounter(challenge: Challenge, org: Organization, arc: A
  *     check (tokensSpent is a single challenge-wide count).
  *  Divergent per-check levers return null — a single control would misrepresent
  *  them; they await a per-objective spend UI. Null also when no lever is authored. */
-function spendLeverFor(challenge: Challenge): ResourceSpendLever | null {
+export function spendLeverFor(challenge: Challenge): ResourceSpendLever | null {
   if (challenge.resourceSpend) return challenge.resourceSpend;
   const checkLevers = challenge.mechanicChecks
     .map((c) => c.resourceSpend)

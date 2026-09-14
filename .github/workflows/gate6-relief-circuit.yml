@@ -64,9 +64,11 @@ jobs:
           printf '%s\n' "$actual_sha" | tee gate6-receipt/checkout-sha.txt
           test "$actual_sha" = "$CANDIDATE_SHA"
           cat src/engine/VENDORED_FROM | tee gate6-receipt/arc-source-plane.txt
-          grep -F '4b07539a06d40b131591f1e9c7d5b90a96ceec31' src/engine/VENDORED_FROM
+          vendored_arc="$(awk '/^commit:/ {print $2}' src/engine/VENDORED_FROM)"
+          [[ "$vendored_arc" =~ ^[0-9a-f]{40}$ ]]
+          printf '%s\n' "$vendored_arc" | tee gate6-receipt/arc-vendored-sha.txt
           git diff --check
-      - name: Exact accepted Arc baseline provenance
+      - name: Exact vendored Arc provenance
         env:
           ENGINE_DRIFT_STRICT: '1'
         run: |

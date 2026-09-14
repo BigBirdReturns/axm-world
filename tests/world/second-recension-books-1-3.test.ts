@@ -20,9 +20,9 @@ function sourceFor(id: string): { notes?: unknown; identity?: { version?: string
 }
 
 describe("Second Recension Books I-III in Rodoh", () => {
-  it("vendors three source planes and no Book IV implementation", () => {
+  it("preserves Books I-III while admitting the independent Burn source plane and no Book IV implementation", () => {
     expect(SOURCE_PLANE_REGISTRY.map((entry) => entry.format)).toEqual([
-      "godscar-pocket/1", "dark-tomb-pocket/1", "common-ship-pocket/1",
+      "godscar-pocket/1", "dark-tomb-pocket/1", "common-ship-pocket/1", "burn-protocol/1",
     ]);
     expect(SOURCE_PLANE_REGISTRY.some((entry) => /book.?iv|lineage/i.test(entry.id + entry.format + entry.label))).toBe(false);
   });
