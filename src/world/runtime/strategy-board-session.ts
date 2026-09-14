@@ -11,6 +11,10 @@ import {
   type StrategyExecutionState,
   type StrategyInput,
 } from "../../engine/strategy-board/index.js";
+import {
+  nextStrategyBoardDriverInput,
+  type StrategyBoardDriverContract,
+} from "../../engine/strategy-board/driver.js";
 import { requireSelectedStrategyBoardProgram, type StrategyBoardProgram } from "../../engine/strategy-board/program.js";
 import type { Arc } from "../../engine/types.js";
 import type { KVStorage } from "../save.js";
@@ -29,19 +33,39 @@ export interface StrategyBoardSession {
 export function strategyRuntimeRunKeyFor(authoredArcDigest: string): string {
   return `${STRATEGY_RUNTIME_RUN_KEY_PREFIX}${authoredArcDigest}`;
 }
+function applyInput(
+  program: StrategyBoardProgram,
+  state: StrategyExecutionState,
+  input: StrategyInput,
+): StrategyExecutionState {
+  return input.type === "advance"
+    ? advanceStrategyPhase(program.definition, state, input.destinationSpaceId)
+    : applyLegalStrategyAction(program.definition, state, input);
+}
+
 function settleAutomatic(
   program: StrategyBoardProgram,
+  driver: StrategyBoardDriverContract | null,
   state: StrategyExecutionState,
   inputs: StrategyInput[],
 ): { state: StrategyExecutionState; inputs: StrategyInput[] } {
   let next = state;
   const trace = [...inputs];
   let guard = 0;
-  while (!next.execution.terminal && AUTOMATIC_PHASES.has(next.phase)) {
-    const input: StrategyInput = { type: "advance" };
-    next = advanceStrategyPhase(program.definition, next);
-    trace.push(input);
-    if (++guard > 8) throw new Error("Strategy-board automatic phase loop exceeded its bound.");
+  while (!next.execution.terminal) {
+    if (++guard > 64) throw new Error("Strategy-board automatic circulation exceeded its bound.");
+    if (AUTOMATIC_PHASES.has(next.phase)) {
+      const input: StrategyInput = { type: "advance" };
+      next = applyInput(program, next, input);
+      trace.push(input);
+      continue;
+    }
+    const input = driver
+      ? nextStrategyBoardDriverInput(program.definition, next, driver)
+      : null;
+    if (!input) break;
+    next = applyInput(program, next, input);
+    trace.push(structuredClone(input));
   }
   return { state: next, inputs: trace };
 }
@@ -65,10 +89,23 @@ export function createStrategyBoardSession(
   arc: Arc,
   program: StrategyBoardProgram,
   seatIds: string[],
+  driver: StrategyBoardDriverContract | null = null,
 ): StrategyBoardSession {
   const initial = initialStrategyExecutionState(program.definition, seatIds, program.executionRules);
-  const settled = settleAutomatic(program, initial, []);
+  const settled = settleAutomatic(program, driver, initial, []);
   return materialize(arc, seatIds, settled.inputs);
+}
+
+export function settleStrategyBoardSession(
+  arc: Arc,
+  program: StrategyBoardProgram,
+  session: StrategyBoardSession,
+  driver: StrategyBoardDriverContract | null,
+): StrategyBoardSession {
+  const settled = settleAutomatic(program, driver, session.state, session.inputs);
+  return settled.inputs.length === session.inputs.length
+    ? session
+    : materialize(arc, session.seatIds, settled.inputs, session.run.extensions);
 }
 
 export function applyStrategyBoardSessionInput(
@@ -76,12 +113,11 @@ export function applyStrategyBoardSessionInput(
   program: StrategyBoardProgram,
   session: StrategyBoardSession,
   input: StrategyInput,
+  driver: StrategyBoardDriverContract | null = null,
 ): StrategyBoardSession {
-  let next = input.type === "advance"
-    ? advanceStrategyPhase(program.definition, session.state, input.destinationSpaceId)
-    : applyLegalStrategyAction(program.definition, session.state, input);
+  const next = applyInput(program, session.state, input);
   const trace = [...session.inputs, structuredClone(input)];
-  const settled = settleAutomatic(program, next, trace);
+  const settled = settleAutomatic(program, driver, next, trace);
   return materialize(arc, session.seatIds, settled.inputs, session.run.extensions);
 }
 

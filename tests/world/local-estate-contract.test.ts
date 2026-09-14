@@ -39,7 +39,7 @@ describe("local estate replication contract", () => {
     expect(lock.repositories.arc).toMatchObject({
       branch: "main",
       requiredAncestor: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
-      requiredCommit: "ffcf1d6041e131d747800b16e5b7b13c34b6c989",
+      requiredCommit: "6fe9f7d45f78b19d4ca549e1f1ba1585af903ae0",
       productAuthorityCommit: "4b07539a06d40b131591f1e9c7d5b90a96ceec31",
     });
     expect(lock.repositories.world.branch).toBe("main");

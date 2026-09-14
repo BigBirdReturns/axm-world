@@ -24,7 +24,7 @@ const HOSTS = {
   },
   "strategy-board": ({ selection, cartridge, onExit }: SelectedHostProps) => {
     if (selection.host !== "strategy-board") throw new Error("Incompatible runtime host selection.");
-    return <StrategyBoardRuntime arc={cartridge.arc} program={selection.program} onExit={onExit} />;
+    return <StrategyBoardRuntime arc={cartridge.arc} program={selection.program} driver={selection.driver} onExit={onExit} />;
   },
 } satisfies Record<RuntimeSelection["host"], (props: SelectedHostProps) => JSX.Element>;
 
