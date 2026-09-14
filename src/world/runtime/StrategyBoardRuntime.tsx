@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { listExecutableStrategyActions, type LegalAction, type StrategyInput } from "../../engine/strategy-board/index.js";
+import type { StrategyBoardDriverContract } from "../../engine/strategy-board/driver.js";
 import type { StrategyBoardProgram } from "../../engine/strategy-board/program.js";
 import type { Arc } from "../../engine/types.js";
 import type { KVStorage } from "../save.js";
@@ -9,6 +10,7 @@ import {
   downloadStrategyBoardRuntimeRun,
   inspectStrategyBoardSession,
   saveStrategyBoardSession,
+  settleStrategyBoardSession,
   type StrategyBoardSession,
 } from "./strategy-board-session.js";
 import "./strategy-board-runtime.css";
@@ -16,6 +18,7 @@ import "./strategy-board-runtime.css";
 export interface StrategyBoardRuntimeProps {
   arc: Arc;
   program: StrategyBoardProgram;
+  driver?: StrategyBoardDriverContract | null;
   onExit: () => void;
   storage?: KVStorage | null;
 }
@@ -50,17 +53,25 @@ function mutationSummary(program: StrategyBoardProgram, action: LegalAction): st
 function initialSession(
   arc: Arc,
   program: StrategyBoardProgram,
+  driver: StrategyBoardDriverContract | null,
   storage: KVStorage | null,
 ): { session: StrategyBoardSession | null; error: string | null } {
   if (storage) {
     const existing = inspectStrategyBoardSession(storage, arc);
-    if (existing.kind === "ok") return { session: existing.session, error: null };
+    if (existing.kind === "ok") {
+      const settled = settleStrategyBoardSession(arc, program, existing.session, driver);
+      if (settled.inputs.length !== existing.session.inputs.length) {
+        const saved = saveStrategyBoardSession(storage, settled);
+        if (!saved.ok) return { session: null, error: saved.message };
+      }
+      return { session: settled, error: null };
+    }
     if (existing.kind === "invalid") return {
       session: null,
       error: `Stored Strategy Board run refused: ${existing.error}`,
     };
   }
-  const session = createStrategyBoardSession(arc, program, defaultSeatIds(program));
+  const session = createStrategyBoardSession(arc, program, defaultSeatIds(program), driver);
   if (storage) {
     const saved = saveStrategyBoardSession(storage, session);
     if (!saved.ok) return { session: null, error: saved.message };
@@ -68,11 +79,14 @@ function initialSession(
   return { session, error: null };
 }
 
-export function StrategyBoardRuntime({ arc, program, onExit, storage }: StrategyBoardRuntimeProps): JSX.Element {
+export function StrategyBoardRuntime({ arc, program, driver = null, onExit, storage }: StrategyBoardRuntimeProps): JSX.Element {
   const resolvedStorage = storage === undefined
     ? (typeof window === "undefined" ? null : window.localStorage)
     : storage;
-  const boot = useMemo(() => initialSession(arc, program, resolvedStorage), [arc, program, resolvedStorage]);
+  const boot = useMemo(
+    () => initialSession(arc, program, driver, resolvedStorage),
+    [arc, program, driver, resolvedStorage],
+  );
   const [session, setSession] = useState<StrategyBoardSession | null>(() => boot.session);
   const [error, setError] = useState<string | null>(() => boot.error);
   const [auctionId, setAuctionId] = useState<string | null>(null);
@@ -105,7 +119,7 @@ export function StrategyBoardRuntime({ arc, program, onExit, storage }: Strategy
 
   const transition = (input: StrategyInput) => {
     try {
-      const next = applyStrategyBoardSessionInput(arc, program, session, input);
+      const next = applyStrategyBoardSessionInput(arc, program, session, input, driver);
       if (resolvedStorage) {
         const result = saveStrategyBoardSession(resolvedStorage, next);
         if (!result.ok) throw new Error(result.message);

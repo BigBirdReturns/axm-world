@@ -1,6 +1,11 @@
 import type { Arc } from "../../engine/types.js";
 import { validateArc } from "../../engine/schema.js";
 import { selectRuntimeFamily, RUNTIME_FAMILIES } from "../../engine/runtime-family.js";
+import {
+  readStrategyBoardDriver,
+  STRATEGY_BOARD_DRIVER_EXTENSION_KEY,
+  type StrategyBoardDriverContract,
+} from "../../engine/strategy-board/driver.js";
 import { requireSelectedStrategyBoardProgram, STRATEGY_BOARD_PROGRAM_EXTENSION_KEY, type StrategyBoardProgram } from "../../engine/strategy-board/program.js";
 import { CANONICAL_STORY_EXTENSION_KEY, readCanonicalStoryExtension, type CanonicalStorySource } from "../../canonical-story/index.js";
 import { CANONICAL_STORY_TIMED_MEDIA_EXTENSION_KEY, type CanonicalStoryTimedMedia } from "../../canonical-story/timed-media.js";
@@ -9,7 +14,7 @@ import { arcCarriesApertureTimedMedia, readApertureTimedMediaForStory } from "..
 export type RuntimeSelection =
   | { host: "simulation" }
   | { host: "canonical-story"; story: CanonicalStorySource; timedMedia: CanonicalStoryTimedMedia | null }
-  | { host: "strategy-board"; program: StrategyBoardProgram };
+  | { host: "strategy-board"; program: StrategyBoardProgram; driver: StrategyBoardDriverContract | null };
 
 type HostId = RuntimeSelection["host"];
 
@@ -56,15 +61,21 @@ export function resolveRuntimeHost(arc: Arc): RuntimeResolution {
     try {
       validateArc(arc);
       const program = requireSelectedStrategyBoardProgram(arc);
+      const driver = readStrategyBoardDriver(arc);
       const host = selectRuntimeHost(["strategy-board"]);
       if (host !== "strategy-board") return refuse("Runtime capability refused", "No compatible strategy-board host.", "invalid-runtime-capability");
-      return { ok: true, selection: { host, program } };
+      return { ok: true, selection: { host, program, driver } };
     } catch (error) {
       return refuse("Strategy-board authority refused", error, "invalid-strategy-board-authority");
     }
   }
 
-  const known = [CANONICAL_STORY_EXTENSION_KEY, CANONICAL_STORY_TIMED_MEDIA_EXTENSION_KEY, STRATEGY_BOARD_PROGRAM_EXTENSION_KEY];
+  const known = [
+    CANONICAL_STORY_EXTENSION_KEY,
+    CANONICAL_STORY_TIMED_MEDIA_EXTENSION_KEY,
+    STRATEGY_BOARD_PROGRAM_EXTENSION_KEY,
+    STRATEGY_BOARD_DRIVER_EXTENSION_KEY,
+  ];
   const unsupported = Object.keys(arc.extensions ?? {}).sort().filter((key) =>
     known.some((supported) => key.startsWith(supported.split("@")[0] + "@") && key !== supported));
   if (unsupported.length) {
