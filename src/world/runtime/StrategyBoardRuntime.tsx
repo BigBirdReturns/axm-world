@@ -1,46 +1,30 @@
 import { useMemo, useState } from "react";
-import {
-  advanceStrategyPhase,
-  applyLegalStrategyAction,
-  initialStrategyExecutionState,
-  listExecutableStrategyActions,
-  type LegalAction,
-  type StrategyExecutionState,
-} from "../../engine/strategy-board/index.js";
+import { listExecutableStrategyActions, type LegalAction, type StrategyInput } from "../../engine/strategy-board/index.js";
 import type { StrategyBoardProgram } from "../../engine/strategy-board/program.js";
+import type { Arc } from "../../engine/types.js";
+import type { KVStorage } from "../save.js";
+import {
+  applyStrategyBoardSessionInput,
+  createStrategyBoardSession,
+  downloadStrategyBoardRuntimeRun,
+  inspectStrategyBoardSession,
+  saveStrategyBoardSession,
+  type StrategyBoardSession,
+} from "./strategy-board-session.js";
 import "./strategy-board-runtime.css";
 
 export interface StrategyBoardRuntimeProps {
+  arc: Arc;
   program: StrategyBoardProgram;
   onExit: () => void;
+  storage?: KVStorage | null;
 }
 
-const AUTOMATIC_PHASES = new Set(["quarterStart", "milestoneAttempt", "receiptLedger"]);
-
-export function settleAutomaticStrategyPhases(
-  program: StrategyBoardProgram,
-  state: StrategyExecutionState,
-): StrategyExecutionState {
-  let next = state;
-  let guard = 0;
-  while (!next.execution.terminal && AUTOMATIC_PHASES.has(next.phase)) {
-    next = advanceStrategyPhase(program.definition, next);
-    if (++guard > 8) throw new Error("Strategy-board automatic phase loop exceeded its bound.");
-  }
-  return next;
+function defaultSeatIds(program: StrategyBoardProgram): string[] {
+  return Array.from({ length: program.definition.seatCountRange.min }, (_, index) => `seat-${index + 1}`);
 }
-export function createStrategyBoardRuntimeState(program: StrategyBoardProgram): StrategyExecutionState {
-  const seatIds = Array.from(
-    { length: program.definition.seatCountRange.min },
-    (_, index) => `seat-${index + 1}`,
-  );
-  return settleAutomaticStrategyPhases(
-    program,
-    initialStrategyExecutionState(program.definition, seatIds, program.executionRules),
-  );
-}
-
-function actingSeatId(state: StrategyExecutionState): string {
+function actingSeatId(session: StrategyBoardSession): string {
+  const state = session.state;
   if (state.phase !== "reactionInterference") return state.seats[state.activeSeatIndex]!.seatId;
   return state.seats[
     (state.activeSeatIndex + 1 + state.execution.reactionIndex) % state.seats.length
@@ -55,6 +39,7 @@ function actionLabel(program: StrategyBoardProgram, action: LegalAction): string
   if (action.kind === "programAction") return def.programActions.find((item) => item.id === action.refId)?.name ?? String(action.refId);
   return def.interferences.find((item) => item.id === action.refId)?.name ?? String(action.refId);
 }
+
 function mutationSummary(program: StrategyBoardProgram, action: LegalAction): string {
   if (!action.declaredMutations.length) return "";
   const resources = new Map(program.definition.resources.map((item) => [item.id, item.name]));
@@ -62,26 +47,71 @@ function mutationSummary(program: StrategyBoardProgram, action: LegalAction): st
     .map((mutation) => `${mutation.delta > 0 ? "+" : ""}${mutation.delta} ${resources.get(mutation.resourceId) ?? mutation.resourceId}`)
     .join(" · ");
 }
+function initialSession(
+  arc: Arc,
+  program: StrategyBoardProgram,
+  storage: KVStorage | null,
+): { session: StrategyBoardSession | null; error: string | null } {
+  if (storage) {
+    const existing = inspectStrategyBoardSession(storage, arc);
+    if (existing.kind === "ok") return { session: existing.session, error: null };
+    if (existing.kind === "invalid") return {
+      session: null,
+      error: `Stored Strategy Board run refused: ${existing.error}`,
+    };
+  }
+  const session = createStrategyBoardSession(arc, program, defaultSeatIds(program));
+  if (storage) {
+    const saved = saveStrategyBoardSession(storage, session);
+    if (!saved.ok) return { session: null, error: saved.message };
+  }
+  return { session, error: null };
+}
 
-export function StrategyBoardRuntime({ program, onExit }: StrategyBoardRuntimeProps): JSX.Element {
-  const [state, setState] = useState(() => createStrategyBoardRuntimeState(program));
-  const [error, setError] = useState<string | null>(null);
+export function StrategyBoardRuntime({ arc, program, onExit, storage }: StrategyBoardRuntimeProps): JSX.Element {
+  const resolvedStorage = storage === undefined
+    ? (typeof window === "undefined" ? null : window.localStorage)
+    : storage;
+  const boot = useMemo(() => initialSession(arc, program, resolvedStorage), [arc, program, resolvedStorage]);
+  const [session, setSession] = useState<StrategyBoardSession | null>(() => boot.session);
+  const [error, setError] = useState<string | null>(() => boot.error);
   const [auctionId, setAuctionId] = useState<string | null>(null);
-  const [bidSeat, setBidSeat] = useState(state.seats[0]!.seatId);
+  const [bidSeat, setBidSeat] = useState(() => session?.seatIds[0] ?? "seat-1");
   const [bidAmount, setBidAmount] = useState("");
   const [bids, setBids] = useState<{ seatId: string; amount: number }[]>([]);
+  if (!session) {
+    return (
+      <main className="strategy-runtime" data-testid="strategy-board-runtime-refusal">
+        <header className="strategy-runtime__header">
+          <div>
+            <div className="strategy-runtime__eyebrow">Strategy Board Runtime</div>
+            <h1>Stored run refused</h1>
+            <p>{error ?? "The runtime run could not be restored."}</p>
+          </div>
+          <button type="button" onClick={onExit}>Exit</button>
+        </header>
+      </main>
+    );
+  }
+
+  const state = session.state;
   const def = program.definition;
   const activeSeat = state.seats[state.activeSeatIndex]!;
-  const actorId = actingSeatId(state);
+  const actorId = actingSeatId(session);
   const actor = state.seats.find((seat) => seat.seatId === actorId)!;
-  const legal = useMemo(() => listExecutableStrategyActions(def, state), [def, state]);
+  const legal = listExecutableStrategyActions(def, state);
   const position = state.execution.positions[activeSeat.seatId]!;
   const currentSpace = def.spaces.find((space) => space.id === position)!;
 
-  const transition = (fn: () => StrategyExecutionState) => {
+  const transition = (input: StrategyInput) => {
     try {
+      const next = applyStrategyBoardSessionInput(arc, program, session, input);
+      if (resolvedStorage) {
+        const result = saveStrategyBoardSession(resolvedStorage, next);
+        if (!result.ok) throw new Error(result.message);
+      }
       setError(null);
-      setState(settleAutomaticStrategyPhases(program, fn()));
+      setSession(next);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught));
     }
@@ -92,23 +122,23 @@ export function StrategyBoardRuntime({ program, onExit }: StrategyBoardRuntimePr
       setBids([]);
       return;
     }
-    transition(() => applyLegalStrategyAction(def, state, {
+    transition({
       type: "action",
       seatId: actorId,
       kind: action.kind,
       refId: action.refId,
-    }));
+    });
   };
 
   const resolveAuction = () => {
     if (!auctionId) return;
-    transition(() => applyLegalStrategyAction(def, state, {
+    transition({
       type: "action",
       seatId: actorId,
       kind: "auction",
       refId: auctionId,
       bids,
-    }));
+    });
     setAuctionId(null);
     setBids([]);
   };
@@ -122,6 +152,7 @@ export function StrategyBoardRuntime({ program, onExit }: StrategyBoardRuntimePr
     setBids((current) => [...current, { seatId: bidSeat, amount }]);
     setBidAmount("");
   };
+
   const terminal = state.execution.terminal;
   return (
     <main className="strategy-runtime" data-testid="strategy-board-runtime">
@@ -131,7 +162,10 @@ export function StrategyBoardRuntime({ program, onExit }: StrategyBoardRuntimePr
           <h1>{def.name}</h1>
           <p>{def.description}</p>
         </div>
-        <button type="button" onClick={onExit}>Exit</button>
+        <div className="strategy-runtime__header-actions">
+          <button type="button" data-testid="strategy-export-run" onClick={() => downloadStrategyBoardRuntimeRun(session.run)}>Export run</button>
+          <button type="button" onClick={onExit}>Exit</button>
+        </div>
       </header>
 
       <section className="strategy-runtime__status" aria-label="Turn status">
@@ -140,6 +174,7 @@ export function StrategyBoardRuntime({ program, onExit }: StrategyBoardRuntimePr
         <span>Acting: {actor.seatId}</span>
         <span>Phase: {state.phase}</span>
         <span>Space: {currentSpace.name}</span>
+        <span>Trace: {session.inputs.length} inputs</span>
       </section>
       {error && <div className="strategy-runtime__error" role="alert">{error}</div>}
       {terminal && (
@@ -163,7 +198,7 @@ export function StrategyBoardRuntime({ program, onExit }: StrategyBoardRuntimePr
                 data-testid={`strategy-space-${space.id}`}
                 data-reachable={reachable ? "true" : "false"}
                 disabled={!reachable}
-                onClick={() => transition(() => advanceStrategyPhase(def, state, space.id))}
+                onClick={() => transition({ type: "advance", destinationSpaceId: space.id })}
               >
                 <strong>{space.name}</strong>
                 <span>{space.region} · {space.type}</span>
@@ -173,7 +208,6 @@ export function StrategyBoardRuntime({ program, onExit }: StrategyBoardRuntimePr
             );
           })}
         </div>
-
         <aside className="strategy-runtime__seats" aria-label="Seat ledgers">
           {state.seats.map((seat) => (
             <div key={seat.seatId} className="strategy-runtime__seat" data-active={seat.seatId === actorId ? "true" : "false"}>
@@ -184,6 +218,7 @@ export function StrategyBoardRuntime({ program, onExit }: StrategyBoardRuntimePr
           ))}
         </aside>
       </section>
+
       {!terminal && state.phase !== "movementResolution" && (
         <section className="strategy-runtime__actions" aria-label="Legal actions">
           <h2>{actorId}'s legal actions</h2>
@@ -202,7 +237,6 @@ export function StrategyBoardRuntime({ program, onExit }: StrategyBoardRuntimePr
           </div>
         </section>
       )}
-
       {auctionId && (
         <section className="strategy-runtime__auction" data-testid="strategy-auction-panel">
           <h2>Explicit bid sequence</h2>
@@ -221,6 +255,7 @@ export function StrategyBoardRuntime({ program, onExit }: StrategyBoardRuntimePr
           </div>
         </section>
       )}
+
       <section className="strategy-runtime__ledger" aria-label="Recent ledger">
         <h2>Recent ledger</h2>
         {state.execution.ledger.length === 0 ? (
