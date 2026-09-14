@@ -2,6 +2,7 @@ import type { WorldHostProps } from "../WorldHost.js";
 import { useArcWorld } from "../useArcWorld.js";
 import { SequenceHost } from "../sequence/SequenceHost.js";
 import { SimulationRuntime } from "./SimulationRuntime.js";
+import { StrategyBoardRuntime } from "./StrategyBoardRuntime.js";
 import { RuntimeRefusal } from "./RuntimeRefusal.js";
 import { resolveRuntimeHost, type RuntimeSelection } from "./host-registry.js";
 
@@ -20,6 +21,10 @@ const HOSTS = {
   "canonical-story": ({ selection, ...props }: SelectedHostProps) => {
     if (selection.host !== "canonical-story") throw new Error("Incompatible runtime host selection.");
     return <SequenceHost {...props} story={selection.story} timedMedia={selection.timedMedia} />;
+  },
+  "strategy-board": ({ selection, onExit }: SelectedHostProps) => {
+    if (selection.host !== "strategy-board") throw new Error("Incompatible runtime host selection.");
+    return <StrategyBoardRuntime program={selection.program} onExit={onExit} />;
   },
 } satisfies Record<RuntimeSelection["host"], (props: SelectedHostProps) => JSX.Element>;
 

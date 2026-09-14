@@ -12,6 +12,7 @@ import { resolveRuntimeHost } from "../../src/world/runtime/host-registry.js";
 import { compileProjectionManifest, validateProjectionManifest } from "../../src/world/forge/projection.js";
 import { compileWorldForgePlanV2 } from "../../src/world/forge/compile-v2.js";
 import { cartridgeFixture, storyFixture } from "./aperture/fixtures.js";
+import { strategyBoardProgramExtension } from "../fixtures/strategy-board-program.js";
 
 const cleanRoom = parseCartridge(JSON.parse(readFileSync(
   new URL("../../cartridges/clean-room/orchard-at-low-tide.arc.json", import.meta.url), "utf8",
@@ -22,6 +23,7 @@ function withFamily(arc: Arc, family: RuntimeFamily): Arc {
   next.extensions = {
     ...next.extensions,
     [RUNTIME_FAMILY_EXTENSION_KEY]: { format: RUNTIME_FAMILY_FORMAT, family },
+    ...(family === "strategy-board" ? strategyBoardProgramExtension() : {}),
   };
   return next;
 }
@@ -52,13 +54,21 @@ describe("circulation convergence", () => {
       refusal: { testId: "missing-runtime-authority" },
     });
   });
-  it("recognizes strategy-board law but fails closed until World has that host", () => {
+  it("routes strategy-board only when authored program authority is present", () => {
     const strategy = withFamily(cleanRoom.arc, "strategy-board");
     expect(resolveRuntimeHost(strategy)).toMatchObject({
-      ok: false,
-      refusal: { testId: "unsupported-runtime-host" },
+      ok: true,
+      selection: { host: "strategy-board" },
     });
-    expect(() => compileProjectionManifest(strategy)).toThrow(/strategy-board|projection contract|host/i);
+    const manifest = compileProjectionManifest(strategy);
+    expect(manifest.runtime).toMatchObject({
+      family: "strategy-board",
+      authority: "axm.strategy-board@1",
+      selection: "explicit",
+    });
+    expect(manifest.verbs.some((verb) => verb.operation === "move")).toBe(true);
+    expect(manifest.verbs.some((verb) => verb.operation === "program-action")).toBe(true);
+    expect(manifest.terminalConditions.every((entry) => entry.scope === "run")).toBe(true);
   });
 
   it("preserves legacy host behavior while future family versions cannot fallback", () => {
