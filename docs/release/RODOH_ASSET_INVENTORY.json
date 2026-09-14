@@ -14,7 +14,7 @@
   "summary": {
     "programs": 7,
     "assets": 91,
-    "bytes": 430858,
+    "bytes": 431688,
     "svgAssets": 23,
     "vectorElements": 1531,
     "longDescriptions": 4,
@@ -153,7 +153,7 @@
       "id": "program-006-ilyon-crown-tides",
       "name": "Program 006: Ilyon: Crown Tides",
       "cartridgeId": "ilyon-crown-tides",
-      "cartridgeDigest": "cart1_6a238e5e1d5a0285138f54792c971d469050071c157ecb83ab8e5f7bd0a0ec3c",
+      "cartridgeDigest": "cart1_ebf62fdf66717901d70428983d9da598b37d75ce4c63831546fe3ccfb5964ba4",
       "status": "production-dignity-complete",
       "historicalManifests": [
         {
@@ -1395,8 +1395,8 @@
         "program-006-ilyon-crown-tides"
       ],
       "kind": "tsx",
-      "bytes": 20371,
-      "sha256": "6ea29e3c5f10d370cfde8e2fcc581827347e00875ba876880ec142ca99e832eb",
+      "bytes": 21201,
+      "sha256": "33c192cb675ad24060aa9a7fd4d6d2f3b70a29b39b09683b23c4f8d561e3c06c",
       "viewBox": null,
       "title": null,
       "description": null,

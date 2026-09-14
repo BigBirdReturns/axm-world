@@ -34,6 +34,8 @@ describe("Strategy Board play surface", () => {
     expect(html).toContain("choose where to exert pressure");
     expect(html).toContain("Operator");
     expect(html).toContain('data-reachable="true"');
+    expect(html).toContain('data-testid="strategy-move-hold"');
+    expect(html).toContain("Hold at Home");
     expect(html).not.toContain("Active: seat-1");
     expect(html).not.toContain("Acting: seat-1");
   });

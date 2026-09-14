@@ -28,7 +28,7 @@
     {
       "file": "src/world/bundled-digests.ts",
       "rule": "cartridge-dispatch",
-      "sha256": "b588c8699c0c767b13f9c907dd7ad33c95c0dcd0db8cee2646fba84c4d26d1d6",
+      "sha256": "d8b0fffa94b58531b76f96d2c6f581086cbe37ebb262b0329896881553d97a4e",
       "owner": "AXM World maintainers",
       "reason": "Golden authored digest data, not executable title routing.",
       "removeWhen": "Replace with a promoted generated manifest while retaining exact digest conformance."

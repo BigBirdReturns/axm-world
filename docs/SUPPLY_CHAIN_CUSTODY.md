@@ -2,7 +2,7 @@
 
 RODOH separates three claims that are often collapsed into one:
 
-1. `cart1_â€¦` identifies exact authored cartridge law. It detects content change and does not prove authorship.
+1. `cart1_…` identifies exact authored cartridge law. It detects content change and does not prove authorship.
 2. Git history identifies reviewed source changes. A Git commit does not prove which workflow built a distributed archive.
 3. A release attestation binds a distributed archive to the repository, commit, workflow, and build event that produced it. It does not prove that the software is safe or that a cartridge publisher is legitimate.
 
@@ -47,7 +47,7 @@ The action's bundles are copied into the evidence set rather than left only in w
 
 Arc must produce its own signed release attestation from the Arc repository. World may assemble and checksum an Arc build for coordinated reproducibility, but a World signature must never be represented as Arc repository provenance.
 
-The coordinated estate checks out the exact Arc local-estate head named by `estate/estate.lock.json`; this candidate currently resolves to `0b2a527b7bab1404aa5c31f5e07ff7d9000d21e3`. The v1.0 product-authority baseline remains `4b07539a06d40b131591f1e9c7d5b90a96ceec31`. Vendored Arc bytes must match the exact local-estate head even when product-authority provenance intentionally points at the older accepted baseline.
+The coordinated estate checks out the exact Arc local-estate head named by `estate/estate.lock.json`; this candidate currently resolves to `ecf196593bdf819a405ee4fa01429a41a80d6f89`. The v1.0 product-authority baseline remains `4b07539a06d40b131591f1e9c7d5b90a96ceec31`. Vendored Arc bytes must match the exact local-estate head even when product-authority provenance intentionally points at the older accepted baseline.
 
 ## Online verification
 

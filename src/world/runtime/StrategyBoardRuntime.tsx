@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { listExecutableStrategyActions, type LegalAction, type StrategyInput } from "../../engine/strategy-board/index.js";
+import { listExecutableStrategyActions, listExecutableStrategyMoves, type LegalAction, type StrategyInput } from "../../engine/strategy-board/index.js";
 import type { StrategyBoardDriverContract } from "../../engine/strategy-board/driver.js";
 import type { StrategyBoardProgram } from "../../engine/strategy-board/program.js";
 import type { Arc } from "../../engine/types.js";
@@ -107,7 +107,7 @@ function phasePrompt(
   if (phase === "movementResolution") return {
     kicker: "MOVE",
     title: `${actorName}: choose where to exert pressure`,
-    body: "Move to one connected location. Control assets before the other side does; entering an opponent-held asset may charge a toll.",
+    body: "Move to one executable connected location, or hold position. Opponent-held infrastructure may charge a toll, and unaffordable routes are blocked before you commit.",
   };
   if (phase === "buyAuctionPass") return {
     kicker: "CONTROL",
@@ -193,6 +193,7 @@ export function StrategyBoardRuntime({ arc, program, driver = null, onExit, stor
   const actor = state.seats.find((seat) => seat.seatId === actorId)!;
   const actorName = seatName(program, actor);
   const legal = listExecutableStrategyActions(def, state);
+  const legalMoves = new Set(listExecutableStrategyMoves(def, state));
   const position = state.execution.positions[activeSeat.seatId]!;
   const currentSpace = def.spaces.find((space) => space.id === position)!;
   const prompt = phasePrompt(state.phase, actorName);
@@ -269,13 +270,14 @@ export function StrategyBoardRuntime({ arc, program, driver = null, onExit, stor
             const rule = program.executionRules.endings.find((item) => item.endingId === ending.id);
             const required = rule?.milestoneIds ?? [];
             const milestones = required.map((id) => def.milestones.find((item) => item.id === id)?.name ?? id);
+            const eligibleSeats = state.seats.filter((seat) => !rule?.doctrineIds || rule.doctrineIds.includes(seat.doctrineId));
             return (
               <article key={ending.id} className="strategy-runtime__ending" data-testid={`strategy-ending-${ending.id}`}>
                 <strong>{ending.name}</strong>
                 <p>{ending.description}</p>
                 <span>Requires: {milestones.join(" + ") || "authored ending law"}</span>
                 <div className="strategy-runtime__ending-progress">
-                  {state.seats.map((seat) => {
+                  {eligibleSeats.map((seat) => {
                     const achieved = required.filter((id) => state.execution.milestones[seat.seatId]?.includes(id)).length;
                     return <small key={seat.seatId}>{seatName(program, seat)}: {achieved}/{required.length}</small>;
                   })}
@@ -314,11 +316,19 @@ export function StrategyBoardRuntime({ arc, program, driver = null, onExit, stor
 
       <section className="strategy-runtime__layout">
         <div className="strategy-runtime__board" aria-label="Board">
+          {!terminal && state.phase === "movementResolution" && (
+            <button type="button" className="strategy-runtime__space strategy-runtime__space--hold" data-testid="strategy-move-hold" onClick={() => transition({ type: "advance" })}>
+              <span className="strategy-runtime__space-region">CURRENT POSITION</span>
+              <strong>Hold at {currentSpace.name}</strong>
+              <small>Do not cross an infrastructure edge this turn. Continue to control and policy from here.</small>
+              <em>HOLD POSITION</em>
+            </button>
+          )}
           {def.spaces.map((space) => {
             const occupants = state.seats.filter((seat) => state.execution.positions[seat.seatId] === space.id);
             const asset = def.controlAssets.find((item) => item.sitedOnSpaceId === space.id);
             const owner = asset ? state.ownership[asset.id] : null;
-            const reachable = !terminal && state.phase === "movementResolution" && currentSpace.adjacentSpaceIds.includes(space.id);
+            const reachable = !terminal && state.phase === "movementResolution" && legalMoves.has(space.id);
             return (
               <button
                 type="button"
