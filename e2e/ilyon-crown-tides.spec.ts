@@ -27,6 +27,11 @@ test("Crown Tides makes the race legible before the first click", async ({ page 
   await expect(page.getByTestId("strategy-turn-prompt")).toContainText("MOVE");
   await expect(page.getByText("Uncrowned Compact", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Final Humanity Benefactors", { exact: true }).first()).toBeVisible();
+  if (testInfo.project.name === "desktop") {
+    await expect(page.getByTestId("strategy-3d-scene")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("strategy-current-place")).toContainText("Confluence of Tides");
+    await page.waitForTimeout(600);
+  }
 
   await page.screenshot({ path: testInfo.outputPath("opening.png"), fullPage: true });
 });
@@ -38,6 +43,10 @@ test("a deliberate human line beats Benefactor closure through real browser choi
   await expectPrompt(page, /MOVE/);
   await choose(page, "strategy-space-free-observatory");
   await expectPrompt(page, /CONTROL/);
+  if (testInfo.project.name === "desktop") {
+    await expect(page.getByTestId("strategy-current-place")).toContainText("Free Observatory");
+    await page.screenshot({ path: testInfo.outputPath("free-observatory.png"), fullPage: true });
+  }
   await choose(page, "strategy-action-purchase-archive-array");
   await expectPrompt(page, /ACT/);
   await choose(page, "strategy-action-programAction-publish-dependency");
