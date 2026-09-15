@@ -31,7 +31,7 @@ describe("Strategy Board play surface", () => {
     expect(html).toContain('data-testid="strategy-race"');
     expect(html).toContain('data-testid="strategy-turn-prompt"');
     expect(html).toContain("Reach your ending before the other side reaches theirs.");
-    expect(html).toContain("choose where to exert pressure");
+    expect(html).toContain("Choose where to exert pressure");
     expect(html).toContain("Operator");
     expect(html).toContain('data-reachable="true"');
     expect(html).toContain('data-testid="strategy-move-hold"');
