@@ -18,6 +18,7 @@ test("the Rodoh shelf loads the system environment without obscuring cartridge c
   await expect(page.getByTestId("play-cartridge-first-charter")).toBeVisible();
   await expect(page.getByTestId("play-cartridge-karazhan")).toBeVisible();
   await expect(page.getByTestId("play-cartridge-kind-gods-of-ilyon")).toBeVisible();
+  await expect(page.getByTestId("play-cartridge-ilyon-crown-tides")).toBeVisible();
   await expect(page.getByTestId("play-cartridge-lamp-district")).toBeVisible();
 });
 

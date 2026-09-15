@@ -65,11 +65,12 @@ jobs:
           node - <<'NODE'
           const fs = require('fs');
           const status = JSON.parse(fs.readFileSync('current-status/CURRENT_ESTATE_STATUS.json', 'utf8'));
+          const lock = JSON.parse(fs.readFileSync('estate/estate.lock.json', 'utf8'));
           if (status.format !== 'rodoh-current-estate-status/1') throw new Error('wrong status format');
           if (status.release.ready !== false) throw new Error('pre-release CI must not manufacture local acceptance');
           if (!status.release.blockers.some((value) => /Local operator acceptance/.test(value))) throw new Error('local operator gate missing');
           if (status.bookIV.status !== 'staged-post-1.0' || status.bookIV.runtimeRegistered || status.bookIV.programAssigned) throw new Error('Book IV crossed the release boundary');
-          if (Object.keys(status.products).length !== 6) throw new Error('expected five first-party products plus Orchard');
+          if (JSON.stringify(Object.keys(status.products).sort()) !== JSON.stringify(Object.keys(lock.products).sort())) throw new Error('current status product set does not match the estate lock');
           NODE
       - name: Complete regression suite
         run: npm test

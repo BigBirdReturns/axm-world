@@ -10,11 +10,12 @@ import { preferredCostumeForArc } from "../../src/world/presentation-prefs.js";
 import { cartridgePaletteScope, themeForArc } from "../../src/world/themes/select.js";
 
 describe("Lamp District World cartridge", () => {
-  it("remains the fourth first-party cartridge with authored residents", () => {
+  it("remains a first-party cartridge with authored residents", () => {
     expect(BUNDLED_CARTRIDGES.map((cartridge) => cartridge.manifest.id)).toEqual([
       "first-charter",
       "karazhan",
       "kind-gods-of-ilyon",
+      "ilyon-crown-tides",
       "lamp-district",
       "relief-circuit",
     ]);

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 400" role="img" aria-labelledby="title desc">
+<title id="title">Benefactor mission standard</title><desc id="desc">A closed coral lattice around a gold core, symbolizing care delivered through irreversible integration.</desc>
+<defs><linearGradient id="crown" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff8da0"/><stop offset="1" stop-color="#84394b"/></linearGradient><filter id="glow"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+<path d="M62 238L84 112l76 62 76-62 22 126-98 62z" fill="url(#crown)" stroke="#e7e1cf" stroke-width="13" stroke-linejoin="round" filter="url(#glow)"/><path d="M98 144l62 52 62-52M86 226h148M112 263h96" fill="none" stroke="#071827" stroke-width="11" stroke-linecap="round"/><circle cx="160" cy="202" r="30" fill="#071827" stroke="#c9a45d" stroke-width="10"/><circle cx="160" cy="202" r="10" fill="#f5d37b"/><path d="M160 172v60M130 202h60" stroke="#c9a45d" stroke-width="5" opacity=".55"/>
+</svg>

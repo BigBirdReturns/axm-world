@@ -1,0 +1,14 @@
+{
+  "format": "axm-runtime-asset-provenance/1",
+  "slice": "ilyon-crown-tides/1",
+  "status": "production-expression-pack",
+  "createdAt": "2026-09-14",
+  "owner": "BigBirdReturns/axm-world",
+  "authorship": "Original vector faction standards authored for Ilyon: Crown Tides. No external references or embedded raster material.",
+  "license": "Project-owned; distributed under the repository license for this runtime use.",
+  "releaseBoundary": "These standards identify opposing doctrines in presentation only. They never determine a legal action, ownership, milestone, ending, or resource mutation.",
+  "assets": [
+    "uncrowned-standard.svg",
+    "benefactor-standard.svg"
+  ]
+}

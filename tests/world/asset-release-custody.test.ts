@@ -59,6 +59,7 @@ describe("RODOH v1 asset release custody", () => {
       "program-001-first-charter",
       "program-002-waking-tower",
       "program-003-kind-gods-of-ilyon",
+      "program-006-ilyon-crown-tides",
       "program-004-lamp-district",
       "program-005-relief-circuit",
     ]);
@@ -134,7 +135,7 @@ describe("RODOH v1 asset release custody", () => {
     expect(inventory).toMatchObject({
       format: "rodoh-release-asset-inventory/1",
       status: "pass",
-      summary: { programs: 6, failures: 0 },
+      summary: { programs: 7, failures: 0 },
     });
     expect(inventory.assets.length).toBeGreaterThan(20);
     expect(inventory.assets.every((asset: { remoteReferences: string[]; embeddedRaster: boolean; executableSvg: boolean }) =>
