@@ -1,0 +1,29 @@
+name: PR313 regenerate place inventory
+
+on:
+  push:
+    branches:
+      - content/ilyon-crown-tides
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: content/ilyon-crown-tides
+          fetch-depth: 0
+      - name: Regenerate exact release inventory
+        run: node scripts/assets/build-release-asset-inventory.mjs
+      - name: Commit inventory and remove one-shot workflow
+        run: |
+          rm .github/workflows/_pr313-regenerate-place-inventory.yml
+          git add -A
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Regenerate exact place projection inventory'
+          git push origin HEAD:content/ilyon-crown-tides
