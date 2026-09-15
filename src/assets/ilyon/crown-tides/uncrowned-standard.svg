@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 400" role="img" aria-labelledby="title desc">
+<title id="title">Uncrowned Compact standard</title><desc id="desc">An open nacre ring crossed by three independent tide arcs, symbolizing care without command.</desc>
+<defs><radialGradient id="sea" cx="50%" cy="38%" r="70%"><stop stop-color="#88efe5"/><stop offset="1" stop-color="#0b6d78"/></radialGradient><filter id="glow"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+<path d="M58 190a102 102 0 1 0 204 0" fill="none" stroke="#e7e1cf" stroke-width="22" stroke-linecap="round"/><path d="M73 177c50-52 124-52 174 0M82 213c44-39 112-39 156 0M96 248c37-26 91-26 128 0" fill="none" stroke="url(#sea)" stroke-width="16" stroke-linecap="round" filter="url(#glow)"/><circle cx="160" cy="171" r="22" fill="#071827" stroke="#c9a45d" stroke-width="8"/><path d="M160 142v58M131 171h58" stroke="#e7e1cf" stroke-width="7" stroke-linecap="round"/><path d="M116 302h88" stroke="#48b7b0" stroke-width="9" stroke-linecap="round" opacity=".65"/>
+</svg>
