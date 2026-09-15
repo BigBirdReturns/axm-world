@@ -13,10 +13,10 @@
   ],
   "summary": {
     "programs": 7,
-    "assets": 93,
-    "bytes": 462070,
-    "svgAssets": 23,
-    "vectorElements": 1531,
+    "assets": 100,
+    "bytes": 480253,
+    "svgAssets": 25,
+    "vectorElements": 1557,
     "longDescriptions": 4,
     "failures": 0
   },
@@ -131,7 +131,7 @@
           "format": "axm-runtime-asset-provenance/1"
         }
       ],
-      "assetCount": 10,
+      "assetCount": 13,
       "denseDescriptions": [
         "ilyon-symbol-system"
       ],
@@ -163,9 +163,13 @@
         {
           "path": "src/assets/ilyon/observatory/provenance.json",
           "format": "axm-runtime-asset-provenance/1"
+        },
+        {
+          "path": "src/assets/ilyon/crown-tides/provenance.json",
+          "format": "axm-runtime-asset-provenance/1"
         }
       ],
-      "assetCount": 19,
+      "assetCount": 26,
       "denseDescriptions": [],
       "requiredRoles": [
         "strategy-board spatial legibility",
@@ -176,6 +180,7 @@
       "acceptance": [
         "tests/engine/ilyon-crown-tides.test.ts",
         "tests/world/strategy-board-play-surface.test.ts",
+        "tests/world/strategy-board-expression.test.ts",
         "tests/world/runtime-host-registry.test.ts"
       ],
       "releaseBoundary": "Crown Tides reuses governed Ilyon visual material through the generic Strategy Board host; presentation never creates an action, outcome, or ending."
@@ -453,6 +458,57 @@
       "title": null,
       "description": null,
       "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/ilyon/crown-tides/benefactor-standard.svg",
+      "owners": [
+        "program-003-kind-gods-of-ilyon",
+        "program-006-ilyon-crown-tides"
+      ],
+      "kind": "svg",
+      "bytes": 1076,
+      "sha256": "52020790b7292812aef932c5431804fee28224bfffc8834eb5e920c9baae5a2f",
+      "viewBox": "0 0 320 400",
+      "title": "Benefactor mission standard",
+      "description": "A closed coral lattice around a gold core, symbolizing care delivered through irreversible integration.",
+      "vectorElements": 13,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/ilyon/crown-tides/provenance.json",
+      "owners": [
+        "program-003-kind-gods-of-ilyon",
+        "program-006-ilyon-crown-tides"
+      ],
+      "kind": "json",
+      "bytes": 683,
+      "sha256": "6d126b685047baefac077f05ea565285050137ebd2bc835fd58a02971e821ca6",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/assets/ilyon/crown-tides/uncrowned-standard.svg",
+      "owners": [
+        "program-003-kind-gods-of-ilyon",
+        "program-006-ilyon-crown-tides"
+      ],
+      "kind": "svg",
+      "bytes": 1130,
+      "sha256": "317fd179dd30cab04209b3467ff87442ce8f226e7de46e5f9372e0ab61005def",
+      "viewBox": "0 0 320 400",
+      "title": "Uncrowned Compact standard",
+      "description": "An open nacre ring crossed by three independent tide arcs, symbolizing care without command.",
+      "vectorElements": 13,
       "remoteReferences": [],
       "embeddedRaster": false,
       "executableSvg": false
@@ -990,6 +1046,54 @@
       "executableSvg": false
     },
     {
+      "path": "src/world/expressions/ilyon-crown-tides.ts",
+      "owners": [
+        "program-006-ilyon-crown-tides"
+      ],
+      "kind": "ts",
+      "bytes": 1948,
+      "sha256": "2cfb95aa9b5f028d79a5bc9badd2cade5dfd3fe911b7fb17f4c27dcf74dad0da",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/expressions/index.ts",
+      "owners": [
+        "program-006-ilyon-crown-tides"
+      ],
+      "kind": "ts",
+      "bytes": 484,
+      "sha256": "142016a5ff66ee980c57343c12a8fa583ade18d0bf63a5da5dd46ef5db150a1f",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/expressions/types.ts",
+      "owners": [
+        "program-006-ilyon-crown-tides"
+      ],
+      "kind": "ts",
+      "bytes": 672,
+      "sha256": "787d2e5cf343414495db2fd8419b374e943743875cf40dea0278da44669f7333",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
       "path": "src/world/pixel-ui/PixelAttribute.tsx",
       "owners": [
         "rodoh-shell"
@@ -1395,8 +1499,8 @@
         "program-006-ilyon-crown-tides"
       ],
       "kind": "tsx",
-      "bytes": 24407,
-      "sha256": "d726b7b55a6b74b168c69ef82febdbbf839b1f7eb66abeb931e23678a9e37e18",
+      "bytes": 25275,
+      "sha256": "516dfcd315b33f398612f3160428cd9ae91dfdc1f97470ca5fa6806671beae30",
       "viewBox": null,
       "title": null,
       "description": null,
@@ -1411,8 +1515,8 @@
         "program-006-ilyon-crown-tides"
       ],
       "kind": "tsx",
-      "bytes": 7709,
-      "sha256": "1a46dfafb8f6c99e7aec9d81b553433fa8c3dc263f95ad5f41f10f0c54e87202",
+      "bytes": 12568,
+      "sha256": "431ca38c45004c31125bd5369c28df3bc5af5f2fa98a58ff3be652bd8f4657e7",
       "viewBox": null,
       "title": null,
       "description": null,
@@ -1429,6 +1533,22 @@
       "kind": "ts",
       "bytes": 6413,
       "sha256": "3d26b3bfb61152d0e5b496c380677c136be60cfe7de8e179e81844f6f6a1f20f",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/runtime/strategy-board-expression.ts",
+      "owners": [
+        "program-006-ilyon-crown-tides"
+      ],
+      "kind": "ts",
+      "bytes": 2047,
+      "sha256": "812c4288bc3f41a74aa59db692e951ffc4582d4176a899377c3f296720988230",
       "viewBox": null,
       "title": null,
       "description": null,
@@ -1459,8 +1579,8 @@
         "program-006-ilyon-crown-tides"
       ],
       "kind": "css",
-      "bytes": 26087,
-      "sha256": "e9177642a1970ea34ff59bf030eb54274bc7ffd0cc656e3a17db9fc176be5a41",
+      "bytes": 30503,
+      "sha256": "fa3d7d26c880da7bd8e7cd81b699e0a01297e5dfb7ec829df9355474efaa98d3",
       "viewBox": null,
       "title": null,
       "description": null,
