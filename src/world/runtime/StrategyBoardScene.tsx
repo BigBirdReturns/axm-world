@@ -1,9 +1,12 @@
-import { Canvas } from "@react-three/fiber";
-import { Html, Line, OrbitControls, Sparkles, Stars } from "@react-three/drei";
+import { useRef } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import type { Group } from "three";
+import { Html, OrbitControls, Sparkles, Stars } from "@react-three/drei";
 import type { StrategyBoardDriverContract } from "../../engine/strategy-board/driver.js";
 import type { StrategyBoardProgram } from "../../engine/strategy-board/program.js";
 import type { StrategyBoardSession } from "./strategy-board-session.js";
-import { strategyBoardEdges, strategyBoardLayout, type StrategyBoardPoint } from "./strategy-board-layout.js";
+import type { StrategyBoardExpressionPack } from "./strategy-board-expression.js";
+import type { StrategySpaceMaterial } from "../expressions/types.js";
 
 interface StrategyBoardSceneProps {
   program: StrategyBoardProgram;
@@ -11,156 +14,182 @@ interface StrategyBoardSceneProps {
   driver: StrategyBoardDriverContract | null;
   legalMoves: ReadonlySet<string>;
   terminal: boolean;
+  expression?: StrategyBoardExpressionPack | null;
   onMove: (spaceId: string) => void;
 }
-
-const worldPoint = (point: StrategyBoardPoint): [number, number, number] => [
-  (point.y - 50) / 6.2,
-  0,
-  (point.x - 50) / 7.4,
-];
 
 function controlForDoctrine(driver: StrategyBoardDriverContract | null, doctrineId: string): "human" | "automatic" | "seat" {
   return driver?.doctrines.find((entry) => entry.doctrineId === doctrineId)?.control ?? "seat";
 }
 
-function Pawn({ position, control, label, offset }: {
-  position: [number, number, number];
+const neutralMaterial: StrategySpaceMaterial = {
+  kind: "site", atmosphere: "neutral", landmark: "Strategic site", populationHint: "local operators",
+};
+function Pawn({ control, standardUrl, position = [0, 0, 0] }: {
   control: "human" | "automatic" | "seat";
-  label: string;
-  offset: number;
+  standardUrl?: string;
+  position?: [number, number, number];
 }) {
   const color = control === "human" ? "#56e4d6" : control === "automatic" ? "#ff7c8f" : "#9bb2c0";
-  return (
-    <group position={[position[0] + offset, .62, position[2] + offset * .45]}>
-      <mesh castShadow>
-        <cylinderGeometry args={[.18, .28, .42, 12]} />
-        <meshStandardMaterial color={color} roughness={.28} metalness={.2} />
-      </mesh>
-      <mesh position={[0, .32, 0]} castShadow>
-        <sphereGeometry args={[.2, 16, 12]} />
-        <meshStandardMaterial color={color} roughness={.22} />
-      </mesh>
-      <pointLight color={color} intensity={2.2} distance={2.5} />
-      <Html center position={[0, .72, 0]} distanceFactor={11} style={{ pointerEvents: "none" }}>
-        <div className="strategy-3d-token-label" data-control={control}>{control === "human" ? "YOU" : control === "automatic" ? "CPU" : label}</div>
-      </Html>
-    </group>
-  );
+  return <group position={position}>
+    <mesh castShadow><cylinderGeometry args={[.18, .27, .46, 12]} /><meshStandardMaterial color={color} roughness={.3} metalness={.18} /></mesh>
+    <mesh position={[0, .35, 0]} castShadow><sphereGeometry args={[.2, 16, 12]} /><meshStandardMaterial color={color} roughness={.25} /></mesh>
+    <pointLight color={color} intensity={2} distance={2.4} />
+    {standardUrl && <Html center position={[0, .82, 0]} distanceFactor={8} style={{ pointerEvents: "none" }}>
+      <div className="strategy-3d-standard"><img src={standardUrl} alt="" /><b>{control === "human" ? "YOU" : "CPU"}</b></div>
+    </Html>}
+  </group>;
 }
 
-export function StrategyBoardScene({ program, state, driver, legalMoves, terminal, onMove }: StrategyBoardSceneProps): JSX.Element {
+function ImpactPulse({ control }: { control: "human" | "automatic" | "seat" }) {
+  const group = useRef<Group>(null);
+  const started = useRef<number | null>(null);
+  const color = control === "automatic" ? "#ff7c8f" : "#56e4d6";
+  useFrame(({ clock }) => {
+    if (!group.current) return;
+    if (started.current === null) started.current = clock.elapsedTime;
+    const cycle = ((clock.elapsedTime - started.current) % 1.4) / 1.4;
+    group.current.scale.setScalar(.7 + cycle * 2.6);
+  });
+  return <group ref={group} position={[0, .05, 0]}><mesh rotation={[-Math.PI / 2, 0, 0]}>
+    <ringGeometry args={[.7, .77, 48]} /><meshBasicMaterial color={color} transparent opacity={.35} depthWrite={false} />
+  </mesh></group>;
+}
+function Structure({ position, scale, color, shape = "box" }: {
+  position: [number, number, number]; scale: [number, number, number]; color: string; shape?: "box" | "cone" | "cylinder";
+}) {
+  return <mesh position={position} castShadow receiveShadow>
+    {shape === "box" ? <boxGeometry args={scale} /> : shape === "cone" ? <coneGeometry args={[scale[0], scale[1], 6]} /> : <cylinderGeometry args={[scale[0], scale[2], scale[1], 10]} />}
+    <meshStandardMaterial color={color} roughness={.48} metalness={.08} />
+  </mesh>;
+}
+
+function PlaceArchitecture({ material }: { material: StrategySpaceMaterial }) {
+  const base = material.atmosphere === "integration" ? "#713447" : material.atmosphere === "reef" ? "#176f72" : "#167581";
+  if (material.kind === "ward") return <group>
+    <Structure position={[-1.5,.22,-.3]} scale={[1.1,.18,.7]} color="#d7ece8" />
+    <Structure position={[0,.22,-.55]} scale={[1.1,.18,.7]} color="#d7ece8" />
+    <Structure position={[1.5,.22,-.3]} scale={[1.1,.18,.7]} color="#d7ece8" />
+    <Structure position={[0,1.05,-1.4]} scale={[.25,1.9,.25]} color="#78d5cf" shape="cylinder" />
+    <mesh position={[0,2,-1.4]}><sphereGeometry args={[.28,16,12]} /><meshStandardMaterial color="#bffbf2" emissive="#4bb6ad" emissiveIntensity={1.2} /></mesh>
+  </group>;
+  if (material.kind === "harbor") return <group>
+    <Structure position={[-1.7,.12,.2]} scale={[2.2,.18,.5]} color="#796a52" />
+    <Structure position={[1.2,.12,-.45]} scale={[2.4,.18,.5]} color="#796a52" />
+    <Structure position={[-.8,.72,-.25]} scale={[.12,1.35,.12]} color="#c79e58" />
+    <Structure position={[.5,.58,-.75]} scale={[.1,1.05,.1]} color="#c79e58" />
+  </group>;
+  if (material.kind === "observatory") return <group>
+    <mesh position={[0,.42,-.45]} castShadow><sphereGeometry args={[1.1,24,14,0,Math.PI*2,0,Math.PI/2]} /><meshStandardMaterial color="#c7ded9" roughness={.36} metalness={.14} /></mesh>
+    <group position={[0,1.1,-.45]} rotation={[0,0,-.55]}><Structure position={[0,0,0]} scale={[.16,1.8,.16]} color="#d1b66f" shape="cylinder" /></group>
+    <mesh position={[.55,1.6,-.45]} rotation={[0,0,-.55]}><cylinderGeometry args={[.28,.18,.8,14]} /><meshStandardMaterial color="#6ab9bd" metalness={.2} roughness={.3} /></mesh>
+    <mesh position={[-1.7,.1,.2]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[.55,.7,32]} /><meshStandardMaterial color="#8ac9c8" emissive="#235b62" emissiveIntensity={.5} /></mesh>
+  </group>;
+  if (material.kind === "embassy") return <group>
+    {[-1.8,-1.1,-.45,.35,1.15,1.8].map((x,index) => <Structure key={x} position={[x,.45 + (index%3)*.18,-.35 - Math.abs(x)*.13]} scale={[.18,.9+(index%3)*.34,.18]} color={index%2?"#53b3aa":"#8b77b7"} shape="cone" />)}
+    <mesh position={[0,.42,-.65]} rotation={[-Math.PI/2,0,0]}><torusGeometry args={[1.05,.1,12,36]} /><meshStandardMaterial color="#d6d0ad" roughness={.4} /></mesh>
+  </group>;
+  if (material.kind === "spine") return <group>
+    {[-1.6,-.8,0,.8,1.6].map((x,index) => <Structure key={x} position={[x,.75,-.55-Math.abs(x)*.08]} scale={[.2,1.5+(index%2)*.6,.2]} color={base} shape="cylinder" />)}
+    <Structure position={[0,.18,.2]} scale={[4.2,.18,.45]} color="#6e4654" />
+    <pointLight position={[0,1.3,-.7]} color="#ff7c8f" intensity={2.4} distance={6} />
+  </group>;
+  if (material.kind === "council") return <group>
+    <mesh position={[0,.14,-.45]}><cylinderGeometry args={[2.0,2.25,.25,32]} /><meshStandardMaterial color="#155b65" roughness={.5} /></mesh>
+    <mesh position={[0,.32,-.45]} rotation={[-Math.PI/2,0,0]}><torusGeometry args={[1.35,.08,12,48]} /><meshStandardMaterial color="#d1b66f" metalness={.2} /></mesh>
+    <mesh position={[0,1.2,-.45]}><sphereGeometry args={[.5,24,16]} /><meshStandardMaterial color="#7bcac7" transparent opacity={.6} emissive="#205d67" emissiveIntensity={.7} /></mesh>
+  </group>;
+  return <group>
+    <Structure position={[-1.1,.45,-.5]} scale={[.6,.9,.6]} color={base} shape="cylinder" />
+    <Structure position={[0,.7,-.85]} scale={[.8,1.4,.8]} color="#6d9298" shape="cylinder" />
+    <Structure position={[1.1,.38,-.5]} scale={[.55,.76,.55]} color={base} shape="cylinder" />
+  </group>;
+}
+
+function DestinationGate({ x, space, assetName, reachable, onMove }: {
+  x: number;
+  space: StrategyBoardProgram["definition"]["spaces"][number];
+  assetName?: string;
+  reachable: boolean;
+  onMove: () => void;
+}) {
+  return <group position={[x,0,-3.25]}>
+    <Structure position={[-.58,.85,0]} scale={[.18,1.7,.22]} color={reachable?"#75d8d1":"#334c55"} />
+    <Structure position={[.58,.85,0]} scale={[.18,1.7,.22]} color={reachable?"#75d8d1":"#334c55"} />
+    <Structure position={[0,1.62,0]} scale={[1.35,.16,.22]} color={reachable?"#d4ddd1":"#40555e"} />
+    {reachable && <pointLight position={[0,1,0]} color="#65e2db" intensity={1.6} distance={3.3} />}
+    <Html center position={[0,2.15,0]} distanceFactor={7.2} style={{ pointerEvents: "auto" }}>
+      <button type="button" className="strategy-place-gate" data-testid={`strategy-space-${space.id}`} data-reachable={reachable?"true":"false"} disabled={!reachable} onClick={onMove}>
+        <span>{space.region}</span><strong>{space.name}</strong>{assetName && <small>{assetName}</small>}<em>{reachable?"TRAVEL":"BLOCKED"}</em>
+      </button>
+    </Html>
+  </group>;
+}
+export function StrategyBoardScene({ program, state, driver, legalMoves, terminal, expression, onMove }: StrategyBoardSceneProps): JSX.Element {
   const def = program.definition;
-  const points = strategyBoardLayout(program);
-  const edges = strategyBoardEdges(program);
-  const seats = new Map(state.seats.map((seat) => [seat.seatId, seat]));
-  const pointFor = (id: string) => worldPoint(points.get(id) ?? { x: 50, y: 50 });
+  const humanSeat = state.seats.find((seat) => controlForDoctrine(driver, seat.doctrineId) === "human") ?? state.seats[0]!;
+  const opponentSeat = state.seats.find((seat) => controlForDoctrine(driver, seat.doctrineId) === "automatic") ?? state.seats[1];
+  const currentId = state.execution.positions[humanSeat.seatId]!;
+  const current = def.spaces.find((space) => space.id === currentId)!;
+  const currentAsset = def.controlAssets.find((asset) => asset.sitedOnSpaceId === current.id);
+  const material = expression?.spaces[current.id] ?? neutralMaterial;
+  const adjacent = current.adjacentSpaceIds.map((id) => def.spaces.find((space) => space.id === id)!).filter(Boolean);
+  const gateXs = adjacent.length === 1 ? [0] : adjacent.length === 2 ? [-2.7, 2.7] : [-4.1, 0, 4.1];
+  const opponentSpaceId = opponentSeat ? state.execution.positions[opponentSeat.seatId] : null;
+  const opponentSpace = opponentSpaceId ? def.spaces.find((space) => space.id === opponentSpaceId) : null;
+  const sameSpace = opponentSpaceId === currentId;
+  const lastLedger = state.execution.ledger.at(-1);
+  const impactControl = lastLedger ? controlForDoctrine(driver, state.seats.find((seat) => seat.seatId === lastLedger.seatId)?.doctrineId ?? "") : "seat";
 
-  return (
-    <Canvas className="strategy-3d" dpr={[1, 1.5]} shadows camera={{ position: [0, 9.2, 9.8], fov: 44, near: .1, far: 70 }} onCreated={({ camera }) => camera.lookAt(0, 0, 0)}>
-      <color attach="background" args={["#03101a"]} />
-      <fog attach="fog" args={["#03101a", 10, 24]} />
-      <ambientLight intensity={1.05} />
-      <directionalLight position={[-5, 9, 4]} intensity={2.4} color="#bde7e5" castShadow />
-      <directionalLight position={[7, 5, -6]} intensity={.45} color="#8ba6c7" />
-      <Stars radius={40} depth={18} count={650} factor={2.2} saturation={.15} fade speed={.12} />
-      <Sparkles count={90} scale={[13, 2.5, 8]} size={1.35} speed={.16} opacity={.2} color="#83d6dc" />
+  return <Canvas data-testid="strategy-3d-scene" className="strategy-3d" dpr={[1,1.5]} gl={{ alpha:true, antialias:true }} shadows camera={{ position:[0,4.4,8.8], fov:42, near:.1, far:60 }} onCreated={({camera})=>camera.lookAt(0,.75,-.6)}>
+    <fog attach="fog" args={["#03101a",8,22]} />
+    <ambientLight intensity={.95} />
+    <directionalLight position={[-5,8,5]} intensity={2.2} color="#c9ece7" castShadow />
+    <directionalLight position={[6,4,-4]} intensity={.55} color="#7e9fbd" />
+    <Stars radius={35} depth={16} count={500} factor={1.8} saturation={.1} fade speed={.1} />
+    <Sparkles count={75} scale={[13,3,8]} size={1.15} speed={.15} opacity={.22} color="#80d8dc" />
+    <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.05,0]} receiveShadow>
+      <planeGeometry args={[18,13]} />
+      <meshStandardMaterial color={material.atmosphere === "integration" ? "#25111b" : material.atmosphere === "reef" ? "#062e36" : "#082a34"} roughness={.82} metalness={.02} />
+    </mesh>
+    <mesh rotation={[-Math.PI/2,0,0]} position={[0,.005,-.5]}>
+      <ringGeometry args={[2.8,3.05,64]} />
+      <meshBasicMaterial color={material.atmosphere === "integration" ? "#b9536d" : "#5ccac4"} transparent opacity={.28} />
+    </mesh>
 
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.42, 0]} receiveShadow>
-        <planeGeometry args={[26, 18, 1, 1]} />
-        <meshStandardMaterial color="#062530" roughness={.8} metalness={.02} />
-      </mesh>
+    <PlaceArchitecture material={material} />
+    <Html center position={[-4.9,2.5,-.8]} distanceFactor={8.2} style={{ pointerEvents:"none" }}>
+      <div className="strategy-place-title" data-testid="strategy-current-place">
+        <span>{current.region}</span><strong>{current.name}</strong>
+        <small>{material.landmark}</small><em>{material.populationHint}</em>
+      </div>
+    </Html>
 
-      {edges.map(([from, to]) => (
-        <Line
-          key={`${from}:${to}`}
-          points={[pointFor(from), pointFor(to)].map(([x, , z]) => [x, -.14, z] as [number, number, number])}
-          color="#4f8795"
-          lineWidth={1.25}
-          transparent
-          opacity={.52}
-          dashed
-          dashSize={.15}
-          gapSize={.11}
-        />
-      ))}
+    <Pawn control="human" standardUrl={expression?.standards.human} position={[-1.1,.25,2.0]} />
+    {sameSpace && opponentSeat && <Pawn control="automatic" standardUrl={expression?.standards.automatic} position={[1.1,.25,1.85]} />}
+    {!sameSpace && opponentSpace && <Html center position={[4.7,2.1,-1.1]} distanceFactor={8.4} style={{ pointerEvents:"none" }}>
+      <div className="strategy-place-opponent"><span>OPPONENT PRESSURE</span><strong>{opponentSpace.name}</strong></div>
+    </Html>}
 
-      {def.spaces.map((space, index) => {
-        const [x, , z] = pointFor(space.id);
-        const asset = def.controlAssets.find((item) => item.sitedOnSpaceId === space.id);
-        const owner = asset ? state.ownership[asset.id] : null;
-        const ownerSeat = owner ? seats.get(owner) : undefined;
-        const control = ownerSeat ? controlForDoctrine(driver, ownerSeat.doctrineId) : "seat";
-        const reachable = !terminal && state.phase === "movementResolution" && legalMoves.has(space.id);
-        const color = control === "human" ? "#177f79" : control === "automatic" ? "#7d3444" : index % 2 ? "#214a55" : "#285963";
-        return (
-          <group key={space.id} position={[x, 0, z]}>
-            <mesh receiveShadow castShadow>
-              <cylinderGeometry args={[1.0, 1.18, .32, 9]} />
-              <meshStandardMaterial color={color} roughness={.68} metalness={.05} />
-            </mesh>
-            <mesh position={[0, .19, 0]}>
-              <cylinderGeometry args={[.78, .94, .12, 9]} />
-              <meshStandardMaterial color={reachable ? "#6fcfd0" : "#3d6870"} emissive={reachable ? "#1f7f82" : "#071317"} emissiveIntensity={reachable ? .9 : .15} roughness={.72} />
-            </mesh>
-            <group position={[0, .48, 0]} rotation={[0, index * .73, 0]}>
-              <mesh castShadow>
-                <octahedronGeometry args={[space.type === "start" ? .28 : .22, 0]} />
-                <meshStandardMaterial color={reachable ? "#c4f5ed" : control === "automatic" ? "#e08b9b" : control === "human" ? "#75e4d3" : "#78aeb2"} emissive={reachable ? "#4eb7b4" : "#071317"} emissiveIntensity={reachable ? .8 : .18} roughness={.38} />
-              </mesh>
-              <mesh position={[.34, -.12, .18]} castShadow><boxGeometry args={[.12,.34,.12]} /><meshStandardMaterial color="#6f9da0" roughness={.55} /></mesh>
-              <mesh position={[-.28, -.16, -.22]} castShadow><boxGeometry args={[.1,.26,.1]} /><meshStandardMaterial color="#517b82" roughness={.58} /></mesh>
-            </group>
-            {reachable && (
-              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, .29, 0]}>
-                <ringGeometry args={[1.07, 1.15, 40]} />
-                <meshBasicMaterial color="#bffbfb" transparent opacity={.88} />
-              </mesh>
-            )}
-            <Html center position={[0, .82, 0]} distanceFactor={8.6} style={{ pointerEvents: "auto" }}>
-              <button
-                type="button"
-                className="strategy-3d-location"
-                data-testid={`strategy-space-${space.id}`}
-                data-reachable={reachable ? "true" : "false"}
-                data-owner={control}
-                disabled={!reachable}
-                title={asset?.description ?? space.name}
-                onClick={() => onMove(space.id)}
-              >
-                <span>{space.region}</span>
-                <strong>{space.name}</strong>
-                {asset && <small>{owner ? `${ownerSeat?.doctrineId ?? owner} · ${asset.name}` : asset.name}</small>}
-                {reachable && <em>MOVE</em>}
-              </button>
-            </Html>
-          </group>
-        );
-      })}
+    {lastLedger && <ImpactPulse key={state.execution.ledger.length} control={impactControl} />}
+    {!terminal && state.phase === "movementResolution" && adjacent.map((space,index) => {
+      const asset = def.controlAssets.find((item) => item.sitedOnSpaceId === space.id);
+      const reachable = legalMoves.has(space.id);
+      return <DestinationGate key={space.id} x={gateXs[index] ?? 0} space={space} assetName={asset?.name} reachable={reachable} onMove={() => onMove(space.id)} />;
+    })}
 
-      {state.seats.map((seat, index) => (
-        <Pawn
-          key={seat.seatId}
-          position={pointFor(state.execution.positions[seat.seatId]!)}
-          control={controlForDoctrine(driver, seat.doctrineId)}
-          label={seat.doctrineId}
-          offset={index ? .28 : -.28}
-        />
-      ))}
-
-      <OrbitControls
-        makeDefault
-        target={[0, 0, 0]}
-        enablePan={false}
-        enableDamping
-        dampingFactor={.08}
-        minDistance={7.8}
-        maxDistance={13}
-        minPolarAngle={.55}
-        maxPolarAngle={1.12}
-        minAzimuthAngle={-.55}
-        maxAzimuthAngle={.55}
-      />
-    </Canvas>
-  );
+    <OrbitControls
+      makeDefault
+      target={[0,.7,-.6]}
+      enablePan={false}
+      enableDamping
+      dampingFactor={.08}
+      minDistance={7.2}
+      maxDistance={10.5}
+      minPolarAngle={.78}
+      maxPolarAngle={1.15}
+      minAzimuthAngle={-.38}
+      maxAzimuthAngle={.38}
+    />
+  </Canvas>;
 }
