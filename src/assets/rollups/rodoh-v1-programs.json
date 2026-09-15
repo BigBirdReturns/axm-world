@@ -143,13 +143,15 @@
       "status": "production-dignity-complete",
       "historicalManifests": [
         "docs/design/ILYON_ASSET_BIBLE.md",
-        "src/assets/ilyon/observatory/provenance.json"
+        "src/assets/ilyon/observatory/provenance.json",
+        "src/assets/ilyon/crown-tides/provenance.json"
       ],
       "assetRoots": [
         "src/assets/ilyon"
       ],
       "presentationRoots": [
         "src/world/runtime",
+        "src/world/expressions",
         "src/world/themes/ilyon"
       ],
       "requiredRoles": [
@@ -162,6 +164,7 @@
       "acceptance": [
         "tests/engine/ilyon-crown-tides.test.ts",
         "tests/world/strategy-board-play-surface.test.ts",
+        "tests/world/strategy-board-expression.test.ts",
         "tests/world/runtime-host-registry.test.ts"
       ],
       "releaseBoundary": "Crown Tides reuses governed Ilyon visual material through the generic Strategy Board host; presentation never creates an action, outcome, or ending."
