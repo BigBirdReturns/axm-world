@@ -14,6 +14,7 @@ import {
   type StrategyBoardSession,
 } from "./strategy-board-session.js";
 import { strategyBoardEdges, strategyBoardLayout } from "./strategy-board-layout.js";
+import { resolveStrategyBoardExpression } from "./strategy-board-expression.js";
 import "./strategy-board-runtime.css";
 
 const StrategyBoardScene = lazy(() => import("./StrategyBoardScene.js").then((module) => ({ default: module.StrategyBoardScene })));
@@ -248,6 +249,7 @@ export function StrategyBoardRuntime({ arc, program, driver = null, onExit, stor
   const terminal = state.execution.terminal;
   const terminalEnding = terminal ? def.endings.find((ending) => ending.id === terminal.endingId) : null;
 
+  const expression = resolveStrategyBoardExpression(arc);
   const useThreeDimensional = typeof window !== "undefined" && window.matchMedia("(min-width: 761px)").matches;
   const points = strategyBoardLayout(program);
   const edges = strategyBoardEdges(program);
@@ -274,6 +276,8 @@ export function StrategyBoardRuntime({ arc, program, driver = null, onExit, stor
     <main className="strategy-runtime strategy-runtime--stage" data-testid="strategy-board-runtime">
       <section className="strategy-stage" aria-label={`${def.name} strategic world`}>
         <div className="strategy-stage__atmosphere" aria-hidden="true" />
+        {expression && <div className="strategy-stage__expression-bg" aria-hidden="true" style={{ backgroundImage: `url("${expression.environmentUrl}")` }} />}
+        {expression && <div className="strategy-stage__expression-fg" aria-hidden="true" style={{ backgroundImage: `url("${expression.foregroundUrl}")` }} />}
         <header className="strategy-stage__hud">
           <div className="strategy-stage__identity">
             <span>STRATEGY BOARD</span>
@@ -288,6 +292,7 @@ export function StrategyBoardRuntime({ arc, program, driver = null, onExit, stor
 
         <div className="strategy-stage__race" data-testid="strategy-race" aria-label="Reach your ending before the other side reaches theirs.">
           <div className="strategy-stage__race-side" data-side="human" data-testid={`strategy-ending-${humanEnding?.endingId ?? "human"}`}>
+            {expression && <img className="strategy-stage__race-standard" src={expression.standards.human} alt="" aria-hidden="true" />}
             <span>YOU</span>
             <small className="strategy-stage__faction-name">{doctrineName(program, humanSeat.doctrineId)}</small>
             <strong>{def.endings.find((ending) => ending.id === humanEnding?.endingId)?.name ?? "Your ending"}</strong>
@@ -299,6 +304,7 @@ export function StrategyBoardRuntime({ arc, program, driver = null, onExit, stor
           <div className="strategy-stage__versus">VS</div>
           {opponentSeat && (
             <div className="strategy-stage__race-side" data-side="automatic" data-testid={`strategy-ending-${opponentEnding?.endingId ?? "automatic"}`}>
+              {expression && <img className="strategy-stage__race-standard" src={expression.standards.automatic} alt="" aria-hidden="true" />}
               <span>OPPONENT</span>
               <small className="strategy-stage__faction-name">{doctrineName(program, opponentSeat.doctrineId)}</small>
               <strong>{def.endings.find((ending) => ending.id === opponentEnding?.endingId)?.name ?? "Opponent ending"}</strong>
@@ -325,6 +331,7 @@ export function StrategyBoardRuntime({ arc, program, driver = null, onExit, stor
               driver={driver}
               legalMoves={legalMoves}
               terminal={Boolean(terminal)}
+              expression={expression}
               onMove={(spaceId) => transition({ type: "advance", destinationSpaceId: spaceId })}
             />
             </Suspense>
@@ -498,7 +505,7 @@ export function StrategyBoardRuntime({ arc, program, driver = null, onExit, stor
           </section>
         </div>
         <div className="strategy-runtime__inspect-actions">
-          <span>Exact input trace: {session.inputs.length}</span>
+          <span>Exact input trace: {session.inputs.length}{expression ? ` · ${expression.producer} · ${expression.planDigest.slice(0, 12)}…` : ""}</span>
           <button type="button" data-testid="strategy-export-run" onClick={() => downloadStrategyBoardRuntimeRun(session.run)}>Export exact run</button>
         </div>
       </details>
