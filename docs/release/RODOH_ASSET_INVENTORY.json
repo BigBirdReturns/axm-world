@@ -13,8 +13,8 @@
   ],
   "summary": {
     "programs": 7,
-    "assets": 91,
-    "bytes": 431688,
+    "assets": 93,
+    "bytes": 462076,
     "svgAssets": 23,
     "vectorElements": 1531,
     "longDescriptions": 4,
@@ -165,7 +165,7 @@
           "format": "axm-runtime-asset-provenance/1"
         }
       ],
-      "assetCount": 17,
+      "assetCount": 19,
       "denseDescriptions": [],
       "requiredRoles": [
         "strategy-board spatial legibility",
@@ -725,10 +725,10 @@
       "kind": "svg",
       "bytes": 4161,
       "sha256": "0497729594ff7ef351402bc0c38f66c3891b14c1edb5744ddef710879903911b",
-      "viewBox": "0 0 640 800",
-      "title": "Orun Sable, high-gravity maintainer",
-      "description": "A massive load-bearing maintainer in a reinforced pressure harness, braced against a structural contact wall where ordinary corridors become inaccessible work terrain.",
-      "vectorElements": 59,
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
       "remoteReferences": [],
       "embeddedRaster": false,
       "executableSvg": false
@@ -1395,8 +1395,24 @@
         "program-006-ilyon-crown-tides"
       ],
       "kind": "tsx",
-      "bytes": 21201,
-      "sha256": "33c192cb675ad24060aa9a7fd4d6d2f3b70a29b39b09683b23c4f8d561e3c06c",
+      "bytes": 24408,
+      "sha256": "5f07303547c7b71c5f3c45286ad2ec34bbcf9ba7cbc0c5e18fec5a9b24938f64",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
+      "path": "src/world/runtime/StrategyBoardScene.tsx",
+      "owners": [
+        "program-006-ilyon-crown-tides"
+      ],
+      "kind": "tsx",
+      "bytes": 7709,
+      "sha256": "1a46dfafb8f6c99e7aec9d81b553433fa8c3dc263f95ad5f41f10f0c54e87202",
       "viewBox": null,
       "title": null,
       "description": null,
@@ -1422,13 +1438,29 @@
       "executableSvg": false
     },
     {
+      "path": "src/world/runtime/strategy-board-layout.ts",
+      "owners": [
+        "program-006-ilyon-crown-tides"
+      ],
+      "kind": "ts",
+      "bytes": 1864,
+      "sha256": "ce51961a94b56b571c5d0252e51c9f1928fcc5e00160ed413899768d04ffa145",
+      "viewBox": null,
+      "title": null,
+      "description": null,
+      "vectorElements": 0,
+      "remoteReferences": [],
+      "embeddedRaster": false,
+      "executableSvg": false
+    },
+    {
       "path": "src/world/runtime/strategy-board-runtime.css",
       "owners": [
         "program-006-ilyon-crown-tides"
       ],
       "kind": "css",
-      "bytes": 8484,
-      "sha256": "c9979174800699d5b0b067e8e30fc05a0dba2a979e95285bb2c7822d23ed029a",
+      "bytes": 26092,
+      "sha256": "71db163f1ae4fdb07fd826f016489632d94ccd911743ab51de5351965ba394d0",
       "viewBox": null,
       "title": null,
       "description": null,
